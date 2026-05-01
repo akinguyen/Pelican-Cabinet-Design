@@ -20,6 +20,7 @@ import {
   Move,
   PencilLine,
   Ruler,
+  Scan,
   Settings,
   Sofa,
   Square,
@@ -43,7 +44,7 @@ type Panel =
   | "text"
   | "lines";
 
-type Tool = "draw-wall" | null;
+type Tool = "draw-wall" | "draw-thin-wall" | null;
 
 type SidebarItem = {
   id: Panel;
@@ -56,10 +57,13 @@ type Point = {
   y: number;
 };
 
+type WallKind = "wall" | "thin-wall";
+
 type Wall = {
   id: string;
   start: Point;
   end: Point;
+  kind?: WallKind;
 };
 
 type GuideInfo = {
@@ -93,7 +97,20 @@ type MenuDragState = {
   startPosition: Point;
 };
 
-type MeasurementSide = "left" | "right";
+type SelectionRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+type GroupContextMenuState = {
+  position: Point;
+};
+
+type MeasurementSide = "left" | "right" | "length";
+
+type ThickWallCreationMode = "exterior" | "interior";
 
 type MeasurementEditState = {
   wallId: string;
@@ -138,6 +155,7 @@ const SNAP_THRESHOLD = 9;
 const WALL_ATTACH_THRESHOLD = 22;
 const WALL_STROKE_WIDTH = 16;
 const WALL_THICKNESS = WALL_STROKE_WIDTH;
+const THIN_WALL_STROKE_WIDTH = 2;
 
 const JOINT_DOT_RADIUS = 5;
 const JOINT_TICK_LENGTH = 16;
@@ -146,6 +164,7 @@ export default function CabinetEditor() {
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
   const [activeTool, setActiveTool] = useState<Tool>(null);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   const zoomIn = () => {
     setScale((currentScale) =>
@@ -174,11 +193,18 @@ export default function CabinetEditor() {
             onZoomIn={zoomIn}
             onZoomOut={zoomOut}
             onResetView={resetCanvasView}
+            isSelectionMode={isSelectionMode}
+            onToggleSelectionMode={() => {
+              setActiveTool(null);
+              setIsSelectionMode((current) => !current);
+            }}
           />
 
           <CanvasArea
             activeTool={activeTool}
             setActiveTool={setActiveTool}
+            isSelectionMode={isSelectionMode}
+            setIsSelectionMode={setIsSelectionMode}
             offset={offset}
             scale={scale}
             setOffset={setOffset}
@@ -262,10 +288,14 @@ function ModeBar({
   onZoomIn,
   onZoomOut,
   onResetView,
+  isSelectionMode,
+  onToggleSelectionMode,
 }: {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetView: () => void;
+  isSelectionMode: boolean;
+  onToggleSelectionMode: () => void;
 }) {
   return (
     <div className="grid h-[62px] shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b border-slate-200 bg-white px-6">
@@ -276,6 +306,12 @@ function ModeBar({
           icon={Crosshair}
           label="Center canvas view"
           onClick={onResetView}
+        />
+        <ModeIconButton
+          icon={Scan}
+          label="Selection area"
+          active={isSelectionMode}
+          onClick={onToggleSelectionMode}
         />
         <ModeIconButton icon={Ruler} label="Ruler" />
         <ModeIconButton icon={Magnet} label="Snap" />
@@ -315,17 +351,24 @@ function ModeIconButton({
   icon: Icon,
   label,
   onClick,
+  active = false,
 }: {
   icon: React.ElementType;
   label: string;
   onClick?: () => void;
+  active?: boolean;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-pelican-navy hover:bg-slate-100"
+      className={cn(
+        "flex h-10 w-10 items-center justify-center rounded-md border text-pelican-navy hover:bg-slate-100",
+        active
+          ? "border-pelican-teal bg-cyan-50 text-pelican-teal shadow-sm"
+          : "border-slate-200 bg-slate-50"
+      )}
     >
       <Icon className="h-[21px] w-[21px]" />
     </button>
@@ -335,6 +378,8 @@ function ModeIconButton({
 function CanvasArea({
   activeTool,
   setActiveTool,
+  isSelectionMode,
+  setIsSelectionMode,
   offset,
   scale,
   setOffset,
@@ -342,6 +387,8 @@ function CanvasArea({
 }: {
   activeTool: Tool;
   setActiveTool: React.Dispatch<React.SetStateAction<Tool>>;
+  isSelectionMode: boolean;
+  setIsSelectionMode: React.Dispatch<React.SetStateAction<boolean>>;
   offset: Point;
   scale: number;
   setOffset: React.Dispatch<React.SetStateAction<Point>>;
@@ -366,6 +413,15 @@ function CanvasArea({
   const [menuPosition, setMenuPosition] = useState<Point | null>(null);
   const [editingMeasurement, setEditingMeasurement] =
     useState<MeasurementEditState | null>(null);
+  const [isSelectingArea, setIsSelectingArea] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<Point | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<Point | null>(null);
+  const [groupSelectedWallIds, setGroupSelectedWallIds] = useState<string[]>([]);
+  const [groupContextMenu, setGroupContextMenu] =
+    useState<GroupContextMenuState | null>(null);
+
+  const thickWalls = useMemo(() => walls.filter(isThickWall), [walls]);
+  const thinWalls = useMemo(() => walls.filter(isThinWall), [walls]);
 
   const wallPoints = useMemo(() => {
     return walls.flatMap((wall) => [wall.start, wall.end]);
@@ -375,8 +431,22 @@ function CanvasArea({
     return walls.find((wall) => wall.id === selectedWallId) ?? null;
   }, [walls, selectedWallId]);
 
-  const connectionMap = useMemo(() => buildConnectionMap(walls), [walls]);
-  const wallChains = useMemo(() => buildWallChains(walls), [walls]);
+  const groupSelectedWalls = useMemo(() => {
+    const selectedIds = new Set(groupSelectedWallIds);
+    return walls.filter((wall) => selectedIds.has(wall.id));
+  }, [groupSelectedWallIds, walls]);
+
+  const groupSelectedThinWalls = useMemo(() => {
+    return groupSelectedWalls.filter(isThinWall);
+  }, [groupSelectedWalls]);
+
+  const canConvertGroupThinWalls =
+    groupSelectedWalls.length > 0 &&
+    groupSelectedThinWalls.length === groupSelectedWalls.length;
+
+  const connectionMap = useMemo(() => buildConnectionMap(thickWalls), [thickWalls]);
+  const thinConnectionMap = useMemo(() => buildConnectionMap(thinWalls), [thinWalls]);
+  const wallChains = useMemo(() => buildWallChains(thickWalls), [thickWalls]);
 
   const clearWallSelectionState = useCallback(() => {
     setSelectedWallId(null);
@@ -384,6 +454,11 @@ function CanvasArea({
     setEditingMeasurement(null);
     setDrawingStart(null);
     setPreviewPoint(null);
+    setSelectionStart(null);
+    setSelectionEnd(null);
+    setIsSelectingArea(false);
+    setGroupSelectedWallIds([]);
+    setGroupContextMenu(null);
   }, []);
 
   const commitWallsChange = useCallback(
@@ -426,6 +501,34 @@ function CanvasArea({
     clearWallSelectionState();
   }, [clearWallSelectionState]);
 
+  const createThickWallsFromThinWalls = useCallback(
+    (mode: ThickWallCreationMode, sourceWallIds?: string[]) => {
+      const sourceIdSet = sourceWallIds ? new Set(sourceWallIds) : null;
+      const currentThinWalls = wallsRef.current.filter(
+        (wall) => isThinWall(wall) && (!sourceIdSet || sourceIdSet.has(wall.id))
+      );
+
+      if (currentThinWalls.length === 0) return;
+
+      const convertedWalls = convertThinWallsToThickWalls(currentThinWalls, mode);
+
+      if (convertedWalls.length === 0) return;
+
+      commitWallsChange((currentWalls) => [
+        ...currentWalls.filter((wall) => {
+          if (!isThinWall(wall)) return true;
+          return sourceIdSet ? !sourceIdSet.has(wall.id) : false;
+        }),
+        ...convertedWalls,
+      ]);
+
+      setActiveTool(null);
+      activeToolRef.current = null;
+      clearWallSelectionState();
+    },
+    [clearWallSelectionState, commitWallsChange, setActiveTool]
+  );
+
   useEffect(() => {
     wallsRef.current = walls;
   }, [walls]);
@@ -441,6 +544,19 @@ function CanvasArea({
   useEffect(() => {
     activeToolRef.current = activeTool;
   }, [activeTool]);
+
+  useEffect(() => {
+    if (isDrawingTool(activeTool) && isSelectionMode) {
+      setIsSelectionMode(false);
+      setGroupSelectedWallIds([]);
+      setGroupContextMenu(null);
+      setSelectionStart(null);
+      setSelectionEnd(null);
+      setIsSelectingArea(false);
+    }
+  }, [activeTool, isSelectionMode, setIsSelectionMode]);
+
+
 
   useEffect(() => {
     if (!selectedWall) {
@@ -501,6 +617,19 @@ function CanvasArea({
     };
   }, [redoWallChange, undoWallChange]);
 
+  useEffect(() => {
+    const handleCreateWallExterior = () => createThickWallsFromThinWalls("exterior");
+    const handleCreateWallInterior = () => createThickWallsFromThinWalls("interior");
+
+    window.addEventListener("pelican-create-wall-exterior", handleCreateWallExterior);
+    window.addEventListener("pelican-create-wall-interior", handleCreateWallInterior);
+
+    return () => {
+      window.removeEventListener("pelican-create-wall-exterior", handleCreateWallExterior);
+      window.removeEventListener("pelican-create-wall-interior", handleCreateWallInterior);
+    };
+  }, [createThickWallsFromThinWalls]);
+
 useEffect(() => {
   const cancelDrawWallTool = () => {
     setActiveTool(null);
@@ -539,7 +668,7 @@ useEffect(() => {
 
     if (
       (isCtrlCancel || event.key === "Escape") &&
-      activeToolRef.current === "draw-wall"
+      isDrawingTool(activeToolRef.current)
     ) {
       event.preventDefault();
       cancelDrawWallTool();
@@ -547,10 +676,41 @@ useEffect(() => {
     }
 
     if (event.key === "Escape") {
+      if (isSelectionMode) {
+        event.preventDefault();
+        setIsSelectionMode(false);
+      }
+
       setDrawingStart(null);
       setPreviewPoint(null);
       setSelectedWallId(null);
       setMenuPosition(null);
+      setGroupSelectedWallIds([]);
+      setGroupContextMenu(null);
+      setSelectionStart(null);
+      setSelectionEnd(null);
+      setIsSelectingArea(false);
+      return;
+    }
+
+    if (
+      (event.key === "Backspace" || event.key === "Delete") &&
+      groupSelectedWallIds.length > 0
+    ) {
+      event.preventDefault();
+      const selectedIds = new Set(groupSelectedWallIds);
+      commitWallsChange((currentWalls) =>
+        currentWalls.filter((wall) => !selectedIds.has(wall.id))
+      );
+
+      setSelectedWallId(null);
+      setMenuPosition(null);
+      setGroupSelectedWallIds([]);
+      setGroupContextMenu(null);
+      setSelectionStart(null);
+      setSelectionEnd(null);
+      setDrawingStart(null);
+      setPreviewPoint(null);
       return;
     }
 
@@ -573,7 +733,7 @@ useEffect(() => {
   window.addEventListener("keydown", handleKeyDown, true);
 
   return () => window.removeEventListener("keydown", handleKeyDown, true);
-}, [commitWallsChange, editingMeasurement, redoWallChange, selectedWallId, setActiveTool, undoWallChange]);
+}, [commitWallsChange, editingMeasurement, groupSelectedWallIds, isSelectionMode, redoWallChange, selectedWallId, setActiveTool, setIsSelectionMode, undoWallChange]);
 
   const screenToWorkspace = (clientX: number, clientY: number): Point | null => {
     const canvas = canvasRef.current;
@@ -637,7 +797,7 @@ useEffect(() => {
   };
 
   const wallHoverPoint = useMemo(() => {
-    if (activeTool !== "draw-wall" || !previewPoint || drawingStart) return null;
+    if (!isDrawingTool(activeTool) || !previewPoint || drawingStart) return null;
 
     return getWallAttachPoint(previewPoint, walls);
   }, [activeTool, drawingStart, previewPoint, walls]);
@@ -652,14 +812,14 @@ useEffect(() => {
   const currentPreviewPoint = currentGuide?.point ?? rawPreviewPoint;
 
   const isCreatingWallPreview = Boolean(
-    activeTool === "draw-wall" &&
+    isDrawingTool(activeTool) &&
       drawingStart &&
       currentPreviewPoint &&
       distance(drawingStart, currentPreviewPoint) > 4
   );
 
   const startMeasurementEdit = (payload: MeasurementClickPayload) => {
-    if (activeToolRef.current === "draw-wall") return;
+    if (isDrawingTool(activeToolRef.current)) return;
 
     const wall = wallsRef.current.find(
       (currentWall) =>
@@ -672,6 +832,8 @@ useEffect(() => {
     if (!wall) return;
 
     setSelectedWallId(wall.id);
+    setGroupSelectedWallIds([]);
+    setGroupContextMenu(null);
     setMenuPosition(getWallMenuPosition(wall));
     setEditingMeasurement({
       wallId: wall.id,
@@ -707,6 +869,8 @@ useEffect(() => {
     const wall = walls.find((currentWall) => currentWall.id === wallId);
 
     setSelectedWallId(wallId);
+    setGroupSelectedWallIds([]);
+    setGroupContextMenu(null);
     setMenuPosition(wall ? getWallMenuPosition(wall) : null);
     setEditingMeasurement(null);
   };
@@ -762,15 +926,80 @@ useEffect(() => {
     menuDragRef.current = null;
   };
 
+  const finishSelectionArea = () => {
+    if (!selectionStart || !selectionEnd) {
+      setIsSelectingArea(false);
+      return;
+    }
+
+    const rect = getSelectionRect(selectionStart, selectionEnd);
+    const selectedIds = wallsRef.current
+      .filter((wall) => wallIntersectsSelectionRect(wall, rect))
+      .map((wall) => wall.id);
+
+    setGroupSelectedWallIds(selectedIds);
+    setGroupContextMenu(null);
+    setSelectedWallId(null);
+    setMenuPosition(null);
+    setEditingMeasurement(null);
+    setSelectionStart(null);
+    setSelectionEnd(null);
+    setIsSelectingArea(false);
+  };
+
+  const createSelectedThinWalls = (mode: ThickWallCreationMode) => {
+    if (!canConvertGroupThinWalls) return;
+
+    createThickWallsFromThinWalls(mode, groupSelectedThinWalls.map((wall) => wall.id));
+  };
+
+  const handleCanvasContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isSelectionMode || !canConvertGroupThinWalls) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const point = screenToWorkspace(event.clientX, event.clientY);
+
+    if (!point) return;
+
+    setSelectedWallId(null);
+    setMenuPosition(null);
+    setEditingMeasurement(null);
+    setGroupContextMenu({ position: point });
+  };
+
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
 
-    if (activeToolRef.current === "draw-wall") {
+    if (isSelectionMode) {
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+
+      const rawPoint = screenToWorkspace(event.clientX, event.clientY);
+
+      if (!rawPoint) return;
+
+      setSelectionStart(rawPoint);
+      setSelectionEnd(rawPoint);
+      setIsSelectingArea(true);
+      setGroupContextMenu(null);
+      setSelectedWallId(null);
+      setMenuPosition(null);
+      setEditingMeasurement(null);
+      return;
+    }
+
+    if (isDrawingTool(activeToolRef.current)) {
+      const drawingTool = activeToolRef.current;
+
       event.preventDefault();
       event.currentTarget.setPointerCapture(event.pointerId);
       setSelectedWallId(null);
       setMenuPosition(null);
       setEditingMeasurement(null);
+      setGroupSelectedWallIds([]);
+      setGroupContextMenu(null);
 
       const rawPoint = screenToWorkspace(event.clientX, event.clientY);
 
@@ -796,6 +1025,7 @@ useEffect(() => {
           id: crypto.randomUUID(),
           start: drawingStart,
           end: endPoint,
+          kind: drawingTool === "draw-thin-wall" ? "thin-wall" : "wall",
         },
       ]);
 
@@ -808,6 +1038,8 @@ useEffect(() => {
     setSelectedWallId(null);
     setMenuPosition(null);
     setEditingMeasurement(null);
+    setGroupSelectedWallIds([]);
+    setGroupContextMenu(null);
 
     dragStartRef.current = {
       x: event.clientX,
@@ -821,7 +1053,17 @@ useEffect(() => {
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (activeToolRef.current === "draw-wall") {
+    if (isSelectionMode && isSelectingArea) {
+      const rawPoint = screenToWorkspace(event.clientX, event.clientY);
+
+      if (rawPoint) {
+        setSelectionEnd(rawPoint);
+      }
+
+      return;
+    }
+
+    if (isDrawingTool(activeToolRef.current)) {
       const rawPoint = screenToWorkspace(event.clientX, event.clientY);
 
       if (rawPoint) {
@@ -845,6 +1087,16 @@ useEffect(() => {
   };
 
   const stopDragging = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (isSelectionMode && isSelectingArea) {
+      finishSelectionArea();
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      return;
+    }
+
     if (!isDraggingCanvas) return;
 
     setIsDraggingCanvas(false);
@@ -895,17 +1147,20 @@ useEffect(() => {
       ref={canvasRef}
       className={cn(
         "relative min-h-0 flex-1 overflow-hidden bg-[#f5f5f5] touch-none select-none",
-        activeTool === "draw-wall"
+        isSelectionMode
           ? "cursor-crosshair"
-          : isDraggingCanvas
-            ? "cursor-grabbing"
-            : "cursor-default"
+          : isDrawingTool(activeTool)
+            ? "cursor-crosshair"
+            : isDraggingCanvas
+              ? "cursor-grabbing"
+              : "cursor-default"
       )}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={stopDragging}
       onPointerCancel={stopDragging}
       onPointerLeave={stopDragging}
+      onContextMenu={handleCanvasContextMenu}
     >
       <div
         className="editor-grid absolute left-1/2 top-1/2 shadow-[0_0_0_1px_rgba(226,232,240,0.45)]"
@@ -930,11 +1185,31 @@ useEffect(() => {
             />
           ))}
 
+          {thinWalls.map((wall) => (
+            <ThinWallLine
+              key={wall.id}
+              wall={wall}
+              onMeasurementClick={startMeasurementEdit}
+            />
+          ))}
+
+          {groupSelectedWalls.map((wall) => (
+            <SelectedWallOverlay key={`group-selected-${wall.id}`} wall={wall} />
+          ))}
+
           {selectedWall && <SelectedWallOverlay wall={selectedWall} />}
 
-          {getOpenEndpoints(walls, connectionMap).map((point) => (
+          {getOpenEndpoints(thickWalls, connectionMap).map((point) => (
             <OpenEndpoint key={`open-${pointKey(point)}`} point={point} />
           ))}
+
+          {getOpenEndpoints(thinWalls, thinConnectionMap).map((point) => (
+            <ThinOpenEndpoint key={`thin-open-${pointKey(point)}`} point={point} />
+          ))}
+          {getConnectedEndpoints(thinWalls, thinConnectionMap).map((point) => (
+            <ThinJointDot key={`thin-joint-${pointKey(point)}`} point={point} />
+          ))}
+
 
           {drawingStart && activeTool === "draw-wall" && (
             <WallDrawingOverlay
@@ -946,20 +1221,45 @@ useEffect(() => {
             />
           )}
 
-          {activeTool === "draw-wall" && wallHoverPoint && (
+          {drawingStart && activeTool === "draw-thin-wall" && (
+            <ThinWallDrawingOverlay
+              start={drawingStart}
+              end={currentPreviewPoint ?? drawingStart}
+              horizontalY={currentGuide?.horizontalY ?? drawingStart.y}
+              verticalX={currentGuide?.verticalX}
+              showSerialStart={walls.length > 0}
+            />
+          )}
+
+          {isDrawingTool(activeTool) && wallHoverPoint && (
             <WallAttachIndicator point={wallHoverPoint} />
           )}
 
-          <WallSelectionHitAreas
-            walls={walls}
-            activeTool={activeTool}
-            onSelectWall={selectWall}
-          />
+          {!isSelectionMode && (
+            <WallSelectionHitAreas
+              walls={walls}
+              activeTool={activeTool}
+              onSelectWall={selectWall}
+            />
+          )}
 
-          {activeTool !== "draw-wall" && (
+          {!isSelectionMode && !isDrawingTool(activeTool) && (
             <MeasurementEditHitAreas
               chains={wallChains}
+              thinWalls={thinWalls}
               onMeasurementClick={startMeasurementEdit}
+            />
+          )}
+
+          {selectionStart && selectionEnd && (
+            <SelectionAreaBox start={selectionStart} end={selectionEnd} />
+          )}
+
+          {groupContextMenu && canConvertGroupThinWalls && (
+            <ThinWallGroupContextMenu
+              position={groupContextMenu.position}
+              onCreateExterior={() => createSelectedThinWalls("exterior")}
+              onCreateInterior={() => createSelectedThinWalls("interior")}
             />
           )}
 
@@ -998,6 +1298,77 @@ useEffect(() => {
   );
 }
 
+function SelectionAreaBox({ start, end }: { start: Point; end: Point }) {
+  const rect = getSelectionRect(start, end);
+
+  return (
+    <g pointerEvents="none">
+      <rect
+        x={rect.x}
+        y={rect.y}
+        width={rect.width}
+        height={rect.height}
+        fill="#38bdf8"
+        fillOpacity={0.12}
+        stroke="#0ea5e9"
+        strokeWidth={1.5}
+        strokeDasharray="6 6"
+        vectorEffect="non-scaling-stroke"
+      />
+    </g>
+  );
+}
+
+function ThinWallGroupContextMenu({
+  position,
+  onCreateExterior,
+  onCreateInterior,
+}: {
+  position: Point;
+  onCreateExterior: () => void;
+  onCreateInterior: () => void;
+}) {
+  return (
+    <foreignObject
+      x={position.x}
+      y={position.y}
+      width={180}
+      height={88}
+      pointerEvents="all"
+      className="overflow-visible"
+      onPointerDown={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      <div className="flex w-[170px] flex-col overflow-hidden rounded-md border-2 border-[#00aee6] bg-white text-[12px] font-semibold text-slate-700 shadow-md">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onCreateExterior();
+          }}
+          className="px-3 py-2 text-left hover:bg-cyan-50"
+        >
+          Create wall exterior
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onCreateInterior();
+          }}
+          className="border-t border-slate-200 px-3 py-2 text-left hover:bg-cyan-50"
+        >
+          Create wall interior
+        </button>
+      </div>
+    </foreignObject>
+  );
+}
+
 function WallAttachIndicator({ point }: { point: Point }) {
   return (
     <g pointerEvents="none">
@@ -1030,6 +1401,17 @@ function WallAttachIndicator({ point }: { point: Point }) {
         strokeLinecap="square"
         vectorEffect="non-scaling-stroke"
       />
+    </g>
+  );
+}
+
+function ThinWallLine({ wall, onMeasurementClick }: { wall: Wall; onMeasurementClick?: (payload: MeasurementClickPayload) => void }) {
+  const layout = getThinWallMeasurementLayout(wall.start, wall.end);
+  const length = distance(wall.start, wall.end);
+  return (
+    <g>
+      <line x1={wall.start.x} y1={wall.start.y} x2={wall.end.x} y2={wall.end.y} stroke="#6b7280" strokeWidth={THIN_WALL_STROKE_WIDTH} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <MeasurementLabelOnly layout={layout} label={formatFeetInches(length)} onClick={onMeasurementClick ? () => onMeasurementClick({ segmentStart: wall.start, segmentEnd: wall.end, side: "length", currentEdgeLength: length, labelPoint: layout.labelPoint, rotation: layout.rotation }) : undefined} />
     </g>
   );
 }
@@ -1218,132 +1600,63 @@ function CornerJointMarker({
 }
 
 function SelectedWallOverlay({ wall }: { wall: Wall }) {
+  if (isThinWall(wall)) {
+    return (
+      <g>
+        <line x1={wall.start.x} y1={wall.start.y} x2={wall.end.x} y2={wall.end.y} stroke="#00aee6" strokeWidth={3} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        <circle cx={wall.start.x} cy={wall.start.y} r={8} fill="white" stroke="#00aee6" strokeWidth={3} vectorEffect="non-scaling-stroke" />
+        <circle cx={wall.end.x} cy={wall.end.y} r={8} fill="white" stroke="#00aee6" strokeWidth={3} vectorEffect="non-scaling-stroke" />
+      </g>
+    );
+  }
+
   return (
     <g>
-      <line
-        x1={wall.start.x}
-        y1={wall.start.y}
-        x2={wall.end.x}
-        y2={wall.end.y}
-        stroke="#b7edf4"
-        strokeWidth={WALL_STROKE_WIDTH}
-        strokeLinecap="butt"
-        vectorEffect="non-scaling-stroke"
-      />
-
-      <line
-        x1={wall.start.x}
-        y1={wall.start.y}
-        x2={wall.end.x}
-        y2={wall.end.y}
-        stroke="#00aee6"
-        strokeWidth={2}
-        strokeLinecap="butt"
-        vectorEffect="non-scaling-stroke"
-      />
-
-      <circle
-        cx={wall.start.x}
-        cy={wall.start.y}
-        r={13}
-        fill="none"
-        stroke="#00aee6"
-        strokeWidth={3}
-        vectorEffect="non-scaling-stroke"
-      />
-
-      <circle
-        cx={wall.end.x}
-        cy={wall.end.y}
-        r={13}
-        fill="none"
-        stroke="#00aee6"
-        strokeWidth={3}
-        vectorEffect="non-scaling-stroke"
-      />
+      <line x1={wall.start.x} y1={wall.start.y} x2={wall.end.x} y2={wall.end.y} stroke="#b7edf4" strokeWidth={WALL_STROKE_WIDTH} strokeLinecap="butt" vectorEffect="non-scaling-stroke" />
+      <line x1={wall.start.x} y1={wall.start.y} x2={wall.end.x} y2={wall.end.y} stroke="#00aee6" strokeWidth={2} strokeLinecap="butt" vectorEffect="non-scaling-stroke" />
+      <circle cx={wall.start.x} cy={wall.start.y} r={13} fill="none" stroke="#00aee6" strokeWidth={3} vectorEffect="non-scaling-stroke" />
+      <circle cx={wall.end.x} cy={wall.end.y} r={13} fill="none" stroke="#00aee6" strokeWidth={3} vectorEffect="non-scaling-stroke" />
     </g>
   );
 }
 
 function MeasurementEditHitAreas({
   chains,
+  thinWalls,
   onMeasurementClick,
 }: {
   chains: { points: Point[] }[];
+  thinWalls: Wall[];
   onMeasurementClick: (payload: MeasurementClickPayload) => void;
 }) {
   return (
     <g>
       {chains.map((chain, chainIndex) => {
         if (chain.points.length < 2) return null;
-
         const geometry = buildWallBand(chain.points, WALL_THICKNESS);
-
         return (
           <g key={`measure-hit-${chainIndex}`}>
             {geometry.leftEdges.map((edge, index) => {
               const layout = getEdgeMeasurementLayout(edge.a, edge.b, "left");
               const edgeLength = distance(edge.a, edge.b);
-
               return (
-                <line
-                  key={`left-measure-hit-${chainIndex}-${index}`}
-                  x1={layout.lineStart.x}
-                  y1={layout.lineStart.y}
-                  x2={layout.lineEnd.x}
-                  y2={layout.lineEnd.y}
-                  stroke="transparent"
-                  strokeWidth={40}
-                  pointerEvents="stroke"
-                  vectorEffect="non-scaling-stroke"
-                  onPointerDown={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    onMeasurementClick({
-                      segmentStart: chain.points[index],
-                      segmentEnd: chain.points[index + 1],
-                      side: "left",
-                      currentEdgeLength: edgeLength,
-                      labelPoint: layout.labelPoint,
-                      rotation: layout.rotation,
-                    });
-                  }}
-                />
+                <line key={`left-measure-hit-${chainIndex}-${index}`} x1={layout.lineStart.x} y1={layout.lineStart.y} x2={layout.lineEnd.x} y2={layout.lineEnd.y} stroke="transparent" strokeWidth={40} pointerEvents="stroke" vectorEffect="non-scaling-stroke" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); onMeasurementClick({ segmentStart: chain.points[index], segmentEnd: chain.points[index + 1], side: "left", currentEdgeLength: edgeLength, labelPoint: layout.labelPoint, rotation: layout.rotation }); }} />
               );
             })}
-
             {geometry.rightEdges.map((edge, index) => {
               const layout = getEdgeMeasurementLayout(edge.a, edge.b, "right");
               const edgeLength = distance(edge.a, edge.b);
-
               return (
-                <line
-                  key={`right-measure-hit-${chainIndex}-${index}`}
-                  x1={layout.lineStart.x}
-                  y1={layout.lineStart.y}
-                  x2={layout.lineEnd.x}
-                  y2={layout.lineEnd.y}
-                  stroke="transparent"
-                  strokeWidth={40}
-                  pointerEvents="stroke"
-                  vectorEffect="non-scaling-stroke"
-                  onPointerDown={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    onMeasurementClick({
-                      segmentStart: chain.points[index],
-                      segmentEnd: chain.points[index + 1],
-                      side: "right",
-                      currentEdgeLength: edgeLength,
-                      labelPoint: layout.labelPoint,
-                      rotation: layout.rotation,
-                    });
-                  }}
-                />
+                <line key={`right-measure-hit-${chainIndex}-${index}`} x1={layout.lineStart.x} y1={layout.lineStart.y} x2={layout.lineEnd.x} y2={layout.lineEnd.y} stroke="transparent" strokeWidth={40} pointerEvents="stroke" vectorEffect="non-scaling-stroke" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); onMeasurementClick({ segmentStart: chain.points[index], segmentEnd: chain.points[index + 1], side: "right", currentEdgeLength: edgeLength, labelPoint: layout.labelPoint, rotation: layout.rotation }); }} />
               );
             })}
           </g>
         );
+      })}
+      {thinWalls.map((wall) => {
+        const layout = getThinWallMeasurementLayout(wall.start, wall.end);
+        const edgeLength = distance(wall.start, wall.end);
+        return <line key={`thin-measure-hit-${wall.id}`} x1={layout.lineStart.x} y1={layout.lineStart.y} x2={layout.lineEnd.x} y2={layout.lineEnd.y} stroke="transparent" strokeWidth={34} pointerEvents="stroke" vectorEffect="non-scaling-stroke" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); onMeasurementClick({ segmentStart: wall.start, segmentEnd: wall.end, side: "length", currentEdgeLength: edgeLength, labelPoint: layout.labelPoint, rotation: layout.rotation }); }} />;
       })}
     </g>
   );
@@ -1358,7 +1671,7 @@ function WallSelectionHitAreas({
   activeTool: Tool;
   onSelectWall: (id: string) => void;
 }) {
-  if (activeTool === "draw-wall") return null;
+  if (isDrawingTool(activeTool)) return null;
 
   return (
     <g>
@@ -1370,7 +1683,7 @@ function WallSelectionHitAreas({
           x2={wall.end.x}
           y2={wall.end.y}
           stroke="transparent"
-          strokeWidth={Math.max(WALL_STROKE_WIDTH + 22, 34)}
+          strokeWidth={isThinWall(wall) ? 26 : Math.max(WALL_STROKE_WIDTH + 22, 34)}
           strokeLinecap="round"
           pointerEvents="stroke"
           vectorEffect="non-scaling-stroke"
@@ -1536,7 +1849,39 @@ function MeasurementLine({
   );
 }
 
+function MeasurementLabelOnly({
+  layout,
+  label,
+  onClick,
+}: {
+  layout: MeasurementLayout;
+  label: string;
+  onClick?: () => void;
+}) {
+  return (
+    <g
+      className={onClick ? "cursor-text" : undefined}
+      onPointerDown={(event) => {
+        if (!onClick) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        onClick();
+      }}
+    >
+      <SvgTextHalo
+        x={layout.labelPoint.x}
+        y={layout.labelPoint.y}
+        text={label}
+        rotate={layout.rotation}
+        className="fill-slate-950 text-[14px] font-bold"
+      />
+    </g>
+  );
+}
+
 function MeasurementEditPopover({
+
   edit,
   onChange,
   onCancel,
@@ -1750,6 +2095,26 @@ function WallDrawingOverlay({
   );
 }
 
+function ThinWallDrawingOverlay({ start, end, horizontalY, verticalX, showSerialStart }: { start: Point; end: Point; horizontalY?: number; verticalX?: number; showSerialStart: boolean }) {
+  const length = distance(start, end);
+  const hasLength = length > 4;
+  const measure = getThinWallMeasurementLayout(start, end);
+  const angleGuide = getAngleGuideLayout(start, end);
+  return (
+    <g>
+      {horizontalY !== undefined && <line x1={0} y1={horizontalY} x2={WORKSPACE_WIDTH} y2={horizontalY} stroke="#ef4444" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />}
+      {verticalX !== undefined && <line x1={verticalX} y1={0} x2={verticalX} y2={WORKSPACE_HEIGHT} stroke="#ef4444" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />}
+      {hasLength && angleGuide.mode === "full" && <circle cx={start.x} cy={start.y} r={length} fill="none" stroke="#777" strokeWidth={1.25} opacity={0.85} vectorEffect="non-scaling-stroke" />}
+      {hasLength && angleGuide.mode !== "full" && <path d={describeHalfArc(start, length, angleGuide.mode)} fill="none" stroke="#777" strokeWidth={1.25} opacity={0.85} vectorEffect="non-scaling-stroke" />}
+      {hasLength && <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="#31bde2" strokeWidth={THIN_WALL_STROKE_WIDTH} strokeLinecap="round" vectorEffect="non-scaling-stroke" />}
+      {hasLength && <MeasurementLabelOnly layout={measure} label={formatFeetInches(length)} />}
+      {hasLength && angleGuide.labels.map((item) => <SvgTextHalo key={`${item.text}-${item.point.x}-${item.point.y}`} x={item.point.x} y={item.point.y} text={item.text} className="fill-slate-950 text-[14px] font-bold" />)}
+      <ThinPointHandle point={start} variant="red" />
+      {hasLength && <ThinPointHandle point={end} variant="blue" />}
+    </g>
+  );
+}
+
 function OpenEndpoint({ point }: { point: Point }) {
   return (
     <circle
@@ -1760,6 +2125,33 @@ function OpenEndpoint({ point }: { point: Point }) {
       fillOpacity={0.72}
       stroke="#ff7b7b"
       strokeWidth={3}
+      vectorEffect="non-scaling-stroke"
+    />
+  );
+}
+
+function ThinOpenEndpoint({ point }: { point: Point }) {
+  return (
+    <circle
+      cx={point.x}
+      cy={point.y}
+      r={8}
+      fill="#ff9b9b"
+      fillOpacity={0.72}
+      stroke="#ff7b7b"
+      strokeWidth={3}
+      vectorEffect="non-scaling-stroke"
+    />
+  );
+}
+
+function ThinJointDot({ point }: { point: Point }) {
+  return (
+    <circle
+      cx={point.x}
+      cy={point.y}
+      r={4}
+      fill="#43b3c8"
       vectorEffect="non-scaling-stroke"
     />
   );
@@ -1867,6 +2259,18 @@ function PointHandle({
   );
 }
 
+function ThinPointHandle({ point, variant }: { point: Point; variant: "blue" | "serial" | "red" }) {
+  if (variant === "red") {
+    return <circle cx={point.x} cy={point.y} r={8} fill="#ff9b9b" fillOpacity={0.72} stroke="#ff7b7b" strokeWidth={3} vectorEffect="non-scaling-stroke" />;
+  }
+
+  if (variant === "serial") {
+    return <g><line x1={point.x - 14} y1={point.y} x2={point.x + 14} y2={point.y} stroke="#ef4444" strokeWidth={2} vectorEffect="non-scaling-stroke" /><line x1={point.x} y1={point.y - 14} x2={point.x} y2={point.y + 14} stroke="#ef4444" strokeWidth={2} vectorEffect="non-scaling-stroke" /><circle cx={point.x} cy={point.y} r={8} fill="white" stroke="#00aee6" strokeWidth={3} vectorEffect="non-scaling-stroke" /></g>;
+  }
+
+  return <circle cx={point.x} cy={point.y} r={8} fill="white" stroke="#00aee6" strokeWidth={3} vectorEffect="non-scaling-stroke" />;
+}
+
 function MoveControl({
   onMoveUp,
   onMoveDown,
@@ -1944,13 +2348,42 @@ function ContextPanel({
         </button>
       </div>
 
-      <div className="px-3 pb-6">
+      <div className="space-y-3 px-3 pb-6">
         <WallToolCard
           active={activeTool === "draw-wall"}
           onClick={() => setActiveTool("draw-wall")}
         />
+
+        <ThinWallToolCard
+          active={activeTool === "draw-thin-wall"}
+          onClick={() => setActiveTool("draw-thin-wall")}
+        />
+
+        <ThinWallConversionButtons />
       </div>
     </aside>
+  );
+}
+
+function ThinWallConversionButtons() {
+  return (
+    <div className="mt-3 grid grid-cols-1 gap-2">
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event("pelican-create-wall-exterior"))}
+        className="h-9 rounded-md border border-slate-200 bg-white px-3 text-[12px] font-bold text-pelican-navy shadow-sm hover:border-pelican-teal hover:bg-slate-50"
+      >
+        Create wall exterior
+      </button>
+
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event("pelican-create-wall-interior"))}
+        className="h-9 rounded-md border border-slate-200 bg-white px-3 text-[12px] font-bold text-pelican-navy shadow-sm hover:border-pelican-teal hover:bg-slate-50"
+      >
+        Create wall interior
+      </button>
+    </div>
   );
 }
 
@@ -1988,6 +2421,18 @@ function WallLineShape() {
       <path d="M20 32 H110" className="stroke-slate-400 stroke-[2]" />
     </svg>
   );
+}
+
+function ThinWallToolCard({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={cn("flex h-[135px] w-full flex-col items-center justify-center rounded-md border bg-white p-3 transition hover:border-pelican-teal", active ? "border-pelican-navy ring-1 ring-pelican-navy" : "border-slate-200")}>
+      <ThinWallLineShape />
+      <span className="mt-3 text-[12px] font-medium text-slate-900">Draw thin Wall</span>
+    </button>
+  );
+}
+function ThinWallLineShape() {
+  return <svg viewBox="0 0 130 70" className="h-16 w-24"><path d="M20 36 H110" className="fill-none stroke-slate-500 stroke-[2]" strokeLinecap="round" /></svg>;
 }
 
 function MainToolbar({ active }: { active: Panel }) {
@@ -2033,6 +2478,52 @@ function MainToolbar({ active }: { active: Panel }) {
       </div>
     </nav>
   );
+}
+
+function isThinWall(wall: Wall) { return wall.kind === "thin-wall"; }
+function isThickWall(wall: Wall) { return wall.kind !== "thin-wall"; }
+function isDrawingTool(tool: Tool) { return tool === "draw-wall" || tool === "draw-thin-wall"; }
+
+function convertThinWallsToThickWalls(
+  thinWalls: Wall[],
+  mode: ThickWallCreationMode
+) {
+  const thinChains = buildWallChains(thinWalls);
+  const convertedWalls: Wall[] = [];
+
+  for (const chain of thinChains) {
+    if (chain.points.length < 2) continue;
+
+    const centerlinePoints = getThickWallCenterlineFromThinGuide(
+      chain.points,
+      mode
+    );
+
+    for (let index = 0; index < centerlinePoints.length - 1; index++) {
+      const start = centerlinePoints[index];
+      const end = centerlinePoints[index + 1];
+
+      if (distance(start, end) < 0.001) continue;
+
+      convertedWalls.push({
+        id: crypto.randomUUID(),
+        start,
+        end,
+        kind: "wall",
+      });
+    }
+  }
+
+  return convertedWalls;
+}
+
+function getThickWallCenterlineFromThinGuide(
+  thinGuidePoints: Point[],
+  mode: ThickWallCreationMode
+) {
+  const offset = mode === "exterior" ? -WALL_THICKNESS / 2 : WALL_THICKNESS / 2;
+
+  return buildOffsetSide(thinGuidePoints, offset);
 }
 
 function resizeWallFromMeasurement(
@@ -2142,6 +2633,7 @@ function areWallsEqual(a: Wall[], b: Wall[]) {
     return (
       other &&
       wall.id === other.id &&
+      (wall.kind ?? "wall") === (other.kind ?? "wall") &&
       samePoint(wall.start, other.start) &&
       samePoint(wall.end, other.end)
     );
@@ -2334,6 +2826,23 @@ function getEdgeMeasurementLayout(
   };
 }
 
+function getThinWallMeasurementLayout(start: Point, end: Point): MeasurementLayout {
+  const normal = getPreferredNormal(start, end);
+  const labelDistance = 16;
+
+  const mid = midpoint(start, end);
+
+  return {
+    lineStart: start,
+    lineEnd: end,
+    labelPoint: {
+      x: mid.x + normal.x * labelDistance,
+      y: mid.y + normal.y * labelDistance,
+    },
+    rotation: getTextRotation(start, end),
+  };
+}
+
 function getMeasurementLayout(
   start: Point,
   end: Point,
@@ -2473,6 +2982,17 @@ function getOpenEndpoints(walls: Wall[], connectionMap: ConnectionMap) {
   return uniquePoints(points);
 }
 
+function getConnectedEndpoints(walls: Wall[], connectionMap: ConnectionMap) {
+  const points: Point[] = [];
+
+  for (const wall of walls) {
+    if (isConnected(wall.start, connectionMap)) points.push(wall.start);
+    if (isConnected(wall.end, connectionMap)) points.push(wall.end);
+  }
+
+  return uniquePoints(points);
+}
+
 function uniquePoints(points: Point[]) {
   const seen = new Set<string>();
   const unique: Point[] = [];
@@ -2529,6 +3049,78 @@ function polarPoint(origin: Point, radius: number, angleDegrees: number): Point 
     x: origin.x + Math.cos(radians) * radius,
     y: origin.y - Math.sin(radians) * radius,
   };
+}
+
+function getSelectionRect(start: Point, end: Point): SelectionRect {
+  const x = Math.min(start.x, end.x);
+  const y = Math.min(start.y, end.y);
+
+  return {
+    x,
+    y,
+    width: Math.abs(end.x - start.x),
+    height: Math.abs(end.y - start.y),
+  };
+}
+
+function wallIntersectsSelectionRect(wall: Wall, rect: SelectionRect) {
+  if (pointInSelectionRect(wall.start, rect) || pointInSelectionRect(wall.end, rect)) {
+    return true;
+  }
+
+  const topLeft = { x: rect.x, y: rect.y };
+  const topRight = { x: rect.x + rect.width, y: rect.y };
+  const bottomRight = { x: rect.x + rect.width, y: rect.y + rect.height };
+  const bottomLeft = { x: rect.x, y: rect.y + rect.height };
+
+  return (
+    segmentsIntersect(wall.start, wall.end, topLeft, topRight) ||
+    segmentsIntersect(wall.start, wall.end, topRight, bottomRight) ||
+    segmentsIntersect(wall.start, wall.end, bottomRight, bottomLeft) ||
+    segmentsIntersect(wall.start, wall.end, bottomLeft, topLeft)
+  );
+}
+
+function pointInSelectionRect(point: Point, rect: SelectionRect) {
+  return (
+    point.x >= rect.x &&
+    point.x <= rect.x + rect.width &&
+    point.y >= rect.y &&
+    point.y <= rect.y + rect.height
+  );
+}
+
+function segmentsIntersect(a: Point, b: Point, c: Point, d: Point) {
+  const orientation1 = segmentOrientation(a, b, c);
+  const orientation2 = segmentOrientation(a, b, d);
+  const orientation3 = segmentOrientation(c, d, a);
+  const orientation4 = segmentOrientation(c, d, b);
+
+  if (orientation1 !== orientation2 && orientation3 !== orientation4) return true;
+
+  if (orientation1 === 0 && pointOnSegment(c, a, b)) return true;
+  if (orientation2 === 0 && pointOnSegment(d, a, b)) return true;
+  if (orientation3 === 0 && pointOnSegment(a, c, d)) return true;
+  if (orientation4 === 0 && pointOnSegment(b, c, d)) return true;
+
+  return false;
+}
+
+function segmentOrientation(a: Point, b: Point, c: Point) {
+  const value = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
+
+  if (Math.abs(value) < 0.0001) return 0;
+
+  return value > 0 ? 1 : 2;
+}
+
+function pointOnSegment(point: Point, segmentStart: Point, segmentEnd: Point) {
+  return (
+    point.x <= Math.max(segmentStart.x, segmentEnd.x) + 0.0001 &&
+    point.x >= Math.min(segmentStart.x, segmentEnd.x) - 0.0001 &&
+    point.y <= Math.max(segmentStart.y, segmentEnd.y) + 0.0001 &&
+    point.y >= Math.min(segmentStart.y, segmentEnd.y) - 0.0001
+  );
 }
 
 function getWallAttachPoint(point: Point, walls: Wall[]): Point | null {
