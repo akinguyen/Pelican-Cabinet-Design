@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowLeftRight,
   Boxes,
   BrickWall,
   CheckCircle2,
@@ -44,7 +45,9 @@ type Panel =
   | "text"
   | "lines";
 
-type Tool = "draw-wall" | "draw-thin-wall" | null;
+type Tool = "draw-wall" | "draw-thin-wall" | "place-window" | "place-door" | null;
+
+type PlanViewMode = "floor" | "elevation";
 
 type SidebarItem = {
   id: Panel;
@@ -64,6 +67,77 @@ type Wall = {
   start: Point;
   end: Point;
   kind?: WallKind;
+  sourceThinLength?: number;
+  sourceThinMode?: ThickWallCreationMode;
+};
+
+type WindowElement = {
+  id: string;
+  wallId: string;
+  t: number;
+  width: number;
+  heightInches: number;
+  distanceFromFloorInches: number;
+  tabSide?: 1 | -1;
+};
+
+type DoorElement = {
+  id: string;
+  wallId: string;
+  t: number;
+  width: number;
+  heightInches: number;
+  distanceFromFloorInches: number;
+};
+
+
+type WindowSelectionDetail = {
+  id: string;
+  widthInches: number;
+  heightInches: number;
+  distanceFromFloorInches: number;
+};
+
+type DoorSelectionDetail = {
+  id: string;
+  widthInches: number;
+  heightInches: number;
+  distanceFromFloorInches: number;
+};
+
+
+type WindowPlacementPreview = {
+  wall: Wall;
+  t: number;
+  point: Point;
+};
+
+type DoorPlacementPreview = {
+  wall: Wall;
+  t: number;
+  point: Point;
+};
+
+
+type WindowDragState = {
+  id: string;
+  pointerId: number;
+  startWindows: WindowElement[];
+  didMove: boolean;
+};
+
+type DoorDragState = {
+  id: string;
+  pointerId: number;
+  startDoors: DoorElement[];
+  didMove: boolean;
+};
+
+
+type EditorSnapshot = {
+  walls: Wall[];
+  windows: WindowElement[];
+  doors: DoorElement[];
 };
 
 type GuideInfo = {
@@ -95,6 +169,14 @@ type MenuDragState = {
   pointerId: number;
   startClient: Point;
   startPosition: Point;
+};
+
+type GroupDragState = {
+  pointerId: number;
+  startPoint: Point;
+  startWalls: Wall[];
+  selectedIds: Set<string>;
+  didMove: boolean;
 };
 
 type SelectionRect = {
@@ -156,6 +238,11 @@ const WALL_ATTACH_THRESHOLD = 22;
 const WALL_STROKE_WIDTH = 16;
 const WALL_THICKNESS = WALL_STROKE_WIDTH;
 const THIN_WALL_STROKE_WIDTH = 2;
+const DEFAULT_WINDOW_WIDTH = (39.25 / 12) * GRID_SIZE;
+const DEFAULT_DOOR_WIDTH = (36 / 12) * GRID_SIZE;
+const DEFAULT_ELEVATION_WALL_HEIGHT_INCHES = 96;
+const ELEVATION_VIEWBOX_WIDTH = 1200;
+const ELEVATION_VIEWBOX_HEIGHT = 760;
 
 const JOINT_DOT_RADIUS = 5;
 const JOINT_TICK_LENGTH = 16;
@@ -164,7 +251,77 @@ export default function CabinetEditor() {
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
   const [activeTool, setActiveTool] = useState<Tool>(null);
+  const [activePanel, setActivePanel] = useState<Panel>("walls");
+  const [selectedWindowDetail, setSelectedWindowDetail] =
+    useState<WindowSelectionDetail | null>(null);
+  const [selectedDoorDetail, setSelectedDoorDetail] =
+    useState<DoorSelectionDetail | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [planViewMode, setPlanViewMode] = useState<PlanViewMode>("floor");
+  const [canConvertSelectedThinWalls, setCanConvertSelectedThinWalls] = useState(false);
+
+  useEffect(() => {
+    const handleWindowSelectionChange = (event: Event) => {
+      const customEvent = event as CustomEvent<WindowSelectionDetail | null>;
+      setSelectedWindowDetail(customEvent.detail ?? null);
+      if (customEvent.detail) {
+        setActivePanel("structures");
+      }
+    };
+
+    window.addEventListener(
+      "pelican-window-selection-change",
+      handleWindowSelectionChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pelican-window-selection-change",
+        handleWindowSelectionChange
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleDoorSelectionChange = (event: Event) => {
+      const customEvent = event as CustomEvent<DoorSelectionDetail | null>;
+      setSelectedDoorDetail(customEvent.detail ?? null);
+      if (customEvent.detail) {
+        setActivePanel("structures");
+      }
+    };
+
+    window.addEventListener(
+      "pelican-door-selection-change",
+      handleDoorSelectionChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pelican-door-selection-change",
+        handleDoorSelectionChange
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleAvailabilityChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ canConvert: boolean }>;
+      setCanConvertSelectedThinWalls(Boolean(customEvent.detail?.canConvert));
+    };
+
+    window.addEventListener(
+      "pelican-selection-conversion-availability",
+      handleAvailabilityChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pelican-selection-conversion-availability",
+        handleAvailabilityChange
+      );
+    };
+  }, []);
 
   const zoomIn = () => {
     setScale((currentScale) =>
@@ -194,6 +351,15 @@ export default function CabinetEditor() {
             onZoomOut={zoomOut}
             onResetView={resetCanvasView}
             isSelectionMode={isSelectionMode}
+            planViewMode={planViewMode}
+            onSelectPlanView={setPlanViewMode}
+            canConvertSelectedThinWalls={canConvertSelectedThinWalls}
+            onCreateWallExterior={() =>
+              window.dispatchEvent(new Event("pelican-create-selected-wall-exterior"))
+            }
+            onCreateWallInterior={() =>
+              window.dispatchEvent(new Event("pelican-create-selected-wall-interior"))
+            }
             onToggleSelectionMode={() => {
               setActiveTool(null);
               setIsSelectionMode((current) => !current);
@@ -203,6 +369,7 @@ export default function CabinetEditor() {
           <CanvasArea
             activeTool={activeTool}
             setActiveTool={setActiveTool}
+            planViewMode={planViewMode}
             isSelectionMode={isSelectionMode}
             setIsSelectionMode={setIsSelectionMode}
             offset={offset}
@@ -213,8 +380,29 @@ export default function CabinetEditor() {
         </section>
 
         <section className="flex h-full shrink-0 border-l border-slate-200 bg-white">
-          <ContextPanel activeTool={activeTool} setActiveTool={setActiveTool} />
-          <MainToolbar active="walls" />
+          <ContextPanel
+            activePanel={activePanel}
+            activeTool={activeTool}
+            setActiveTool={setActiveTool}
+            setIsSelectionMode={setIsSelectionMode}
+            selectedWindow={selectedWindowDetail}
+            selectedDoor={selectedDoorDetail}
+          />
+          <MainToolbar
+            active={activePanel}
+            onSelect={(panel) => {
+              setActivePanel(panel);
+              if (panel !== "walls") {
+                setActiveTool(null);
+              }
+              if (panel !== "structures") {
+                setSelectedWindowDetail(null);
+                setSelectedDoorDetail(null);
+                window.dispatchEvent(new Event("pelican-deselect-window"));
+                window.dispatchEvent(new Event("pelican-deselect-door"));
+              }
+            }}
+          />
         </section>
       </div>
     </main>
@@ -289,12 +477,22 @@ function ModeBar({
   onZoomOut,
   onResetView,
   isSelectionMode,
+  planViewMode,
+  onSelectPlanView,
+  canConvertSelectedThinWalls,
+  onCreateWallExterior,
+  onCreateWallInterior,
   onToggleSelectionMode,
 }: {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetView: () => void;
   isSelectionMode: boolean;
+  planViewMode: PlanViewMode;
+  onSelectPlanView: (mode: PlanViewMode) => void;
+  canConvertSelectedThinWalls: boolean;
+  onCreateWallExterior: () => void;
+  onCreateWallInterior: () => void;
   onToggleSelectionMode: () => void;
 }) {
   return (
@@ -313,6 +511,18 @@ function ModeBar({
           active={isSelectionMode}
           onClick={onToggleSelectionMode}
         />
+        <ModeIconButton
+          icon={BrickWall}
+          label="Create wall exterior from selected thin walls"
+          disabled={!canConvertSelectedThinWalls}
+          onClick={onCreateWallExterior}
+        />
+        <ModeIconButton
+          icon={Grid3X3}
+          label="Create wall interior from selected thin walls"
+          disabled={!canConvertSelectedThinWalls}
+          onClick={onCreateWallInterior}
+        />
         <ModeIconButton icon={Ruler} label="Ruler" />
         <ModeIconButton icon={Magnet} label="Snap" />
 
@@ -324,9 +534,32 @@ function ModeBar({
       </div>
 
       <div className="flex items-center rounded-full bg-slate-100 p-1 justify-self-center">
-        <button className="inline-flex h-9 items-center gap-2 rounded-full bg-white px-5 text-[13px] font-semibold text-pelican-navy shadow-sm">
+        <button
+          type="button"
+          onClick={() => onSelectPlanView("floor")}
+          className={cn(
+            "inline-flex h-9 items-center gap-2 rounded-full px-5 text-[13px] font-semibold transition",
+            planViewMode === "floor"
+              ? "bg-white text-pelican-navy shadow-sm"
+              : "text-slate-500 hover:text-pelican-navy"
+          )}
+        >
           <Grid3X3 className="h-4 w-4" />
-          Floorplan
+          Floor plan
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onSelectPlanView("elevation")}
+          className={cn(
+            "inline-flex h-9 items-center gap-2 rounded-full px-5 text-[13px] font-semibold transition",
+            planViewMode === "elevation"
+              ? "bg-white text-pelican-navy shadow-sm"
+              : "text-slate-500 hover:text-pelican-navy"
+          )}
+        >
+          <Square className="h-4 w-4" />
+          Elevation plan
         </button>
 
         <button className="inline-flex h-9 items-center gap-2 rounded-full px-5 text-[13px] font-semibold text-slate-500 hover:text-pelican-navy">
@@ -352,22 +585,26 @@ function ModeIconButton({
   label,
   onClick,
   active = false,
+  disabled = false,
 }: {
   icon: React.ElementType;
   label: string;
   onClick?: () => void;
   active?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       className={cn(
         "flex h-10 w-10 items-center justify-center rounded-md border text-pelican-navy hover:bg-slate-100",
         active
           ? "border-pelican-teal bg-cyan-50 text-pelican-teal shadow-sm"
-          : "border-slate-200 bg-slate-50"
+          : "border-slate-200 bg-slate-50",
+        disabled && "cursor-not-allowed opacity-40 hover:bg-slate-50"
       )}
     >
       <Icon className="h-[21px] w-[21px]" />
@@ -378,6 +615,7 @@ function ModeIconButton({
 function CanvasArea({
   activeTool,
   setActiveTool,
+  planViewMode,
   isSelectionMode,
   setIsSelectionMode,
   offset,
@@ -387,6 +625,7 @@ function CanvasArea({
 }: {
   activeTool: Tool;
   setActiveTool: React.Dispatch<React.SetStateAction<Tool>>;
+  planViewMode: PlanViewMode;
   isSelectionMode: boolean;
   setIsSelectionMode: React.Dispatch<React.SetStateAction<boolean>>;
   offset: Point;
@@ -401,12 +640,27 @@ function CanvasArea({
   const dragStartRef = useRef<Point>({ x: 0, y: 0 });
   const dragOffsetStartRef = useRef<Point>({ x: 0, y: 0 });
   const menuDragRef = useRef<MenuDragState | null>(null);
+  const groupDragRef = useRef<GroupDragState | null>(null);
 
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
   const [walls, setWalls] = useState<Wall[]>([]);
   const wallsRef = useRef<Wall[]>([]);
-  const undoStackRef = useRef<Wall[][]>([]);
-  const redoStackRef = useRef<Wall[][]>([]);
+  const [windows, setWindows] = useState<WindowElement[]>([]);
+  const windowsRef = useRef<WindowElement[]>([]);
+  const [doors, setDoors] = useState<DoorElement[]>([]);
+  const doorsRef = useRef<DoorElement[]>([]);
+  const [selectedWindowId, setSelectedWindowId] = useState<string | null>(null);
+  const selectedWindowIdRef = useRef<string | null>(null);
+  const [selectedDoorId, setSelectedDoorId] = useState<string | null>(null);
+  const selectedDoorIdRef = useRef<string | null>(null);
+  const [windowPreview, setWindowPreview] = useState<WindowPlacementPreview | null>(null);
+  const [doorPreview, setDoorPreview] = useState<DoorPlacementPreview | null>(null);
+  const windowPreviewRef = useRef<WindowPlacementPreview | null>(null);
+  const doorPreviewRef = useRef<DoorPlacementPreview | null>(null);
+  const windowDragRef = useRef<WindowDragState | null>(null);
+  const doorDragRef = useRef<DoorDragState | null>(null);
+  const undoStackRef = useRef<EditorSnapshot[]>([]);
+  const redoStackRef = useRef<EditorSnapshot[]>([]);
   const [drawingStart, setDrawingStart] = useState<Point | null>(null);
   const [previewPoint, setPreviewPoint] = useState<Point | null>(null);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
@@ -419,6 +673,7 @@ function CanvasArea({
   const [groupSelectedWallIds, setGroupSelectedWallIds] = useState<string[]>([]);
   const [groupContextMenu, setGroupContextMenu] =
     useState<GroupContextMenuState | null>(null);
+  const [activeElevationIndex, setActiveElevationIndex] = useState(0);
 
   const thickWalls = useMemo(() => walls.filter(isThickWall), [walls]);
   const thinWalls = useMemo(() => walls.filter(isThinWall), [walls]);
@@ -431,6 +686,14 @@ function CanvasArea({
     return walls.find((wall) => wall.id === selectedWallId) ?? null;
   }, [walls, selectedWallId]);
 
+  const selectedWindow = useMemo(() => {
+    return windows.find((windowItem) => windowItem.id === selectedWindowId) ?? null;
+  }, [selectedWindowId, windows]);
+
+  const selectedDoor = useMemo(() => {
+    return doors.find((doorItem) => doorItem.id === selectedDoorId) ?? null;
+  }, [selectedDoorId, doors]);
+
   const groupSelectedWalls = useMemo(() => {
     const selectedIds = new Set(groupSelectedWallIds);
     return walls.filter((wall) => selectedIds.has(wall.id));
@@ -440,13 +703,20 @@ function CanvasArea({
     return groupSelectedWalls.filter(isThinWall);
   }, [groupSelectedWalls]);
 
-  const canConvertGroupThinWalls =
-    groupSelectedWalls.length > 0 &&
-    groupSelectedThinWalls.length === groupSelectedWalls.length;
+  const canConvertGroupThinWalls = useMemo(() => {
+    return canConvertThinWallSelection(groupSelectedWalls, thinWalls);
+  }, [groupSelectedWalls, thinWalls]);
 
   const connectionMap = useMemo(() => buildConnectionMap(thickWalls), [thickWalls]);
   const thinConnectionMap = useMemo(() => buildConnectionMap(thinWalls), [thinWalls]);
   const wallChains = useMemo(() => buildWallChains(thickWalls), [thickWalls]);
+  const elevationWalls = useMemo(() => thickWalls, [thickWalls]);
+
+  useEffect(() => {
+    setActiveElevationIndex((currentIndex) =>
+      clamp(currentIndex, 0, Math.max(0, elevationWalls.length - 1))
+    );
+  }, [elevationWalls.length]);
 
   const clearWallSelectionState = useCallback(() => {
     setSelectedWallId(null);
@@ -461,15 +731,27 @@ function CanvasArea({
     setGroupContextMenu(null);
   }, []);
 
+  const updateWindowPreview = useCallback((preview: WindowPlacementPreview | null) => {
+    windowPreviewRef.current = preview;
+    setWindowPreview(preview);
+  }, []);
+
+  const updateDoorPreview = useCallback((preview: DoorPlacementPreview | null) => {
+    doorPreviewRef.current = preview;
+    setDoorPreview(preview);
+  }, []);
+
   const commitWallsChange = useCallback(
     (updater: Wall[] | ((currentWalls: Wall[]) => Wall[])) => {
       const currentWalls = wallsRef.current;
+      const currentWindows = windowsRef.current;
+      const currentDoors = doorsRef.current;
       const nextWalls =
         typeof updater === "function" ? updater(currentWalls) : updater;
 
       if (areWallsEqual(currentWalls, nextWalls)) return;
 
-      undoStackRef.current.push(currentWalls);
+      undoStackRef.current.push({ walls: currentWalls, windows: currentWindows, doors: currentDoors });
       redoStackRef.current = [];
       wallsRef.current = nextWalls;
       setWalls(nextWalls);
@@ -477,29 +759,91 @@ function CanvasArea({
     []
   );
 
+  const commitWindowsChange = useCallback(
+    (updater: WindowElement[] | ((currentWindows: WindowElement[]) => WindowElement[])) => {
+      const currentWalls = wallsRef.current;
+      const currentWindows = windowsRef.current;
+      const currentDoors = doorsRef.current;
+      const nextWindows =
+        typeof updater === "function" ? updater(currentWindows) : updater;
+
+      if (areWindowsEqual(currentWindows, nextWindows)) return;
+
+      undoStackRef.current.push({ walls: currentWalls, windows: currentWindows, doors: currentDoors });
+      redoStackRef.current = [];
+      windowsRef.current = nextWindows;
+      setWindows(nextWindows);
+    },
+    []
+  );
+
+  const commitDoorsChange = useCallback(
+    (updater: DoorElement[] | ((currentDoors: DoorElement[]) => DoorElement[])) => {
+      const currentWalls = wallsRef.current;
+      const currentWindows = windowsRef.current;
+      const currentDoors = doorsRef.current;
+      const nextDoors =
+        typeof updater === "function" ? updater(currentDoors) : updater;
+
+      if (areDoorsEqual(currentDoors, nextDoors)) return;
+
+      undoStackRef.current.push({ walls: currentWalls, windows: currentWindows, doors: currentDoors });
+      redoStackRef.current = [];
+      doorsRef.current = nextDoors;
+      setDoors(nextDoors);
+    },
+    []
+  );
+
   const undoWallChange = useCallback(() => {
-    const previousWalls = undoStackRef.current.pop();
+    const previousSnapshot = undoStackRef.current.pop();
 
-    if (!previousWalls) return;
+    if (!previousSnapshot) return;
 
-    const currentWalls = wallsRef.current;
-    redoStackRef.current.push(currentWalls);
-    wallsRef.current = previousWalls;
-    setWalls(previousWalls);
+    const currentSnapshot = {
+      walls: wallsRef.current,
+      windows: windowsRef.current,
+      doors: doorsRef.current,
+    };
+
+    redoStackRef.current.push(currentSnapshot);
+    wallsRef.current = previousSnapshot.walls;
+    windowsRef.current = previousSnapshot.windows;
+    doorsRef.current = previousSnapshot.doors ?? [];
+    setWalls(previousSnapshot.walls);
+    setWindows(previousSnapshot.windows);
+    setDoors(previousSnapshot.doors ?? []);
     clearWallSelectionState();
-  }, [clearWallSelectionState]);
+    setSelectedWindowId(null);
+    setSelectedDoorId(null);
+    updateWindowPreview(null);
+    updateDoorPreview(null);
+  }, [clearWallSelectionState, updateDoorPreview, updateWindowPreview]);
 
   const redoWallChange = useCallback(() => {
-    const nextWalls = redoStackRef.current.pop();
+    const nextSnapshot = redoStackRef.current.pop();
 
-    if (!nextWalls) return;
+    if (!nextSnapshot) return;
 
-    const currentWalls = wallsRef.current;
-    undoStackRef.current.push(currentWalls);
-    wallsRef.current = nextWalls;
-    setWalls(nextWalls);
+    const currentSnapshot = {
+      walls: wallsRef.current,
+      windows: windowsRef.current,
+      doors: doorsRef.current,
+    };
+
+    undoStackRef.current.push(currentSnapshot);
+    wallsRef.current = nextSnapshot.walls;
+    windowsRef.current = nextSnapshot.windows;
+    doorsRef.current = nextSnapshot.doors ?? [];
+    setWalls(nextSnapshot.walls);
+    setWindows(nextSnapshot.windows);
+    setDoors(nextSnapshot.doors ?? []);
     clearWallSelectionState();
-  }, [clearWallSelectionState]);
+    setSelectedWindowId(null);
+    setSelectedDoorId(null);
+    updateWindowPreview(null);
+    updateDoorPreview(null);
+  }, [clearWallSelectionState, updateDoorPreview, updateWindowPreview]);
 
   const createThickWallsFromThinWalls = useCallback(
     (mode: ThickWallCreationMode, sourceWallIds?: string[]) => {
@@ -514,13 +858,14 @@ function CanvasArea({
 
       if (convertedWalls.length === 0) return;
 
-      commitWallsChange((currentWalls) => [
-        ...currentWalls.filter((wall) => {
+      commitWallsChange((currentWalls) => {
+        const baseWalls = currentWalls.filter((wall) => {
           if (!isThinWall(wall)) return true;
           return sourceIdSet ? !sourceIdSet.has(wall.id) : false;
-        }),
-        ...convertedWalls,
-      ]);
+        });
+
+        return normalizeWallJunctions([...baseWalls, ...convertedWalls], "wall");
+      });
 
       setActiveTool(null);
       activeToolRef.current = null;
@@ -532,6 +877,22 @@ function CanvasArea({
   useEffect(() => {
     wallsRef.current = walls;
   }, [walls]);
+
+  useEffect(() => {
+    windowsRef.current = windows;
+  }, [windows]);
+
+  useEffect(() => {
+    doorsRef.current = doors;
+  }, [doors]);
+
+  useEffect(() => {
+    selectedWindowIdRef.current = selectedWindowId;
+  }, [selectedWindowId]);
+
+  useEffect(() => {
+    selectedDoorIdRef.current = selectedDoorId;
+  }, [selectedDoorId]);
 
   useEffect(() => {
     offsetRef.current = offset;
@@ -546,6 +907,122 @@ function CanvasArea({
   }, [activeTool]);
 
   useEffect(() => {
+    const detail = selectedWindow
+      ? {
+          id: selectedWindow.id,
+          widthInches: pixelsToInches(selectedWindow.width),
+          heightInches: selectedWindow.heightInches,
+          distanceFromFloorInches: selectedWindow.distanceFromFloorInches,
+        }
+      : null;
+
+    window.dispatchEvent(
+      new CustomEvent("pelican-window-selection-change", { detail })
+    );
+  }, [selectedWindow]);
+
+  useEffect(() => {
+    const detail = selectedDoor
+      ? {
+          id: selectedDoor.id,
+          widthInches: pixelsToInches(selectedDoor.width),
+          heightInches: selectedDoor.heightInches,
+          distanceFromFloorInches: selectedDoor.distanceFromFloorInches,
+        }
+      : null;
+
+    window.dispatchEvent(
+      new CustomEvent("pelican-door-selection-change", { detail })
+    );
+  }, [selectedDoor]);
+
+  useEffect(() => {
+    const handleWindowAttributeChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        id: string;
+        field: "widthInches" | "heightInches" | "distanceFromFloorInches";
+        value: number;
+      }>;
+
+      const { id, field, value } = customEvent.detail ?? {};
+
+      if (!id || !Number.isFinite(value)) return;
+
+      commitWindowsChange((currentWindows) =>
+        currentWindows.map((windowItem) => {
+          if (windowItem.id !== id) return windowItem;
+
+          if (field === "widthInches") {
+            return { ...windowItem, width: inchesToPixels(Math.max(6, value)) };
+          }
+
+          if (field === "heightInches") {
+            return { ...windowItem, heightInches: Math.max(1, value) };
+          }
+
+          return { ...windowItem, distanceFromFloorInches: Math.max(0, value) };
+        })
+      );
+    };
+
+    const handleWindowDeselect = () => {
+      setSelectedWindowId(null);
+      updateWindowPreview(null);
+    };
+
+    window.addEventListener("pelican-window-attribute-change", handleWindowAttributeChange);
+    window.addEventListener("pelican-deselect-window", handleWindowDeselect);
+
+    return () => {
+      window.removeEventListener("pelican-window-attribute-change", handleWindowAttributeChange);
+      window.removeEventListener("pelican-deselect-window", handleWindowDeselect);
+    };
+  }, [commitWindowsChange]);
+
+  useEffect(() => {
+    const handleDoorAttributeChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        id: string;
+        field: "widthInches" | "heightInches" | "distanceFromFloorInches";
+        value: number;
+      }>;
+
+      const { id, field, value } = customEvent.detail ?? {};
+
+      if (!id || !Number.isFinite(value)) return;
+
+      commitDoorsChange((currentDoors) =>
+        currentDoors.map((doorItem) => {
+          if (doorItem.id !== id) return doorItem;
+
+          if (field === "widthInches") {
+            return { ...doorItem, width: inchesToPixels(Math.max(6, value)) };
+          }
+
+          if (field === "heightInches") {
+            return { ...doorItem, heightInches: Math.max(1, value) };
+          }
+
+          return { ...doorItem, distanceFromFloorInches: Math.max(0, value) };
+        })
+      );
+    };
+
+    const handleDoorDeselect = () => {
+      setSelectedDoorId(null);
+      updateDoorPreview(null);
+    };
+
+    window.addEventListener("pelican-door-attribute-change", handleDoorAttributeChange);
+    window.addEventListener("pelican-deselect-door", handleDoorDeselect);
+
+    return () => {
+      window.removeEventListener("pelican-door-attribute-change", handleDoorAttributeChange);
+      window.removeEventListener("pelican-deselect-door", handleDoorDeselect);
+    };
+  }, [commitDoorsChange]);
+
+  useEffect(() => {
     if (isDrawingTool(activeTool) && isSelectionMode) {
       setIsSelectionMode(false);
       setGroupSelectedWallIds([]);
@@ -555,6 +1032,14 @@ function CanvasArea({
       setIsSelectingArea(false);
     }
   }, [activeTool, isSelectionMode, setIsSelectionMode]);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("pelican-selection-conversion-availability", {
+        detail: { canConvert: canConvertGroupThinWalls },
+      })
+    );
+  }, [canConvertGroupThinWalls]);
 
 
 
@@ -668,7 +1153,7 @@ useEffect(() => {
 
     if (
       (isCtrlCancel || event.key === "Escape") &&
-      isDrawingTool(activeToolRef.current)
+      (isDrawingTool(activeToolRef.current) || activeToolRef.current === "place-window" || activeToolRef.current === "place-door")
     ) {
       event.preventDefault();
       cancelDrawWallTool();
@@ -684,6 +1169,8 @@ useEffect(() => {
       setDrawingStart(null);
       setPreviewPoint(null);
       setSelectedWallId(null);
+      setSelectedWindowId(null);
+      setSelectedDoorId(null);
       setMenuPosition(null);
       setGroupSelectedWallIds([]);
       setGroupContextMenu(null);
@@ -704,11 +1191,45 @@ useEffect(() => {
       );
 
       setSelectedWallId(null);
+      setSelectedWindowId(null);
+      setSelectedDoorId(null);
       setMenuPosition(null);
       setGroupSelectedWallIds([]);
       setGroupContextMenu(null);
       setSelectionStart(null);
       setSelectionEnd(null);
+      setDrawingStart(null);
+      setPreviewPoint(null);
+      return;
+    }
+
+    if (
+      (event.key === "Backspace" || event.key === "Delete") &&
+      selectedDoorIdRef.current
+    ) {
+      event.preventDefault();
+      const doorId = selectedDoorIdRef.current;
+      commitDoorsChange((currentDoors) =>
+        currentDoors.filter((doorItem) => doorItem.id !== doorId)
+      );
+      setSelectedDoorId(null);
+      setMenuPosition(null);
+      setDrawingStart(null);
+      setPreviewPoint(null);
+      return;
+    }
+
+    if (
+      (event.key === "Backspace" || event.key === "Delete") &&
+      selectedWindowIdRef.current
+    ) {
+      event.preventDefault();
+      const windowId = selectedWindowIdRef.current;
+      commitWindowsChange((currentWindows) =>
+        currentWindows.filter((windowItem) => windowItem.id !== windowId)
+      );
+      setSelectedWindowId(null);
+      setMenuPosition(null);
       setDrawingStart(null);
       setPreviewPoint(null);
       return;
@@ -724,6 +1245,7 @@ useEffect(() => {
       );
 
       setSelectedWallId(null);
+      setSelectedWindowId(null);
       setMenuPosition(null);
       setDrawingStart(null);
       setPreviewPoint(null);
@@ -733,7 +1255,7 @@ useEffect(() => {
   window.addEventListener("keydown", handleKeyDown, true);
 
   return () => window.removeEventListener("keydown", handleKeyDown, true);
-}, [commitWallsChange, editingMeasurement, groupSelectedWallIds, isSelectionMode, redoWallChange, selectedWallId, setActiveTool, setIsSelectionMode, undoWallChange]);
+}, [commitWallsChange, commitWindowsChange, commitDoorsChange, editingMeasurement, groupSelectedWallIds, isSelectionMode, redoWallChange, selectedWallId, setActiveTool, setIsSelectionMode, undoWallChange]);
 
   const screenToWorkspace = (clientX: number, clientY: number): Point | null => {
     const canvas = canvasRef.current;
@@ -759,7 +1281,14 @@ useEffect(() => {
     let verticalX: number | undefined;
     let horizontalY: number | undefined;
 
-    const candidatePoints = [startPoint, ...wallPoints];
+    const alignmentPoints =
+      activeToolRef.current === "draw-thin-wall"
+        ? thinWalls.flatMap((wall) => [wall.start, wall.end])
+        : activeToolRef.current === "draw-wall"
+          ? thickWalls.flatMap((wall) => [wall.start, wall.end])
+          : wallPoints;
+
+    const candidatePoints = [startPoint, ...alignmentPoints];
 
     for (const candidate of candidatePoints) {
       if (Math.abs(rawPoint.x - candidate.x) <= SNAP_THRESHOLD) {
@@ -799,8 +1328,11 @@ useEffect(() => {
   const wallHoverPoint = useMemo(() => {
     if (!isDrawingTool(activeTool) || !previewPoint || drawingStart) return null;
 
-    return getWallAttachPoint(previewPoint, walls);
-  }, [activeTool, drawingStart, previewPoint, walls]);
+    const attachableWalls =
+      activeTool === "draw-thin-wall" ? thinWalls : thickWalls;
+
+    return getWallAttachPoint(previewPoint, attachableWalls);
+  }, [activeTool, drawingStart, previewPoint, thickWalls, thinWalls]);
 
   const rawPreviewPoint = wallHoverPoint ?? previewPoint;
 
@@ -857,10 +1389,15 @@ useEffect(() => {
       return;
     }
 
+    const editedWallId = editingMeasurement.wallId;
+
     commitWallsChange((currentWalls) =>
       resizeWallFromMeasurement(currentWalls, editingMeasurement, targetLength)
     );
 
+    setSelectedWallId(editedWallId);
+    setGroupSelectedWallIds([]);
+    setGroupContextMenu(null);
     setMenuPosition(null);
     setEditingMeasurement(null);
   };
@@ -869,6 +1406,10 @@ useEffect(() => {
     const wall = walls.find((currentWall) => currentWall.id === wallId);
 
     setSelectedWallId(wallId);
+    setSelectedWindowId(null);
+    setSelectedDoorId(null);
+    updateWindowPreview(null);
+    updateDoorPreview(null);
     setGroupSelectedWallIds([]);
     setGroupContextMenu(null);
     setMenuPosition(wall ? getWallMenuPosition(wall) : null);
@@ -947,11 +1488,44 @@ useEffect(() => {
     setIsSelectingArea(false);
   };
 
-  const createSelectedThinWalls = (mode: ThickWallCreationMode) => {
-    if (!canConvertGroupThinWalls) return;
+  const createSelectedThinWalls = useCallback(
+    (mode: ThickWallCreationMode) => {
+      if (!canConvertGroupThinWalls) return;
 
-    createThickWallsFromThinWalls(mode, groupSelectedThinWalls.map((wall) => wall.id));
-  };
+      createThickWallsFromThinWalls(
+        mode,
+        groupSelectedThinWalls.map((wall) => wall.id)
+      );
+    },
+    [canConvertGroupThinWalls, createThickWallsFromThinWalls, groupSelectedThinWalls]
+  );
+
+  useEffect(() => {
+    const handleCreateSelectedWallExterior = () =>
+      createSelectedThinWalls("exterior");
+    const handleCreateSelectedWallInterior = () =>
+      createSelectedThinWalls("interior");
+
+    window.addEventListener(
+      "pelican-create-selected-wall-exterior",
+      handleCreateSelectedWallExterior
+    );
+    window.addEventListener(
+      "pelican-create-selected-wall-interior",
+      handleCreateSelectedWallInterior
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pelican-create-selected-wall-exterior",
+        handleCreateSelectedWallExterior
+      );
+      window.removeEventListener(
+        "pelican-create-selected-wall-interior",
+        handleCreateSelectedWallInterior
+      );
+    };
+  }, [createSelectedThinWalls]);
 
   const handleCanvasContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isSelectionMode || !canConvertGroupThinWalls) return;
@@ -980,13 +1554,71 @@ useEffect(() => {
 
       if (!rawPoint) return;
 
+      const selectedIds = new Set(groupSelectedWallIds);
+      const selectedHit = wallsRef.current.some(
+        (wall) =>
+          selectedIds.has(wall.id) &&
+          pointToSegmentDistance(rawPoint, wall.start, wall.end) <=
+            (isThinWall(wall) ? 10 : WALL_STROKE_WIDTH + 8)
+      );
+
+      if (selectedHit && groupSelectedWallIds.length > 0) {
+        groupDragRef.current = {
+          pointerId: event.pointerId,
+          startPoint: rawPoint,
+          startWalls: wallsRef.current,
+          selectedIds,
+          didMove: false,
+        };
+        setGroupContextMenu(null);
+        setSelectedWallId(null);
+        setMenuPosition(null);
+        setEditingMeasurement(null);
+        return;
+      }
+
       setSelectionStart(rawPoint);
       setSelectionEnd(rawPoint);
       setIsSelectingArea(true);
       setGroupContextMenu(null);
       setSelectedWallId(null);
+      setSelectedDoorId(null);
       setMenuPosition(null);
       setEditingMeasurement(null);
+      return;
+    }
+
+    if (activeToolRef.current === "place-door") {
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+
+      const rawPoint = screenToWorkspace(event.clientX, event.clientY);
+      const placement = rawPoint
+        ? getDoorPlacementOnWall(rawPoint, thickWalls, DEFAULT_DOOR_WIDTH)
+        : null;
+
+      if (placement) {
+        updateDoorPreview(placement);
+      }
+
+      if (commitPreviewStructurePlacement("door")) return;
+      return;
+    }
+
+    if (activeToolRef.current === "place-window") {
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+
+      const rawPoint = screenToWorkspace(event.clientX, event.clientY);
+      const placement = rawPoint
+        ? getWindowPlacementOnWall(rawPoint, thickWalls, DEFAULT_WINDOW_WIDTH)
+        : null;
+
+      if (placement) {
+        updateWindowPreview(placement);
+      }
+
+      if (commitPreviewStructurePlacement("window")) return;
       return;
     }
 
@@ -1005,7 +1637,11 @@ useEffect(() => {
 
       if (!rawPoint) return;
 
-      const wallAttachPoint = getWallAttachPoint(rawPoint, wallsRef.current);
+      const attachableWalls =
+        drawingTool === "draw-thin-wall"
+          ? wallsRef.current.filter(isThinWall)
+          : wallsRef.current.filter(isThickWall);
+      const wallAttachPoint = getWallAttachPoint(rawPoint, attachableWalls);
 
       if (!drawingStart) {
         const startPoint = wallAttachPoint ?? snapToGrid(rawPoint);
@@ -1019,15 +1655,16 @@ useEffect(() => {
 
       if (distance(drawingStart, endPoint) < 4) return;
 
-      commitWallsChange((currentWalls) => [
-        ...currentWalls,
-        {
-          id: crypto.randomUUID(),
-          start: drawingStart,
-          end: endPoint,
-          kind: drawingTool === "draw-thin-wall" ? "thin-wall" : "wall",
-        },
-      ]);
+      const newWall: Wall = {
+        id: crypto.randomUUID(),
+        start: drawingStart,
+        end: endPoint,
+        kind: drawingTool === "draw-thin-wall" ? "thin-wall" : "wall",
+      };
+
+      commitWallsChange((currentWalls) =>
+        splitConnectedWallsAndAddWall(currentWalls, newWall)
+      );
 
       setDrawingStart(endPoint);
       setPreviewPoint(endPoint);
@@ -1036,6 +1673,8 @@ useEffect(() => {
 
     event.preventDefault();
     setSelectedWallId(null);
+    setSelectedWindowId(null);
+    setSelectedDoorId(null);
     setMenuPosition(null);
     setEditingMeasurement(null);
     setGroupSelectedWallIds([]);
@@ -1053,6 +1692,111 @@ useEffect(() => {
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const doorDragState = doorDragRef.current;
+
+    if (doorDragState && doorDragState.pointerId === event.pointerId) {
+      const rawPoint = screenToWorkspace(event.clientX, event.clientY);
+
+      if (!rawPoint) return;
+
+      const currentDoor = doorsRef.current.find(
+        (doorItem) => doorItem.id === doorDragState.id
+      );
+      const placement = currentDoor
+        ? getDoorPlacementOnWall(rawPoint, thickWalls, currentDoor.width)
+        : null;
+
+      if (placement && currentDoor) {
+        event.preventDefault();
+
+        doorDragState.didMove = true;
+
+        const nextDoors = doorsRef.current.map((doorItem) =>
+          doorItem.id === doorDragState.id
+            ? {
+                ...doorItem,
+                wallId: placement.wall.id,
+                t: placement.t,
+              }
+            : doorItem
+        );
+
+        doorsRef.current = nextDoors;
+        setDoors(nextDoors);
+        setMenuPosition(getDoorMenuPosition(currentDoor, placement.wall, placement.t));
+      }
+
+      return;
+    }
+
+    const windowDragState = windowDragRef.current;
+
+    if (windowDragState && windowDragState.pointerId === event.pointerId) {
+      const rawPoint = screenToWorkspace(event.clientX, event.clientY);
+
+      if (!rawPoint) return;
+
+      const currentWindow = windowsRef.current.find(
+        (windowItem) => windowItem.id === windowDragState.id
+      );
+      const placement = currentWindow
+        ? getWindowPlacementOnWall(rawPoint, thickWalls, currentWindow.width)
+        : null;
+
+      if (placement && currentWindow) {
+        event.preventDefault();
+
+        windowDragState.didMove = true;
+
+        const nextWindows = windowsRef.current.map((windowItem) =>
+          windowItem.id === windowDragState.id
+            ? {
+                ...windowItem,
+                wallId: placement.wall.id,
+                t: placement.t,
+              }
+            : windowItem
+        );
+
+        windowsRef.current = nextWindows;
+        setWindows(nextWindows);
+        setMenuPosition(getWindowMenuPosition(currentWindow, placement.wall, placement.t));
+      }
+
+      return;
+    }
+
+    const groupDragState = groupDragRef.current;
+
+    if (groupDragState && groupDragState.pointerId === event.pointerId) {
+      const rawPoint = screenToWorkspace(event.clientX, event.clientY);
+
+      if (!rawPoint) return;
+
+      event.preventDefault();
+
+      const delta = sub(rawPoint, groupDragState.startPoint);
+
+      if (Math.abs(delta.x) > 0.001 || Math.abs(delta.y) > 0.001) {
+        groupDragState.didMove = true;
+      }
+
+      const movedWalls = groupDragState.startWalls.map((wall) =>
+        groupDragState.selectedIds.has(wall.id)
+          ? {
+              ...wall,
+              start: add(wall.start, delta),
+              end: add(wall.end, delta),
+            }
+          : wall
+      );
+
+      wallsRef.current = movedWalls;
+      setWalls(movedWalls);
+      setGroupContextMenu(null);
+      return;
+    }
+
     if (isSelectionMode && isSelectingArea) {
       const rawPoint = screenToWorkspace(event.clientX, event.clientY);
 
@@ -1060,6 +1804,26 @@ useEffect(() => {
         setSelectionEnd(rawPoint);
       }
 
+      return;
+    }
+
+    if (activeToolRef.current === "place-door") {
+      const rawPoint = screenToWorkspace(event.clientX, event.clientY);
+      const placement = rawPoint
+        ? getDoorPlacementOnWall(rawPoint, thickWalls, DEFAULT_DOOR_WIDTH)
+        : null;
+
+      updateDoorPreview(placement);
+      return;
+    }
+
+    if (activeToolRef.current === "place-window") {
+      const rawPoint = screenToWorkspace(event.clientX, event.clientY);
+      const placement = rawPoint
+        ? getWindowPlacementOnWall(rawPoint, thickWalls, DEFAULT_WINDOW_WIDTH)
+        : null;
+
+      updateWindowPreview(placement);
       return;
     }
 
@@ -1086,7 +1850,140 @@ useEffect(() => {
     });
   };
 
+  const commitPreviewStructurePlacement = useCallback(
+    (kind: "door" | "window") => {
+      if (kind === "door") {
+        const placement = doorPreviewRef.current;
+        if (!placement) return false;
+
+        const newDoor: DoorElement = {
+          id: crypto.randomUUID(),
+          wallId: placement.wall.id,
+          t: placement.t,
+          width: DEFAULT_DOOR_WIDTH,
+          heightInches: 80,
+          distanceFromFloorInches: 0,
+        };
+
+        commitDoorsChange((currentDoors) => [...currentDoors, newDoor]);
+        setSelectedDoorId(null);
+        setSelectedWindowId(null);
+        setSelectedWallId(null);
+        setMenuPosition(null);
+        setActiveTool(null);
+        activeToolRef.current = null;
+        updateDoorPreview(null);
+        updateWindowPreview(null);
+        return true;
+      }
+
+      const placement = windowPreviewRef.current;
+      if (!placement) return false;
+
+      const newWindow: WindowElement = {
+        id: crypto.randomUUID(),
+        wallId: placement.wall.id,
+        t: placement.t,
+        width: DEFAULT_WINDOW_WIDTH,
+        heightInches: 36,
+        distanceFromFloorInches: 24,
+        tabSide: 1,
+      };
+
+      commitWindowsChange((currentWindows) => [...currentWindows, newWindow]);
+      setSelectedWindowId(null);
+      setSelectedDoorId(null);
+      setSelectedWallId(null);
+      setMenuPosition(null);
+      setActiveTool(null);
+      activeToolRef.current = null;
+      updateWindowPreview(null);
+      updateDoorPreview(null);
+      return true;
+    },
+    [
+      commitDoorsChange,
+      commitWindowsChange,
+      updateDoorPreview,
+      updateWindowPreview,
+    ]
+  );
+
   const stopDragging = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (activeToolRef.current === "place-door" && commitPreviewStructurePlacement("door")) {
+      return;
+    }
+
+    if (activeToolRef.current === "place-window" && commitPreviewStructurePlacement("window")) {
+      return;
+    }
+
+
+    const doorDragState = doorDragRef.current;
+
+    if (doorDragState && doorDragState.pointerId === event.pointerId) {
+      if (doorDragState.didMove) {
+        undoStackRef.current.push({
+          walls: wallsRef.current,
+          windows: windowsRef.current,
+          doors: doorDragState.startDoors,
+        });
+        redoStackRef.current = [];
+      }
+
+      doorDragRef.current = null;
+      updateDoorPreview(null);
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      return;
+    }
+
+    const windowDragState = windowDragRef.current;
+
+    if (windowDragState && windowDragState.pointerId === event.pointerId) {
+      if (windowDragState.didMove) {
+        undoStackRef.current.push({
+          walls: wallsRef.current,
+          windows: windowDragState.startWindows,
+          doors: doorsRef.current,
+        });
+        redoStackRef.current = [];
+      }
+
+      windowDragRef.current = null;
+      updateWindowPreview(null);
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      return;
+    }
+
+    const groupDragState = groupDragRef.current;
+
+    if (groupDragState && groupDragState.pointerId === event.pointerId) {
+      if (groupDragState.didMove) {
+        undoStackRef.current.push({
+          walls: groupDragState.startWalls,
+          windows: windowsRef.current,
+          doors: doorsRef.current,
+        });
+        redoStackRef.current = [];
+      }
+
+      groupDragRef.current = null;
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      return;
+    }
+
     if (isSelectionMode && isSelectingArea) {
       finishSelectionArea();
 
@@ -1135,25 +2032,111 @@ useEffect(() => {
     setPreviewPoint(null);
   };
 
+  const deleteSelectedWindow = () => {
+    if (!selectedWindowId) return;
+
+    commitWindowsChange((currentWindows) =>
+      currentWindows.filter((windowItem) => windowItem.id !== selectedWindowId)
+    );
+
+    setSelectedWindowId(null);
+    setMenuPosition(null);
+    updateWindowPreview(null);
+  };
+
+  const deleteSelectedDoor = () => {
+    if (!selectedDoorId) return;
+
+    commitDoorsChange((currentDoors) =>
+      currentDoors.filter((doorItem) => doorItem.id !== selectedDoorId)
+    );
+
+    setSelectedDoorId(null);
+    setMenuPosition(null);
+    updateDoorPreview(null);
+  };
+
+  const flipSelectedWindow = () => {
+    if (!selectedWindowId) return;
+
+    commitWindowsChange((currentWindows) =>
+      currentWindows.map((windowItem) =>
+        windowItem.id === selectedWindowId
+          ? { ...windowItem, tabSide: (-(windowItem.tabSide ?? 1) as 1 | -1) }
+          : windowItem
+      )
+    );
+  };
+
+  const selectedWindowWall = selectedWindow
+    ? thickWalls.find((wall) => wall.id === selectedWindow.wallId) ?? null
+    : null;
+
+  const selectedDoorWall = selectedDoor
+    ? thickWalls.find((wall) => wall.id === selectedDoor.wallId) ?? null
+    : null;
+
+  const activeStructureWallId =
+    windowPreview?.wall.id ??
+    selectedWindow?.wallId ??
+    doorPreview?.wall.id ??
+    selectedDoor?.wallId ??
+    null;
+
   const currentMenuPosition =
     selectedWall && menuPosition
       ? menuPosition
       : selectedWall
         ? getWallMenuPosition(selectedWall)
-        : null;
+        : selectedWindow && selectedWindowWall && menuPosition
+          ? menuPosition
+          : selectedWindow && selectedWindowWall
+            ? getWindowMenuPosition(selectedWindow, selectedWindowWall)
+            : selectedDoor && selectedDoorWall && menuPosition
+              ? menuPosition
+              : selectedDoor && selectedDoorWall
+                ? getDoorMenuPosition(selectedDoor, selectedDoorWall)
+                : null;
+
+  if (planViewMode === "elevation") {
+    return (
+      <ElevationPlanView
+        walls={elevationWalls}
+        windows={windows}
+        doors={doors}
+        activeIndex={activeElevationIndex}
+        onPrevious={() => {
+          if (elevationWalls.length === 0) return;
+          setActiveElevationIndex((currentIndex) =>
+            currentIndex <= 0 ? elevationWalls.length - 1 : currentIndex - 1
+          );
+        }}
+        onNext={() => {
+          if (elevationWalls.length === 0) return;
+          setActiveElevationIndex((currentIndex) =>
+            currentIndex >= elevationWalls.length - 1 ? 0 : currentIndex + 1
+          );
+        }}
+      />
+    );
+  }
 
   return (
     <div
       ref={canvasRef}
       className={cn(
         "relative min-h-0 flex-1 overflow-hidden bg-[#f5f5f5] touch-none select-none",
-        isSelectionMode
-          ? "cursor-crosshair"
-          : isDrawingTool(activeTool)
+        isSelectionMode && groupSelectedWallIds.length > 0
+          ? "cursor-move"
+          : isSelectionMode
             ? "cursor-crosshair"
-            : isDraggingCanvas
-              ? "cursor-grabbing"
-              : "cursor-default"
+            : activeTool === "place-window" || activeTool === "place-door"
+              ? "cursor-crosshair"
+              : isDrawingTool(activeTool)
+                ? "cursor-crosshair"
+              : isDraggingCanvas
+                ? "cursor-grabbing"
+                : "cursor-default"
       )}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -1179,9 +2162,12 @@ useEffect(() => {
             <WallChain
               key={`chain-${index}-${chain.points.map(pointKey).join("-")}`}
               points={chain.points}
+              sourceWalls={thickWalls}
               connectionMap={connectionMap}
               //hideInteriorDetails={isCreatingWallPreview}
               onMeasurementClick={startMeasurementEdit}
+              editingMeasurement={editingMeasurement}
+              renderMeasurements={false}
             />
           ))}
 
@@ -1190,6 +2176,39 @@ useEffect(() => {
               key={wall.id}
               wall={wall}
               onMeasurementClick={startMeasurementEdit}
+              editingMeasurement={editingMeasurement}
+            />
+          ))}
+
+          {wallChains.map((chain, index) => (
+            <WallChain
+              key={`measurement-overlay-${index}-${chain.points.map(pointKey).join("-")}`}
+              points={chain.points}
+              sourceWalls={thickWalls}
+              connectionMap={connectionMap}
+              //hideInteriorDetails={isCreatingWallPreview}
+              onMeasurementClick={startMeasurementEdit}
+              editingMeasurement={editingMeasurement}
+              renderWallBody={false}
+              getMeasurementLabelOffset={(segmentStart, segmentEnd, side) => {
+                if (!activeStructureWallId) return 18;
+
+                const activeStructureWall = thickWalls.find(
+                  (wall) => wall.id === activeStructureWallId
+                );
+
+                if (!activeStructureWall) return 18;
+
+                return segmentMatchesWall(segmentStart, segmentEnd, activeStructureWall.id, thickWalls) &&
+                  measurementSideMatchesStructureGuide(
+                    segmentStart,
+                    segmentEnd,
+                    side,
+                    activeStructureWall
+                  )
+                  ? 46
+                  : 18;
+              }}
             />
           ))}
 
@@ -1202,6 +2221,11 @@ useEffect(() => {
           {getOpenEndpoints(thickWalls, connectionMap).map((point) => (
             <OpenEndpoint key={`open-${pointKey(point)}`} point={point} />
           ))}
+
+          <MeasurementGuideAnchorDebugDots
+            walls={thickWalls}
+            chains={wallChains}
+          />
 
           {getOpenEndpoints(thinWalls, thinConnectionMap).map((point) => (
             <ThinOpenEndpoint key={`thin-open-${pointKey(point)}`} point={point} />
@@ -1243,11 +2267,119 @@ useEffect(() => {
             />
           )}
 
-          {!isSelectionMode && !isDrawingTool(activeTool) && (
-            <MeasurementEditHitAreas
-              chains={wallChains}
-              thinWalls={thinWalls}
-              onMeasurementClick={startMeasurementEdit}
+          {doors.map((doorItem) => {
+            const wall = thickWalls.find((currentWall) => currentWall.id === doorItem.wallId);
+            if (!wall) return null;
+
+            return (
+              <DoorOnWall
+                key={doorItem.id}
+                doorItem={doorItem}
+                wall={wall}
+                walls={thickWalls}
+                selected={doorItem.id === selectedDoorId}
+                disabled={activeTool === "place-door" || activeTool === "place-window"}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+
+                  setSelectedDoorId(doorItem.id);
+                  setSelectedWindowId(null);
+                  setSelectedWallId(null);
+                  setGroupSelectedWallIds([]);
+                  setGroupContextMenu(null);
+                  setMenuPosition(getDoorMenuPosition(doorItem, wall));
+                  updateDoorPreview(null);
+                  updateWindowPreview(null);
+                }}
+                onDragStart={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+
+                  doorDragRef.current = {
+                    id: doorItem.id,
+                    pointerId: event.pointerId,
+                    startDoors: doorsRef.current,
+                    didMove: false,
+                  };
+
+                  setSelectedDoorId(doorItem.id);
+                  setSelectedWindowId(null);
+                  setSelectedWallId(null);
+                  setGroupSelectedWallIds([]);
+                  setGroupContextMenu(null);
+                  setMenuPosition(getDoorMenuPosition(doorItem, wall));
+                  updateDoorPreview(null);
+                  updateWindowPreview(null);
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                }}
+              />
+            );
+          })}
+
+          {windows.map((windowItem) => {
+            const wall = thickWalls.find((currentWall) => currentWall.id === windowItem.wallId);
+            if (!wall) return null;
+
+            return (
+              <WindowOnWall
+                key={windowItem.id}
+                windowItem={windowItem}
+                wall={wall}
+                walls={thickWalls}
+                selected={windowItem.id === selectedWindowId}
+                disabled={activeTool === "place-window" || activeTool === "place-door"}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+
+                  setSelectedWindowId(windowItem.id);
+                  setSelectedDoorId(null);
+                  setSelectedWallId(null);
+                  setGroupSelectedWallIds([]);
+                  setGroupContextMenu(null);
+                  setMenuPosition(getWindowMenuPosition(windowItem, wall));
+                  updateWindowPreview(null);
+                }}
+                onDragStart={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+
+                  windowDragRef.current = {
+                    id: windowItem.id,
+                    pointerId: event.pointerId,
+                    startWindows: windowsRef.current,
+                    didMove: false,
+                  };
+
+                  setSelectedWindowId(windowItem.id);
+                  setSelectedDoorId(null);
+                  setSelectedWallId(null);
+                  setGroupSelectedWallIds([]);
+                  setGroupContextMenu(null);
+                  setMenuPosition(getWindowMenuPosition(windowItem, wall));
+                  updateWindowPreview(null);
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                }}
+              />
+            );
+          })}
+
+          {windowPreview && activeTool === "place-window" && (
+            <WindowPreview
+              preview={windowPreview}
+              width={DEFAULT_WINDOW_WIDTH}
+              walls={thickWalls}
+              showWidth
+            />
+          )}
+
+          {doorPreview && activeTool === "place-door" && (
+            <DoorPreview
+              preview={doorPreview}
+              width={DEFAULT_DOOR_WIDTH}
+              walls={thickWalls}
+              showWidth
             />
           )}
 
@@ -1263,23 +2395,31 @@ useEffect(() => {
             />
           )}
 
-          {editingMeasurement && (
-            <MeasurementEditPopover
-              edit={editingMeasurement}
-              onChange={(value) =>
-                setEditingMeasurement((currentEdit) =>
-                  currentEdit ? { ...currentEdit, value } : currentEdit
-                )
-              }
-              onCancel={() => setEditingMeasurement(null)}
-              onApply={applyMeasurementEdit}
-            />
-          )}
-
           {selectedWall && currentMenuPosition && (
             <SelectedWallContextMenu
               position={currentMenuPosition}
               onDelete={deleteSelectedWall}
+              onDragStart={handleMenuDragStart}
+              onDragMove={handleMenuDragMove}
+              onDragEnd={handleMenuDragEnd}
+            />
+          )}
+
+          {selectedWindow && currentMenuPosition && (
+            <SelectedWindowContextMenu
+              position={currentMenuPosition}
+              onFlip={flipSelectedWindow}
+              onDelete={deleteSelectedWindow}
+              onDragStart={handleMenuDragStart}
+              onDragMove={handleMenuDragMove}
+              onDragEnd={handleMenuDragEnd}
+            />
+          )}
+
+          {selectedDoor && currentMenuPosition && (
+            <SelectedDoorContextMenu
+              position={currentMenuPosition}
+              onDelete={deleteSelectedDoor}
               onDragStart={handleMenuDragStart}
               onDragMove={handleMenuDragMove}
               onDragEnd={handleMenuDragEnd}
@@ -1294,46 +2434,485 @@ useEffect(() => {
         onMoveLeft={() => moveCanvasView("left")}
         onMoveRight={() => moveCanvasView("right")}
       />
+
+      {editingMeasurement && (
+        <MeasurementEditModal
+          edit={editingMeasurement}
+          onCancel={() => setEditingMeasurement(null)}
+          onApply={applyMeasurementEdit}
+        />
+      )}
     </div>
   );
 }
 
-function SelectionAreaBox({ start, end }: { start: Point; end: Point }) {
-  const rect = getSelectionRect(start, end);
+
+function ElevationPlanView({
+  walls,
+  windows,
+  doors,
+  activeIndex,
+  onPrevious,
+  onNext,
+}: {
+  walls: Wall[];
+  windows: WindowElement[];
+  doors: DoorElement[];
+  activeIndex: number;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  if (walls.length === 0) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center bg-[#f5f5f5]">
+        <div className="rounded-xl border border-slate-200 bg-white px-8 py-10 text-center shadow-sm">
+          <h3 className="text-lg font-semibold text-pelican-navy">Elevation plan</h3>
+          <p className="mt-2 max-w-md text-sm text-slate-500">
+            Draw or generate at least one thick wall in the floor plan first, then switch back to Elevation plan to browse each wall side.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const wall = walls[activeIndex] ?? walls[0];
+  const wallWindows = windows
+    .filter((windowItem) => windowItem.wallId === wall.id)
+    .sort((left, right) => left.t - right.t);
+  const wallDoors = doors
+    .filter((doorItem) => doorItem.wallId === wall.id)
+    .sort((left, right) => left.t - right.t);
+
+  const wallLengthInches = pixelsToInches(distance(wall.start, wall.end));
+  const wallHeightInches = DEFAULT_ELEVATION_WALL_HEIGHT_INCHES;
+  const drawingWidth = ELEVATION_VIEWBOX_WIDTH - 220;
+  const drawingHeight = ELEVATION_VIEWBOX_HEIGHT - 220;
+  const renderScale = Math.min(
+    drawingWidth / Math.max(wallLengthInches, 1),
+    drawingHeight / wallHeightInches
+  );
+  const wallRenderWidth = wallLengthInches * renderScale;
+  const wallRenderHeight = wallHeightInches * renderScale;
+  const wallLeft = (ELEVATION_VIEWBOX_WIDTH - wallRenderWidth) / 2;
+  const wallTop = 150;
+  const wallBottom = wallTop + wallRenderHeight;
+  const overallLengthLabel = formatMeasurementFromInches(wallLengthInches);
+  const overallHeightLabel = formatMeasurementFromInches(wallHeightInches);
 
   return (
-    <g pointerEvents="none">
-      <rect
-        x={rect.x}
-        y={rect.y}
-        width={rect.width}
-        height={rect.height}
-        fill="#38bdf8"
-        fillOpacity={0.12}
-        stroke="#0ea5e9"
-        strokeWidth={1.5}
-        strokeDasharray="6 6"
+    <div className="flex min-h-0 flex-1 flex-col bg-[#f5f5f5]">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
+        <div>
+          <div className="text-sm font-semibold text-pelican-navy">Elevation plan</div>
+          <div className="text-xs text-slate-500">
+            Wall {activeIndex + 1} of {walls.length} · {overallLengthLabel} wide
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onPrevious}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+            aria-label="Previous wall elevation"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+            aria-label="Next wall elevation"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 p-6">
+        <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <svg
+            className="h-full w-full"
+            viewBox={`0 0 ${ELEVATION_VIEWBOX_WIDTH} ${ELEVATION_VIEWBOX_HEIGHT}`}
+          >
+            <rect x="0" y="0" width={ELEVATION_VIEWBOX_WIDTH} height={ELEVATION_VIEWBOX_HEIGHT} fill="#ffffff" />
+
+            <line x1={wallLeft} y1={wallBottom} x2={wallLeft + wallRenderWidth} y2={wallBottom} stroke="#d1d5db" strokeWidth="2" />
+            <rect
+              x={wallLeft}
+              y={wallTop}
+              width={wallRenderWidth}
+              height={wallRenderHeight}
+              fill="#d9d9d9"
+              stroke="#9ca3af"
+              strokeWidth="2"
+            />
+
+            <ElevationDimensionLine
+              x1={wallLeft}
+              y1={wallTop - 42}
+              x2={wallLeft + wallRenderWidth}
+              y2={wallTop - 42}
+              label={overallLengthLabel}
+              textOffset={-12}
+            />
+
+            <ElevationDimensionLine
+              x1={wallLeft + wallRenderWidth + 42}
+              y1={wallTop}
+              x2={wallLeft + wallRenderWidth + 42}
+              y2={wallBottom}
+              label={overallHeightLabel}
+              rotateText
+              textOffset={18}
+            />
+
+            {wallWindows.map((windowItem) => {
+              const width = pixelsToInches(windowItem.width) * renderScale;
+              const height = windowItem.heightInches * renderScale;
+              const left = wallLeft + wallRenderWidth * windowItem.t - width / 2;
+              const top = wallBottom - (windowItem.distanceFromFloorInches + windowItem.heightInches) * renderScale;
+              const sillY = wallBottom - windowItem.distanceFromFloorInches * renderScale;
+
+              return (
+                <g key={windowItem.id}>
+                  <rect x={left} y={top} width={width} height={height} fill="#f1ede4" stroke="#111827" strokeWidth="2" />
+                  <rect x={left + 8} y={top + 8} width={Math.max(0, width - 16)} height={Math.max(0, height - 16)} fill="#fafaf9" stroke="#111827" strokeWidth="1.5" />
+                  <line x1={left + width / 2} y1={top + 8} x2={left + width / 2} y2={top + height - 8} stroke="#111827" strokeWidth="1.5" />
+                  <line x1={left + 8} y1={top + height / 2} x2={left + width - 8} y2={top + height / 2} stroke="#111827" strokeWidth="1.5" />
+                  <line x1={wallLeft + wallRenderWidth * windowItem.t} y1={wallTop - 6} x2={wallLeft + wallRenderWidth * windowItem.t} y2={top} stroke="#16a34a" strokeWidth="2" opacity="0.45" />
+                  <ElevationDimensionLine
+                    x1={left}
+                    y1={top - 28}
+                    x2={left + width}
+                    y2={top - 28}
+                    label={formatMeasurementFromInches(pixelsToInches(windowItem.width))}
+                    textOffset={-10}
+                    extensionTop={10}
+                    extensionBottom={10}
+                  />
+                  <ElevationDimensionLine
+                    x1={left - 24}
+                    y1={sillY}
+                    x2={left - 24}
+                    y2={wallBottom}
+                    label={formatMeasurementFromInches(windowItem.distanceFromFloorInches)}
+                    rotateText
+                    textOffset={16}
+                    extensionTop={8}
+                    extensionBottom={8}
+                  />
+                </g>
+              );
+            })}
+
+            {wallDoors.map((doorItem) => {
+              const width = pixelsToInches(doorItem.width) * renderScale;
+              const height = doorItem.heightInches * renderScale;
+              const left = wallLeft + wallRenderWidth * doorItem.t - width / 2;
+              const top = wallBottom - (doorItem.distanceFromFloorInches + doorItem.heightInches) * renderScale;
+
+              return (
+                <g key={doorItem.id}>
+                  <rect x={left} y={top} width={width} height={height} fill="#d6dee8" stroke="#111827" strokeWidth="2" />
+                  <rect x={left + 10} y={top + 10} width={Math.max(0, width - 20)} height={Math.max(0, height - 20)} fill="#f8fafc" opacity="0.65" />
+                  <circle cx={left + width - 14} cy={top + height / 2} r="4" fill="#6b7280" />
+                  <line x1={wallLeft + wallRenderWidth * doorItem.t} y1={wallTop - 6} x2={wallLeft + wallRenderWidth * doorItem.t} y2={top} stroke="#2563eb" strokeWidth="2" opacity="0.35" />
+                  <ElevationDimensionLine
+                    x1={left}
+                    y1={top - 28}
+                    x2={left + width}
+                    y2={top - 28}
+                    label={formatMeasurementFromInches(pixelsToInches(doorItem.width))}
+                    textOffset={-10}
+                    extensionTop={10}
+                    extensionBottom={10}
+                  />
+                </g>
+              );
+            })}
+
+            <text
+              x={ELEVATION_VIEWBOX_WIDTH / 2}
+              y={ELEVATION_VIEWBOX_HEIGHT - 38}
+              textAnchor="middle"
+              className="fill-slate-700 text-[20px] font-semibold"
+            >
+              Wall elevation {activeIndex + 1}
+            </text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ElevationDimensionLine({
+  x1,
+  y1,
+  x2,
+  y2,
+  label,
+  rotateText = false,
+  textOffset = -10,
+  extensionTop = 12,
+  extensionBottom = 12,
+}: {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  label: string;
+  rotateText?: boolean;
+  textOffset?: number;
+  extensionTop?: number;
+  extensionBottom?: number;
+}) {
+  const isVertical = Math.abs(x1 - x2) < Math.abs(y1 - y2);
+  const midX = (x1 + x2) / 2;
+  const midY = (y1 + y2) / 2;
+
+  return (
+    <g>
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#4f46e5" strokeWidth="1.6" />
+      {isVertical ? (
+        <>
+          <line x1={x1 - extensionBottom / 2} y1={y1} x2={x1 + extensionBottom / 2} y2={y1} stroke="#4f46e5" strokeWidth="1.6" />
+          <line x1={x2 - extensionTop / 2} y1={y2} x2={x2 + extensionTop / 2} y2={y2} stroke="#4f46e5" strokeWidth="1.6" />
+        </>
+      ) : (
+        <>
+          <line x1={x1} y1={y1 - extensionBottom / 2} x2={x1} y2={y1 + extensionBottom / 2} stroke="#4f46e5" strokeWidth="1.6" />
+          <line x1={x2} y1={y2 - extensionTop / 2} x2={x2} y2={y2 + extensionTop / 2} stroke="#4f46e5" strokeWidth="1.6" />
+        </>
+      )}
+      <text
+        x={midX}
+        y={midY + (rotateText ? 0 : textOffset)}
+        textAnchor="middle"
+        dominantBaseline="central"
+        transform={rotateText ? `rotate(-90 ${midX} ${midY}) translate(${textOffset} 0)` : undefined}
+        className="fill-indigo-700 text-[20px] font-semibold"
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
+
+function SelectionAreaBox({ start, end }: { start: Point; end: Point }) {
+  const x = Math.min(start.x, end.x);
+  const y = Math.min(start.y, end.y);
+  const width = Math.abs(end.x - start.x);
+  const height = Math.abs(end.y - start.y);
+
+  return (
+    <rect
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      fill="rgba(14, 165, 233, 0.10)"
+      stroke="#0ea5e9"
+      strokeWidth={1.5}
+      strokeDasharray="6 5"
+      vectorEffect="non-scaling-stroke"
+      pointerEvents="none"
+    />
+  );
+}
+
+
+function DoorOnWall({
+  doorItem,
+  wall,
+  walls,
+  selected,
+  disabled = false,
+  onSelect,
+  onDragStart,
+}: {
+  doorItem: DoorElement;
+  wall: Wall;
+  walls: Wall[];
+  selected: boolean;
+  disabled?: boolean;
+  onSelect: (event: React.PointerEvent<SVGGElement>) => void;
+  onDragStart: (event: React.PointerEvent<SVGGElement>) => void;
+}) {
+  const geometry = getDoorGeometry(doorItem, wall);
+
+  if (!geometry) return null;
+
+  return (
+    <g
+      className={selected ? "cursor-move" : "cursor-pointer"}
+      pointerEvents={disabled ? "none" : undefined}
+      onPointerDown={disabled ? undefined : selected ? onDragStart : onSelect}
+    >
+      <DoorShapeOnWall geometry={geometry} wall={wall} selected={selected} />
+
+      {selected && (
+        <WindowPlacementMeasurements
+          wall={wall}
+          walls={walls}
+          center={geometry.center}
+          width={doorItem.width}
+          showWidth
+        />
+      )}
+
+      <line
+        x1={geometry.start.x}
+        y1={geometry.start.y}
+        x2={geometry.end.x}
+        y2={geometry.end.y}
+        stroke="transparent"
+        strokeWidth={WALL_STROKE_WIDTH + 14}
+        strokeLinecap="butt"
+        pointerEvents="stroke"
         vectorEffect="non-scaling-stroke"
       />
     </g>
   );
 }
 
-function ThinWallGroupContextMenu({
+function DoorShapeOnWall({
+  geometry,
+  wall,
+  selected = false,
+  preview = false,
+}: {
+  geometry: NonNullable<ReturnType<typeof getDoorGeometry>>;
+  wall: Wall;
+  selected?: boolean;
+  preview?: boolean;
+}) {
+  const normal = getPreferredNormal(wall.start, wall.end);
+  const halfHeight = preview ? 8 : 7;
+  const outerPoints = [
+    add(geometry.start, mul(normal, halfHeight)),
+    add(geometry.end, mul(normal, halfHeight)),
+    add(geometry.end, mul(normal, -halfHeight)),
+    add(geometry.start, mul(normal, -halfHeight)),
+  ];
+
+  if (preview) {
+    return (
+      <g pointerEvents="none">
+        <polygon
+          points={outerPoints.map(toSvgPoint).join(" ")}
+          fill="#35bed0"
+          stroke="#0891b2"
+          strokeWidth={1.4}
+          opacity={0.9}
+          vectorEffect="non-scaling-stroke"
+        />
+      </g>
+    );
+  }
+
+  const innerInset = 2;
+  const innerPoints = [
+    add(geometry.start, mul(normal, halfHeight - innerInset)),
+    add(geometry.end, mul(normal, halfHeight - innerInset)),
+    add(geometry.end, mul(normal, -(halfHeight - innerInset))),
+    add(geometry.start, mul(normal, -(halfHeight - innerInset))),
+  ];
+  const outlineStroke = selected ? "#0891b2" : "#111827";
+  const innerStroke = selected ? "#0891b2" : "#6b7280";
+  const fill = selected ? "#35bed0" : "#ffffff";
+
+  return (
+    <g pointerEvents="none">
+      <polygon
+        points={outerPoints.map(toSvgPoint).join(" ")}
+        fill={fill}
+        stroke={outlineStroke}
+        strokeWidth={2}
+        opacity={selected ? 0.9 : 1}
+        vectorEffect="non-scaling-stroke"
+      />
+      {!selected && (
+        <polygon
+          points={innerPoints.map(toSvgPoint).join(" ")}
+          fill="none"
+          stroke={innerStroke}
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+    </g>
+  );
+}
+
+function DoorPreview({
+  preview,
+  width,
+  walls,
+  showWidth = false,
+}: {
+  preview: DoorPlacementPreview;
+  width: number;
+  walls: Wall[];
+  showWidth?: boolean;
+}) {
+  const geometry = getDoorGeometry(
+    {
+      id: "preview",
+      wallId: preview.wall.id,
+      t: preview.t,
+      width,
+      heightInches: 80,
+      distanceFromFloorInches: 0,
+    },
+    preview.wall
+  );
+
+  if (!geometry) return null;
+
+  return (
+    <g pointerEvents="none">
+      <DoorShapeOnWall
+        geometry={geometry}
+        wall={preview.wall}
+        preview
+      />
+
+      <WindowPlacementMeasurements
+        wall={preview.wall}
+        walls={walls}
+        center={geometry.center}
+        width={width}
+        showWidth={showWidth}
+      />
+    </g>
+  );
+}
+
+function SelectedDoorContextMenu({
   position,
-  onCreateExterior,
-  onCreateInterior,
+  onDelete,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
 }: {
   position: Point;
-  onCreateExterior: () => void;
-  onCreateInterior: () => void;
+  onDelete: () => void;
+  onDragStart: (
+    event: React.PointerEvent<HTMLDivElement>,
+    startPosition: Point
+  ) => void;
+  onDragMove: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onDragEnd: (event: React.PointerEvent<HTMLDivElement>) => void;
 }) {
   return (
     <foreignObject
       x={position.x}
       y={position.y}
-      width={180}
-      height={88}
+      width={82}
+      height={54}
       pointerEvents="all"
       className="overflow-visible"
       onPointerDown={(event) => {
@@ -1341,28 +2920,644 @@ function ThinWallGroupContextMenu({
         event.stopPropagation();
       }}
     >
-      <div className="flex w-[170px] flex-col overflow-hidden rounded-md border-2 border-[#00aee6] bg-white text-[12px] font-semibold text-slate-700 shadow-md">
+      <div className="flex h-[46px] w-[74px] overflow-hidden rounded-md border-2 border-[#00aee6] bg-white shadow-md">
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Drag selected door menu"
+          className="flex w-6 shrink-0 cursor-grab items-center justify-center bg-[#0fb8d2] active:cursor-grabbing"
+          onPointerDown={(event) => onDragStart(event, position)}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
+        >
+          <div className="flex flex-col gap-1">
+            <span className="h-1 w-1 rounded-full bg-white" />
+            <span className="h-1 w-1 rounded-full bg-white" />
+            <span className="h-1 w-1 rounded-full bg-white" />
+          </div>
+        </div>
+
         <button
           type="button"
+          aria-label="Delete selected door"
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            onCreateExterior();
+            onDelete();
           }}
-          className="px-3 py-2 text-left hover:bg-cyan-50"
+          className="flex h-full w-11 items-center justify-center text-slate-500 hover:bg-slate-50"
         >
-          Create wall exterior
+          <Trash2 className="h-5 w-5" />
         </button>
+      </div>
+    </foreignObject>
+  );
+}
+
+function WindowOnWall({
+  windowItem,
+  wall,
+  walls,
+  selected,
+  disabled = false,
+  onSelect,
+  onDragStart,
+}: {
+  windowItem: WindowElement;
+  wall: Wall;
+  walls: Wall[];
+  selected: boolean;
+  disabled?: boolean;
+  onSelect: (event: React.PointerEvent<SVGGElement>) => void;
+  onDragStart: (event: React.PointerEvent<SVGGElement>) => void;
+}) {
+  const geometry = getWindowGeometry(windowItem, wall);
+
+  if (!geometry) return null;
+
+  return (
+    <g
+      className={selected ? "cursor-move" : "cursor-pointer"}
+      pointerEvents={disabled ? "none" : undefined}
+      onPointerDown={disabled ? undefined : selected ? onDragStart : onSelect}
+    >
+      <WindowShapeOnWall
+        geometry={geometry}
+        wall={wall}
+        selected={selected}
+        tabSide={windowItem.tabSide ?? 1}
+      />
+
+      {selected && (
+        <WindowPlacementMeasurements
+          wall={wall}
+          walls={walls}
+          center={geometry.center}
+          width={windowItem.width}
+          showWidth
+        />
+      )}
+
+      <line
+        x1={geometry.start.x}
+        y1={geometry.start.y}
+        x2={geometry.end.x}
+        y2={geometry.end.y}
+        stroke="transparent"
+        strokeWidth={WALL_STROKE_WIDTH + 14}
+        strokeLinecap="butt"
+        pointerEvents="stroke"
+        vectorEffect="non-scaling-stroke"
+      />
+    </g>
+  );
+}
+
+
+function WindowShapeOnWall({
+  geometry,
+  wall,
+  selected = false,
+  preview = false,
+  tabSide = 1,
+}: {
+  geometry: NonNullable<ReturnType<typeof getWindowGeometry>>;
+  wall: Wall;
+  selected?: boolean;
+  preview?: boolean;
+  tabSide?: 1 | -1;
+}) {
+  const normal = getPreferredNormal(wall.start, wall.end);
+  const tabNormal = mul(normal, tabSide);
+  const halfHeight = preview ? 8 : 7;
+  const tabLength = preview ? 10 : 8;
+  const tabWidth = preview ? 14 : 12;
+  const center = geometry.center;
+  const outerPoints = [
+    add(geometry.start, mul(normal, halfHeight)),
+    add(geometry.end, mul(normal, halfHeight)),
+    add(geometry.end, mul(normal, -halfHeight)),
+    add(geometry.start, mul(normal, -halfHeight)),
+  ];
+  const innerInset = 2;
+  const innerPoints = [
+    add(geometry.start, mul(normal, halfHeight - innerInset)),
+    add(geometry.end, mul(normal, halfHeight - innerInset)),
+    add(geometry.end, mul(normal, -(halfHeight - innerInset))),
+    add(geometry.start, mul(normal, -(halfHeight - innerInset))),
+  ];
+  const tabBaseCenter = add(center, mul(tabNormal, halfHeight));
+  const tabDirectionA = normalize(sub(wall.start, wall.end));
+  const tabDirectionB = normalize(sub(wall.end, wall.start));
+  const tabBaseLeft = add(tabBaseCenter, mul(tabDirectionA, tabWidth / 2));
+  const tabBaseRight = add(tabBaseCenter, mul(tabDirectionB, tabWidth / 2));
+  const tabTipLeft = add(tabBaseLeft, mul(tabNormal, tabLength));
+  const tabTipRight = add(tabBaseRight, mul(tabNormal, tabLength));
+
+  if (preview) {
+    return (
+      <g pointerEvents="none">
+        <polygon
+          points={outerPoints.map(toSvgPoint).join(" ")}
+          fill="#35bed0"
+          stroke="#0891b2"
+          strokeWidth={1.4}
+          opacity={0.9}
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d={`M ${tabBaseLeft.x} ${tabBaseLeft.y} L ${tabTipLeft.x} ${tabTipLeft.y} L ${tabTipRight.x} ${tabTipRight.y} L ${tabBaseRight.x} ${tabBaseRight.y}`}
+          fill="#35bed0"
+          stroke="#0891b2"
+          strokeWidth={1.4}
+          vectorEffect="non-scaling-stroke"
+        />
+      </g>
+    );
+  }
+
+  const outlineStroke = selected ? "#0891b2" : "#111827";
+  const innerStroke = selected ? "#0891b2" : "#6b7280";
+  const fill = selected ? "#35bed0" : "#ffffff";
+
+  return (
+    <g pointerEvents="none">
+      <polygon
+        points={outerPoints.map(toSvgPoint).join(" ")}
+        fill={fill}
+        stroke={outlineStroke}
+        strokeWidth={2}
+        opacity={selected ? 0.9 : 1}
+        vectorEffect="non-scaling-stroke"
+      />
+      {!selected && (
+        <polygon
+          points={innerPoints.map(toSvgPoint).join(" ")}
+          fill="none"
+          stroke={innerStroke}
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      <path
+        d={`M ${tabBaseLeft.x} ${tabBaseLeft.y} L ${tabTipLeft.x} ${tabTipLeft.y} L ${tabTipRight.x} ${tabTipRight.y} L ${tabBaseRight.x} ${tabBaseRight.y}`}
+        fill={fill}
+        stroke={outlineStroke}
+        strokeWidth={2}
+        opacity={selected ? 0.9 : 1}
+        vectorEffect="non-scaling-stroke"
+      />
+    </g>
+  );
+}
+
+function WindowPreview({
+  preview,
+  width,
+  walls,
+  showWidth = false,
+}: {
+  preview: WindowPlacementPreview;
+  width: number;
+  walls: Wall[];
+  showWidth?: boolean;
+}) {
+  const geometry = getWindowGeometry(
+    {
+      id: "preview",
+      wallId: preview.wall.id,
+      t: preview.t,
+      width,
+      heightInches: 36,
+      distanceFromFloorInches: 24,
+    },
+    preview.wall
+  );
+
+  if (!geometry) return null;
+
+  return (
+    <g pointerEvents="none">
+      <WindowShapeOnWall
+        geometry={geometry}
+        wall={preview.wall}
+        preview
+        tabSide={1}
+      />
+
+      <WindowPlacementMeasurements
+        wall={preview.wall}
+        walls={walls}
+        center={geometry.center}
+        width={width}
+        showWidth={showWidth}
+      />
+    </g>
+  );
+}
+
+function WindowPlacementMeasurements({
+  wall,
+  walls,
+  center,
+  width,
+  showWidth,
+}: {
+  wall: Wall;
+  walls?: Wall[];
+  center: Point;
+  width: number;
+  showWidth: boolean;
+}) {
+  const direction = normalize(sub(wall.end, wall.start));
+  const normal = getPreferredNormal(wall.start, wall.end);
+  const baseNormal = normalize(perp(direction));
+  const guideSide: Exclude<MeasurementSide, "length"> =
+    dot(normal, baseNormal) >= 0 ? "left" : "right";
+  const measurementWalls = walls?.length ? walls : [wall];
+  const halfWidth = width / 2;
+  const guideEndpoints = getStructureGuideEndpointsFromSideAnchors(
+    wall,
+    measurementWalls,
+    guideSide,
+    center,
+    width
+  );
+
+  const startAnchor = guideEndpoints.startAnchor;
+  const endAnchor = guideEndpoints.endAnchor;
+  const startScalar = dot(sub(startAnchor, wall.start), direction);
+  const endScalar = dot(sub(endAnchor, wall.start), direction);
+  const rawCenterScalar = dot(sub(center, wall.start), direction);
+  const centerScalar = clamp(
+    rawCenterScalar,
+    startScalar + halfWidth,
+    Math.max(startScalar + halfWidth, endScalar - halfWidth)
+  );
+  const windowStart = add(wall.start, add(mul(direction, centerScalar - halfWidth), mul(normal, WALL_THICKNESS / 2)));
+  const windowEnd = add(wall.start, add(mul(direction, centerScalar + halfWidth), mul(normal, WALL_THICKNESS / 2)));
+  const offset = 30;
+  const bracketStart = add(startAnchor, mul(normal, offset));
+  const bracketWindowStart = add(windowStart, mul(normal, offset));
+  const bracketWindowEnd = add(windowEnd, mul(normal, offset));
+  const bracketEnd = add(endAnchor, mul(normal, offset));
+  const tick = 12;
+  const rotation = getTextRotation(wall.start, wall.end);
+
+  const segmentLabel = (a: Point, b: Point) => {
+    const mid = midpoint(a, b);
+    return add(mid, mul(normal, 12));
+  };
+
+  return (
+    <g pointerEvents="none">
+      <BracketSegment start={bracketStart} end={bracketWindowStart} normal={normal} tick={tick} />
+      <BracketSegment start={bracketWindowStart} end={bracketWindowEnd} normal={normal} tick={tick} />
+      <BracketSegment start={bracketWindowEnd} end={bracketEnd} normal={normal} tick={tick} />
+
+      <SvgTextHalo
+        x={segmentLabel(bracketStart, bracketWindowStart).x}
+        y={segmentLabel(bracketStart, bracketWindowStart).y}
+        text={formatFeetInches(distance(startAnchor, windowStart))}
+        rotate={rotation}
+        className="fill-slate-950 text-[12px] font-bold"
+      />
+      {showWidth && (
+        <SvgTextHalo
+          x={segmentLabel(bracketWindowStart, bracketWindowEnd).x}
+          y={segmentLabel(bracketWindowStart, bracketWindowEnd).y}
+          text={formatFeetInches(width)}
+          rotate={rotation}
+          className="fill-slate-950 text-[12px] font-bold"
+        />
+      )}
+      <SvgTextHalo
+        x={segmentLabel(bracketWindowEnd, bracketEnd).x}
+        y={segmentLabel(bracketWindowEnd, bracketEnd).y}
+        text={formatFeetInches(distance(windowEnd, endAnchor))}
+        rotate={rotation}
+        className="fill-slate-950 text-[12px] font-bold"
+      />
+    </g>
+  );
+}
+
+function getStructureGuideEndpointsFromSideAnchors(
+  wall: Wall,
+  walls: Wall[],
+  guideSide: Exclude<MeasurementSide, "length">,
+  center: Point,
+  width: number
+) {
+  const runEndpoints = getStructureGuideEndpointsFromMeasurementRun(
+    wall,
+    walls,
+    guideSide
+  );
+
+  if (runEndpoints) return runEndpoints;
+
+  const direction = normalize(sub(wall.end, wall.start));
+  const baseNormal = normalize(perp(direction));
+  const normal = guideSide === "left" ? baseNormal : mul(baseNormal, -1);
+  const halfWidth = width / 2;
+  const centerScalar = dot(sub(center, wall.start), direction);
+  const windowStartScalar = centerScalar - halfWidth;
+  const windowEndScalar = centerScalar + halfWidth;
+  const sideFaceBase = add(wall.start, mul(normal, WALL_THICKNESS / 2));
+  const rawCandidates = getStructureGuideAnchorScalars(wall, walls, normal);
+  const candidates = rawCandidates.length
+    ? rawCandidates
+    : [
+        dot(sub(wall.start, wall.start), direction),
+        dot(sub(wall.end, wall.start), direction),
+      ];
+
+  const uniqueCandidates = Array.from(
+    new Set(candidates.map((value) => Math.round(value * 1000) / 1000))
+  ).sort((a, b) => a - b);
+
+  const before =
+    [...uniqueCandidates]
+      .reverse()
+      .find((value) => value <= windowStartScalar + 0.001) ??
+    uniqueCandidates[0];
+  const after =
+    uniqueCandidates.find((value) => value >= windowEndScalar - 0.001) ??
+    uniqueCandidates[uniqueCandidates.length - 1];
+
+  const startScalar = Math.min(before, after);
+  const endScalar = Math.max(before, after);
+
+  return {
+    startAnchor: add(sideFaceBase, mul(direction, startScalar)),
+    endAnchor: add(sideFaceBase, mul(direction, endScalar)),
+  };
+}
+
+function getStructureGuideEndpointsFromMeasurementRun(
+  wall: Wall,
+  walls: Wall[],
+  guideSide: Exclude<MeasurementSide, "length">
+) {
+  const chains = buildWallChains(walls.filter(isThickWall));
+  const direction = normalize(sub(wall.end, wall.start));
+
+  if (!vectorLength(direction)) return null;
+
+  const baseNormal = normalize(perp(direction));
+  const normal = guideSide === "left" ? baseNormal : mul(baseNormal, -1);
+  const sideFaceBase = add(wall.start, mul(normal, WALL_THICKNESS / 2));
+  const wallLineOffset = 14;
+
+  for (const chain of chains) {
+    const points = chain.points;
+    let segmentIndex = -1;
+    let isReversedInChain = false;
+
+    for (let index = 0; index < points.length - 1; index += 1) {
+      if (
+        samePoint(points[index], wall.start) &&
+        samePoint(points[index + 1], wall.end)
+      ) {
+        segmentIndex = index;
+        isReversedInChain = false;
+        break;
+      }
+
+      if (
+        samePoint(points[index], wall.end) &&
+        samePoint(points[index + 1], wall.start)
+      ) {
+        segmentIndex = index;
+        isReversedInChain = true;
+        break;
+      }
+    }
+
+    if (segmentIndex < 0) continue;
+
+    const chainGuideSide = isReversedInChain
+      ? getOppositeMeasurementSide(guideSide)
+      : guideSide;
+    let runStart = segmentIndex;
+    let runEnd = segmentIndex;
+
+    while (
+      runStart > 0 &&
+      shouldMergeMeasurementRun(points, runStart - 1, chainGuideSide, walls)
+    ) {
+      runStart -= 1;
+    }
+
+    while (
+      runEnd < points.length - 2 &&
+      shouldMergeMeasurementRun(points, runEnd, chainGuideSide, walls)
+    ) {
+      runEnd += 1;
+    }
+
+    const firstLayout = getWallSideMeasurementLayout(
+      points[runStart],
+      points[runStart + 1],
+      chainGuideSide,
+      walls
+    );
+    const lastLayout = getWallSideMeasurementLayout(
+      points[runEnd],
+      points[runEnd + 1],
+      chainGuideSide,
+      walls
+    );
+    const mergedLayout = getMergedMeasurementLayout(firstLayout, lastLayout);
+
+    // The structure guide should be a straight line with the same along-wall
+    // endpoints as the wall's blue dotted measurement guide. Project both
+    // dotted-line endpoints onto the hovered wall direction and rebuild them
+    // on the same side-face line to avoid skew/diagonal brackets.
+    const startScalar = dot(
+      sub(add(mergedLayout.lineStart, mul(normal, -wallLineOffset)), wall.start),
+      direction
+    );
+    const endScalar = dot(
+      sub(add(mergedLayout.lineEnd, mul(normal, -wallLineOffset)), wall.start),
+      direction
+    );
+    const minScalar = Math.min(startScalar, endScalar);
+    const maxScalar = Math.max(startScalar, endScalar);
+
+    return {
+      startAnchor: add(sideFaceBase, mul(direction, minScalar)),
+      endAnchor: add(sideFaceBase, mul(direction, maxScalar)),
+    };
+  }
+
+  return null;
+}
+
+function getOppositeMeasurementSide(
+  side: Exclude<MeasurementSide, "length">
+): Exclude<MeasurementSide, "length"> {
+  return side === "left" ? "right" : "left";
+}
+
+
+function getStructureGuideAnchorScalars(wall: Wall, walls: Wall[], normal: Point) {
+  const direction = normalize(sub(wall.end, wall.start));
+  const wallLineTolerance = WALL_THICKNESS + 3;
+  const candidates: number[] = [];
+
+  for (const currentWall of walls.filter(isThickWall)) {
+    const currentDirection = normalize(sub(currentWall.end, currentWall.start));
+
+    if (!vectorLength(currentDirection)) continue;
+    if (Math.abs(dot(currentDirection, direction)) < 0.999) continue;
+
+    const startDistanceToLine = Math.abs(dot(sub(currentWall.start, wall.start), normal));
+    const endDistanceToLine = Math.abs(dot(sub(currentWall.end, wall.start), normal));
+
+    if (startDistanceToLine > wallLineTolerance || endDistanceToLine > wallLineTolerance) {
+      continue;
+    }
+
+    const endpointPairs: Array<[Point, Point]> = [
+      [currentWall.start, currentWall.end],
+      [currentWall.end, currentWall.start],
+    ];
+
+    for (const [endpoint, neighbor] of endpointPairs) {
+      const anchor = getMeasurementGuideAnchor(endpoint, neighbor, normal, walls);
+      const scalar = dot(sub(anchor, wall.start), direction);
+      candidates.push(scalar);
+    }
+  }
+
+  // Always include the hovered wall endpoints as a safe fallback.
+  candidates.push(dot(sub(wall.start, wall.start), direction));
+  candidates.push(dot(sub(wall.end, wall.start), direction));
+
+  return candidates;
+}
+
+
+function BracketSegment({
+  start,
+  end,
+  normal,
+  tick,
+}: {
+  start: Point;
+  end: Point;
+  normal: Point;
+  tick: number;
+}) {
+  return (
+    <g>
+      <line
+        x1={start.x}
+        y1={start.y}
+        x2={end.x}
+        y2={end.y}
+        stroke="#111827"
+        strokeWidth={1.2}
+        vectorEffect="non-scaling-stroke"
+      />
+      <line
+        x1={start.x}
+        y1={start.y}
+        x2={start.x - normal.x * tick}
+        y2={start.y - normal.y * tick}
+        stroke="#111827"
+        strokeWidth={1.2}
+        vectorEffect="non-scaling-stroke"
+      />
+      <line
+        x1={end.x}
+        y1={end.y}
+        x2={end.x - normal.x * tick}
+        y2={end.y - normal.y * tick}
+        stroke="#111827"
+        strokeWidth={1.2}
+        vectorEffect="non-scaling-stroke"
+      />
+    </g>
+  );
+}
+
+function SelectedWindowContextMenu({
+  position,
+  onFlip,
+  onDelete,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+}: {
+  position: Point;
+  onFlip: () => void;
+  onDelete: () => void;
+  onDragStart: (
+    event: React.PointerEvent<HTMLDivElement>,
+    startPosition: Point
+  ) => void;
+  onDragMove: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onDragEnd: (event: React.PointerEvent<HTMLDivElement>) => void;
+}) {
+  return (
+    <foreignObject
+      x={position.x}
+      y={position.y}
+      width={120}
+      height={54}
+      pointerEvents="all"
+      className="overflow-visible"
+      onPointerDown={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      <div className="flex h-[46px] w-[112px] overflow-hidden rounded-md border-2 border-[#00aee6] bg-white shadow-md">
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Drag selected window menu"
+          className="flex w-6 shrink-0 cursor-grab items-center justify-center bg-[#0fb8d2] active:cursor-grabbing"
+          onPointerDown={(event) => onDragStart(event, position)}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
+        >
+          <div className="flex flex-col gap-1">
+            <span className="h-1 w-1 rounded-full bg-white" />
+            <span className="h-1 w-1 rounded-full bg-white" />
+            <span className="h-1 w-1 rounded-full bg-white" />
+          </div>
+        </div>
+
         <button
           type="button"
+          aria-label="Flip window handle"
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            onCreateInterior();
+            onFlip();
           }}
-          className="border-t border-slate-200 px-3 py-2 text-left hover:bg-cyan-50"
+          className="flex h-full w-11 items-center justify-center text-slate-500 hover:bg-slate-50"
         >
-          Create wall interior
+          <ArrowLeftRight className="h-5 w-5" />
+        </button>
+
+        <button
+          type="button"
+          aria-label="Delete selected window"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onDelete();
+          }}
+          className="flex h-full w-11 items-center justify-center text-slate-500 hover:bg-slate-50"
+        >
+          <Trash2 className="h-5 w-5" />
         </button>
       </div>
     </foreignObject>
@@ -1405,27 +3600,71 @@ function WallAttachIndicator({ point }: { point: Point }) {
   );
 }
 
-function ThinWallLine({ wall, onMeasurementClick }: { wall: Wall; onMeasurementClick?: (payload: MeasurementClickPayload) => void }) {
+function ThinWallLine({
+  wall,
+  onMeasurementClick,
+  editingMeasurement,
+}: {
+  wall: Wall;
+  onMeasurementClick?: (payload: MeasurementClickPayload) => void;
+  editingMeasurement?: MeasurementEditState | null;
+}) {
   const layout = getThinWallMeasurementLayout(wall.start, wall.end);
   const length = distance(wall.start, wall.end);
+  const payload: MeasurementClickPayload = {
+    segmentStart: wall.start,
+    segmentEnd: wall.end,
+    side: "length",
+    currentEdgeLength: length,
+    labelPoint: layout.labelPoint,
+    rotation: layout.rotation,
+  };
   return (
     <g>
-      <line x1={wall.start.x} y1={wall.start.y} x2={wall.end.x} y2={wall.end.y} stroke="#6b7280" strokeWidth={THIN_WALL_STROKE_WIDTH} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      <MeasurementLabelOnly layout={layout} label={formatFeetInches(length)} onClick={onMeasurementClick ? () => onMeasurementClick({ segmentStart: wall.start, segmentEnd: wall.end, side: "length", currentEdgeLength: length, labelPoint: layout.labelPoint, rotation: layout.rotation }) : undefined} />
+      <line
+        x1={wall.start.x}
+        y1={wall.start.y}
+        x2={wall.end.x}
+        y2={wall.end.y}
+        stroke="#6b7280"
+        strokeWidth={THIN_WALL_STROKE_WIDTH}
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      <MeasurementLabelOnly
+        layout={layout}
+        label={formatFeetInches(length)}
+        onClick={onMeasurementClick ? () => onMeasurementClick(payload) : undefined}
+      />
     </g>
   );
 }
 
 function WallChain({
   points,
+  sourceWalls,
   connectionMap,
   hideInteriorDetails = false,
   onMeasurementClick,
+  editingMeasurement,
+  renderWallBody = true,
+  renderMeasurements = true,
+  getMeasurementLabelOffset,
 }: {
   points: Point[];
+  sourceWalls: Wall[];
   connectionMap: ConnectionMap;
   hideInteriorDetails?: boolean;
   onMeasurementClick?: (payload: MeasurementClickPayload) => void;
+  editingMeasurement?: MeasurementEditState | null;
+  renderWallBody?: boolean;
+  renderMeasurements?: boolean;
+  getMeasurementLabelOffset?: (
+    segmentStart: Point,
+    segmentEnd: Point,
+    side: "left" | "right",
+    index: number
+  ) => number;
 }) {
   if (points.length < 2) return null;
 
@@ -1433,69 +3672,44 @@ function WallChain({
 
   return (
     <g>
-      <polygon
-        points={geometry.polygon.map(toSvgPoint).join(" ")}
-        fill="#c9c9c9"
-      />
-
-      {geometry.leftEdges.map((edge, index) => {
-        const layout = getEdgeMeasurementLayout(edge.a, edge.b, "left");
-        const edgeLength = distance(edge.a, edge.b);
-
-        return (
-          <MeasurementLine
-            key={`left-measure-${index}`}
-            layout={layout}
-            label={formatFeetInches(edgeLength)}
-            onClick={
-              onMeasurementClick
-                ? () =>
-                    onMeasurementClick({
-                      segmentStart: points[index],
-                      segmentEnd: points[index + 1],
-                      side: "left",
-                      currentEdgeLength: edgeLength,
-                      labelPoint: layout.labelPoint,
-                      rotation: layout.rotation,
-                    })
-                : undefined
-            }
+      {renderWallBody && (
+        <g>
+          <polygon
+            points={geometry.polygon.map(toSvgPoint).join(" ")}
+            fill="#c9c9c9"
           />
-        );
-      })}
+          <polyline
+            points={points.map(toSvgPoint).join(" ")}
+            fill="none"
+            stroke="#c9c9c9"
+            strokeWidth={WALL_THICKNESS}
+            strokeLinecap="butt"
+            strokeLinejoin="round"
+          />
+        </g>
+      )}
 
-      {!hideInteriorDetails &&
-        geometry.rightEdges.map((edge, index) => {
-          const layout = getEdgeMeasurementLayout(edge.a, edge.b, "right");
-          const edgeLength = distance(edge.a, edge.b);
+      {renderMeasurements && (
+        <WallMeasurementRuns
+          points={points}
+          edges={geometry.leftEdges}
+          side="left"
+          sourceWalls={sourceWalls}
+          onMeasurementClick={onMeasurementClick}
+          getMeasurementLabelOffset={getMeasurementLabelOffset}
+        />
+      )}
 
-          return (
-            <MeasurementLine
-              key={`right-measure-${index}`}
-              layout={layout}
-              label={formatFeetInches(edgeLength)}
-              onClick={
-                onMeasurementClick
-                  ? () =>
-                      onMeasurementClick({
-                        segmentStart: points[index],
-                        segmentEnd: points[index + 1],
-                        side: "right",
-                        currentEdgeLength: edgeLength,
-                        labelPoint: layout.labelPoint,
-                        rotation: layout.rotation,
-                      })
-                  : undefined
-              }
-            />
-          );
-        })}
-
-      <JointIndicators
-        points={points}
-        geometry={geometry}
-        hideInteriorDetails={hideInteriorDetails}
-      />
+      {renderMeasurements && !hideInteriorDetails && (
+        <WallMeasurementRuns
+          points={points}
+          edges={geometry.rightEdges}
+          side="right"
+          sourceWalls={sourceWalls}
+          onMeasurementClick={onMeasurementClick}
+          getMeasurementLabelOffset={getMeasurementLabelOffset}
+        />
+      )}
 
       {points.map((point) => {
         const isEndpointOpen = !isConnected(point, connectionMap);
@@ -1508,18 +3722,194 @@ function WallChain({
   );
 }
 
+function MeasurementGuideAnchorDebugDots({
+  walls,
+  chains,
+}: {
+  walls: Wall[];
+  chains: { points: Point[] }[];
+}) {
+  const debugDots: Point[] = [];
+
+  for (const chain of chains) {
+    const points = chain.points;
+
+    for (let index = 0; index < points.length - 1; index += 1) {
+      const segmentStart = points[index];
+      const segmentEnd = points[index + 1];
+
+      for (const side of ["left", "right"] as const) {
+        const startAnchor = getWallSideMeasurementAnchor(
+          segmentStart,
+          segmentEnd,
+          side,
+          walls
+        );
+        const endAnchor = getWallSideMeasurementAnchor(
+          segmentEnd,
+          segmentStart,
+          side,
+          walls
+        );
+
+        debugDots.push(startAnchor);
+        debugDots.push(endAnchor);
+      }
+    }
+  }
+
+  const uniqueDots = uniqueDebugPointsByDistance(debugDots, 1);
+
+  if (uniqueDots.length === 0) return null;
+
+  return (
+    <g pointerEvents="none">
+      {uniqueDots.map((point) => (
+        <circle
+          key={`measurement-black-dot-${pointKey(point)}`}
+          cx={point.x}
+          cy={point.y}
+          r={3.25}
+          fill="#000000"
+          stroke="#000000"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
+    </g>
+  );
+}
+
+function uniqueDebugPointsByDistance(points: Point[], tolerance = 1) {
+  const unique: Point[] = [];
+
+  for (const point of points) {
+    if (unique.some((existingPoint) => distance(existingPoint, point) <= tolerance)) {
+      continue;
+    }
+
+    unique.push(point);
+  }
+
+  return unique;
+}
+
+function getWallSideMeasurementAnchor(
+  segmentStart: Point,
+  segmentEnd: Point,
+  side: Exclude<MeasurementSide, "length">,
+  walls: Wall[]
+) {
+  const direction = normalize(sub(segmentEnd, segmentStart));
+  const baseNormal = normalize(perp(direction));
+  const normal = side === "left" ? baseNormal : mul(baseNormal, -1);
+
+  return getMeasurementGuideAnchor(segmentStart, segmentEnd, normal, walls);
+}
+
+function WallMeasurementRuns({
+  points,
+  edges,
+  side,
+  sourceWalls,
+  onMeasurementClick,
+  getMeasurementLabelOffset,
+}: {
+  points: Point[];
+  edges: { a: Point; b: Point }[];
+  side: Exclude<MeasurementSide, "length">;
+  sourceWalls: Wall[];
+  onMeasurementClick?: (payload: MeasurementClickPayload) => void;
+  getMeasurementLabelOffset?: (
+    segmentStart: Point,
+    segmentEnd: Point,
+    side: "left" | "right",
+    index: number
+  ) => number;
+}) {
+  const measurementLines: React.ReactNode[] = [];
+  let index = 0;
+
+  while (index < edges.length) {
+    let endIndex = index;
+
+    while (
+      endIndex < edges.length - 1 &&
+      shouldMergeMeasurementRun(points, endIndex, side, sourceWalls)
+    ) {
+      endIndex += 1;
+    }
+
+    const labelOffset =
+      getMeasurementLabelOffset?.(points[index], points[index + 1], side, index) ??
+      18;
+    const firstLayout = getWallSideMeasurementLayout(
+      points[index],
+      points[index + 1],
+      side,
+      sourceWalls,
+      labelOffset
+    );
+    const lastLayout = getWallSideMeasurementLayout(
+      points[endIndex],
+      points[endIndex + 1],
+      side,
+      sourceWalls,
+      labelOffset
+    );
+    const layout = getMergedMeasurementLayout(firstLayout, lastLayout);
+    const edgeLength = distance(layout.lineStart, layout.lineEnd);
+    const displayLength =
+      getConvertedMeasurementRunDisplayLength(
+        points,
+        index,
+        endIndex,
+        side,
+        sourceWalls
+      ) ?? edgeLength;
+
+    const payload: MeasurementClickPayload = {
+      segmentStart: points[index],
+      segmentEnd: points[endIndex + 1],
+      side,
+      currentEdgeLength: displayLength,
+      labelPoint: layout.labelPoint,
+      rotation: layout.rotation,
+    };
+
+    measurementLines.push(
+      <MeasurementLine
+        key={`${side}-measure-run-${index}-${endIndex}`}
+        layout={layout}
+        label={formatFeetInches(displayLength)}
+        onClick={onMeasurementClick ? () => onMeasurementClick(payload) : undefined}
+      />
+    );
+
+    index = endIndex + 1;
+  }
+
+  return <>{measurementLines}</>;
+}
+
 function JointIndicators({
   points,
   geometry,
+  connectionMap,
   hideInteriorDetails = false,
 }: {
   points: Point[];
   geometry: WallBandGeometry;
+  connectionMap: ConnectionMap;
   hideInteriorDetails?: boolean;
 }) {
   return (
     <g>
       {points.slice(1, -1).map((center, index) => {
+        if ((connectionMap.get(pointKey(center)) ?? 0) > 2) {
+          return null;
+        }
+
         const pointIndex = index + 1;
         const previous = points[pointIndex - 1];
         const next = points[pointIndex + 1];
@@ -1599,6 +3989,205 @@ function CornerJointMarker({
   );
 }
 
+function MultiConnectionJointIndicators({
+  walls,
+  connectionMap,
+}: {
+  walls: Wall[];
+  connectionMap: ConnectionMap;
+}) {
+  const junctionPoints = getMultiConnectedEndpoints(walls, connectionMap);
+
+  return (
+    <g>
+      {junctionPoints.map((point) => {
+        const arms = getConnectedWallArmsAtPoint(point, walls);
+        const markerSegments = getJunctionEdgeMarkerSegments(point, arms);
+
+        return (
+          <g key={`multi-joint-${pointKey(point)}`}>
+            {markerSegments.map((segment, index) => (
+              <g key={`multi-joint-edge-${pointKey(point)}-${index}`}>
+                <line
+                  x1={segment.start.x}
+                  y1={segment.start.y}
+                  x2={segment.end.x}
+                  y2={segment.end.y}
+                  stroke="#43b3c8"
+                  strokeWidth={4}
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+
+                <circle
+                  cx={segment.start.x}
+                  cy={segment.start.y}
+                  r={JOINT_DOT_RADIUS - 1}
+                  fill="#43b3c8"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </g>
+            ))}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+type JunctionArm = {
+  wall: Wall;
+  direction: Point;
+};
+
+type JunctionMarkerSegment = {
+  start: Point;
+  end: Point;
+};
+
+type JunctionMarkerCandidate = {
+  wall: Wall;
+  direction: Point;
+  normal: Point;
+  start: Point;
+};
+
+function getConnectedWallArmsAtPoint(point: Point, walls: Wall[]): JunctionArm[] {
+  const arms: JunctionArm[] = [];
+
+  for (const wall of walls) {
+    let direction: Point | null = null;
+
+    if (samePoint(point, wall.start)) {
+      direction = normalize(sub(wall.end, wall.start));
+    } else if (samePoint(point, wall.end)) {
+      direction = normalize(sub(wall.start, wall.end));
+    }
+
+    if (!direction || !vectorLength(direction)) continue;
+
+    arms.push({ wall, direction });
+  }
+
+  return arms;
+}
+
+function getJunctionEdgeMarkerSegments(point: Point, arms: JunctionArm[]) {
+  const candidates = getJunctionMarkerCandidates(point, arms);
+  const segments: JunctionMarkerSegment[] = [];
+
+  for (const candidate of candidates) {
+    const segment = getVisibleJunctionMarkerSegment(candidate, arms);
+    if (!segment) continue;
+
+    if (isDuplicateJunctionMarkerSegment(segments, segment.start, segment.end)) {
+      continue;
+    }
+
+    segments.push(segment);
+  }
+
+  return segments;
+}
+
+function getJunctionMarkerCandidates(point: Point, arms: JunctionArm[]) {
+  const halfThickness = WALL_THICKNESS / 2;
+  const edgeOffset = 0.9;
+  const candidates: JunctionMarkerCandidate[] = [];
+
+  for (const arm of arms) {
+    const normals = [normalize(perp(arm.direction)), normalize(mul(perp(arm.direction), -1))];
+
+    for (const normal of normals) {
+      candidates.push({
+        wall: arm.wall,
+        direction: normalize(arm.direction),
+        normal,
+        start: add(point, mul(normal, halfThickness + edgeOffset)),
+      });
+    }
+  }
+
+  return candidates;
+}
+
+function getVisibleJunctionMarkerSegment(
+  candidate: JunctionMarkerCandidate,
+  arms: JunctionArm[]
+) {
+  const maxDistance = JOINT_TICK_LENGTH;
+  const step = 0.75;
+  const outwardProbe = 2.75;
+  const minVisibleLength = 4.5;
+
+  let firstVisibleDistance: number | null = null;
+  let lastVisibleDistance: number | null = null;
+
+  for (let distanceAlongEdge = 0; distanceAlongEdge <= maxDistance; distanceAlongEdge += step) {
+    const sample = add(candidate.start, mul(candidate.direction, distanceAlongEdge));
+    const outsideSample = add(sample, mul(candidate.normal, outwardProbe));
+
+    const blocked = arms.some((arm) => {
+      if (arm.wall.id === candidate.wall.id) return false;
+
+      return (
+        pointIsInsideWallBody(sample, arm.wall, 0.15) ||
+        pointIsInsideWallBody(outsideSample, arm.wall, 0.15)
+      );
+    });
+
+    if (!blocked) {
+      if (firstVisibleDistance === null) firstVisibleDistance = distanceAlongEdge;
+      lastVisibleDistance = distanceAlongEdge;
+    } else if (firstVisibleDistance !== null) {
+      break;
+    }
+  }
+
+  if (firstVisibleDistance === null || lastVisibleDistance === null) {
+    return null;
+  }
+
+  const visibleLength = lastVisibleDistance - firstVisibleDistance + step;
+  if (visibleLength < minVisibleLength) {
+    return null;
+  }
+
+  return {
+    start: add(candidate.start, mul(candidate.direction, firstVisibleDistance)),
+    end: add(
+      candidate.start,
+      mul(candidate.direction, Math.min(maxDistance, lastVisibleDistance + step))
+    ),
+  };
+}
+
+function pointIsInsideWallBody(point: Point, wall: Wall, tolerance = 0) {
+  const projectedPoint = closestPointOnSegment(point, wall.start, wall.end);
+  const distanceFromCenterline = distance(point, projectedPoint);
+
+  if (distanceFromCenterline > WALL_THICKNESS / 2 + tolerance) return false;
+
+  const wallLength = distance(wall.start, wall.end);
+  const startDistance = distance(wall.start, projectedPoint);
+  const endDistance = distance(projectedPoint, wall.end);
+
+  return startDistance <= wallLength + tolerance && endDistance <= wallLength + tolerance;
+}
+
+function isDuplicateJunctionMarkerSegment(
+  segments: JunctionMarkerSegment[],
+  start: Point,
+  end: Point
+) {
+  return segments.some((segment) => {
+    return (
+      (distance(segment.start, start) < 1 && distance(segment.end, end) < 1) ||
+      (distance(segment.start, end) < 1 && distance(segment.end, start) < 1)
+    );
+  });
+}
+
 function SelectedWallOverlay({ wall }: { wall: Wall }) {
   if (isThinWall(wall)) {
     return (
@@ -1638,14 +4227,14 @@ function MeasurementEditHitAreas({
           <g key={`measure-hit-${chainIndex}`}>
             {geometry.leftEdges.map((edge, index) => {
               const layout = getEdgeMeasurementLayout(edge.a, edge.b, "left");
-              const edgeLength = distance(edge.a, edge.b);
+              const edgeLength = distance(layout.lineStart, layout.lineEnd);
               return (
                 <line key={`left-measure-hit-${chainIndex}-${index}`} x1={layout.lineStart.x} y1={layout.lineStart.y} x2={layout.lineEnd.x} y2={layout.lineEnd.y} stroke="transparent" strokeWidth={40} pointerEvents="stroke" vectorEffect="non-scaling-stroke" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); onMeasurementClick({ segmentStart: chain.points[index], segmentEnd: chain.points[index + 1], side: "left", currentEdgeLength: edgeLength, labelPoint: layout.labelPoint, rotation: layout.rotation }); }} />
               );
             })}
             {geometry.rightEdges.map((edge, index) => {
               const layout = getEdgeMeasurementLayout(edge.a, edge.b, "right");
-              const edgeLength = distance(edge.a, edge.b);
+              const edgeLength = distance(layout.lineStart, layout.lineEnd);
               return (
                 <line key={`right-measure-hit-${chainIndex}-${index}`} x1={layout.lineStart.x} y1={layout.lineStart.y} x2={layout.lineEnd.x} y2={layout.lineEnd.y} stroke="transparent" strokeWidth={40} pointerEvents="stroke" vectorEffect="non-scaling-stroke" onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); onMeasurementClick({ segmentStart: chain.points[index], segmentEnd: chain.points[index + 1], side: "right", currentEdgeLength: edgeLength, labelPoint: layout.labelPoint, rotation: layout.rotation }); }} />
               );
@@ -1671,7 +4260,7 @@ function WallSelectionHitAreas({
   activeTool: Tool;
   onSelectWall: (id: string) => void;
 }) {
-  if (isDrawingTool(activeTool)) return null;
+  if (isDrawingTool(activeTool) || activeTool === "place-window" || activeTool === "place-door") return null;
 
   return (
     <g>
@@ -1718,7 +4307,7 @@ function SelectedWallContextMenu({
     <foreignObject
       x={position.x}
       y={position.y}
-      width={126}
+      width={82}
       height={54}
       pointerEvents="all"
       className="overflow-visible"
@@ -1727,7 +4316,7 @@ function SelectedWallContextMenu({
         event.stopPropagation();
       }}
     >
-      <div className="flex h-[46px] w-[118px] overflow-hidden rounded-md border-2 border-[#00aee6] bg-white shadow-md">
+      <div className="flex h-[46px] w-[74px] overflow-hidden rounded-md border-2 border-[#00aee6] bg-white shadow-md">
         <div
           role="button"
           tabIndex={0}
@@ -1747,14 +4336,6 @@ function SelectedWallContextMenu({
 
         <button
           type="button"
-          aria-label="Move selected wall"
-          className="flex h-full w-11 items-center justify-center text-slate-500 hover:bg-slate-50"
-        >
-          <Move className="h-5 w-5" />
-        </button>
-
-        <button
-          type="button"
           aria-label="Delete selected wall"
           onClick={(event) => {
             event.preventDefault();
@@ -1771,7 +4352,7 @@ function SelectedWallContextMenu({
 }
 
 function getWallMenuPosition(wall: Wall): Point {
-  const menuWidth = 118;
+  const menuWidth = 74;
   const menuHeight = 46;
   const endpointGap = 18;
 
@@ -1806,16 +4387,7 @@ function MeasurementLine({
   onClick?: () => void;
 }) {
   return (
-    <g
-      className={onClick ? "cursor-text" : undefined}
-      onPointerDown={(event) => {
-        if (!onClick) return;
-
-        event.preventDefault();
-        event.stopPropagation();
-        onClick();
-      }}
-    >
+    <g>
       <line
         x1={layout.lineStart.x}
         y1={layout.lineStart.y}
@@ -1824,28 +4396,70 @@ function MeasurementLine({
         stroke="#38bdf8"
         strokeWidth={1.5}
         strokeDasharray="4 9"
+        pointerEvents="none"
         vectorEffect="non-scaling-stroke"
       />
 
-      <line
-        x1={layout.lineStart.x}
-        y1={layout.lineStart.y}
-        x2={layout.lineEnd.x}
-        y2={layout.lineEnd.y}
-        stroke="transparent"
-        strokeWidth={18}
-        pointerEvents={onClick ? "stroke" : "none"}
-        vectorEffect="non-scaling-stroke"
+      <MeasurementEndCap
+        point={layout.lineStart}
+        lineStart={layout.lineStart}
+        lineEnd={layout.lineEnd}
+      />
+      <MeasurementEndCap
+        point={layout.lineEnd}
+        lineStart={layout.lineStart}
+        lineEnd={layout.lineEnd}
       />
 
-      <SvgTextHalo
-        x={layout.labelPoint.x}
-        y={layout.labelPoint.y}
-        text={label}
-        rotate={layout.rotation}
-        className="fill-slate-950 text-[14px] font-bold"
-      />
+      <g
+        className={onClick ? "cursor-pointer" : undefined}
+        onPointerDown={(event) => {
+          if (!onClick) return;
+
+          event.preventDefault();
+          event.stopPropagation();
+          onClick();
+        }}
+      >
+        <SvgTextHalo
+          x={layout.labelPoint.x}
+          y={layout.labelPoint.y}
+          text={label}
+          rotate={layout.rotation}
+          className="fill-slate-950 text-[14px] font-bold"
+        />
+      </g>
     </g>
+  );
+}
+
+function MeasurementEndCap({
+  point,
+  lineStart,
+  lineEnd,
+}: {
+  point: Point;
+  lineStart: Point;
+  lineEnd: Point;
+}) {
+  const direction = normalize(sub(lineEnd, lineStart));
+  const normal = perp(direction);
+  const capHalfLength = 5;
+  const start = add(point, mul(normal, capHalfLength));
+  const end = add(point, mul(normal, -capHalfLength));
+
+  return (
+    <line
+      x1={start.x}
+      y1={start.y}
+      x2={end.x}
+      y2={end.y}
+      stroke="#38bdf8"
+      strokeWidth={2}
+      strokeLinecap="square"
+      pointerEvents="none"
+      vectorEffect="non-scaling-stroke"
+    />
   );
 }
 
@@ -1860,7 +4474,7 @@ function MeasurementLabelOnly({
 }) {
   return (
     <g
-      className={onClick ? "cursor-text" : undefined}
+      className={onClick ? "cursor-pointer" : undefined}
       onPointerDown={(event) => {
         if (!onClick) return;
 
@@ -1880,103 +4494,160 @@ function MeasurementLabelOnly({
   );
 }
 
-function MeasurementEditPopover({
 
+function measurementMatches(
+  edit: MeasurementEditState | null | undefined,
+  payload: MeasurementClickPayload
+) {
+  if (!edit) return false;
+  if (edit.side !== payload.side) return false;
+
+  const sameDirection =
+    samePoint(edit.segmentStart, payload.segmentStart) &&
+    samePoint(edit.segmentEnd, payload.segmentEnd);
+  const oppositeDirection =
+    samePoint(edit.segmentStart, payload.segmentEnd) &&
+    samePoint(edit.segmentEnd, payload.segmentStart);
+
+  return sameDirection || oppositeDirection;
+}
+
+function MeasurementEditModal({
   edit,
-  onChange,
   onCancel,
   onApply,
 }: {
   edit: MeasurementEditState;
-  onChange: (value: string) => void;
   onCancel: () => void;
   onApply: (value: string) => void;
 }) {
-  const popoverWidth = 108;
-  const popoverHeight = 72;
+  const initialParts = formatFeetInchesParts(edit.currentEdgeLength);
+  const [feet, setFeet] = useState(initialParts.feet);
+  const [inches, setInches] = useState(initialParts.inches);
+
+  useEffect(() => {
+    const nextParts = formatFeetInchesParts(edit.currentEdgeLength);
+    setFeet(nextParts.feet);
+    setInches(nextParts.inches);
+  }, [edit.wallId, edit.side, edit.currentEdgeLength]);
+
+
+  const applyCurrentValue = () => {
+    onApply(`${feet || "0"} ${inches || "0"}`);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    event.stopPropagation();
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      applyCurrentValue();
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onCancel();
+    }
+  };
+
+  const handleFeetChange = (value: string) => {
+    setFeet(value.replace(/[^0-9.]/g, ""));
+  };
+
+  const handleInchesChange = (value: string) => {
+    setInches(value.replace(/[^0-9.]/g, ""));
+  };
 
   return (
-    <foreignObject
-      x={edit.position.x - popoverWidth / 2}
-      y={edit.position.y - popoverHeight - 10}
-      width={popoverWidth}
-      height={popoverHeight}
-      pointerEvents="all"
-      className="overflow-visible"
+    <div
+      className="absolute inset-0 z-30 flex items-center justify-center bg-slate-900/20"
       onPointerDown={(event) => {
-        event.preventDefault();
         event.stopPropagation();
       }}
     >
-      <div className="flex w-[108px] flex-col items-center gap-1 rounded-md border-2 border-[#0fb8d2] bg-white p-1 shadow-md">
-        <input
-          autoFocus
-          value={edit.value}
-          onChange={(event) => onChange(event.target.value)}
-          onBlur={() => onApply(edit.value)}
-          onKeyDown={(event) => {
-            event.stopPropagation();
+      <div className="w-[360px] rounded-xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+          <div>
+            <h2 className="text-base font-bold text-pelican-navy">
+              Edit measurement
+            </h2>
+            <p className="mt-0.5 text-xs font-medium text-slate-500">
+              Update the selected wall length.
+            </p>
+          </div>
 
-            if (event.key === "Enter") {
-              event.preventDefault();
-              onApply(edit.value);
-            }
-
-            if (event.key === "Escape") {
-              event.preventDefault();
-              onCancel();
-            }
-          }}
-          className="h-8 w-full rounded-sm border-0 bg-white px-2 text-center text-[15px] font-bold text-slate-950 outline-none"
-        />
-
-        <div className="flex h-6 items-center justify-center gap-1 text-slate-600">
           <button
             type="button"
-            aria-label="Cancel measurement edit"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onCancel();
-            }}
-            className="flex h-6 w-8 items-center justify-center rounded border border-slate-200 bg-slate-50 text-lg leading-none hover:bg-slate-100"
+            aria-label="Close measurement editor"
+            onClick={onCancel}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-xl leading-none text-slate-500 hover:bg-slate-100 hover:text-slate-700"
           >
-            ←
+            ×
+          </button>
+        </div>
+
+        <div className="px-5 py-5">
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
+            Length
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Feet
+              </div>
+              <div className="flex h-11 items-center rounded-md border border-slate-300 bg-white px-3 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-100">
+                <input
+                  aria-label="Feet"
+                  value={feet}
+                  onChange={(event) => handleFeetChange(event.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="min-w-0 flex-1 border-0 bg-transparent text-lg font-bold text-slate-950 outline-none"
+                />
+                <span className="ml-2 text-lg font-bold text-slate-500">'</span>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Inches
+              </div>
+              <div className="flex h-11 items-center rounded-md border border-slate-300 bg-white px-3 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-100">
+                <input
+                  aria-label="Inches"
+                  value={inches}
+                  onChange={(event) => handleInchesChange(event.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="min-w-0 flex-1 border-0 bg-transparent text-lg font-bold text-slate-950 outline-none"
+                />
+                <span className="ml-2 text-lg font-bold text-slate-500">&quot;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 border-t border-slate-200 px-5 py-4">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-9 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Cancel
           </button>
 
           <button
             type="button"
-            aria-label="Apply measurement edit"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onApply(edit.value);
-            }}
-            className="flex h-6 w-8 items-center justify-center rounded border border-slate-200 bg-slate-50 text-lg leading-none hover:bg-slate-100"
+            onClick={applyCurrentValue}
+            className="h-9 rounded-md bg-pelican-teal px-4 text-sm font-semibold text-white shadow-sm hover:brightness-95"
           >
-            ↔
-          </button>
-
-          <button
-            type="button"
-            aria-label="Apply measurement edit"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onApply(edit.value);
-            }}
-            className="flex h-6 w-8 items-center justify-center rounded border border-slate-200 bg-slate-50 text-lg leading-none hover:bg-slate-100"
-          >
-            →
+            Update
           </button>
         </div>
       </div>
-    </foreignObject>
+    </div>
   );
 }
+
 
 function WallDrawingOverlay({
   start,
@@ -2332,13 +5003,355 @@ function MoveControl({
   );
 }
 
+
+
+function DoorPropertiesPanel({
+  selectedDoor,
+  onBack,
+}: {
+  selectedDoor: DoorSelectionDetail;
+  onBack: () => void;
+}) {
+  const updateDoorNumber = (
+    field: "widthInches" | "heightInches" | "distanceFromFloorInches",
+    value: string
+  ) => {
+    const nextValue = Number(value);
+
+    if (!Number.isFinite(nextValue)) return;
+
+    window.dispatchEvent(
+      new CustomEvent("pelican-door-attribute-change", {
+        detail: {
+          id: selectedDoor.id,
+          field,
+          value: nextValue,
+        },
+      })
+    );
+  };
+
+  return (
+    <aside className="h-full w-[280px] overflow-y-auto border-r border-slate-200 bg-white">
+      <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-pelican-navy hover:text-pelican-teal"
+        >
+          <ChevronLeft className="h-5 w-5" />
+          Back
+        </button>
+      </div>
+
+      <div className="space-y-6 px-4 py-5">
+        <div className="flex items-center gap-4">
+          <SimpleDoorShape />
+          <div>
+            <div className="text-[11px] font-bold uppercase text-slate-400">
+              Doors
+            </div>
+            <div className="text-sm font-bold text-slate-700">
+              Simple Door
+            </div>
+          </div>
+        </div>
+
+        <WindowPropertyInput
+          label="Width"
+          value={roundToQuarter(selectedDoor.widthInches)}
+          unit="in"
+          onChange={(value) => updateDoorNumber("widthInches", value)}
+        />
+        <WindowPropertyInput
+          label="Height"
+          value={roundToQuarter(selectedDoor.heightInches)}
+          unit="in"
+          onChange={(value) => updateDoorNumber("heightInches", value)}
+        />
+        <WindowPropertyInput
+          label="Distance from floor"
+          value={roundToQuarter(selectedDoor.distanceFromFloorInches)}
+          unit="in"
+          onChange={(value) =>
+            updateDoorNumber("distanceFromFloorInches", value)
+          }
+        />
+
+        <div className="space-y-3">
+          <div className="text-[11px] font-bold uppercase text-pelican-navy">
+            Door finish
+          </div>
+          <FinishCard label="Decorator's White" subLabel="Benjamin Moore" />
+          <div className="text-[11px] font-bold uppercase text-pelican-navy">
+            Hardware finish
+          </div>
+          <FinishCard label="Stainless Steel" subLabel="Matcap" />
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function WindowPropertiesPanel({
+  selectedWindow,
+  onBack,
+}: {
+  selectedWindow: WindowSelectionDetail;
+  onBack: () => void;
+}) {
+  const updateWindowNumber = (
+    field: "widthInches" | "heightInches" | "distanceFromFloorInches",
+    value: string
+  ) => {
+    const nextValue = Number(value);
+
+    if (!Number.isFinite(nextValue)) return;
+
+    window.dispatchEvent(
+      new CustomEvent("pelican-window-attribute-change", {
+        detail: {
+          id: selectedWindow.id,
+          field,
+          value: nextValue,
+        },
+      })
+    );
+  };
+
+  return (
+    <aside className="h-full w-[280px] overflow-y-auto border-r border-slate-200 bg-white">
+      <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-pelican-navy hover:text-pelican-teal"
+        >
+          <ChevronLeft className="h-5 w-5" />
+          Back
+        </button>
+      </div>
+
+      <div className="space-y-6 px-4 py-5">
+        <div className="flex items-center gap-4">
+          <SimpleWindowShape />
+          <div>
+            <div className="text-[11px] font-bold uppercase text-slate-400">
+              Windows
+            </div>
+            <div className="text-sm font-bold text-slate-700">
+              Simple Window
+            </div>
+          </div>
+        </div>
+
+        <WindowPropertyInput
+          label="Width"
+          value={roundToQuarter(selectedWindow.widthInches)}
+          unit="in"
+          onChange={(value) => updateWindowNumber("widthInches", value)}
+        />
+        <WindowPropertyInput
+          label="Height"
+          value={roundToQuarter(selectedWindow.heightInches)}
+          unit="in"
+          onChange={(value) => updateWindowNumber("heightInches", value)}
+        />
+        <WindowPropertyInput
+          label="Distance from floor"
+          value={roundToQuarter(selectedWindow.distanceFromFloorInches)}
+          unit="in"
+          onChange={(value) =>
+            updateWindowNumber("distanceFromFloorInches", value)
+          }
+        />
+
+        <div className="space-y-2">
+          <div className="text-[11px] font-bold uppercase text-pelican-navy">
+            Frame style
+          </div>
+          <div className="flex h-14 items-center justify-between rounded-md border border-slate-200 bg-white px-3">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded bg-slate-100" />
+              <div className="text-sm font-bold text-slate-800">Basic</div>
+            </div>
+            <PencilLine className="h-4 w-4 text-slate-300" />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="text-[11px] font-bold uppercase text-pelican-navy">
+            Window finish
+          </div>
+          <FinishCard label="Decorator's White" subLabel="Benjamin Moore" />
+          <div className="text-[11px] font-bold uppercase text-pelican-navy">
+            Frame finish
+          </div>
+          <FinishCard label="Decorator's White" subLabel="Benjamin Moore" />
+          <div className="text-[11px] font-bold uppercase text-pelican-navy">
+            Hardware finish
+          </div>
+          <FinishCard label="Stainless Steel" subLabel="Matcap" />
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function WindowPropertyInput({
+  label,
+  value,
+  unit,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-[11px] font-bold uppercase text-pelican-navy">
+        {label}
+      </span>
+      <div className="flex items-center gap-4">
+        <input
+          type="range"
+          min={label === "Width" ? 12 : 0}
+          max={label === "Width" ? 120 : 144}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="min-w-0 flex-1 accent-pelican-teal"
+        />
+        <div className="flex h-11 w-[105px] items-center rounded-md border border-slate-200 bg-slate-50 px-3">
+          <input
+            type="number"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-right text-sm font-bold text-pelican-navy outline-none"
+          />
+          <span className="ml-1 text-[11px] font-semibold text-slate-400">
+            {unit}
+          </span>
+        </div>
+      </div>
+    </label>
+  );
+}
+
+function FinishCard({ label, subLabel }: { label: string; subLabel: string }) {
+  return (
+    <div className="flex h-16 items-center justify-between rounded-md border border-slate-200 bg-white px-2">
+      <div className="flex items-center gap-3">
+        <div className="h-11 w-11 rounded-md bg-slate-100" />
+        <div>
+          <div className="text-sm font-bold text-slate-900">{label}</div>
+          <div className="text-[11px] text-slate-500">{subLabel}</div>
+        </div>
+      </div>
+      <PencilLine className="h-4 w-4 text-slate-300" />
+    </div>
+  );
+}
+
 function ContextPanel({
+  activePanel,
   activeTool,
   setActiveTool,
+  setIsSelectionMode,
+  selectedWindow,
+  selectedDoor,
 }: {
+  activePanel: Panel;
   activeTool: Tool;
   setActiveTool: React.Dispatch<React.SetStateAction<Tool>>;
+  setIsSelectionMode: React.Dispatch<React.SetStateAction<boolean>>;
+  selectedWindow: WindowSelectionDetail | null;
+  selectedDoor: DoorSelectionDetail | null;
 }) {
+  const [structureTab, setStructureTab] = useState<"doors" | "windows">("doors");
+
+  const activateToolFromCard = (tool: Tool) => {
+    setIsSelectionMode(false);
+    setActiveTool(tool);
+  };
+
+  if (activePanel === "structures" && selectedWindow) {
+    return (
+      <WindowPropertiesPanel
+        selectedWindow={selectedWindow}
+        onBack={() => window.dispatchEvent(new Event("pelican-deselect-window"))}
+      />
+    );
+  }
+
+  if (activePanel === "structures" && selectedDoor) {
+    return (
+      <DoorPropertiesPanel
+        selectedDoor={selectedDoor}
+        onBack={() => window.dispatchEvent(new Event("pelican-deselect-door"))}
+      />
+    );
+  }
+
+  if (activePanel === "structures") {
+    return (
+      <aside className="h-full w-[280px] overflow-y-auto border-r border-slate-200 bg-white">
+        <div className="sticky top-0 z-10 bg-white px-3 pt-4">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setStructureTab("doors")}
+              className={cn(
+                "h-8 rounded-md text-[13px] font-medium transition",
+                structureTab === "doors"
+                  ? "bg-pelican-teal/25 text-pelican-navy"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              )}
+            >
+              Doors
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStructureTab("windows")}
+              className={cn(
+                "h-8 rounded-md text-[13px] font-medium transition",
+                structureTab === "windows"
+                  ? "bg-pelican-teal/25 text-pelican-navy"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              )}
+            >
+              Windows
+            </button>
+          </div>
+        </div>
+
+        <div className="px-3 pb-6 pt-4">
+          {structureTab === "doors" ? (
+            <StructureToolCard
+              title="Simple Door"
+              subtitle="36&quot; W x 80&quot; H"
+              active={activeTool === "place-door"}
+              onClick={() => activateToolFromCard("place-door")}
+            >
+              <SimpleDoorShape />
+            </StructureToolCard>
+          ) : (
+            <StructureToolCard
+              title="Simple Window"
+              subtitle="39.25&quot; W x 36&quot; H"
+              active={activeTool === "place-window"}
+              onClick={() => activateToolFromCard("place-window")}
+            >
+              <SimpleWindowShape />
+            </StructureToolCard>
+          )}
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside className="h-full w-[280px] overflow-y-auto border-r border-slate-200 bg-white">
       <div className="sticky top-0 z-10 bg-white px-3 pt-4">
@@ -2351,39 +5364,104 @@ function ContextPanel({
       <div className="space-y-3 px-3 pb-6">
         <WallToolCard
           active={activeTool === "draw-wall"}
-          onClick={() => setActiveTool("draw-wall")}
+          onClick={() => activateToolFromCard("draw-wall")}
         />
 
         <ThinWallToolCard
           active={activeTool === "draw-thin-wall"}
-          onClick={() => setActiveTool("draw-thin-wall")}
+          onClick={() => activateToolFromCard("draw-thin-wall")}
         />
-
-        <ThinWallConversionButtons />
       </div>
     </aside>
   );
 }
 
-function ThinWallConversionButtons() {
+function StructureToolCard({
+  title,
+  subtitle,
+  active = false,
+  onClick,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  active?: boolean;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="mt-3 grid grid-cols-1 gap-2">
-      <button
-        type="button"
-        onClick={() => window.dispatchEvent(new Event("pelican-create-wall-exterior"))}
-        className="h-9 rounded-md border border-slate-200 bg-white px-3 text-[12px] font-bold text-pelican-navy shadow-sm hover:border-pelican-teal hover:bg-slate-50"
-      >
-        Create wall exterior
-      </button>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex h-[150px] w-full flex-col items-center justify-center rounded-md border bg-white p-3 text-center transition hover:border-pelican-teal",
+        active ? "border-pelican-navy ring-1 ring-pelican-navy" : "border-slate-200"
+      )}
+    >
+      <div className="flex h-24 w-full items-center justify-center">
+        {children}
+      </div>
 
-      <button
-        type="button"
-        onClick={() => window.dispatchEvent(new Event("pelican-create-wall-interior"))}
-        className="h-9 rounded-md border border-slate-200 bg-white px-3 text-[12px] font-bold text-pelican-navy shadow-sm hover:border-pelican-teal hover:bg-slate-50"
-      >
-        Create wall interior
-      </button>
-    </div>
+      <span className="mt-2 text-[13px] font-medium text-slate-900">
+        {title}
+      </span>
+      <span className="mt-1 text-[11px] text-slate-500">
+        {subtitle}
+      </span>
+    </button>
+  );
+}
+
+function SimpleDoorShape() {
+  return (
+    <svg viewBox="0 0 110 90" className="h-24 w-28">
+      <rect
+        x="24"
+        y="20"
+        width="62"
+        height="50"
+        rx="3"
+        fill="#d1d5db"
+        stroke="#9ca3af"
+        strokeWidth="4"
+      />
+      <rect
+        x="32"
+        y="28"
+        width="46"
+        height="34"
+        fill="#f8fafc"
+        opacity="0.45"
+      />
+      <circle cx="72" cy="45" r="3" fill="#9ca3af" />
+    </svg>
+  );
+}
+
+function SimpleWindowShape() {
+  return (
+    <svg viewBox="0 0 110 90" className="h-24 w-28">
+      <rect
+        x="20"
+        y="22"
+        width="70"
+        height="48"
+        rx="4"
+        fill="#e5e7eb"
+        stroke="#9ca3af"
+        strokeWidth="4"
+      />
+      <rect
+        x="28"
+        y="30"
+        width="54"
+        height="32"
+        fill="#f8fafc"
+        opacity="0.65"
+      />
+      <line x1="55" y1="24" x2="55" y2="68" stroke="#9ca3af" strokeWidth="3" />
+      <line x1="22" y1="46" x2="88" y2="46" stroke="#9ca3af" strokeWidth="3" />
+    </svg>
   );
 }
 
@@ -2408,7 +5486,7 @@ function WallToolCard({
       <WallLineShape />
 
       <span className="mt-3 text-[12px] font-medium text-slate-900">
-        Draw Wall (W)
+        Draw thick Wall
       </span>
     </button>
   );
@@ -2435,7 +5513,13 @@ function ThinWallLineShape() {
   return <svg viewBox="0 0 130 70" className="h-16 w-24"><path d="M20 36 H110" className="fill-none stroke-slate-500 stroke-[2]" strokeLinecap="round" /></svg>;
 }
 
-function MainToolbar({ active }: { active: Panel }) {
+function MainToolbar({
+  active,
+  onSelect,
+}: {
+  active: Panel;
+  onSelect: (panel: Panel) => void;
+}) {
   return (
     <nav className="flex h-full w-[68px] shrink-0 flex-col items-center bg-white py-3">
       <div className="flex w-full flex-col items-center gap-0.5">
@@ -2446,6 +5530,8 @@ function MainToolbar({ active }: { active: Panel }) {
           return (
             <button
               key={item.id}
+              type="button"
+              onClick={() => onSelect(item.id)}
               className={cn(
                 "flex w-full flex-col items-center gap-1 py-1.5 text-[11px] font-semibold leading-none",
                 isActive
@@ -2480,50 +5566,957 @@ function MainToolbar({ active }: { active: Panel }) {
   );
 }
 
+
+
+function getDoorPlacementOnWall(
+  point: Point,
+  walls: Wall[],
+  width: number
+): DoorPlacementPreview | null {
+  const placement = getWindowPlacementOnWall(point, walls, width);
+
+  if (!placement) return null;
+
+  return {
+    wall: placement.wall,
+    t: placement.t,
+    point: placement.point,
+  };
+}
+
+function getDoorGeometry(doorItem: DoorElement, wall: Wall) {
+  const wallLength = distance(wall.start, wall.end);
+
+  if (wallLength < 0.001) return null;
+
+  const direction = normalize(sub(wall.end, wall.start));
+  const halfWidth = Math.min(doorItem.width / 2, wallLength / 2);
+  const centerDistance = clamp(doorItem.t * wallLength, halfWidth, wallLength - halfWidth);
+  const center = add(wall.start, mul(direction, centerDistance));
+
+  return {
+    center,
+    start: add(center, mul(direction, -halfWidth)),
+    end: add(center, mul(direction, halfWidth)),
+  };
+}
+
+function getDoorMenuPosition(
+  doorItem: DoorElement,
+  wall: Wall,
+  overrideT?: number
+): Point {
+  const geometry = getDoorGeometry(
+    {
+      ...doorItem,
+      t: overrideT ?? doorItem.t,
+    },
+    wall
+  );
+
+  if (!geometry) {
+    return { x: wall.start.x + 24, y: wall.start.y - 24 };
+  }
+
+  const normal = getPreferredNormal(wall.start, wall.end);
+  const menuWidth = 74;
+  const menuHeight = 46;
+  const doorHalfHeight = 7;
+  const menuGapFromDoor = 20;
+  const doorCenter = geometry.center;
+  const menuHalfProjectionOnNormal =
+    (Math.abs(normal.x) * menuWidth + Math.abs(normal.y) * menuHeight) / 2;
+  const menuCenter = add(
+    doorCenter,
+    mul(normal, -(doorHalfHeight + menuGapFromDoor + menuHalfProjectionOnNormal))
+  );
+
+  return {
+    x: menuCenter.x - menuWidth / 2,
+    y: menuCenter.y - menuHeight / 2,
+  };
+}
+
+function getWindowPlacementOnWall(
+  point: Point,
+  walls: Wall[],
+  width: number
+): WindowPlacementPreview | null {
+  let bestPlacement: WindowPlacementPreview | null = null;
+  let bestDistance = Infinity;
+  const placementTolerance = WALL_ATTACH_THRESHOLD + WALL_STROKE_WIDTH / 2 + 16;
+
+  for (const wall of walls.filter(isThickWall)) {
+    const wallLength = distance(wall.start, wall.end);
+    if (wallLength < width + 4) continue;
+
+    const projection = closestPointOnSegment(point, wall.start, wall.end);
+    const distanceToWall = distance(point, projection);
+
+    if (distanceToWall > placementTolerance || distanceToWall >= bestDistance) {
+      continue;
+    }
+
+    const direction = normalize(sub(wall.end, wall.start));
+    const rawDistance = dot(sub(projection, wall.start), direction);
+    const clampedDistance = clamp(rawDistance, width / 2, wallLength - width / 2);
+    const centerPoint = add(wall.start, mul(direction, clampedDistance));
+
+    bestDistance = distanceToWall;
+    bestPlacement = {
+      wall,
+      t: clampedDistance / wallLength,
+      point: centerPoint,
+    };
+  }
+
+  return bestPlacement;
+}
+
+function getWindowPlacementFromWall(
+  windowItem: WindowElement,
+  wall: Wall
+): WindowPlacementPreview {
+  return {
+    wall,
+    t: windowItem.t,
+    point: interpolate(wall.start, wall.end, windowItem.t),
+  };
+}
+
+function getWindowGeometry(windowItem: WindowElement, wall: Wall) {
+  const wallLength = distance(wall.start, wall.end);
+
+  if (wallLength < 0.001) return null;
+
+  const direction = normalize(sub(wall.end, wall.start));
+  const halfWidth = Math.min(windowItem.width / 2, wallLength / 2);
+  const centerDistance = clamp(windowItem.t * wallLength, halfWidth, wallLength - halfWidth);
+  const center = add(wall.start, mul(direction, centerDistance));
+
+  return {
+    center,
+    start: add(center, mul(direction, -halfWidth)),
+    end: add(center, mul(direction, halfWidth)),
+  };
+}
+
+function getWindowMenuPosition(
+  windowItem: WindowElement,
+  wall: Wall,
+  overrideT?: number
+): Point {
+  const geometry = getWindowGeometry(
+    {
+      ...windowItem,
+      t: overrideT ?? windowItem.t,
+    },
+    wall
+  );
+
+  if (!geometry) {
+    return { x: wall.start.x + 24, y: wall.start.y - 24 };
+  }
+
+  const normal = getPreferredNormal(wall.start, wall.end);
+  const menuWidth = 112;
+  const menuHeight = 46;
+  const windowHalfHeight = 7;
+  const menuGapFromWindow = 20;
+  const windowCenter = geometry.center;
+
+  // Keep a consistent visual gap from the window shape for every wall angle.
+  // Since the context menu is an axis-aligned rectangle, use its projected
+  // half-size along the wall normal before placing the menu center.
+  const menuHalfProjectionOnNormal =
+    (Math.abs(normal.x) * menuWidth + Math.abs(normal.y) * menuHeight) / 2;
+  const menuCenter = add(
+    windowCenter,
+    mul(normal, -(windowHalfHeight + menuGapFromWindow + menuHalfProjectionOnNormal))
+  );
+
+  return {
+    x: menuCenter.x - menuWidth / 2,
+    y: menuCenter.y - menuHeight / 2,
+  };
+}
+
+function getStructureGuideSideForWall(
+  wall: Wall
+): Exclude<MeasurementSide, "length"> {
+  const direction = normalize(sub(wall.end, wall.start));
+  const baseNormal = normalize(perp(direction));
+  const guideNormal = getPreferredNormal(wall.start, wall.end);
+
+  return dot(guideNormal, baseNormal) >= 0 ? "left" : "right";
+}
+
+function measurementSideMatchesStructureGuide(
+  segmentStart: Point,
+  segmentEnd: Point,
+  side: "left" | "right",
+  wall: Wall
+) {
+  const guideSide = getStructureGuideSideForWall(wall);
+
+  if (samePoint(segmentStart, wall.start) && samePoint(segmentEnd, wall.end)) {
+    return side === guideSide;
+  }
+
+  if (samePoint(segmentStart, wall.end) && samePoint(segmentEnd, wall.start)) {
+    return side === getOppositeMeasurementSide(guideSide);
+  }
+
+  return false;
+}
+
+function segmentMatchesWall(
+  segmentStart: Point,
+  segmentEnd: Point,
+  wallId: string,
+  walls: Wall[]
+) {
+  const wall = walls.find((currentWall) => currentWall.id === wallId);
+
+  if (!wall) return false;
+
+  return (
+    (samePoint(segmentStart, wall.start) && samePoint(segmentEnd, wall.end)) ||
+    (samePoint(segmentStart, wall.end) && samePoint(segmentEnd, wall.start))
+  );
+}
+
+function interpolate(start: Point, end: Point, t: number): Point {
+  return {
+    x: start.x + (end.x - start.x) * t,
+    y: start.y + (end.y - start.y) * t,
+  };
+}
+
+function inchesToPixels(inches: number) {
+  return (inches / 12) * GRID_SIZE;
+}
+
+function areWindowsEqual(a: WindowElement[], b: WindowElement[]) {
+  if (a.length !== b.length) return false;
+
+  return a.every((windowItem, index) => {
+    const otherWindow = b[index];
+
+    return (
+      otherWindow &&
+      windowItem.id === otherWindow.id &&
+      windowItem.wallId === otherWindow.wallId &&
+      Math.abs(windowItem.t - otherWindow.t) < 0.001 &&
+      Math.abs(windowItem.width - otherWindow.width) < 0.001 &&
+      Math.abs(windowItem.heightInches - otherWindow.heightInches) < 0.001 &&
+      Math.abs(windowItem.distanceFromFloorInches - otherWindow.distanceFromFloorInches) < 0.001 &&
+      (windowItem.tabSide ?? 1) === (otherWindow.tabSide ?? 1)
+    );
+  });
+}
+
+function areDoorsEqual(a: DoorElement[], b: DoorElement[]) {
+  if (a.length !== b.length) return false;
+
+  return a.every((doorItem, index) => {
+    const otherDoor = b[index];
+
+    return (
+      otherDoor &&
+      doorItem.id === otherDoor.id &&
+      doorItem.wallId === otherDoor.wallId &&
+      Math.abs(doorItem.t - otherDoor.t) < 0.001 &&
+      Math.abs(doorItem.width - otherDoor.width) < 0.001 &&
+      Math.abs(doorItem.heightInches - otherDoor.heightInches) < 0.001 &&
+      Math.abs(doorItem.distanceFromFloorInches - otherDoor.distanceFromFloorInches) < 0.001
+    );
+  });
+}
+
 function isThinWall(wall: Wall) { return wall.kind === "thin-wall"; }
 function isThickWall(wall: Wall) { return wall.kind !== "thin-wall"; }
 function isDrawingTool(tool: Tool) { return tool === "draw-wall" || tool === "draw-thin-wall"; }
+
+function canConvertThinWallSelection(selectedWalls: Wall[], allThinWalls: Wall[]) {
+  if (selectedWalls.length === 0) return false;
+  if (!selectedWalls.every(isThinWall)) return false;
+
+  const selectedIds = new Set(selectedWalls.map((wall) => wall.id));
+  const components = getConnectedWallComponents(allThinWalls);
+
+  for (const component of components) {
+    const selectedInComponent = component.filter((wall) => selectedIds.has(wall.id));
+
+    if (selectedInComponent.length === 0) continue;
+    if (selectedInComponent.length !== component.length) return false;
+  }
+
+  return true;
+}
+
+function getConnectedWallComponents(walls: Wall[]) {
+  const remaining = new Map(walls.map((wall) => [wall.id, wall]));
+  const pointToWallIds = new Map<string, string[]>();
+
+  for (const wall of walls) {
+    for (const point of [wall.start, wall.end]) {
+      const key = pointKey(point);
+      pointToWallIds.set(key, [...(pointToWallIds.get(key) ?? []), wall.id]);
+    }
+  }
+
+  const components: Wall[][] = [];
+
+  while (remaining.size > 0) {
+    const first = remaining.values().next().value as Wall;
+    const queue = [first];
+    const component: Wall[] = [];
+    remaining.delete(first.id);
+
+    while (queue.length > 0) {
+      const wall = queue.shift();
+      if (!wall) continue;
+
+      component.push(wall);
+
+      for (const point of [wall.start, wall.end]) {
+        for (const neighborId of pointToWallIds.get(pointKey(point)) ?? []) {
+          const neighbor = remaining.get(neighborId);
+
+          if (!neighbor) continue;
+
+          remaining.delete(neighborId);
+          queue.push(neighbor);
+        }
+      }
+    }
+
+    components.push(component);
+  }
+
+  return components;
+}
 
 function convertThinWallsToThickWalls(
   thinWalls: Wall[],
   mode: ThickWallCreationMode
 ) {
-  const thinChains = buildWallChains(thinWalls);
   const convertedWalls: Wall[] = [];
+  const thinComponents = getConnectedWallComponents(thinWalls);
 
-  for (const chain of thinChains) {
-    if (chain.points.length < 2) continue;
+  for (const component of thinComponents) {
+    const componentConnectionMap = buildConnectionMap(component);
+    const hasBranchingJunction = component.some((wall) => {
+      return [wall.start, wall.end].some(
+        (point) => (componentConnectionMap.get(pointKey(point)) ?? 0) > 2
+      );
+    });
 
-    const centerlinePoints = getThickWallCenterlineFromThinGuide(
-      chain.points,
-      mode
-    );
+    // Branching thin-wall systems have T / cross junctions. If we offset every
+    // branch independently, their converted centerlines no longer meet at the
+    // same node, which creates tiny wall pieces, incorrect labels like 3", and
+    // red open-end dots at what should be a real junction. For branched
+    // systems, keep the thin guide nodes as the thick-wall centerline graph so
+    // every connected endpoint stays exactly shared after conversion.
+    if (hasBranchingJunction) {
+      for (const wall of component) {
+        if (distance(wall.start, wall.end) < 0.001) continue;
 
-    for (let index = 0; index < centerlinePoints.length - 1; index++) {
-      const start = centerlinePoints[index];
-      const end = centerlinePoints[index + 1];
+        convertedWalls.push({
+          id: crypto.randomUUID(),
+          start: { ...wall.start },
+          end: { ...wall.end },
+          kind: "wall",
+          sourceThinLength: distance(wall.start, wall.end),
+          sourceThinMode: mode,
+        });
+      }
 
-      if (distance(start, end) < 0.001) continue;
+      continue;
+    }
 
-      convertedWalls.push({
-        id: crypto.randomUUID(),
-        start,
-        end,
-        kind: "wall",
-      });
+    const thinChains = buildWallChains(component);
+
+    for (const chain of thinChains) {
+      if (chain.points.length < 2) continue;
+
+      const centerlinePoints = getThickWallCenterlineFromThinGuide(
+        chain.points,
+        mode
+      );
+
+      for (let index = 0; index < centerlinePoints.length - 1; index++) {
+        const start = centerlinePoints[index];
+        const end = centerlinePoints[index + 1];
+
+        if (distance(start, end) < 0.001) continue;
+
+        convertedWalls.push({
+          id: crypto.randomUUID(),
+          start,
+          end,
+          kind: "wall",
+          sourceThinLength: distance(chain.points[index], chain.points[index + 1]),
+          sourceThinMode: mode,
+        });
+      }
     }
   }
 
-  return convertedWalls;
+  return tuneConvertedWallsToThinGuideLengths(convertedWalls, mode);
+}
+
+function tuneConvertedWallsToThinGuideLengths(
+  walls: Wall[],
+  mode: ThickWallCreationMode
+) {
+  const components = getConnectedWallComponents(walls);
+  const fittedWalls: Wall[] = [];
+
+  for (const component of components) {
+    fittedWalls.push(...fitConvertedComponentToThinGuideLengths(component, mode));
+  }
+
+  return fittedWalls;
+}
+
+function fitConvertedComponentToThinGuideLengths(
+  component: Wall[],
+  mode: ThickWallCreationMode
+) {
+  const walls = component.map((wall) => ({
+    ...wall,
+    start: { ...wall.start },
+    end: { ...wall.end },
+  }));
+
+  if (walls.length === 0) return walls;
+
+  const desiredLengths = new Map<string, number>();
+
+  for (const wall of walls) {
+    const centerLength = distance(wall.start, wall.end);
+    const sourceLength = wall.sourceThinLength;
+
+    if (!sourceLength || sourceLength <= 0 || centerLength < 0.001) {
+      desiredLengths.set(wall.id, centerLength);
+      continue;
+    }
+
+    const targetSide = getConvertedTargetMeasurementSide(wall, walls, mode);
+    const layout = getWallSideMeasurementLayout(
+      wall.start,
+      wall.end,
+      targetSide,
+      walls
+    );
+    const guideLength = distance(layout.lineStart, layout.lineEnd);
+
+    // Keep the original segment direction but change its centerline length by
+    // the exact amount needed for the target dotted guide to match the thin
+    // guide. For a fixed junction angle, the guide-vs-centerline offset is
+    // constant, so this preserves the system shape while correcting the actual
+    // measured dotted-line length.
+    desiredLengths.set(wall.id, Math.max(4, centerLength + (sourceLength - guideLength)));
+  }
+
+  return rebuildConvertedComponentWithDesiredLengths(walls, desiredLengths);
+}
+
+function rebuildConvertedComponentWithDesiredLengths(
+  walls: Wall[],
+  desiredLengths: Map<string, number>
+) {
+  if (walls.length === 0) return walls;
+
+  const pointToWalls = new Map<string, Wall[]>();
+
+  for (const wall of walls) {
+    pointToWalls.set(pointKey(wall.start), [
+      ...(pointToWalls.get(pointKey(wall.start)) ?? []),
+      wall,
+    ]);
+    pointToWalls.set(pointKey(wall.end), [
+      ...(pointToWalls.get(pointKey(wall.end)) ?? []),
+      wall,
+    ]);
+  }
+
+  const rootPoint = chooseConvertedRebuildRoot(walls, pointToWalls);
+  const rebuiltPoints = new Map<string, Point>();
+  const visitedWalls = new Set<string>();
+  const queue: Point[] = [rootPoint];
+
+  rebuiltPoints.set(pointKey(rootPoint), { ...rootPoint });
+
+  while (queue.length) {
+    const currentOriginalPoint = queue.shift()!;
+    const currentKey = pointKey(currentOriginalPoint);
+    const currentRebuiltPoint = rebuiltPoints.get(currentKey);
+
+    if (!currentRebuiltPoint) continue;
+
+    for (const wall of pointToWalls.get(currentKey) ?? []) {
+      if (visitedWalls.has(wall.id)) continue;
+
+      const currentIsStart = samePoint(wall.start, currentOriginalPoint);
+      const neighborOriginalPoint = currentIsStart ? wall.end : wall.start;
+      const neighborKey = pointKey(neighborOriginalPoint);
+      const originalDirection = normalize(
+        sub(neighborOriginalPoint, currentOriginalPoint)
+      );
+
+      if (!vectorLength(originalDirection)) continue;
+
+      const desiredLength =
+        desiredLengths.get(wall.id) ?? distance(wall.start, wall.end);
+      const rebuiltNeighborPoint = add(
+        currentRebuiltPoint,
+        mul(originalDirection, desiredLength)
+      );
+
+      visitedWalls.add(wall.id);
+
+      if (!rebuiltPoints.has(neighborKey)) {
+        rebuiltPoints.set(neighborKey, rebuiltNeighborPoint);
+        queue.push(neighborOriginalPoint);
+      }
+    }
+  }
+
+  return walls.map((wall) => ({
+    ...wall,
+    start: rebuiltPoints.get(pointKey(wall.start)) ?? wall.start,
+    end: rebuiltPoints.get(pointKey(wall.end)) ?? wall.end,
+  }));
+}
+
+function chooseConvertedRebuildRoot(
+  walls: Wall[],
+  pointToWalls: Map<string, Wall[]>
+) {
+  const allPoints = uniquePoints(walls.flatMap((wall) => [wall.start, wall.end]));
+  const openPoints = allPoints.filter(
+    (point) => (pointToWalls.get(pointKey(point)) ?? []).length <= 1
+  );
+
+  const candidates = openPoints.length ? openPoints : allPoints;
+  let bestPoint = candidates[0];
+
+  for (const point of candidates) {
+    if (point.y < bestPoint.y - 0.001) {
+      bestPoint = point;
+      continue;
+    }
+
+    if (Math.abs(point.y - bestPoint.y) <= 0.001 && point.x < bestPoint.x) {
+      bestPoint = point;
+    }
+  }
+
+  return bestPoint;
+}
+
+
+function getConvertedTargetMeasurementSide(
+  wall: Wall,
+  walls: Wall[],
+  mode: ThickWallCreationMode
+): Exclude<MeasurementSide, "length"> {
+  const exteriorSide = getExteriorMeasurementSide(wall.start, wall.end, walls);
+
+  // Preserve the current button behavior:
+  // Create exterior wall -> match the generated interior guide to the thin wall.
+  // Create interior wall -> match the generated exterior guide to the thin wall.
+  return mode === "exterior"
+    ? exteriorSide === "left"
+      ? "right"
+      : "left"
+    : exteriorSide;
+}
+
+function moveSharedPoint(walls: Wall[], from: Point, to: Point) {
+  return walls.map((wall) => ({
+    ...wall,
+    start: samePoint(wall.start, from) ? { ...to } : wall.start,
+    end: samePoint(wall.end, from) ? { ...to } : wall.end,
+  }));
 }
 
 function getThickWallCenterlineFromThinGuide(
   thinGuidePoints: Point[],
   mode: ThickWallCreationMode
 ) {
-  const offset = mode === "exterior" ? -WALL_THICKNESS / 2 : WALL_THICKNESS / 2;
+  // Button behavior is intentionally opposite of the side that should match:
+  // - Create exterior wall: preserve thin-wall values on the generated INTERIOR.
+  // - Create interior wall: preserve thin-wall values on the generated EXTERIOR.
+  const offset = mode === "exterior" ? WALL_THICKNESS / 2 : -WALL_THICKNESS / 2;
 
   return buildOffsetSide(thinGuidePoints, offset);
+}
+
+function getWallSideMeasurementLayout(
+  segmentStart: Point,
+  segmentEnd: Point,
+  side: Exclude<MeasurementSide, "length">,
+  walls: Wall[],
+  labelOffset = 18
+): MeasurementLayout {
+  const direction = normalize(sub(segmentEnd, segmentStart));
+  const baseNormal = normalize(perp(direction));
+  const normal = side === "left" ? baseNormal : mul(baseNormal, -1);
+  const lineOffsetFromWallFace = 14;
+
+  const startAnchor = getMeasurementGuideAnchor(
+    segmentStart,
+    segmentEnd,
+    normal,
+    walls
+  );
+  const endAnchor = getMeasurementGuideAnchor(
+    segmentEnd,
+    segmentStart,
+    normal,
+    walls
+  );
+
+  const lineStart = add(startAnchor, mul(normal, lineOffsetFromWallFace));
+  const lineEnd = add(endAnchor, mul(normal, lineOffsetFromWallFace));
+  const mid = midpoint(lineStart, lineEnd);
+
+  return {
+    lineStart,
+    lineEnd,
+    labelPoint: add(mid, mul(normal, labelOffset)),
+    rotation: getTextRotation(segmentStart, segmentEnd),
+  };
+}
+
+function getMeasurementGuideAnchor(
+  endpoint: Point,
+  segmentNeighbor: Point,
+  sideNormal: Point,
+  walls: Wall[]
+) {
+  const segmentDirection = normalize(sub(segmentNeighbor, endpoint));
+  const wallFacePoint = add(endpoint, mul(sideNormal, WALL_THICKNESS / 2));
+
+  if (!vectorLength(segmentDirection)) return wallFacePoint;
+
+  const connectedDirections = getConnectedDirectionsAtPoint(endpoint, walls);
+
+  if (connectedDirections.length <= 1) return wallFacePoint;
+
+  const matchingIndex = findMatchingDirectionIndex(
+    connectedDirections,
+    segmentDirection
+  );
+
+  if (matchingIndex < 0) return wallFacePoint;
+
+  const leftNormal = normalize(perp(segmentDirection));
+  const isLeftSide = dot(sideNormal, leftNormal) >= 0;
+  const currentDirection = connectedDirections[matchingIndex];
+
+  if (isLeftSide) {
+    const nextDirection =
+      connectedDirections[(matchingIndex + 1) % connectedDirections.length];
+    return getMiterAnchorForDirectionPair(
+      endpoint,
+      currentDirection,
+      nextDirection,
+      "first-left"
+    );
+  }
+
+  const previousDirection =
+    connectedDirections[
+      (matchingIndex - 1 + connectedDirections.length) %
+        connectedDirections.length
+    ];
+
+  return getMiterAnchorForDirectionPair(
+    endpoint,
+    previousDirection,
+    currentDirection,
+    "second-right"
+  );
+}
+
+function getConnectedDirectionsAtPoint(point: Point, walls: Wall[]) {
+  const directions = walls
+    .filter((wall) => samePoint(wall.start, point) || samePoint(wall.end, point))
+    .map((wall) => {
+      const otherPoint = samePoint(wall.start, point) ? wall.end : wall.start;
+      return normalize(sub(otherPoint, point));
+    })
+    .filter((direction) => vectorLength(direction));
+
+  const uniqueDirections: Point[] = [];
+
+  for (const direction of directions) {
+    if (
+      uniqueDirections.some(
+        (existingDirection) => dot(existingDirection, direction) > 0.999
+      )
+    ) {
+      continue;
+    }
+
+    uniqueDirections.push(direction);
+  }
+
+  return uniqueDirections.sort(
+    (a, b) => Math.atan2(a.y, a.x) - Math.atan2(b.y, b.x)
+  );
+}
+
+function findMatchingDirectionIndex(directions: Point[], target: Point) {
+  let bestIndex = -1;
+  let bestDot = 0.999;
+
+  directions.forEach((direction, index) => {
+    const match = dot(direction, target);
+
+    if (match > bestDot) {
+      bestDot = match;
+      bestIndex = index;
+    }
+  });
+
+  return bestIndex;
+}
+
+function getMiterAnchorForDirectionPair(
+  point: Point,
+  firstDirection: Point,
+  secondDirection: Point,
+  whichSide: "first-left" | "second-right"
+) {
+  const halfThickness = WALL_THICKNESS / 2;
+  const firstLeftNormal = normalize(perp(firstDirection));
+  const secondRightNormal = mul(normalize(perp(secondDirection)), -1);
+  const firstOffsetPoint = add(point, mul(firstLeftNormal, halfThickness));
+  const secondOffsetPoint = add(point, mul(secondRightNormal, halfThickness));
+  const intersection = lineIntersection(
+    firstOffsetPoint,
+    firstDirection,
+    secondOffsetPoint,
+    secondDirection
+  );
+
+  const fallback =
+    whichSide === "first-left" ? firstOffsetPoint : secondOffsetPoint;
+
+  if (!intersection) return fallback;
+
+  const distanceFromPoint = distance(point, intersection);
+
+  // Avoid extreme spikes at very shallow angles. A bevel-like fallback gives a
+  // stable black-dot anchor that follows the visible wall edge.
+  if (distanceFromPoint > WALL_THICKNESS * 2.25) {
+    return fallback;
+  }
+
+  return intersection;
+}
+
+function getRayExitDistanceFromPolygon(
+  rayStart: Point,
+  rayDirection: Point,
+  polygon: Point[]
+) {
+  if (polygon.length < 3) return null;
+
+  const intersections: number[] = [];
+
+  for (let index = 0; index < polygon.length; index += 1) {
+    const a = polygon[index];
+    const b = polygon[(index + 1) % polygon.length];
+    const edge = sub(b, a);
+    const denominator = cross(rayDirection, edge);
+
+    if (Math.abs(denominator) < 0.0001) continue;
+
+    const diff = sub(a, rayStart);
+    const rayT = cross(diff, edge) / denominator;
+    const segmentT = cross(diff, rayDirection) / denominator;
+
+    if (rayT >= -0.001 && segmentT >= -0.001 && segmentT <= 1.001) {
+      intersections.push(Math.max(0, rayT));
+    }
+  }
+
+  if (isPointInPolygon(rayStart, polygon)) {
+    return intersections.length ? Math.max(...intersections) : null;
+  }
+
+  const positiveIntersections = intersections
+    .filter((value) => value > 0.25)
+    .sort((a, b) => a - b);
+
+  if (positiveIntersections.length < 2) return null;
+
+  return positiveIntersections[1];
+}
+
+function isPointInPolygon(point: Point, polygon: Point[]) {
+  let inside = false;
+
+  for (
+    let index = 0, previousIndex = polygon.length - 1;
+    index < polygon.length;
+    previousIndex = index, index += 1
+  ) {
+    const current = polygon[index];
+    const previous = polygon[previousIndex];
+    const crossesY = current.y > point.y !== previous.y > point.y;
+
+    if (!crossesY) continue;
+
+    const xIntersection =
+      ((previous.x - current.x) * (point.y - current.y)) /
+        (previous.y - current.y + 0.0000001) +
+      current.x;
+
+    if (point.x < xIntersection) {
+      inside = !inside;
+    }
+  }
+
+  return inside;
+}
+
+function getConvertedWallDisplayLength(
+  _segmentStart: Point,
+  _segmentEnd: Point,
+  _side: MeasurementSide,
+  _walls: Wall[]
+) {
+  // Always show the real length of the blue dotted measurement guide.
+  return null;
+}
+
+function getConvertedMeasurementRunDisplayLength(
+  _points: Point[],
+  _startIndex: number,
+  _endIndex: number,
+  _side: Exclude<MeasurementSide, "length">,
+  _walls: Wall[]
+) {
+  // Always use the real blue dotted guide length.
+  return null;
+}
+
+function getMergedMeasurementLayout(
+  firstLayout: MeasurementLayout,
+  lastLayout: MeasurementLayout
+): MeasurementLayout {
+  const lineStart = firstLayout.lineStart;
+  const lineEnd = lastLayout.lineEnd;
+  const mergedMidpoint = midpoint(lineStart, lineEnd);
+  const firstMidpoint = midpoint(firstLayout.lineStart, firstLayout.lineEnd);
+  const labelOffsetVector = sub(firstLayout.labelPoint, firstMidpoint);
+
+  return {
+    lineStart,
+    lineEnd,
+    labelPoint: add(mergedMidpoint, labelOffsetVector),
+    rotation: firstLayout.rotation,
+  };
+}
+
+function shouldMergeMeasurementRun(
+  points: Point[],
+  index: number,
+  side: Exclude<MeasurementSide, "length">,
+  walls: Wall[]
+) {
+  if (index >= points.length - 2) return false;
+
+  const currentStart = points[index];
+  const joint = points[index + 1];
+  const currentEnd = points[index + 1];
+  const nextEnd = points[index + 2];
+
+  // Re-measure the wall system as a whole: a multi-wall junction creates black
+  // measurement anchors, so guides must stop at the closest black dot on each
+  // side of that junction instead of merging past it to a farther endpoint.
+  // A simple collinear split without an attached wall can still merge.
+  if (isMultiWallMeasurementJunction(joint, walls)) return false;
+
+  const currentDirection = normalize(sub(currentEnd, currentStart));
+  const nextDirection = normalize(sub(nextEnd, joint));
+
+  if (!vectorLength(currentDirection) || !vectorLength(nextDirection)) {
+    return false;
+  }
+
+  if (dot(currentDirection, nextDirection) < 0.999) return false;
+
+  const currentExteriorSide = getExteriorMeasurementSide(
+    currentStart,
+    currentEnd,
+    walls
+  );
+  const nextExteriorSide = getExteriorMeasurementSide(joint, nextEnd, walls);
+
+  return side === currentExteriorSide && side === nextExteriorSide;
+}
+
+function isMultiWallMeasurementJunction(point: Point, walls: Wall[]) {
+  const connectedWalls = walls.filter(
+    (wall) => samePoint(wall.start, point) || samePoint(wall.end, point)
+  );
+
+  if (connectedWalls.length <= 2) return false;
+
+  const uniqueDirections: Point[] = [];
+
+  for (const wall of connectedWalls) {
+    const otherPoint = samePoint(wall.start, point) ? wall.end : wall.start;
+    const direction = normalize(sub(otherPoint, point));
+
+    if (!vectorLength(direction)) continue;
+
+    if (
+      uniqueDirections.some(
+        (existingDirection) => Math.abs(dot(existingDirection, direction)) > 0.999
+      )
+    ) {
+      continue;
+    }
+
+    uniqueDirections.push(direction);
+  }
+
+  return uniqueDirections.length >= 2;
+}
+
+function getExteriorMeasurementSide(
+  segmentStart: Point,
+  segmentEnd: Point,
+  walls: Wall[]
+): Exclude<MeasurementSide, "length"> {
+  const wallPoints = walls.flatMap((wall) => [wall.start, wall.end]);
+
+  if (wallPoints.length === 0) return "left";
+
+  const centroid = wallPoints.reduce(
+    (sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }),
+    { x: 0, y: 0 }
+  );
+
+  centroid.x /= wallPoints.length;
+  centroid.y /= wallPoints.length;
+
+  const segmentMidpoint = midpoint(segmentStart, segmentEnd);
+  const direction = normalize(sub(segmentEnd, segmentStart));
+  const leftNormal = perp(direction);
+  const outwardVector = sub(segmentMidpoint, centroid);
+
+  return dot(leftNormal, outwardVector) >= 0 ? "left" : "right";
 }
 
 function resizeWallFromMeasurement(
@@ -2553,11 +6546,19 @@ function resizeWallFromMeasurement(
     ? add(edit.segmentStart, mul(direction, -delta))
     : add(edit.segmentEnd, mul(direction, delta));
 
-  return walls.map((currentWall) => ({
-    ...currentWall,
-    start: samePoint(currentWall.start, oldPoint) ? newPoint : currentWall.start,
-    end: samePoint(currentWall.end, oldPoint) ? newPoint : currentWall.end,
-  }));
+  return walls.map((currentWall) => {
+    const isEditedWall = currentWall.id === wall.id;
+
+    return {
+      ...currentWall,
+      start: samePoint(currentWall.start, oldPoint) ? newPoint : currentWall.start,
+      end: samePoint(currentWall.end, oldPoint) ? newPoint : currentWall.end,
+      sourceThinLength:
+        isEditedWall && currentWall.sourceThinLength
+          ? targetEdgeLength
+          : currentWall.sourceThinLength,
+    };
+  });
 }
 
 function formatFeetInchesForInput(pixelLength: number) {
@@ -2566,6 +6567,17 @@ function formatFeetInchesForInput(pixelLength: number) {
   const inches = roundToQuarter(totalInches - feet * 12);
 
   return `${feet} ${formatDecimal(inches)}`;
+}
+
+function formatFeetInchesParts(pixelLength: number) {
+  const totalInches = pixelsToInches(pixelLength);
+  const feet = Math.floor(totalInches / 12);
+  const inches = roundToQuarter(totalInches - feet * 12);
+
+  return {
+    feet: `${feet}`,
+    inches: formatDecimal(inches),
+  };
 }
 
 function parseFeetInchesToPixels(value: string) {
@@ -2641,60 +6653,102 @@ function areWallsEqual(a: Wall[], b: Wall[]) {
 }
 
 function buildWallChains(walls: Wall[]) {
-  const unusedWalls = [...walls];
+  if (walls.length === 0) return [];
+
+  const pointToWalls = new Map<string, Wall[]>();
+
+  for (const wall of walls) {
+    for (const point of [wall.start, wall.end]) {
+      const key = pointKey(point);
+      pointToWalls.set(key, [...(pointToWalls.get(key) ?? []), wall]);
+    }
+  }
+
+  const usedWallIds = new Set<string>();
   const chains: { points: Point[] }[] = [];
 
-  while (unusedWalls.length > 0) {
-    const firstWall = unusedWalls.shift();
+  const getOtherPoint = (wall: Wall, point: Point) => {
+    return samePoint(wall.start, point) ? wall.end : wall.start;
+  };
 
-    if (!firstWall) break;
+  const isPassThroughPoint = (point: Point) => {
+    return (pointToWalls.get(pointKey(point)) ?? []).length === 2;
+  };
 
-    const chain: Point[] = [firstWall.start, firstWall.end];
+  const getContinuationWall = (
+    previousPoint: Point,
+    currentPoint: Point,
+    currentWall: Wall
+  ) => {
+    const connectedWalls = pointToWalls.get(pointKey(currentPoint)) ?? [];
+    const unusedWalls = connectedWalls.filter(
+      (wall) => wall.id !== currentWall.id && !usedWallIds.has(wall.id)
+    );
 
-    let didExtend = true;
+    if (unusedWalls.length === 0) return undefined;
 
-    while (didExtend) {
-      didExtend = false;
+    if (connectedWalls.length === 2) return unusedWalls[0];
 
-      for (let index = 0; index < unusedWalls.length; index++) {
-        const wall = unusedWalls[index];
-        const head = chain[0];
-        const tail = chain[chain.length - 1];
+    const incomingDirection = normalize(sub(currentPoint, previousPoint));
+    let bestWall: Wall | undefined;
+    let bestDot = 0.999;
 
-        if (samePoint(tail, wall.start)) {
-          chain.push(wall.end);
-          unusedWalls.splice(index, 1);
-          didExtend = true;
-          break;
-        }
+    for (const wall of unusedWalls) {
+      const outgoingDirection = normalize(sub(getOtherPoint(wall, currentPoint), currentPoint));
+      const continuationDot = dot(incomingDirection, outgoingDirection);
 
-        if (samePoint(tail, wall.end)) {
-          chain.push(wall.start);
-          unusedWalls.splice(index, 1);
-          didExtend = true;
-          break;
-        }
-
-        if (samePoint(head, wall.end)) {
-          chain.unshift(wall.start);
-          unusedWalls.splice(index, 1);
-          didExtend = true;
-          break;
-        }
-
-        if (samePoint(head, wall.start)) {
-          chain.unshift(wall.end);
-          unusedWalls.splice(index, 1);
-          didExtend = true;
-          break;
-        }
+      if (continuationDot > bestDot) {
+        bestDot = continuationDot;
+        bestWall = wall;
       }
     }
 
-    chains.push({ points: chain });
+    return bestWall;
+  };
+
+  const walkChain = (startPoint: Point, firstWall: Wall) => {
+    const points: Point[] = [startPoint];
+    let currentPoint = startPoint;
+    let currentWall: Wall | undefined = firstWall;
+
+    while (currentWall && !usedWallIds.has(currentWall.id)) {
+      usedWallIds.add(currentWall.id);
+
+      const previousPoint = currentPoint;
+      const nextPoint = getOtherPoint(currentWall, currentPoint);
+      points.push(nextPoint);
+      currentPoint = nextPoint;
+
+      currentWall = getContinuationWall(previousPoint, currentPoint, currentWall);
+    }
+
+    return points;
+  };
+
+  const junctionOrOpenPoints = uniquePoints(
+    walls
+      .flatMap((wall) => [wall.start, wall.end])
+      .filter((point) => !isPassThroughPoint(point))
+  ).sort((a, b) => {
+    const degreeA = pointToWalls.get(pointKey(a))?.length ?? 0;
+    const degreeB = pointToWalls.get(pointKey(b))?.length ?? 0;
+
+    return degreeA - degreeB;
+  });
+
+  for (const startPoint of junctionOrOpenPoints) {
+    for (const wall of pointToWalls.get(pointKey(startPoint)) ?? []) {
+      if (usedWallIds.has(wall.id)) continue;
+      chains.push({ points: walkChain(startPoint, wall) });
+    }
   }
 
-  return chains;
+  for (const wall of walls) {
+    if (usedWallIds.has(wall.id)) continue;
+    chains.push({ points: walkChain(wall.start, wall) });
+  }
+
+  return chains.filter((chain) => chain.points.length >= 2);
 }
 
 function buildWallBand(points: Point[], thickness: number): WallBandGeometry {
@@ -2792,23 +6846,25 @@ function lineIntersection(
 function getEdgeMeasurementLayout(
   start: Point,
   end: Point,
-  side: "left" | "right"
+  side: "left" | "right",
+  labelOffset = 18,
+  startInset = 0,
+  endInset = 0
 ): MeasurementLayout {
   const direction = sub(end, start);
+  const directionUnit = normalize(direction);
   const baseNormal = normalize(perp(direction));
   const normal = side === "left" ? baseNormal : mul(baseNormal, -1);
 
   const lineOffset = 14;
-  const labelOffset = 18;
-
   const lineStart = {
-    x: start.x + normal.x * lineOffset,
-    y: start.y + normal.y * lineOffset,
+    x: start.x + normal.x * lineOffset + directionUnit.x * startInset,
+    y: start.y + normal.y * lineOffset + directionUnit.y * startInset,
   };
 
   const lineEnd = {
-    x: end.x + normal.x * lineOffset,
-    y: end.y + normal.y * lineOffset,
+    x: end.x + normal.x * lineOffset - directionUnit.x * endInset,
+    y: end.y + normal.y * lineOffset - directionUnit.y * endInset,
   };
 
   const mid = midpoint(lineStart, lineEnd);
@@ -2960,6 +7016,145 @@ function describeHalfArc(center: Point, radius: number, mode: "upper" | "lower")
   return `M ${left.x} ${left.y} A ${radius} ${radius} 0 0 ${sweepFlag} ${right.x} ${right.y}`;
 }
 
+function normalizeWallJunctions(walls: Wall[], kind: WallKind) {
+  let nextWalls = [...walls];
+  let didChange = true;
+
+  while (didChange) {
+    didChange = false;
+
+    const snappedWalls = snapEndpointsToNearbyInteriorSegments(nextWalls, kind);
+
+    if (!areWallsEqualLoose(nextWalls, snappedWalls)) {
+      nextWalls = snappedWalls;
+      didChange = true;
+      continue;
+    }
+
+    const kindWalls = nextWalls.filter((wall) => (wall.kind ?? "wall") === kind);
+    const endpoints = uniquePoints(
+      kindWalls.flatMap((wall) => [wall.start, wall.end])
+    );
+
+    for (const endpoint of endpoints) {
+      const splitWalls = splitWallsAtInteriorPoint(nextWalls, endpoint, kind);
+
+      if (splitWalls.length !== nextWalls.length) {
+        nextWalls = splitWalls;
+        didChange = true;
+        break;
+      }
+    }
+  }
+
+  return nextWalls;
+}
+
+function snapEndpointsToNearbyInteriorSegments(walls: Wall[], kind: WallKind) {
+  const snapThreshold = WALL_THICKNESS * 1.1;
+  const kindWalls = walls.filter((wall) => (wall.kind ?? "wall") === kind);
+
+  for (const sourceWall of kindWalls) {
+    for (const sourcePoint of [sourceWall.start, sourceWall.end]) {
+      let bestSnap: Point | null = null;
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      for (const targetWall of kindWalls) {
+        if (targetWall.id === sourceWall.id) continue;
+        if (samePoint(sourcePoint, targetWall.start) || samePoint(sourcePoint, targetWall.end)) continue;
+
+        const projectedPoint = closestPointOnSegment(
+          sourcePoint,
+          targetWall.start,
+          targetWall.end
+        );
+
+        if (!pointIsInteriorToSegment(projectedPoint, targetWall.start, targetWall.end)) continue;
+
+        const snapDistance = distance(sourcePoint, projectedPoint);
+
+        if (snapDistance < bestDistance && snapDistance <= snapThreshold) {
+          bestDistance = snapDistance;
+          bestSnap = projectedPoint;
+        }
+      }
+
+      if (!bestSnap) continue;
+
+      return walls.map((wall) => {
+        if ((wall.kind ?? "wall") !== kind) return wall;
+
+        return {
+          ...wall,
+          start: samePoint(wall.start, sourcePoint) ? { ...bestSnap } : wall.start,
+          end: samePoint(wall.end, sourcePoint) ? { ...bestSnap } : wall.end,
+        };
+      });
+    }
+  }
+
+  return walls;
+}
+
+function pointIsInteriorToSegment(point: Point, segmentStart: Point, segmentEnd: Point) {
+  const totalLength = distance(segmentStart, segmentEnd);
+  const startLength = distance(segmentStart, point);
+  const endLength = distance(point, segmentEnd);
+
+  return startLength > 1 && endLength > 1 && startLength < totalLength && endLength < totalLength;
+}
+
+function areWallsEqualLoose(a: Wall[], b: Wall[]) {
+  if (a.length !== b.length) return false;
+
+  return a.every((wall, index) => {
+    const other = b[index];
+
+    return (
+      other &&
+      wall.id === other.id &&
+      (wall.kind ?? "wall") === (other.kind ?? "wall") &&
+      samePoint(wall.start, other.start) &&
+      samePoint(wall.end, other.end)
+    );
+  });
+}
+
+function getMultiConnectedEndpoints(walls: Wall[], connectionMap: ConnectionMap) {
+  const points: Point[] = [];
+
+  for (const wall of walls) {
+    if ((connectionMap.get(pointKey(wall.start)) ?? 0) > 2) points.push(wall.start);
+    if ((connectionMap.get(pointKey(wall.end)) ?? 0) > 2) points.push(wall.end);
+  }
+
+  return uniquePoints(points);
+}
+
+function getConnectedWallDirectionsAtPoint(point: Point, walls: Wall[]) {
+  const directions: Point[] = [];
+
+  for (const wall of walls) {
+    let direction: Point | null = null;
+
+    if (samePoint(point, wall.start)) {
+      direction = normalize(sub(wall.end, wall.start));
+    } else if (samePoint(point, wall.end)) {
+      direction = normalize(sub(wall.start, wall.end));
+    }
+
+    if (!direction || !vectorLength(direction)) continue;
+
+    const isDuplicate = directions.some((existingDirection) => {
+      return dot(existingDirection, direction) > 0.999;
+    });
+
+    if (!isDuplicate) directions.push(direction);
+  }
+
+  return directions;
+}
+
 function buildConnectionMap(walls: Wall[]) {
   const map = new Map<string, number>();
 
@@ -2975,11 +7170,38 @@ function getOpenEndpoints(walls: Wall[], connectionMap: ConnectionMap) {
   const points: Point[] = [];
 
   for (const wall of walls) {
-    if (!isConnected(wall.start, connectionMap)) points.push(wall.start);
-    if (!isConnected(wall.end, connectionMap)) points.push(wall.end);
+    if (
+      !isConnected(wall.start, connectionMap) &&
+      !touchesAnotherWallInterior(wall.start, wall, walls)
+    ) {
+      points.push(wall.start);
+    }
+
+    if (
+      !isConnected(wall.end, connectionMap) &&
+      !touchesAnotherWallInterior(wall.end, wall, walls)
+    ) {
+      points.push(wall.end);
+    }
   }
 
   return uniquePoints(points);
+}
+
+function touchesAnotherWallInterior(point: Point, sourceWall: Wall, walls: Wall[]) {
+  const tolerance = 1.25;
+
+  return walls.some((wall) => {
+    if (wall.id === sourceWall.id) return false;
+    if ((wall.kind ?? "wall") !== (sourceWall.kind ?? "wall")) return false;
+    if (samePoint(point, wall.start) || samePoint(point, wall.end)) return false;
+
+    const projectedPoint = closestPointOnSegment(point, wall.start, wall.end);
+
+    if (!pointIsInteriorToSegment(projectedPoint, wall.start, wall.end)) return false;
+
+    return distance(point, projectedPoint) <= tolerance;
+  });
 }
 
 function getConnectedEndpoints(walls: Wall[], connectionMap: ConnectionMap) {
@@ -3061,6 +7283,18 @@ function getSelectionRect(start: Point, end: Point): SelectionRect {
     width: Math.abs(end.x - start.x),
     height: Math.abs(end.y - start.y),
   };
+}
+
+function pointToSegmentDistance(point: Point, start: Point, end: Point) {
+  const segment = sub(end, start);
+  const lengthSquared = dot(segment, segment);
+
+  if (lengthSquared === 0) return distance(point, start);
+
+  const t = clamp(dot(sub(point, start), segment) / lengthSquared, 0, 1);
+  const projection = add(start, mul(segment, t));
+
+  return distance(point, projection);
 }
 
 function wallIntersectsSelectionRect(wall: Wall, rect: SelectionRect) {
@@ -3146,6 +7380,61 @@ function getWallAttachPoint(point: Point, walls: Wall[]): Point | null {
   return closestPoint;
 }
 
+
+function splitConnectedWallsAndAddWall(walls: Wall[], newWall: Wall): Wall[] {
+  let nextWalls = walls;
+
+  nextWalls = splitWallsAtInteriorPoint(nextWalls, newWall.start, newWall.kind);
+  nextWalls = splitWallsAtInteriorPoint(nextWalls, newWall.end, newWall.kind);
+
+  return [...nextWalls, newWall];
+}
+
+function splitWallsAtInteriorPoint(walls: Wall[], point: Point, kind: WallKind): Wall[] {
+  const result: Wall[] = [];
+
+  for (const wall of walls) {
+    if (wall.kind !== kind || !pointIsInsideWallSegment(point, wall)) {
+      result.push(wall);
+      continue;
+    }
+
+    result.push({
+      ...wall,
+      id: crypto.randomUUID(),
+      start: wall.start,
+      end: { ...point },
+      sourceThinLength: wall.sourceThinMode ? distance(wall.start, point) : undefined,
+      sourceThinMode: wall.sourceThinMode,
+    });
+
+    result.push({
+      ...wall,
+      id: crypto.randomUUID(),
+      start: { ...point },
+      end: wall.end,
+      sourceThinLength: wall.sourceThinMode ? distance(point, wall.end) : undefined,
+      sourceThinMode: wall.sourceThinMode,
+    });
+  }
+
+  return result;
+}
+
+function pointIsInsideWallSegment(point: Point, wall: Wall) {
+  if (samePoint(point, wall.start) || samePoint(point, wall.end)) return false;
+
+  const projectedPoint = closestPointOnSegment(point, wall.start, wall.end);
+  const distanceFromWall = distance(point, projectedPoint);
+
+  if (distanceFromWall > 0.75) return false;
+
+  const totalLength = distance(wall.start, wall.end);
+  const startLength = distance(wall.start, projectedPoint);
+  const endLength = distance(projectedPoint, wall.end);
+
+  return startLength > 1 && endLength > 1 && startLength < totalLength && endLength < totalLength;
+}
 
 function getClosestEndpointPoint(point: Point, walls: Wall[]): Point | null {
   let closestEndpointPoint: Point | null = null;
@@ -3292,6 +7581,17 @@ function normalizeDegrees(angle: number) {
 
 function toSvgPoint(point: Point): string {
   return `${point.x},${point.y}`;
+}
+
+function formatMeasurementFromInches(totalInchesValue: number) {
+  const totalInches = Math.max(1, Math.round(totalInchesValue));
+  const feet = Math.floor(totalInches / 12);
+  const inches = totalInches % 12;
+
+  if (feet === 0) return `${inches}"`;
+  if (inches === 0) return `${feet}'`;
+
+  return `${feet}' ${inches}"`;
 }
 
 function formatFeetInches(pixelLength: number) {
