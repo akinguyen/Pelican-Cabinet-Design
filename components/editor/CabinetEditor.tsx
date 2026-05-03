@@ -243,6 +243,8 @@ const DEFAULT_DOOR_WIDTH = (36 / 12) * GRID_SIZE;
 const DEFAULT_ELEVATION_WALL_HEIGHT_INCHES = 96;
 const ELEVATION_VIEWBOX_WIDTH = 1200;
 const ELEVATION_VIEWBOX_HEIGHT = 760;
+const ELEVATION_EDGE_SNAP_INCHES = 3;
+let DISPLAY_MEASUREMENTS_AS_INCHES = false;
 
 const JOINT_DOT_RADIUS = 5;
 const JOINT_TICK_LENGTH = 16;
@@ -258,6 +260,7 @@ export default function CabinetEditor() {
     useState<DoorSelectionDetail | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [planViewMode, setPlanViewMode] = useState<PlanViewMode>("floor");
+  const [showMeasurementsInInches, setShowMeasurementsInInches] = useState(false);
   const [canConvertSelectedThinWalls, setCanConvertSelectedThinWalls] = useState(false);
 
   useEffect(() => {
@@ -340,6 +343,8 @@ export default function CabinetEditor() {
     setScale(1);
   };
 
+  DISPLAY_MEASUREMENTS_AS_INCHES = showMeasurementsInInches;
+
   return (
     <main className="flex h-screen w-screen flex-col overflow-hidden bg-white text-pelican-navy">
       <TopBar />
@@ -353,6 +358,10 @@ export default function CabinetEditor() {
             isSelectionMode={isSelectionMode}
             planViewMode={planViewMode}
             onSelectPlanView={setPlanViewMode}
+            showMeasurementsInInches={showMeasurementsInInches}
+            onToggleMeasurementUnit={() =>
+              setShowMeasurementsInInches((current) => !current)
+            }
             canConvertSelectedThinWalls={canConvertSelectedThinWalls}
             onCreateWallExterior={() =>
               window.dispatchEvent(new Event("pelican-create-selected-wall-exterior"))
@@ -479,6 +488,8 @@ function ModeBar({
   isSelectionMode,
   planViewMode,
   onSelectPlanView,
+  showMeasurementsInInches,
+  onToggleMeasurementUnit,
   canConvertSelectedThinWalls,
   onCreateWallExterior,
   onCreateWallInterior,
@@ -490,6 +501,8 @@ function ModeBar({
   isSelectionMode: boolean;
   planViewMode: PlanViewMode;
   onSelectPlanView: (mode: PlanViewMode) => void;
+  showMeasurementsInInches: boolean;
+  onToggleMeasurementUnit: () => void;
   canConvertSelectedThinWalls: boolean;
   onCreateWallExterior: () => void;
   onCreateWallInterior: () => void;
@@ -573,7 +586,16 @@ function ModeBar({
         </button>
       </div>
 
-      <div className="justify-self-end">
+      <div className="flex items-center gap-3 justify-self-end">
+        <label className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-semibold text-pelican-navy">
+          <input
+            type="checkbox"
+            checked={showMeasurementsInInches}
+            onChange={onToggleMeasurementUnit}
+            className="h-4 w-4 accent-pelican-teal"
+          />
+          Inches
+        </label>
         <ModeIconButton icon={Settings} label="Canvas settings" />
       </div>
     </div>
@@ -952,15 +974,21 @@ function CanvasArea({
         currentWindows.map((windowItem) => {
           if (windowItem.id !== id) return windowItem;
 
+          let nextWindow = windowItem;
+
           if (field === "widthInches") {
-            return { ...windowItem, width: inchesToPixels(Math.max(6, value)) };
+            nextWindow = { ...nextWindow, width: inchesToPixels(Math.max(6, value)) };
+          } else if (field === "heightInches") {
+            nextWindow = { ...nextWindow, heightInches: Math.max(1, value) };
+          } else {
+            nextWindow = {
+              ...nextWindow,
+              distanceFromFloorInches: Math.max(0, value),
+            };
           }
 
-          if (field === "heightInches") {
-            return { ...windowItem, heightInches: Math.max(1, value) };
-          }
-
-          return { ...windowItem, distanceFromFloorInches: Math.max(0, value) };
+          const hostWall = wallsRef.current.find((wall) => wall.id === nextWindow.wallId);
+          return clampWindowToWallElevationBounds(nextWindow, hostWall, wallsRef.current);
         })
       );
     };
@@ -995,15 +1023,21 @@ function CanvasArea({
         currentDoors.map((doorItem) => {
           if (doorItem.id !== id) return doorItem;
 
+          let nextDoor = doorItem;
+
           if (field === "widthInches") {
-            return { ...doorItem, width: inchesToPixels(Math.max(6, value)) };
+            nextDoor = { ...nextDoor, width: inchesToPixels(Math.max(6, value)) };
+          } else if (field === "heightInches") {
+            nextDoor = { ...nextDoor, heightInches: Math.max(1, value) };
+          } else {
+            nextDoor = {
+              ...nextDoor,
+              distanceFromFloorInches: Math.max(0, value),
+            };
           }
 
-          if (field === "heightInches") {
-            return { ...doorItem, heightInches: Math.max(1, value) };
-          }
-
-          return { ...doorItem, distanceFromFloorInches: Math.max(0, value) };
+          const hostWall = wallsRef.current.find((wall) => wall.id === nextDoor.wallId);
+          return clampDoorToWallElevationBounds(nextDoor, hostWall, wallsRef.current);
         })
       );
     };
@@ -1528,10 +1562,15 @@ useEffect(() => {
   }, [createSelectedThinWalls]);
 
   const handleCanvasContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!isSelectionMode || !canConvertGroupThinWalls) return;
+    if (!isSelectionMode) return;
 
     event.preventDefault();
     event.stopPropagation();
+
+    if (!canConvertGroupThinWalls) {
+      setGroupContextMenu(null);
+      return;
+    }
 
     const point = screenToWorkspace(event.clientX, event.clientY);
 
@@ -2104,6 +2143,8 @@ useEffect(() => {
         walls={elevationWalls}
         windows={windows}
         doors={doors}
+        selectedWindowId={selectedWindowId}
+        selectedDoorId={selectedDoorId}
         activeIndex={activeElevationIndex}
         onPrevious={() => {
           if (elevationWalls.length === 0) return;
@@ -2117,6 +2158,50 @@ useEffect(() => {
             currentIndex >= elevationWalls.length - 1 ? 0 : currentIndex + 1
           );
         }}
+        onSelectWindow={(windowItem) => {
+          setSelectedWindowId(windowItem.id);
+          setSelectedDoorId(null);
+          setSelectedWallId(null);
+          setGroupSelectedWallIds([]);
+          setGroupContextMenu(null);
+          setMenuPosition(null);
+          updateWindowPreview(null);
+          updateDoorPreview(null);
+        }}
+        onSelectDoor={(doorItem) => {
+          setSelectedDoorId(doorItem.id);
+          setSelectedWindowId(null);
+          setSelectedWallId(null);
+          setGroupSelectedWallIds([]);
+          setGroupContextMenu(null);
+          setMenuPosition(null);
+          updateDoorPreview(null);
+          updateWindowPreview(null);
+        }}
+        onBeginOpeningMove={() => {
+          undoStackRef.current.push({
+            walls: wallsRef.current,
+            windows: windowsRef.current,
+            doors: doorsRef.current,
+          });
+          redoStackRef.current = [];
+        }}
+        onUpdateWindow={(id, updates) => {
+          const nextWindows = windowsRef.current.map((windowItem) =>
+            windowItem.id === id ? { ...windowItem, ...updates } : windowItem
+          );
+          windowsRef.current = nextWindows;
+          setWindows(nextWindows);
+        }}
+        onUpdateDoor={(id, updates) => {
+          const nextDoors = doorsRef.current.map((doorItem) =>
+            doorItem.id === id ? { ...doorItem, ...updates } : doorItem
+          );
+          doorsRef.current = nextDoors;
+          setDoors(nextDoors);
+        }}
+        onDeleteWindow={deleteSelectedWindow}
+        onDeleteDoor={deleteSelectedDoor}
       />
     );
   }
@@ -2190,25 +2275,13 @@ useEffect(() => {
               onMeasurementClick={startMeasurementEdit}
               editingMeasurement={editingMeasurement}
               renderWallBody={false}
-              getMeasurementLabelOffset={(segmentStart, segmentEnd, side) => {
-                if (!activeStructureWallId) return 18;
-
-                const activeStructureWall = thickWalls.find(
-                  (wall) => wall.id === activeStructureWallId
-                );
-
-                if (!activeStructureWall) return 18;
-
-                return segmentMatchesWall(segmentStart, segmentEnd, activeStructureWall.id, thickWalls) &&
-                  measurementSideMatchesStructureGuide(
-                    segmentStart,
-                    segmentEnd,
-                    side,
-                    activeStructureWall
-                  )
+              getMeasurementLabelOffset={(segmentStart, segmentEnd, side) =>
+                activeStructureWallId &&
+                segmentMatchesWall(segmentStart, segmentEnd, activeStructureWallId, thickWalls) &&
+                measurementSideMatchesWindowGuide(segmentStart, segmentEnd, side, thickWalls)
                   ? 46
-                  : 18;
-              }}
+                  : 18
+              }
             />
           ))}
 
@@ -2447,28 +2520,121 @@ useEffect(() => {
 }
 
 
+
+function getElevationInteriorWallLengthInches(wall: Wall, walls: Wall[]) {
+  const wallCenterLength = distance(wall.start, wall.end);
+  const sideLengths = (["left", "right"] as const)
+    .map((side) => {
+      const layout = getWallSideMeasurementLayout(
+        wall.start,
+        wall.end,
+        side,
+        walls
+      );
+      return distance(layout.lineStart, layout.lineEnd);
+    })
+    .filter((length) => Number.isFinite(length) && length > 0);
+
+  const interiorPixelLength = sideLengths.length
+    ? Math.min(...sideLengths)
+    : wallCenterLength;
+
+  return pixelsToInches(interiorPixelLength);
+}
+
+function clampWindowToWallElevationBounds(
+  windowItem: WindowElement,
+  wall?: Wall | null,
+  walls: Wall[] = wall ? [wall] : []
+): WindowElement {
+  return clampOpeningToWallElevationBounds(windowItem, wall, walls) as WindowElement;
+}
+
+function clampDoorToWallElevationBounds(
+  doorItem: DoorElement,
+  wall?: Wall | null,
+  walls: Wall[] = wall ? [wall] : []
+): DoorElement {
+  return clampOpeningToWallElevationBounds(doorItem, wall, walls) as DoorElement;
+}
+
+function clampOpeningToWallElevationBounds<
+  T extends { width: number; t: number; heightInches: number; distanceFromFloorInches: number }
+>(opening: T, wall?: Wall | null, walls: Wall[] = wall ? [wall] : []): T {
+  const wallLengthInches = wall
+    ? getElevationInteriorWallLengthInches(wall, walls)
+    : pixelsToInches(opening.width);
+
+  const widthInches = Math.min(
+    Math.max(1, pixelsToInches(opening.width)),
+    Math.max(1, wallLengthInches)
+  );
+  const halfWidthRatio = widthInches / 2 / Math.max(wallLengthInches, 1);
+  const maxHeight = DEFAULT_ELEVATION_WALL_HEIGHT_INCHES;
+  const heightInches = Math.min(Math.max(1, opening.heightInches), maxHeight);
+  const distanceFromFloorInches = clamp(
+    opening.distanceFromFloorInches,
+    0,
+    Math.max(0, maxHeight - heightInches)
+  );
+
+  return {
+    ...opening,
+    width: inchesToPixels(widthInches),
+    heightInches,
+    distanceFromFloorInches,
+    t: clamp(opening.t, halfWidthRatio, 1 - halfWidthRatio),
+  };
+}
+
+type ElevationDragState =
+  | { kind: "window"; id: string; pointerId: number }
+  | { kind: "door"; id: string; pointerId: number }
+  | null;
+
 function ElevationPlanView({
   walls,
   windows,
   doors,
+  selectedWindowId,
+  selectedDoorId,
   activeIndex,
   onPrevious,
   onNext,
+  onSelectWindow,
+  onSelectDoor,
+  onBeginOpeningMove,
+  onUpdateWindow,
+  onUpdateDoor,
+  onDeleteWindow,
+  onDeleteDoor,
 }: {
   walls: Wall[];
   windows: WindowElement[];
   doors: DoorElement[];
+  selectedWindowId: string | null;
+  selectedDoorId: string | null;
   activeIndex: number;
   onPrevious: () => void;
   onNext: () => void;
+  onSelectWindow: (windowItem: WindowElement) => void;
+  onSelectDoor: (doorItem: DoorElement) => void;
+  onBeginOpeningMove: () => void;
+  onUpdateWindow: (id: string, updates: Partial<WindowElement>) => void;
+  onUpdateDoor: (id: string, updates: Partial<DoorElement>) => void;
+  onDeleteWindow: () => void;
+  onDeleteDoor: () => void;
 }) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [dragState, setDragState] = useState<ElevationDragState>(null);
+
   if (walls.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center bg-[#f5f5f5]">
         <div className="rounded-xl border border-slate-200 bg-white px-8 py-10 text-center shadow-sm">
           <h3 className="text-lg font-semibold text-pelican-navy">Elevation plan</h3>
           <p className="mt-2 max-w-md text-sm text-slate-500">
-            Draw or generate at least one thick wall in the floor plan first, then switch back to Elevation plan to browse each wall side.
+            Draw or generate at least one thick wall in the floor plan first, then switch back to Elevation plan.
           </p>
         </div>
       </div>
@@ -2476,21 +2642,15 @@ function ElevationPlanView({
   }
 
   const wall = walls[activeIndex] ?? walls[0];
-  const wallWindows = windows
-    .filter((windowItem) => windowItem.wallId === wall.id)
-    .sort((left, right) => left.t - right.t);
-  const wallDoors = doors
-    .filter((doorItem) => doorItem.wallId === wall.id)
-    .sort((left, right) => left.t - right.t);
-
-  const wallLengthInches = pixelsToInches(distance(wall.start, wall.end));
+  const wallWindows = windows.filter((windowItem) => windowItem.wallId === wall.id).sort((a, b) => a.t - b.t);
+  const wallDoors = doors.filter((doorItem) => doorItem.wallId === wall.id).sort((a, b) => a.t - b.t);
+  const selectedWindow = wallWindows.find((windowItem) => windowItem.id === selectedWindowId) ?? null;
+  const selectedDoor = wallDoors.find((doorItem) => doorItem.id === selectedDoorId) ?? null;
+  const wallLengthInches = getElevationInteriorWallLengthInches(wall, walls);
   const wallHeightInches = DEFAULT_ELEVATION_WALL_HEIGHT_INCHES;
   const drawingWidth = ELEVATION_VIEWBOX_WIDTH - 220;
   const drawingHeight = ELEVATION_VIEWBOX_HEIGHT - 220;
-  const renderScale = Math.min(
-    drawingWidth / Math.max(wallLengthInches, 1),
-    drawingHeight / wallHeightInches
-  );
+  const renderScale = Math.min(drawingWidth / Math.max(wallLengthInches, 1), drawingHeight / wallHeightInches);
   const wallRenderWidth = wallLengthInches * renderScale;
   const wallRenderHeight = wallHeightInches * renderScale;
   const wallLeft = (ELEVATION_VIEWBOX_WIDTH - wallRenderWidth) / 2;
@@ -2499,31 +2659,101 @@ function ElevationPlanView({
   const overallLengthLabel = formatMeasurementFromInches(wallLengthInches);
   const overallHeightLabel = formatMeasurementFromInches(wallHeightInches);
 
+  const clientToElevationPoint = (clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const rect = svg.getBoundingClientRect();
+    return {
+      x: ((clientX - rect.left) / rect.width) * ELEVATION_VIEWBOX_WIDTH,
+      y: ((clientY - rect.top) / rect.height) * ELEVATION_VIEWBOX_HEIGHT,
+    };
+  };
+
+  const getPlacementFromPointer = (clientX: number, clientY: number, widthInches: number, heightInches: number) => {
+    const point = clientToElevationPoint(clientX, clientY);
+    if (!point) return null;
+
+    const halfWidthInches = widthInches / 2;
+    const xInches = (point.x - wallLeft) / renderScale;
+    const yInchesFromBottom = (wallBottom - point.y) / renderScale;
+    let t = clamp(xInches / Math.max(wallLengthInches, 1), halfWidthInches / Math.max(wallLengthInches, 1), 1 - halfWidthInches / Math.max(wallLengthInches, 1));
+    let distanceFromFloorInches = clamp(yInchesFromBottom - heightInches / 2, 0, Math.max(0, wallHeightInches - heightInches));
+
+    return { t, distanceFromFloorInches };
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (!dragState) return;
+    event.preventDefault();
+
+    if (dragState.kind === "window") {
+      const windowItem = windows.find((item) => item.id === dragState.id);
+      if (!windowItem) return;
+      const placement = getPlacementFromPointer(event.clientX, event.clientY, pixelsToInches(windowItem.width), windowItem.heightInches);
+      if (!placement) return;
+      const nextWindow = clampWindowToWallElevationBounds(
+        { ...windowItem, ...placement },
+        wall,
+        walls
+      );
+
+      if (
+        Math.abs(nextWindow.t - windowItem.t) < 0.0005 &&
+        Math.abs(nextWindow.distanceFromFloorInches - windowItem.distanceFromFloorInches) < 0.05
+      ) {
+        return;
+      }
+
+      onUpdateWindow(windowItem.id, {
+        t: nextWindow.t,
+        distanceFromFloorInches: nextWindow.distanceFromFloorInches,
+      });
+      return;
+    }
+
+    const doorItem = doors.find((item) => item.id === dragState.id);
+    if (!doorItem) return;
+    const placement = getPlacementFromPointer(event.clientX, event.clientY, pixelsToInches(doorItem.width), doorItem.heightInches);
+    if (!placement) return;
+    const nextDoor = clampDoorToWallElevationBounds(
+      { ...doorItem, ...placement },
+      wall,
+      walls
+    );
+
+    if (
+      Math.abs(nextDoor.t - doorItem.t) < 0.0005 &&
+      Math.abs(nextDoor.distanceFromFloorInches - doorItem.distanceFromFloorInches) < 0.05
+    ) {
+      return;
+    }
+
+    onUpdateDoor(doorItem.id, {
+      t: nextDoor.t,
+      distanceFromFloorInches: nextDoor.distanceFromFloorInches,
+    });
+  };
+
+  const stopDrag = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (dragState && event.currentTarget.hasPointerCapture(dragState.pointerId)) {
+      event.currentTarget.releasePointerCapture(dragState.pointerId);
+    }
+    setDragState(null);
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#f5f5f5]">
       <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
         <div>
           <div className="text-sm font-semibold text-pelican-navy">Elevation plan</div>
-          <div className="text-xs text-slate-500">
-            Wall {activeIndex + 1} of {walls.length} · {overallLengthLabel} wide
-          </div>
+          <div className="text-xs text-slate-500">Wall {activeIndex + 1} of {walls.length} - {overallLengthLabel} wide</div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onPrevious}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
-            aria-label="Previous wall elevation"
-          >
+          <button type="button" onClick={onPrevious} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50" aria-label="Previous wall elevation">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <button
-            type="button"
-            onClick={onNext}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
-            aria-label="Next wall elevation"
-          >
+          <button type="button" onClick={onNext} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50" aria-label="Next wall elevation">
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
@@ -2532,118 +2762,226 @@ function ElevationPlanView({
       <div className="min-h-0 flex-1 p-6">
         <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
           <svg
-            className="h-full w-full"
+            ref={svgRef}
+            className="h-full w-full cursor-default"
             viewBox={`0 0 ${ELEVATION_VIEWBOX_WIDTH} ${ELEVATION_VIEWBOX_HEIGHT}`}
+            onPointerMove={handlePointerMove}
+            onPointerUp={stopDrag}
+            onPointerCancel={stopDrag}
+            onPointerLeave={stopDrag}
           >
             <rect x="0" y="0" width={ELEVATION_VIEWBOX_WIDTH} height={ELEVATION_VIEWBOX_HEIGHT} fill="#ffffff" />
-
             <line x1={wallLeft} y1={wallBottom} x2={wallLeft + wallRenderWidth} y2={wallBottom} stroke="#d1d5db" strokeWidth="2" />
-            <rect
-              x={wallLeft}
-              y={wallTop}
-              width={wallRenderWidth}
-              height={wallRenderHeight}
-              fill="#d9d9d9"
-              stroke="#9ca3af"
-              strokeWidth="2"
-            />
+            <rect x={wallLeft} y={wallTop} width={wallRenderWidth} height={wallRenderHeight} fill="#d9d9d9" stroke="#9ca3af" strokeWidth="2" />
 
-            <ElevationDimensionLine
-              x1={wallLeft}
-              y1={wallTop - 42}
-              x2={wallLeft + wallRenderWidth}
-              y2={wallTop - 42}
-              label={overallLengthLabel}
-              textOffset={-12}
-            />
-
-            <ElevationDimensionLine
-              x1={wallLeft + wallRenderWidth + 42}
-              y1={wallTop}
-              x2={wallLeft + wallRenderWidth + 42}
-              y2={wallBottom}
-              label={overallHeightLabel}
-              rotateText
-              textOffset={18}
-            />
+            <ElevationDimensionLine x1={wallLeft} y1={wallTop - 42} x2={wallLeft + wallRenderWidth} y2={wallTop - 42} label={overallLengthLabel} textOffset={-12} />
+            <ElevationDimensionLine x1={wallLeft + wallRenderWidth + 42} y1={wallTop} x2={wallLeft + wallRenderWidth + 42} y2={wallBottom} label={overallHeightLabel} rotateText textOffset={18} />
 
             {wallWindows.map((windowItem) => {
-              const width = pixelsToInches(windowItem.width) * renderScale;
+              const widthInches = pixelsToInches(windowItem.width);
+              const width = widthInches * renderScale;
               const height = windowItem.heightInches * renderScale;
               const left = wallLeft + wallRenderWidth * windowItem.t - width / 2;
               const top = wallBottom - (windowItem.distanceFromFloorInches + windowItem.heightInches) * renderScale;
-              const sillY = wallBottom - windowItem.distanceFromFloorInches * renderScale;
+              const selected = windowItem.id === selectedWindowId;
 
               return (
-                <g key={windowItem.id}>
+                <g
+                  key={windowItem.id}
+                  className="cursor-move"
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onSelectWindow(windowItem);
+                    onBeginOpeningMove();
+                    setDragState({ kind: "window", id: windowItem.id, pointerId: event.pointerId });
+                    event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
+                  }}
+                >
+                  <rect x={left - 4} y={top - 4} width={width + 8} height={height + 8} fill="none" stroke={selected ? "#06b6d4" : "transparent"} strokeWidth="3" strokeDasharray="6 4" />
                   <rect x={left} y={top} width={width} height={height} fill="#f1ede4" stroke="#111827" strokeWidth="2" />
                   <rect x={left + 8} y={top + 8} width={Math.max(0, width - 16)} height={Math.max(0, height - 16)} fill="#fafaf9" stroke="#111827" strokeWidth="1.5" />
                   <line x1={left + width / 2} y1={top + 8} x2={left + width / 2} y2={top + height - 8} stroke="#111827" strokeWidth="1.5" />
                   <line x1={left + 8} y1={top + height / 2} x2={left + width - 8} y2={top + height / 2} stroke="#111827" strokeWidth="1.5" />
-                  <line x1={wallLeft + wallRenderWidth * windowItem.t} y1={wallTop - 6} x2={wallLeft + wallRenderWidth * windowItem.t} y2={top} stroke="#16a34a" strokeWidth="2" opacity="0.45" />
-                  <ElevationDimensionLine
-                    x1={left}
-                    y1={top - 28}
-                    x2={left + width}
-                    y2={top - 28}
-                    label={formatMeasurementFromInches(pixelsToInches(windowItem.width))}
-                    textOffset={-10}
-                    extensionTop={10}
-                    extensionBottom={10}
-                  />
-                  <ElevationDimensionLine
-                    x1={left - 24}
-                    y1={sillY}
-                    x2={left - 24}
-                    y2={wallBottom}
-                    label={formatMeasurementFromInches(windowItem.distanceFromFloorInches)}
-                    rotateText
-                    textOffset={16}
-                    extensionTop={8}
-                    extensionBottom={8}
-                  />
                 </g>
               );
             })}
 
             {wallDoors.map((doorItem) => {
-              const width = pixelsToInches(doorItem.width) * renderScale;
+              const widthInches = pixelsToInches(doorItem.width);
+              const width = widthInches * renderScale;
               const height = doorItem.heightInches * renderScale;
               const left = wallLeft + wallRenderWidth * doorItem.t - width / 2;
               const top = wallBottom - (doorItem.distanceFromFloorInches + doorItem.heightInches) * renderScale;
+              const selected = doorItem.id === selectedDoorId;
 
               return (
-                <g key={doorItem.id}>
+                <g
+                  key={doorItem.id}
+                  className="cursor-move"
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onSelectDoor(doorItem);
+                    onBeginOpeningMove();
+                    setDragState({ kind: "door", id: doorItem.id, pointerId: event.pointerId });
+                    event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId);
+                  }}
+                >
+                  <rect x={left - 4} y={top - 4} width={width + 8} height={height + 8} fill="none" stroke={selected ? "#06b6d4" : "transparent"} strokeWidth="3" strokeDasharray="6 4" />
                   <rect x={left} y={top} width={width} height={height} fill="#d6dee8" stroke="#111827" strokeWidth="2" />
                   <rect x={left + 10} y={top + 10} width={Math.max(0, width - 20)} height={Math.max(0, height - 20)} fill="#f8fafc" opacity="0.65" />
                   <circle cx={left + width - 14} cy={top + height / 2} r="4" fill="#6b7280" />
-                  <line x1={wallLeft + wallRenderWidth * doorItem.t} y1={wallTop - 6} x2={wallLeft + wallRenderWidth * doorItem.t} y2={top} stroke="#2563eb" strokeWidth="2" opacity="0.35" />
-                  <ElevationDimensionLine
-                    x1={left}
-                    y1={top - 28}
-                    x2={left + width}
-                    y2={top - 28}
-                    label={formatMeasurementFromInches(pixelsToInches(doorItem.width))}
-                    textOffset={-10}
-                    extensionTop={10}
-                    extensionBottom={10}
-                  />
                 </g>
               );
             })}
 
-            <text
-              x={ELEVATION_VIEWBOX_WIDTH / 2}
-              y={ELEVATION_VIEWBOX_HEIGHT - 38}
-              textAnchor="middle"
-              className="fill-slate-700 text-[20px] font-semibold"
-            >
+            {selectedWindow && (
+              <ElevationOpeningMeasurementGuides
+                wallLeft={wallLeft}
+                wallTop={wallTop}
+                wallRight={wallLeft + wallRenderWidth}
+                wallBottom={wallBottom}
+                openingLeft={wallLeft + wallRenderWidth * selectedWindow.t - (pixelsToInches(selectedWindow.width) * renderScale) / 2}
+                openingTop={wallBottom - (selectedWindow.distanceFromFloorInches + selectedWindow.heightInches) * renderScale}
+                openingWidth={pixelsToInches(selectedWindow.width) * renderScale}
+                openingHeight={selectedWindow.heightInches * renderScale}
+                renderScale={renderScale}
+              />
+            )}
+
+            {selectedDoor && (
+              <ElevationOpeningMeasurementGuides
+                wallLeft={wallLeft}
+                wallTop={wallTop}
+                wallRight={wallLeft + wallRenderWidth}
+                wallBottom={wallBottom}
+                openingLeft={wallLeft + wallRenderWidth * selectedDoor.t - (pixelsToInches(selectedDoor.width) * renderScale) / 2}
+                openingTop={wallBottom - (selectedDoor.distanceFromFloorInches + selectedDoor.heightInches) * renderScale}
+                openingWidth={pixelsToInches(selectedDoor.width) * renderScale}
+                openingHeight={selectedDoor.heightInches * renderScale}
+                renderScale={renderScale}
+              />
+            )}
+
+            <text x={ELEVATION_VIEWBOX_WIDTH / 2} y={ELEVATION_VIEWBOX_HEIGHT - 38} textAnchor="middle" className="fill-slate-700 text-[20px] font-semibold">
               Wall elevation {activeIndex + 1}
             </text>
           </svg>
         </div>
       </div>
+
+      {(selectedWindow || selectedDoor) && (
+        <div className="pointer-events-auto absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-pelican-teal bg-white p-2 shadow-lg">
+          <button
+            type="button"
+            onClick={selectedWindow ? onDeleteWindow : onDeleteDoor}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"
+            aria-label="Delete selected elevation opening"
+          >
+            <Trash2 className="h-5 w-5" />
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+function ElevationOpeningMeasurementGuides({
+  wallLeft,
+  wallTop,
+  wallRight,
+  wallBottom,
+  openingLeft,
+  openingTop,
+  openingWidth,
+  openingHeight,
+  renderScale,
+}: {
+  wallLeft: number;
+  wallTop: number;
+  wallRight: number;
+  wallBottom: number;
+  openingLeft: number;
+  openingTop: number;
+  openingWidth: number;
+  openingHeight: number;
+  renderScale: number;
+}) {
+  const openingRight = openingLeft + openingWidth;
+  const openingBottom = openingTop + openingHeight;
+  const openingCenterX = openingLeft + openingWidth / 2;
+  const openingCenterY = openingTop + openingHeight / 2;
+  const horizontalGuideY = clamp(openingCenterY, wallTop + 18, wallBottom - 18);
+  const verticalGuideX = clamp(openingCenterX, wallLeft + 18, wallRight - 18);
+  const minSegment = 4;
+
+  const distanceLabel = (pixels: number) =>
+    formatMeasurementFromInches(Math.max(0, pixels / renderScale));
+
+  return (
+    <g pointerEvents="none">
+      {openingLeft - wallLeft > minSegment && (
+        <ElevationDimensionLine
+          x1={wallLeft}
+          y1={horizontalGuideY}
+          x2={openingLeft}
+          y2={horizontalGuideY}
+          label={distanceLabel(openingLeft - wallLeft)}
+          textOffset={-10}
+          stroke="#0ea5e9"
+          textClassName="fill-slate-950 text-[14px] font-bold"
+        />
+      )}
+      {wallRight - openingRight > minSegment && (
+        <ElevationDimensionLine
+          x1={openingRight}
+          y1={horizontalGuideY}
+          x2={wallRight}
+          y2={horizontalGuideY}
+          label={distanceLabel(wallRight - openingRight)}
+          textOffset={-10}
+          stroke="#0ea5e9"
+          textClassName="fill-slate-950 text-[14px] font-bold"
+        />
+      )}
+      {openingTop - wallTop > minSegment && (
+        <ElevationDimensionLine
+          x1={verticalGuideX}
+          y1={wallTop}
+          x2={verticalGuideX}
+          y2={openingTop}
+          label={distanceLabel(openingTop - wallTop)}
+          rotateText
+          textOffset={14}
+          stroke="#0ea5e9"
+          textClassName="fill-slate-950 text-[14px] font-bold"
+        />
+      )}
+      {wallBottom - openingBottom > minSegment && (
+        <ElevationDimensionLine
+          x1={verticalGuideX}
+          y1={openingBottom}
+          x2={verticalGuideX}
+          y2={wallBottom}
+          label={distanceLabel(wallBottom - openingBottom)}
+          rotateText
+          textOffset={14}
+          stroke="#0ea5e9"
+          textClassName="fill-slate-950 text-[14px] font-bold"
+        />
+      )}
+      <rect
+        x={openingLeft - 6}
+        y={openingTop - 6}
+        width={openingWidth + 12}
+        height={openingHeight + 12}
+        fill="none"
+        stroke="#06b6d4"
+        strokeWidth={2}
+        strokeDasharray="6 5"
+      />
+    </g>
   );
 }
 
@@ -2655,8 +2993,8 @@ function ElevationDimensionLine({
   label,
   rotateText = false,
   textOffset = -10,
-  extensionTop = 12,
-  extensionBottom = 12,
+  stroke = "#4f46e5",
+  textClassName = "fill-indigo-700 text-[20px] font-semibold",
 }: {
   x1: number;
   y1: number;
@@ -2665,8 +3003,8 @@ function ElevationDimensionLine({
   label: string;
   rotateText?: boolean;
   textOffset?: number;
-  extensionTop?: number;
-  extensionBottom?: number;
+  stroke?: string;
+  textClassName?: string;
 }) {
   const isVertical = Math.abs(x1 - x2) < Math.abs(y1 - y2);
   const midX = (x1 + x2) / 2;
@@ -2674,16 +3012,16 @@ function ElevationDimensionLine({
 
   return (
     <g>
-      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#4f46e5" strokeWidth="1.6" />
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={stroke} strokeWidth="1.6" />
       {isVertical ? (
         <>
-          <line x1={x1 - extensionBottom / 2} y1={y1} x2={x1 + extensionBottom / 2} y2={y1} stroke="#4f46e5" strokeWidth="1.6" />
-          <line x1={x2 - extensionTop / 2} y1={y2} x2={x2 + extensionTop / 2} y2={y2} stroke="#4f46e5" strokeWidth="1.6" />
+          <line x1={x1 - 8} y1={y1} x2={x1 + 8} y2={y1} stroke={stroke} strokeWidth="1.6" />
+          <line x1={x2 - 8} y1={y2} x2={x2 + 8} y2={y2} stroke={stroke} strokeWidth="1.6" />
         </>
       ) : (
         <>
-          <line x1={x1} y1={y1 - extensionBottom / 2} x2={x1} y2={y1 + extensionBottom / 2} stroke="#4f46e5" strokeWidth="1.6" />
-          <line x1={x2} y1={y2 - extensionTop / 2} x2={x2} y2={y2 + extensionTop / 2} stroke="#4f46e5" strokeWidth="1.6" />
+          <line x1={x1} y1={y1 - 8} x2={x1} y2={y1 + 8} stroke={stroke} strokeWidth="1.6" />
+          <line x1={x2} y1={y2 - 8} x2={x2} y2={y2 + 8} stroke={stroke} strokeWidth="1.6" />
         </>
       )}
       <text
@@ -2692,7 +3030,7 @@ function ElevationDimensionLine({
         textAnchor="middle"
         dominantBaseline="central"
         transform={rotateText ? `rotate(-90 ${midX} ${midY}) translate(${textOffset} 0)` : undefined}
-        className="fill-indigo-700 text-[20px] font-semibold"
+        className={textClassName}
       >
         {label}
       </text>
@@ -2741,7 +3079,7 @@ function DoorOnWall({
   onSelect: (event: React.PointerEvent<SVGGElement>) => void;
   onDragStart: (event: React.PointerEvent<SVGGElement>) => void;
 }) {
-  const geometry = getDoorGeometry(doorItem, wall);
+  const geometry = getDoorGeometry(doorItem, wall, walls);
 
   if (!geometry) return null;
 
@@ -2972,7 +3310,7 @@ function WindowOnWall({
   onSelect: (event: React.PointerEvent<SVGGElement>) => void;
   onDragStart: (event: React.PointerEvent<SVGGElement>) => void;
 }) {
-  const geometry = getWindowGeometry(windowItem, wall);
+  const geometry = getWindowGeometry(windowItem, wall, walls);
 
   if (!geometry) return null;
 
@@ -3171,10 +3509,9 @@ function WindowPlacementMeasurements({
   showWidth: boolean;
 }) {
   const direction = normalize(sub(wall.end, wall.start));
-  const normal = getPreferredNormal(wall.start, wall.end);
+  const guideSide = getInteriorMeasurementSideForWall(wall, walls ?? [wall]);
   const baseNormal = normalize(perp(direction));
-  const guideSide: Exclude<MeasurementSide, "length"> =
-    dot(normal, baseNormal) >= 0 ? "left" : "right";
+  const normal = guideSide === "left" ? baseNormal : mul(baseNormal, -1);
   const measurementWalls = walls?.length ? walls : [wall];
   const halfWidth = width / 2;
   const guideEndpoints = getStructureGuideEndpointsFromSideAnchors(
@@ -4284,6 +4621,60 @@ function WallSelectionHitAreas({
         />
       ))}
     </g>
+  );
+}
+
+function ThinWallGroupContextMenu({
+  position,
+  onCreateExterior,
+  onCreateInterior,
+}: {
+  position: Point;
+  onCreateExterior: () => void;
+  onCreateInterior: () => void;
+}) {
+  return (
+    <foreignObject
+      x={position.x}
+      y={position.y}
+      width={198}
+      height={94}
+      pointerEvents="all"
+      className="overflow-visible"
+      onPointerDown={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      <div className="flex w-[190px] flex-col gap-1 rounded-md border-2 border-[#00aee6] bg-white p-2 text-[12px] font-semibold text-pelican-navy shadow-md">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onCreateExterior();
+          }}
+          className="rounded px-3 py-2 text-left hover:bg-slate-50"
+        >
+          Create wall exterior
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onCreateInterior();
+          }}
+          className="rounded px-3 py-2 text-left hover:bg-slate-50"
+        >
+          Create wall interior
+        </button>
+      </div>
+    </foreignObject>
   );
 }
 
@@ -5568,6 +5959,73 @@ function MainToolbar({
 
 
 
+function getInteriorMeasurementSideForWall(
+  wall: Wall,
+  walls: Wall[]
+): Exclude<MeasurementSide, "length"> {
+  const leftLayout = getWallSideMeasurementLayout(
+    wall.start,
+    wall.end,
+    "left",
+    walls
+  );
+  const rightLayout = getWallSideMeasurementLayout(
+    wall.start,
+    wall.end,
+    "right",
+    walls
+  );
+  const leftLength = distance(leftLayout.lineStart, leftLayout.lineEnd);
+  const rightLength = distance(rightLayout.lineStart, rightLayout.lineEnd);
+
+  // Treat the shorter side of a thick wall as the interior side. This keeps
+  // door/window guides on the room-facing side and matches how users view the
+  // room from inside out.
+  if (Math.abs(leftLength - rightLength) > 0.001) {
+    return leftLength <= rightLength ? "left" : "right";
+  }
+
+  const direction = normalize(sub(wall.end, wall.start));
+  const baseNormal = normalize(perp(direction));
+  const preferredNormal = getPreferredNormal(wall.start, wall.end);
+
+  return dot(preferredNormal, baseNormal) >= 0 ? "left" : "right";
+}
+
+function getInteriorOpeningPlacementRangeOnWall(wall: Wall, walls: Wall[]) {
+  const wallLength = distance(wall.start, wall.end);
+  const direction = normalize(sub(wall.end, wall.start));
+
+  if (!vectorLength(direction) || wallLength < 0.001) {
+    return { startScalar: 0, endScalar: wallLength };
+  }
+
+  const guideSide = getInteriorMeasurementSideForWall(wall, walls);
+  const endpoints = getStructureGuideEndpointsFromMeasurementRun(
+    wall,
+    walls,
+    guideSide
+  );
+
+  if (!endpoints) {
+    return { startScalar: 0, endScalar: wallLength };
+  }
+
+  const startScalar = dot(sub(endpoints.startAnchor, wall.start), direction);
+  const endScalar = dot(sub(endpoints.endAnchor, wall.start), direction);
+  const minScalar = clamp(Math.min(startScalar, endScalar), 0, wallLength);
+  const maxScalar = clamp(Math.max(startScalar, endScalar), 0, wallLength);
+
+  if (maxScalar - minScalar < 1) {
+    return { startScalar: 0, endScalar: wallLength };
+  }
+
+  return {
+    startScalar: minScalar,
+    endScalar: maxScalar,
+  };
+}
+
 function getDoorPlacementOnWall(
   point: Point,
   walls: Wall[],
@@ -5584,14 +6042,20 @@ function getDoorPlacementOnWall(
   };
 }
 
-function getDoorGeometry(doorItem: DoorElement, wall: Wall) {
+function getDoorGeometry(doorItem: DoorElement, wall: Wall, walls?: Wall[]) {
   const wallLength = distance(wall.start, wall.end);
 
   if (wallLength < 0.001) return null;
 
   const direction = normalize(sub(wall.end, wall.start));
-  const halfWidth = Math.min(doorItem.width / 2, wallLength / 2);
-  const centerDistance = clamp(doorItem.t * wallLength, halfWidth, wallLength - halfWidth);
+  const placementRange = getInteriorOpeningPlacementRangeOnWall(wall, walls ?? [wall]);
+  const availableLength = Math.max(0.001, placementRange.endScalar - placementRange.startScalar);
+  const halfWidth = Math.min(doorItem.width / 2, availableLength / 2);
+  const centerDistance = clamp(
+    doorItem.t * wallLength,
+    placementRange.startScalar + halfWidth,
+    placementRange.endScalar - halfWidth
+  );
   const center = add(wall.start, mul(direction, centerDistance));
 
   return {
@@ -5658,8 +6122,17 @@ function getWindowPlacementOnWall(
     }
 
     const direction = normalize(sub(wall.end, wall.start));
+    const placementRange = getInteriorOpeningPlacementRangeOnWall(wall, walls);
+    const availableLength = placementRange.endScalar - placementRange.startScalar;
+
+    if (availableLength < width + 1) continue;
+
     const rawDistance = dot(sub(projection, wall.start), direction);
-    const clampedDistance = clamp(rawDistance, width / 2, wallLength - width / 2);
+    const clampedDistance = clamp(
+      rawDistance,
+      placementRange.startScalar + width / 2,
+      placementRange.endScalar - width / 2
+    );
     const centerPoint = add(wall.start, mul(direction, clampedDistance));
 
     bestDistance = distanceToWall;
@@ -5684,14 +6157,20 @@ function getWindowPlacementFromWall(
   };
 }
 
-function getWindowGeometry(windowItem: WindowElement, wall: Wall) {
+function getWindowGeometry(windowItem: WindowElement, wall: Wall, walls?: Wall[]) {
   const wallLength = distance(wall.start, wall.end);
 
   if (wallLength < 0.001) return null;
 
   const direction = normalize(sub(wall.end, wall.start));
-  const halfWidth = Math.min(windowItem.width / 2, wallLength / 2);
-  const centerDistance = clamp(windowItem.t * wallLength, halfWidth, wallLength - halfWidth);
+  const placementRange = getInteriorOpeningPlacementRangeOnWall(wall, walls ?? [wall]);
+  const availableLength = Math.max(0.001, placementRange.endScalar - placementRange.startScalar);
+  const halfWidth = Math.min(windowItem.width / 2, availableLength / 2);
+  const centerDistance = clamp(
+    windowItem.t * wallLength,
+    placementRange.startScalar + halfWidth,
+    placementRange.endScalar - halfWidth
+  );
   const center = add(wall.start, mul(direction, centerDistance));
 
   return {
@@ -5741,33 +6220,29 @@ function getWindowMenuPosition(
   };
 }
 
-function getStructureGuideSideForWall(
-  wall: Wall
-): Exclude<MeasurementSide, "length"> {
-  const direction = normalize(sub(wall.end, wall.start));
-  const baseNormal = normalize(perp(direction));
-  const guideNormal = getPreferredNormal(wall.start, wall.end);
-
-  return dot(guideNormal, baseNormal) >= 0 ? "left" : "right";
-}
-
-function measurementSideMatchesStructureGuide(
+function measurementSideMatchesWindowGuide(
   segmentStart: Point,
   segmentEnd: Point,
   side: "left" | "right",
-  wall: Wall
+  walls: Wall[]
 ) {
-  const guideSide = getStructureGuideSideForWall(wall);
+  const wall = walls.find(
+    (currentWall) =>
+      (samePoint(currentWall.start, segmentStart) &&
+        samePoint(currentWall.end, segmentEnd)) ||
+      (samePoint(currentWall.start, segmentEnd) &&
+        samePoint(currentWall.end, segmentStart))
+  );
+
+  if (!wall) return false;
+
+  const interiorSide = getInteriorMeasurementSideForWall(wall, walls);
 
   if (samePoint(segmentStart, wall.start) && samePoint(segmentEnd, wall.end)) {
-    return side === guideSide;
+    return side === interiorSide;
   }
 
-  if (samePoint(segmentStart, wall.end) && samePoint(segmentEnd, wall.start)) {
-    return side === getOppositeMeasurementSide(guideSide);
-  }
-
-  return false;
+  return side === getOppositeMeasurementSide(interiorSide);
 }
 
 function segmentMatchesWall(
@@ -7585,6 +8060,11 @@ function toSvgPoint(point: Point): string {
 
 function formatMeasurementFromInches(totalInchesValue: number) {
   const totalInches = Math.max(1, Math.round(totalInchesValue));
+
+  if (DISPLAY_MEASUREMENTS_AS_INCHES) {
+    return `${totalInches}"`;
+  }
+
   const feet = Math.floor(totalInches / 12);
   const inches = totalInches % 12;
 
@@ -7601,11 +8081,5 @@ function formatFeetInches(pixelLength: number) {
     Math.round((pixelLength / GRID_SIZE) * inchesPerGrid)
   );
 
-  const feet = Math.floor(totalInches / 12);
-  const inches = totalInches % 12;
-
-  if (feet === 0) return `${inches}"`;
-  if (inches === 0) return `${feet}'`;
-
-  return `${feet}' ${inches}"`;
+  return formatMeasurementFromInches(totalInches);
 }
