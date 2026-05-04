@@ -135,6 +135,13 @@ type DoorSelectionDetail = {
   distanceFromFloorInches: number;
 };
 
+type CabinetSelectionDetail = {
+  id: string;
+  widthInches: number;
+  depthInches: number;
+  heightInches: number;
+};
+
 
 type WindowPlacementPreview = {
   wall: Wall;
@@ -155,6 +162,7 @@ type CabinetPlacementPreview = {
   depth: number;
   rotation: number;
   isValid: boolean;
+  invalidReason?: string;
 };
 
 // CabinetDragState
@@ -192,6 +200,42 @@ type DoorDragState = {
   startDoors: DoorElement[];
   didMove: boolean;
 };
+
+type ElevationDragState =
+  | {
+      kind: "window";
+      id: string;
+      pointerId: number;
+      startPointer: Point;
+      startCenterInches: number;
+      startDistanceFromFloorInches: number;
+      widthInches: number;
+      heightInches: number;
+    }
+  | {
+      kind: "door";
+      id: string;
+      pointerId: number;
+      startPointer: Point;
+      startCenterInches: number;
+      startDistanceFromFloorInches: number;
+      widthInches: number;
+      heightInches: number;
+    }
+  | {
+      kind: "cabinet";
+      id: string;
+      pointerId: number;
+      startPointer: Point;
+      startCenter: Point;
+      startStartInches: number;
+      startDisplayStartInches: number;
+      depthVisualOffsetInches: number;
+      startDistanceFromFloorInches: number;
+      widthInches: number;
+      heightInches: number;
+      category: CabinetCategory;
+    };
 
 
 type EditorSnapshot = {
@@ -309,7 +353,7 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
   {
     id: "base-cabinet",
     category: "base",
-    title: "Base Cabinet",
+    title: "1 Door Cabinet",
     subtitle: '36" W x 24" D',
     widthInches: 36,
     depthInches: 24,
@@ -318,7 +362,7 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
   {
     id: "tall-cabinet",
     category: "tall",
-    title: "Tall Cabinet",
+    title: "2 Door Tall Cabinet",
     subtitle: '24" W x 24" D',
     widthInches: 24,
     depthInches: 24,
@@ -327,7 +371,7 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
   {
     id: "wall-cabinet",
     category: "wall",
-    title: "Wall Cabinet",
+    title: "2 Door Wall Cabinet",
     subtitle: '24" W x 12" D',
     widthInches: 24,
     depthInches: 12,
@@ -351,6 +395,8 @@ export default function CabinetEditor() {
     useState<WindowSelectionDetail | null>(null);
   const [selectedDoorDetail, setSelectedDoorDetail] =
     useState<DoorSelectionDetail | null>(null);
+  const [selectedCabinetDetail, setSelectedCabinetDetail] =
+    useState<CabinetSelectionDetail | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [planViewMode, setPlanViewMode] = useState<PlanViewMode>("floor");
   const [canConvertSelectedThinWalls, setCanConvertSelectedThinWalls] = useState(false);
@@ -402,6 +448,28 @@ export default function CabinetEditor() {
       window.removeEventListener(
         "pelican-door-selection-change",
         handleDoorSelectionChange
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleCabinetSelectionChange = (event: Event) => {
+      const customEvent = event as CustomEvent<CabinetSelectionDetail | null>;
+      setSelectedCabinetDetail(customEvent.detail ?? null);
+      if (customEvent.detail) {
+        setActivePanel("cabinets");
+      }
+    };
+
+    window.addEventListener(
+      "pelican-cabinet-selection-change",
+      handleCabinetSelectionChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pelican-cabinet-selection-change",
+        handleCabinetSelectionChange
       );
     };
   }, []);
@@ -492,6 +560,7 @@ export default function CabinetEditor() {
             setIsSelectionMode={setIsSelectionMode}
             selectedWindow={selectedWindowDetail}
             selectedDoor={selectedDoorDetail}
+            selectedCabinet={selectedCabinetDetail}
             cabinetCategoryTab={cabinetCategoryTab}
             selectedCabinetCatalogId={selectedCabinetCatalogId}
             onSelectCabinetCategory={(category) => {
@@ -515,6 +584,10 @@ export default function CabinetEditor() {
                 setSelectedDoorDetail(null);
                 window.dispatchEvent(new Event("pelican-deselect-window"));
                 window.dispatchEvent(new Event("pelican-deselect-door"));
+              }
+              if (panel !== "cabinets") {
+                setSelectedCabinetDetail(null);
+                window.dispatchEvent(new Event("pelican-deselect-cabinet"));
               }
             }}
           />
@@ -1127,6 +1200,24 @@ function CanvasArea({
   }, [selectedDoor]);
 
   useEffect(() => {
+    const category = selectedCabinet ? getCabinetElevationCategory(selectedCabinet) : null;
+    const detail = selectedCabinet
+      ? {
+          id: selectedCabinet.id,
+          widthInches: pixelsToInches(selectedCabinet.width),
+          depthInches: pixelsToInches(selectedCabinet.depth),
+          heightInches:
+            selectedCabinet.heightInches ??
+            (category === "tall" ? 84 : category === "wall" ? 30 : 36),
+        }
+      : null;
+
+    window.dispatchEvent(
+      new CustomEvent("pelican-cabinet-selection-change", { detail })
+    );
+  }, [selectedCabinet]);
+
+  useEffect(() => {
     const handleWindowAttributeChange = (event: Event) => {
       const customEvent = event as CustomEvent<{
         id: string;
@@ -1211,6 +1302,71 @@ function CanvasArea({
       window.removeEventListener("pelican-deselect-door", handleDoorDeselect);
     };
   }, [commitDoorsChange]);
+
+  useEffect(() => {
+    const handleCabinetAttributeChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        id: string;
+        field: "widthInches" | "depthInches" | "heightInches";
+        value: number;
+      }>;
+
+      const { id, field, value } = customEvent.detail ?? {};
+
+      if (!id || !Number.isFinite(value)) return;
+
+      commitCabinetsChange((currentCabinets) =>
+        currentCabinets.map((cabinetItem) => {
+          if (cabinetItem.id !== id) return cabinetItem;
+
+          if (field === "widthInches") {
+            return resolveCabinetDimensionChange(
+              cabinetItem,
+              { ...cabinetItem, width: inchesToPixels(Math.max(6, value)) },
+              wallsRef.current,
+              currentCabinets
+            );
+          }
+
+          if (field === "depthInches") {
+            return resolveCabinetDimensionChange(
+              cabinetItem,
+              { ...cabinetItem, depth: inchesToPixels(Math.max(1, value)) },
+              wallsRef.current,
+              currentCabinets
+            );
+          }
+
+          const nextCabinet = { ...cabinetItem, heightInches: Math.max(1, value) };
+          if (getCabinetElevationCategory(nextCabinet) === "wall") {
+            const candidateCabinets = currentCabinets.map((candidate) =>
+              candidate.id === id ? nextCabinet : candidate
+            );
+            const stackMessage = getWallCabinetStackOverflowMessage(candidateCabinets, wallsRef.current, id);
+            if (stackMessage) {
+              window.alert(stackMessage);
+              return cabinetItem;
+            }
+          }
+
+          return nextCabinet;
+        })
+      );
+    };
+
+    const handleCabinetDeselect = () => {
+      setSelectedCabinetId(null);
+      updateCabinetPreview(null);
+    };
+
+    window.addEventListener("pelican-cabinet-attribute-change", handleCabinetAttributeChange);
+    window.addEventListener("pelican-deselect-cabinet", handleCabinetDeselect);
+
+    return () => {
+      window.removeEventListener("pelican-cabinet-attribute-change", handleCabinetAttributeChange);
+      window.removeEventListener("pelican-deselect-cabinet", handleCabinetDeselect);
+    };
+  }, [commitCabinetsChange, updateCabinetPreview]);
 
   useEffect(() => {
     if (isDrawingTool(activeTool) && isSelectionMode) {
@@ -2026,7 +2182,7 @@ useEffect(() => {
 
         doorsRef.current = nextDoors;
         setDoors(nextDoors);
-        setMenuPosition(getDoorMenuPosition(currentDoor, placement.wall, placement.t));
+        setMenuPosition(getDoorMenuPosition(currentDoor, placement.wall, placement.t, thickWalls));
       }
 
       return;
@@ -2063,7 +2219,7 @@ useEffect(() => {
 
         windowsRef.current = nextWindows;
         setWindows(nextWindows);
-        setMenuPosition(getWindowMenuPosition(currentWindow, placement.wall, placement.t));
+        setMenuPosition(getWindowMenuPosition(currentWindow, placement.wall, placement.t, thickWalls));
       }
 
       return;
@@ -2179,7 +2335,12 @@ useEffect(() => {
   const commitPreviewCabinetPlacement = useCallback(() => {
     const placement = cabinetPreviewRef.current;
 
-    if (!placement || !placement.isValid) return false;
+    if (!placement) return false;
+
+    if (!placement.isValid) {
+      if (placement.invalidReason) window.alert(placement.invalidReason);
+      return false;
+    }
 
     const newCabinet: CabinetElement = {
       id: crypto.randomUUID(),
@@ -2192,7 +2353,21 @@ useEffect(() => {
       distanceFromFloorInches: selectedCabinetCategory === "wall" ? 54 : 0,
     };
 
-    commitCabinetsChange((currentCabinets) => [...currentCabinets, newCabinet]);
+    const candidateCabinets = [...cabinetsRef.current, newCabinet];
+    const placementResult = selectedCabinetCategory === "wall"
+      ? applyWallCabinetStackSpacingOnPlacement(
+          candidateCabinets,
+          wallsRef.current,
+          newCabinet.id
+        )
+      : { cabinets: candidateCabinets };
+
+    if (placementResult.message) {
+      window.alert(placementResult.message);
+      return false;
+    }
+
+    commitCabinetsChange(placementResult.cabinets);
     setSelectedCabinetId(newCabinet.id);
     setSelectedDoorId(null);
     setSelectedWindowId(null);
@@ -2243,7 +2418,7 @@ useEffect(() => {
         width: DEFAULT_WINDOW_WIDTH,
         heightInches: 36,
         distanceFromFloorInches: 24,
-        tabSide: 1,
+        tabSide: getWindowTabSideFacingMeasurementGuide(placement.wall, thickWalls),
       };
 
       commitWindowsChange((currentWindows) => [...currentWindows, newWindow]);
@@ -2260,6 +2435,7 @@ useEffect(() => {
     [
       commitDoorsChange,
       commitWindowsChange,
+      thickWalls,
       updateDoorPreview,
       updateWindowPreview,
     ]
@@ -2522,6 +2698,84 @@ useEffect(() => {
     selectedDoor?.wallId ??
     null;
 
+  const selectWindowFromElevation = (id: string) => {
+    setSelectedWindowId(id);
+    setSelectedDoorId(null);
+    setSelectedCabinetId(null);
+    setSelectedWallId(null);
+    setGroupSelectedWallIds([]);
+    setGroupContextMenu(null);
+    setMenuPosition(null);
+    updateWindowPreview(null);
+    updateDoorPreview(null);
+    updateCabinetPreview(null);
+  };
+
+  const selectDoorFromElevation = (id: string) => {
+    setSelectedDoorId(id);
+    setSelectedWindowId(null);
+    setSelectedCabinetId(null);
+    setSelectedWallId(null);
+    setGroupSelectedWallIds([]);
+    setGroupContextMenu(null);
+    setMenuPosition(null);
+    updateWindowPreview(null);
+    updateDoorPreview(null);
+    updateCabinetPreview(null);
+  };
+
+  const selectCabinetFromElevation = (id: string) => {
+    setSelectedCabinetId(id);
+    setSelectedWindowId(null);
+    setSelectedDoorId(null);
+    setSelectedWallId(null);
+    setGroupSelectedWallIds([]);
+    setGroupContextMenu(null);
+    setMenuPosition(null);
+    updateWindowPreview(null);
+    updateDoorPreview(null);
+    updateCabinetPreview(null);
+  };
+
+  const updateWindowFromElevation = (
+    id: string,
+    updates: Partial<Pick<WindowElement, "t" | "distanceFromFloorInches">>
+  ) => {
+    setWindows((currentWindows) => {
+      const nextWindows = currentWindows.map((windowItem) =>
+        windowItem.id === id ? { ...windowItem, ...updates } : windowItem
+      );
+      windowsRef.current = nextWindows;
+      return nextWindows;
+    });
+  };
+
+  const updateDoorFromElevation = (
+    id: string,
+    updates: Partial<Pick<DoorElement, "t" | "distanceFromFloorInches">>
+  ) => {
+    setDoors((currentDoors) => {
+      const nextDoors = currentDoors.map((doorItem) =>
+        doorItem.id === id ? { ...doorItem, ...updates } : doorItem
+      );
+      doorsRef.current = nextDoors;
+      return nextDoors;
+    });
+  };
+
+  const updateCabinetFromElevation = (
+    id: string,
+    updates: Partial<Pick<CabinetElement, "center" | "distanceFromFloorInches">>
+  ) => {
+    setCabinets((currentCabinets) => {
+      const nextCabinets = currentCabinets.map((cabinetItem) =>
+        cabinetItem.id === id ? { ...cabinetItem, ...updates } : cabinetItem
+      );
+      cabinetsRef.current = nextCabinets;
+      return nextCabinets;
+    });
+  };
+
   const currentMenuPosition =
     selectedWall && menuPosition
       ? menuPosition
@@ -2530,11 +2784,11 @@ useEffect(() => {
         : selectedWindow && selectedWindowWall && menuPosition
           ? menuPosition
           : selectedWindow && selectedWindowWall
-            ? getWindowMenuPosition(selectedWindow, selectedWindowWall)
+            ? getWindowMenuPosition(selectedWindow, selectedWindowWall, undefined, thickWalls)
             : selectedDoor && selectedDoorWall && menuPosition
               ? menuPosition
               : selectedDoor && selectedDoorWall
-                ? getDoorMenuPosition(selectedDoor, selectedDoorWall)
+                ? getDoorMenuPosition(selectedDoor, selectedDoorWall, undefined, thickWalls)
                 : selectedCabinet
                   ? getCabinetMenuPosition(selectedCabinet)
                   : null;
@@ -2546,7 +2800,16 @@ useEffect(() => {
         windows={windows}
         doors={doors}
         cabinets={cabinets}
+        selectedWindowId={selectedWindowId}
+        selectedDoorId={selectedDoorId}
+        selectedCabinetId={selectedCabinetId}
         activeIndex={activeElevationIndex}
+        onSelectWindow={selectWindowFromElevation}
+        onSelectDoor={selectDoorFromElevation}
+        onSelectCabinet={selectCabinetFromElevation}
+        onUpdateWindow={updateWindowFromElevation}
+        onUpdateDoor={updateDoorFromElevation}
+        onUpdateCabinet={updateCabinetFromElevation}
         onPrevious={() => {
           if (elevationWalls.length === 0) return;
           setActiveElevationIndex((currentIndex) =>
@@ -2649,7 +2912,8 @@ useEffect(() => {
                     segmentStart,
                     segmentEnd,
                     side,
-                    activeStructureWall
+                    activeStructureWall,
+                    thickWalls
                   )
                   ? 46
                   : 18;
@@ -2734,7 +2998,7 @@ useEffect(() => {
                   setSelectedWallId(null);
                   setGroupSelectedWallIds([]);
                   setGroupContextMenu(null);
-                  setMenuPosition(getDoorMenuPosition(doorItem, wall));
+                  setMenuPosition(getDoorMenuPosition(doorItem, wall, undefined, thickWalls));
                   updateDoorPreview(null);
                   updateWindowPreview(null);
                 }}
@@ -2755,7 +3019,7 @@ useEffect(() => {
                   setSelectedWallId(null);
                   setGroupSelectedWallIds([]);
                   setGroupContextMenu(null);
-                  setMenuPosition(getDoorMenuPosition(doorItem, wall));
+                  setMenuPosition(getDoorMenuPosition(doorItem, wall, undefined, thickWalls));
                   updateDoorPreview(null);
                   updateWindowPreview(null);
                   event.currentTarget.setPointerCapture(event.pointerId);
@@ -2786,7 +3050,7 @@ useEffect(() => {
                   setSelectedWallId(null);
                   setGroupSelectedWallIds([]);
                   setGroupContextMenu(null);
-                  setMenuPosition(getWindowMenuPosition(windowItem, wall));
+                  setMenuPosition(getWindowMenuPosition(windowItem, wall, undefined, thickWalls));
                   updateWindowPreview(null);
                 }}
                 onDragStart={(event) => {
@@ -2806,7 +3070,7 @@ useEffect(() => {
                   setSelectedWallId(null);
                   setGroupSelectedWallIds([]);
                   setGroupContextMenu(null);
-                  setMenuPosition(getWindowMenuPosition(windowItem, wall));
+                  setMenuPosition(getWindowMenuPosition(windowItem, wall, undefined, thickWalls));
                   updateWindowPreview(null);
                   event.currentTarget.setPointerCapture(event.pointerId);
                 }}
@@ -2814,12 +3078,26 @@ useEffect(() => {
             );
           })}
 
-          {cabinets.map((cabinetItem) => (
+          {[...cabinets]
+            .map((cabinetItem, index) => ({ cabinetItem, index }))
+            .sort((left, right) => {
+              const leftSelected = left.cabinetItem.id === selectedCabinetId;
+              const rightSelected = right.cabinetItem.id === selectedCabinetId;
+              if (leftSelected !== rightSelected) return leftSelected ? 1 : -1;
+
+              const leftIsWall = getCabinetElevationCategory(left.cabinetItem) === "wall";
+              const rightIsWall = getCabinetElevationCategory(right.cabinetItem) === "wall";
+              if (leftIsWall !== rightIsWall) return leftIsWall ? 1 : -1;
+
+              return left.index - right.index;
+            })
+            .map(({ cabinetItem }) => (
             <CabinetOnFloor
               key={cabinetItem.id}
               cabinetItem={cabinetItem}
               walls={thickWalls}
               selected={cabinetItem.id === selectedCabinetId}
+              showDegree={cabinetItem.id === selectedCabinetId && isCabinetRotating}
               disabled={activeTool === "place-window" || activeTool === "place-door" || activeTool === "place-cabinet"}
               onSelect={(event) => {
                 event.preventDefault();
@@ -2956,8 +3234,6 @@ useEffect(() => {
           {selectedCabinet && currentMenuPosition && !isCabinetRotating && !isCabinetDragging && (
             <SelectedCabinetContextMenu
               position={currentMenuPosition}
-              onRotateLeft={() => rotateSelectedCabinetBy(-15)}
-              onRotateRight={() => rotateSelectedCabinetBy(15)}
               onDelete={deleteSelectedCabinet}
               onDragStart={handleMenuDragStart}
               onDragMove={handleMenuDragMove}
@@ -2995,6 +3271,9 @@ type CabinetElevationPlacement = {
   widthInches: number;
   heightInches: number;
   distanceFromFloorInches: number;
+  depthFromWallInches: number;
+  stackOverflow?: boolean;
+  stackOverflowMessage?: string;
 };
 
 type ElevationOpeningLayout = {
@@ -3041,6 +3320,109 @@ function getElevationWallElementCenterInches(wall: Wall, t: number) {
   return pixelsToInches(centerPixels);
 }
 
+function getInteriorMeasurementGuideSide(
+  wall: Wall,
+  walls: Wall[] = []
+): Exclude<MeasurementSide, "length"> {
+  const direction = normalize(sub(wall.end, wall.start));
+  if (!vectorLength(direction)) return "left";
+
+  // Interior/exterior cannot be derived from a fixed screen normal. For example,
+  // a top wall and a bottom wall both may be drawn left-to-right, but their room
+  // interiors are on opposite sides. The reliable signal is the measurement run:
+  // for thick-wall rooms, the interior guide is the side with the shorter usable
+  // run between mitered/connected wall faces (15'11", 12', 20'5", etc.), while
+  // the exterior guide includes the wall thickness and is longer.
+  if (walls.length) {
+    const measurementWalls = walls.filter(isThickWall);
+    const leftLength = getWallSideGuideRunLength(wall, measurementWalls, "left");
+    const rightLength = getWallSideGuideRunLength(wall, measurementWalls, "right");
+    const tolerance = 0.5;
+
+    if (leftLength + tolerance < rightLength) return "left";
+    if (rightLength + tolerance < leftLength) return "right";
+  }
+
+  const baseNormal = normalize(perp(direction));
+  const interiorNormal = mul(getPreferredNormal(wall.start, wall.end), -1);
+
+  return dot(interiorNormal, baseNormal) >= 0 ? "left" : "right";
+}
+
+function getWallSideGuideRunLength(
+  wall: Wall,
+  walls: Wall[],
+  side: Exclude<MeasurementSide, "length">
+) {
+  const runEndpoints = getStructureGuideEndpointsFromMeasurementRun(
+    wall,
+    walls,
+    side
+  );
+
+  if (runEndpoints) {
+    return distance(runEndpoints.startAnchor, runEndpoints.endAnchor);
+  }
+
+  return distance(wall.start, wall.end);
+}
+
+type ElevationWallInteriorSpan = {
+  startScalar: number;
+  endScalar: number;
+  length: number;
+  startAnchor: Point;
+  endAnchor: Point;
+};
+
+function getElevationWallInteriorSpan(
+  wall: Wall,
+  walls: Wall[]
+): ElevationWallInteriorSpan {
+  const axis = getElevationWallAxis(wall);
+  const fallback = {
+    startScalar: 0,
+    endScalar: axis.length,
+    length: axis.length,
+    startAnchor: axis.start,
+    endAnchor: axis.end,
+  };
+
+  if (axis.length < 0.001) return fallback;
+
+  const guideSide = getInteriorMeasurementGuideSide(wall, walls);
+  const runEndpoints = getStructureGuideEndpointsFromMeasurementRun(
+    wall,
+    walls.filter(isThickWall),
+    guideSide
+  );
+
+  if (!runEndpoints) return fallback;
+
+  const startScalar = clamp(
+    dot(sub(runEndpoints.startAnchor, axis.start), axis.direction),
+    0,
+    axis.length
+  );
+  const endScalar = clamp(
+    dot(sub(runEndpoints.endAnchor, axis.start), axis.direction),
+    0,
+    axis.length
+  );
+  const spanStart = Math.min(startScalar, endScalar);
+  const spanEnd = Math.max(startScalar, endScalar);
+
+  if (spanEnd - spanStart < 0.001) return fallback;
+
+  return {
+    startScalar: spanStart,
+    endScalar: spanEnd,
+    length: spanEnd - spanStart,
+    startAnchor: runEndpoints.startAnchor,
+    endAnchor: runEndpoints.endAnchor,
+  };
+}
+
 function getElevationOpeningLayout(
   wallLengthInches: number,
   openingWidthPixels: number,
@@ -3080,18 +3462,34 @@ function ElevationCabinetOnWall({
   width,
   height,
   category,
+  selected = false,
+  invalid = false,
 }: {
   x: number;
   y: number;
   width: number;
   height: number;
   category: CabinetCategory;
+  selected?: boolean;
+  invalid?: boolean;
 }) {
-  const innerInset = Math.min(8, Math.max(3, width * 0.08));
-  const topRailY = y + Math.min(10, Math.max(5, height * 0.08));
-  const hasDoubleDoor = width > 28;
-  const stroke = "#475569";
-  const fill = category === "wall" ? "#ffffff" : "#f8fafc";
+  const outerStroke = invalid ? "#ef4444" : selected ? "#22bfd6" : "#111827";
+  const outerStrokeWidth = selected ? 3 : 2;
+  const innerStroke = invalid ? "#fca5a5" : selected ? "#67e8f9" : "#64748b";
+  const fill = "#f1ede4";
+  const panelFill = "#fafaf7";
+  const inset = Math.min(10, Math.max(4, Math.min(width, height) * 0.08));
+  const handleStroke = "#111827";
+  const handleHeight = Math.min(height * 0.42, Math.max(18, height * 0.22));
+  const handleTop = y + height / 2 - handleHeight / 2;
+  const handleOffsetFromCenter = Math.max(6, Math.min(16, width * 0.08));
+  const singleHandleX = x + width - inset - Math.max(6, width * 0.08);
+  const leftCenterX = x + width / 2 - handleOffsetFromCenter;
+  const rightCenterX = x + width / 2 + handleOffsetFromCenter;
+  const innerX = x + inset;
+  const innerY = y + inset;
+  const innerWidth = Math.max(0, width - inset * 2);
+  const innerHeight = Math.max(0, height - inset * 2);
 
   return (
     <g>
@@ -3101,43 +3499,68 @@ function ElevationCabinetOnWall({
         width={width}
         height={height}
         fill={fill}
-        fillOpacity={0.62}
-        stroke={stroke}
-        strokeWidth="2"
+        stroke={outerStroke}
+        strokeWidth={outerStrokeWidth}
         vectorEffect="non-scaling-stroke"
       />
-      <line
-        x1={x + innerInset}
-        y1={topRailY}
-        x2={x + width - innerInset}
-        y2={topRailY}
-        stroke="#cbd5e1"
-        strokeWidth="2"
+      <rect
+        x={innerX}
+        y={innerY}
+        width={innerWidth}
+        height={innerHeight}
+        fill={panelFill}
+        stroke={innerStroke}
+        strokeWidth="1.4"
         vectorEffect="non-scaling-stroke"
       />
-      {hasDoubleDoor && (
-        <line
-          x1={x + width / 2}
-          y1={y}
-          x2={x + width / 2}
-          y2={y + height}
-          stroke={stroke}
-          strokeOpacity="0.6"
-          strokeWidth="1.4"
-          vectorEffect="non-scaling-stroke"
-        />
+
+      {category === "base" && (
+        <g>
+          <line
+            x1={singleHandleX}
+            y1={handleTop}
+            x2={singleHandleX}
+            y2={handleTop + handleHeight}
+            stroke={handleStroke}
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </g>
       )}
-      {category === "wall" && height > 34 && (
-        <line
-          x1={x}
-          y1={y + height / 2}
-          x2={x + width}
-          y2={y + height / 2}
-          stroke={stroke}
-          strokeOpacity="0.6"
-          strokeWidth="1.4"
-          vectorEffect="non-scaling-stroke"
-        />
+
+      {category !== "base" && (
+        <g>
+          <line
+            x1={x + width / 2}
+            y1={innerY}
+            x2={x + width / 2}
+            y2={innerY + innerHeight}
+            stroke={innerStroke}
+            strokeWidth="1.4"
+            vectorEffect="non-scaling-stroke"
+          />
+          <line
+            x1={leftCenterX}
+            y1={handleTop}
+            x2={leftCenterX}
+            y2={handleTop + handleHeight}
+            stroke={handleStroke}
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+          <line
+            x1={rightCenterX}
+            y1={handleTop}
+            x2={rightCenterX}
+            y2={handleTop + handleHeight}
+            stroke={handleStroke}
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </g>
       )}
     </g>
   );
@@ -3146,7 +3569,8 @@ function ElevationCabinetOnWall({
 // getCabinetElevationPlacementsForWall
 function getCabinetElevationPlacementsForWall(
   wall: Wall,
-  cabinets: CabinetElement[]
+  cabinets: CabinetElement[],
+  walls: Wall[] = []
 ): CabinetElevationPlacement[] {
   const axis = getElevationWallAxis(wall);
   const wallLength = axis.length;
@@ -3155,9 +3579,9 @@ function getCabinetElevationPlacementsForWall(
   const wallFaceOffset = WALL_THICKNESS / 2;
   const touchThreshold = Math.max(6, GRID_SIZE * 0.22);
   const parallelTolerance = 0.08;
-  const floorAdjacencyThreshold = GRID_SIZE * 0.75;
-  const wallBoundarySnapThreshold = Math.max(6, GRID_SIZE * 0.35);
-  const wallLengthInches = pixelsToInches(wallLength);
+  const interiorGuideSide = getInteriorMeasurementGuideSide(wall, walls.length ? walls.filter(isThickWall) : [wall]);
+  const interiorSign = interiorGuideSide === "left" ? 1 : -1;
+  const maxInteriorDepthPixels = inchesToPixels(180);
 
   const placements = cabinets
     .map((cabinetItem) => {
@@ -3177,7 +3601,7 @@ function getCabinetElevationPlacementsForWall(
         | {
             startProjection: number;
             endProjection: number;
-            wallFaceDistance: number;
+            depthFromWallFace: number;
             overlap: number;
           }
         | null = null;
@@ -3195,11 +3619,9 @@ function getCabinetElevationPlacementsForWall(
         if (Math.abs(sideDistanceStart - sideDistanceEnd) > touchThreshold) continue;
 
         const sideDistance = (sideDistanceStart + sideDistanceEnd) / 2;
-        const wallFaceDistance = Math.min(
-          Math.abs(sideDistance - wallFaceOffset),
-          Math.abs(sideDistance + wallFaceOffset)
-        );
-        if (wallFaceDistance > touchThreshold) continue;
+        const depthFromWallFace = interiorSign * sideDistance - wallFaceOffset;
+        if (depthFromWallFace < -touchThreshold) continue;
+        if (depthFromWallFace > maxInteriorDepthPixels) continue;
 
         const projectionA = dot(sub(edge.start, axis.start), axis.direction);
         const projectionB = dot(sub(edge.end, axis.start), axis.direction);
@@ -3254,13 +3676,13 @@ function getCabinetElevationPlacementsForWall(
 
         if (
           !bestPlacement ||
-          wallFaceDistance < bestPlacement.wallFaceDistance - 0.001 ||
-          (Math.abs(wallFaceDistance - bestPlacement.wallFaceDistance) < 0.001 && attachedOverlap > bestPlacement.overlap)
+          depthFromWallFace < bestPlacement.depthFromWallFace - 0.001 ||
+          (Math.abs(depthFromWallFace - bestPlacement.depthFromWallFace) < 0.001 && attachedOverlap > bestPlacement.overlap)
         ) {
           bestPlacement = {
             startProjection,
             endProjection,
-            wallFaceDistance,
+            depthFromWallFace,
             overlap: attachedOverlap,
           };
         }
@@ -3281,25 +3703,261 @@ function getCabinetElevationPlacementsForWall(
         widthInches: pixelsToInches(widthPixels),
         heightInches: spec.heightInches,
         distanceFromFloorInches: spec.distanceFromFloorInches,
+        depthFromWallInches: pixelsToInches(Math.max(0, bestPlacement.depthFromWallFace)),
       };
     })
     .filter((placement): placement is CabinetElevationPlacement => Boolean(placement));
 
-  const normalizedPlacements = normalizeCabinetElevationPlacementsFromFloorPlan(
-    placements,
-    axis,
-    wallLengthInches,
-    floorAdjacencyThreshold,
-    wallBoundarySnapThreshold
-  );
+  // Each cabinet elevation position must stay tied to that cabinet's own
+  // floor-plan projection. Do not auto-stack here. Wall-cabinet stack spacing is
+  // applied once at placement time and then stored on the cabinet, so later
+  // manual elevation edits do not get overwritten by a render-time equalizer.
+  return placements.sort((left, right) => {
+    if (left.depthFromWallInches !== right.depthFromWallInches) {
+      return left.depthFromWallInches - right.depthFromWallInches;
+    }
 
-  return normalizedPlacements.sort((left, right) => {
     if (left.distanceFromFloorInches !== right.distanceFromFloorInches) {
       return left.distanceFromFloorInches - right.distanceFromFloorInches;
     }
 
     return left.startInches - right.startInches;
   });
+}
+
+function stackOverlappingWallCabinetPlacements(
+  placements: CabinetElevationPlacement[],
+  wallHeightInches = DEFAULT_ELEVATION_WALL_HEIGHT_INCHES,
+  targetCabinetId?: string
+): CabinetElevationPlacement[] {
+  const nextPlacements = placements.map((placement) => ({ ...placement }));
+  const depthPathToleranceInches = 3;
+  const overlapToleranceInches = 0.25;
+
+  const horizontalOverlap = (first: CabinetElevationPlacement, second: CabinetElevationPlacement) => {
+    const firstStart = first.startInches;
+    const firstEnd = first.startInches + first.widthInches;
+    const secondStart = second.startInches;
+    const secondEnd = second.startInches + second.widthInches;
+    return Math.min(firstEnd, secondEnd) - Math.max(firstStart, secondStart);
+  };
+
+  const sameDepthPath = (first: CabinetElevationPlacement, second: CabinetElevationPlacement) =>
+    Math.abs(first.depthFromWallInches - second.depthFromWallInches) <= depthPathToleranceInches;
+
+  const wallCabinetIndexes = nextPlacements
+    .map((placement, index) => ({ placement, index }))
+    .filter(({ placement }) => placement.category === "wall")
+    .map(({ index }) => index);
+
+  const visited = new Set<number>();
+
+  wallCabinetIndexes.forEach((startIndex) => {
+    if (visited.has(startIndex)) return;
+
+    const group: number[] = [];
+    const queue = [startIndex];
+    visited.add(startIndex);
+
+    while (queue.length) {
+      const currentIndex = queue.shift() as number;
+      const currentPlacement = nextPlacements[currentIndex];
+      group.push(currentIndex);
+
+      wallCabinetIndexes.forEach((candidateIndex) => {
+        if (visited.has(candidateIndex)) return;
+
+        const candidatePlacement = nextPlacements[candidateIndex];
+        if (!sameDepthPath(currentPlacement, candidatePlacement)) return;
+        if (horizontalOverlap(currentPlacement, candidatePlacement) <= overlapToleranceInches) return;
+
+        visited.add(candidateIndex);
+        queue.push(candidateIndex);
+      });
+    }
+
+    if (
+      targetCabinetId &&
+      !group.some((index) => nextPlacements[index].cabinet.id === targetCabinetId)
+    ) {
+      return;
+    }
+
+    const groupPlacements = group.map((index) => nextPlacements[index]);
+    const groupStart = Math.min(...groupPlacements.map((placement) => placement.startInches));
+    const groupEnd = Math.max(...groupPlacements.map((placement) => placement.startInches + placement.widthInches));
+    const groupDepth = groupPlacements.reduce((sum, placement) => sum + placement.depthFromWallInches, 0) / groupPlacements.length;
+
+    const groundObstacles = nextPlacements.filter((placement) => {
+      if (placement.category === "wall") return false;
+      if (Math.abs(placement.depthFromWallInches - groupDepth) > depthPathToleranceInches) return false;
+
+      const placementStart = placement.startInches;
+      const placementEnd = placement.startInches + placement.widthInches;
+      return Math.min(groupEnd, placementEnd) - Math.max(groupStart, placementStart) > overlapToleranceInches;
+    });
+
+    const bottomLimitInches = Math.max(
+      0,
+      ...groundObstacles.map(
+        (placement) => placement.distanceFromFloorInches + placement.heightInches
+      )
+    );
+
+    const shouldAutoStack = group.length > 1 || bottomLimitInches > 0;
+    if (!shouldAutoStack) return;
+
+    const totalStackHeight = groupPlacements.reduce(
+      (sum, placement) => sum + placement.heightInches,
+      0
+    );
+    const availableHeight = Math.max(0, wallHeightInches - bottomLimitInches);
+
+    if (totalStackHeight > availableHeight + 0.001) {
+      const message = "Not enough vertical wall space to add another wall cabinet in this stack.";
+      group.forEach((index) => {
+        nextPlacements[index].stackOverflow = true;
+        nextPlacements[index].stackOverflowMessage = message;
+      });
+      return;
+    }
+
+    const sortedGroup = group.slice().sort((leftIndex, rightIndex) => {
+      const left = nextPlacements[leftIndex];
+      const right = nextPlacements[rightIndex];
+      if (left.distanceFromFloorInches !== right.distanceFromFloorInches) {
+        return left.distanceFromFloorInches - right.distanceFromFloorInches;
+      }
+      return placements.findIndex((placement) => placement.cabinet.id === left.cabinet.id) -
+        placements.findIndex((placement) => placement.cabinet.id === right.cabinet.id);
+    });
+
+    const gap = (availableHeight - totalStackHeight) / (sortedGroup.length + 1);
+    let nextDistanceFromFloor = bottomLimitInches + gap;
+
+    sortedGroup.forEach((index) => {
+      const placement = nextPlacements[index];
+      placement.distanceFromFloorInches = nextDistanceFromFloor;
+      nextDistanceFromFloor += placement.heightInches + gap;
+    });
+  });
+
+  return nextPlacements;
+}
+
+function getWallCabinetStackOverflowMessage(
+  cabinets: CabinetElement[],
+  walls: Wall[],
+  targetCabinetId?: string
+) {
+  const thickWalls = walls.filter(isThickWall);
+
+  for (const wall of thickWalls) {
+    const placements = getCabinetElevationPlacementsForWall(wall, cabinets, thickWalls);
+    if (
+      targetCabinetId &&
+      !placements.some(
+        (placement) =>
+          placement.cabinet.id === targetCabinetId && placement.category === "wall"
+      )
+    ) {
+      continue;
+    }
+
+    const stackCheckedPlacements = stackOverlappingWallCabinetPlacements(
+      placements,
+      DEFAULT_ELEVATION_WALL_HEIGHT_INCHES,
+      targetCabinetId
+    );
+    const overflowPlacement = stackCheckedPlacements.find((placement) =>
+      targetCabinetId
+        ? placement.cabinet.id === targetCabinetId && placement.stackOverflow
+        : placement.stackOverflow
+    );
+    if (overflowPlacement) {
+      return overflowPlacement.stackOverflowMessage ??
+        "Not enough vertical wall space to add another wall cabinet in this stack.";
+    }
+  }
+
+  return null;
+}
+
+type WallCabinetStackPlacementResult = {
+  cabinets: CabinetElement[];
+  message?: string;
+};
+
+function applyWallCabinetStackSpacingOnPlacement(
+  cabinets: CabinetElement[],
+  walls: Wall[],
+  placedCabinetId: string
+): WallCabinetStackPlacementResult {
+  const placedCabinet = cabinets.find((cabinetItem) => cabinetItem.id === placedCabinetId);
+  if (!placedCabinet || getCabinetElevationCategory(placedCabinet) !== "wall") {
+    return { cabinets };
+  }
+
+  const thickWalls = walls.filter(isThickWall);
+  let nextCabinets = cabinets.map((cabinetItem) => ({ ...cabinetItem }));
+
+  for (const wall of thickWalls) {
+    const placements = getCabinetElevationPlacementsForWall(wall, nextCabinets, thickWalls);
+    if (
+      !placements.some(
+        (placement) =>
+          placement.cabinet.id === placedCabinetId && placement.category === "wall"
+      )
+    ) {
+      continue;
+    }
+
+    const stackedPlacements = stackOverlappingWallCabinetPlacements(
+      placements,
+      DEFAULT_ELEVATION_WALL_HEIGHT_INCHES,
+      placedCabinetId
+    );
+    const overflowPlacement = stackedPlacements.find(
+      (placement) => placement.cabinet.id === placedCabinetId && placement.stackOverflow
+    );
+
+    if (overflowPlacement) {
+      return {
+        cabinets,
+        message: overflowPlacement.stackOverflowMessage ??
+          "Not enough vertical wall space to add another wall cabinet in this stack.",
+      };
+    }
+
+    const updatedDistanceById = new Map<string, number>();
+    stackedPlacements.forEach((placement) => {
+      const originalPlacement = placements.find(
+        (candidate) => candidate.cabinet.id === placement.cabinet.id
+      );
+      if (!originalPlacement) return;
+
+      if (
+        Math.abs(
+          originalPlacement.distanceFromFloorInches - placement.distanceFromFloorInches
+        ) > 0.001
+      ) {
+        updatedDistanceById.set(placement.cabinet.id, placement.distanceFromFloorInches);
+      }
+    });
+
+    if (updatedDistanceById.size) {
+      nextCabinets = nextCabinets.map((cabinetItem) =>
+        updatedDistanceById.has(cabinetItem.id)
+          ? {
+              ...cabinetItem,
+              distanceFromFloorInches: updatedDistanceById.get(cabinetItem.id),
+            }
+          : cabinetItem
+      );
+    }
+  }
+
+  return { cabinets: nextCabinets };
 }
 
 function normalizeCabinetElevationPlacementsFromFloorPlan(
@@ -3507,11 +4165,16 @@ function getCabinetElevationAxisAdjacency(
   const secondAxisRange = cabinetProjectionRangeRelativeToWallAxis(secondCabinet, axis);
   const firstNormalRange = cabinetProjectionRange(firstCabinet, axis.normal);
   const secondNormalRange = cabinetProjectionRange(secondCabinet, axis.normal);
-  const normalOverlap =
-    Math.min(firstNormalRange.max, secondNormalRange.max) -
-    Math.max(firstNormalRange.min, secondNormalRange.min);
+  const normalGap = Math.max(
+    firstNormalRange.min - secondNormalRange.max,
+    secondNormalRange.min - firstNormalRange.max,
+    0
+  );
 
-  if (normalOverlap <= 1) return null;
+  // Cabinets can sit side-by-side in elevation even when one is slightly in
+  // front of the other in floor plan. Treat normal-axis touching/near-touching
+  // as the same elevation path so their wall-axis edges solve edge-to-edge.
+  if (normalGap > tolerance) return null;
 
   if (firstAxisRange.max <= secondAxisRange.min) {
     return secondAxisRange.min - firstAxisRange.max <= tolerance
@@ -3526,6 +4189,127 @@ function getCabinetElevationAxisAdjacency(
   }
 
   return null;
+}
+
+function resolveCabinetElevationMoveStartSamePath(
+  movingCabinetId: string,
+  requestedStartInches: number,
+  movingWidthInches: number,
+  movingDistanceFromFloorInches: number,
+  movingHeightInches: number,
+  placements: CabinetElevationPlacement[],
+  wallStartOffsetInches: number,
+  wallLengthInches: number
+): number | null {
+  const movingPlacement = placements.find(
+    (placement) => placement.cabinet.id === movingCabinetId
+  );
+
+  if (!movingPlacement) return requestedStartInches;
+
+  const maxStartInches = Math.max(0, wallLengthInches - movingWidthInches);
+  const depthPathToleranceInches = 3;
+  const overlapToleranceInches = 0.25;
+  const snapToleranceInches = 2;
+  const movingTopInches = movingDistanceFromFloorInches + movingHeightInches;
+
+  const samePathObstacles = placements
+    .filter((placement) => {
+      if (placement.cabinet.id === movingCabinetId) return false;
+
+      if (
+        Math.abs(placement.depthFromWallInches - movingPlacement.depthFromWallInches) >
+        depthPathToleranceInches
+      ) {
+        return false;
+      }
+
+      const otherTopInches =
+        placement.distanceFromFloorInches + placement.heightInches;
+      const verticalOverlap =
+        Math.min(movingTopInches, otherTopInches) -
+        Math.max(movingDistanceFromFloorInches, placement.distanceFromFloorInches);
+
+      return verticalOverlap > overlapToleranceInches;
+    })
+    .map((placement) => {
+      const start = clamp(
+        placement.startInches - wallStartOffsetInches,
+        0,
+        Math.max(0, wallLengthInches - placement.widthInches)
+      );
+
+      return {
+        start,
+        end: start + placement.widthInches,
+        center: start + placement.widthInches / 2,
+      };
+    })
+    .sort((left, right) => left.start - right.start);
+
+  let resolvedStart = clamp(requestedStartInches, 0, maxStartInches);
+
+  // First, provide edge snap suggestions when the moving cabinet is close to a
+  // same-depth neighbor. This aligns to left/right edges without ever changing
+  // the neighbor's position.
+  for (const obstacle of samePathObstacles) {
+    const snapToLeftOfObstacle = obstacle.start - movingWidthInches;
+    const snapToRightOfObstacle = obstacle.end;
+
+    if (
+      snapToLeftOfObstacle >= 0 &&
+      Math.abs(resolvedStart - snapToLeftOfObstacle) <= snapToleranceInches
+    ) {
+      resolvedStart = snapToLeftOfObstacle;
+      break;
+    }
+
+    if (
+      snapToRightOfObstacle <= maxStartInches &&
+      Math.abs(resolvedStart - snapToRightOfObstacle) <= snapToleranceInches
+    ) {
+      resolvedStart = snapToRightOfObstacle;
+      break;
+    }
+  }
+
+  const overlapsObstacle = (start: number, obstacle: { start: number; end: number }) => {
+    const end = start + movingWidthInches;
+    return Math.min(end, obstacle.end) - Math.max(start, obstacle.start) > overlapToleranceInches;
+  };
+
+  // If the pointer moves through an occupied same-depth range, place the moving
+  // cabinet on the side of that obstacle indicated by the pointer center. This
+  // lets users move a tall cabinet from the right side of a base cabinet to the
+  // left side without overlap and without dragging the base cabinet along.
+  const requestedCenter = requestedStartInches + movingWidthInches / 2;
+  for (let iteration = 0; iteration < samePathObstacles.length + 2; iteration += 1) {
+    const blockingObstacle = samePathObstacles.find((obstacle) =>
+      overlapsObstacle(resolvedStart, obstacle)
+    );
+
+    if (!blockingObstacle) break;
+
+    const leftCandidate = blockingObstacle.start - movingWidthInches;
+    const rightCandidate = blockingObstacle.end;
+    const preferLeft = requestedCenter <= blockingObstacle.center;
+    const primaryCandidate = preferLeft ? leftCandidate : rightCandidate;
+    const fallbackCandidate = preferLeft ? rightCandidate : leftCandidate;
+
+    if (primaryCandidate >= 0 && primaryCandidate <= maxStartInches) {
+      resolvedStart = primaryCandidate;
+    } else if (fallbackCandidate >= 0 && fallbackCandidate <= maxStartInches) {
+      resolvedStart = fallbackCandidate;
+    } else {
+      return null;
+    }
+  }
+
+  const stillOverlaps = samePathObstacles.some((obstacle) =>
+    overlapsObstacle(resolvedStart, obstacle)
+  );
+
+  return stillOverlaps ? null : clamp(resolvedStart, 0, maxStartInches);
 }
 
 // getCabinetElevationCategory
@@ -3673,7 +4457,16 @@ function ElevationPlanView({
   windows,
   doors,
   cabinets,
+  selectedWindowId,
+  selectedDoorId,
+  selectedCabinetId,
   activeIndex,
+  onSelectWindow,
+  onSelectDoor,
+  onSelectCabinet,
+  onUpdateWindow,
+  onUpdateDoor,
+  onUpdateCabinet,
   onPrevious,
   onNext,
 }: {
@@ -3681,10 +4474,32 @@ function ElevationPlanView({
   windows: WindowElement[];
   doors: DoorElement[];
   cabinets: CabinetElement[];
+  selectedWindowId: string | null;
+  selectedDoorId: string | null;
+  selectedCabinetId: string | null;
   activeIndex: number;
+  onSelectWindow: (id: string) => void;
+  onSelectDoor: (id: string) => void;
+  onSelectCabinet: (id: string) => void;
+  onUpdateWindow: (
+    id: string,
+    updates: Partial<Pick<WindowElement, "t" | "distanceFromFloorInches">>
+  ) => void;
+  onUpdateDoor: (
+    id: string,
+    updates: Partial<Pick<DoorElement, "t" | "distanceFromFloorInches">>
+  ) => void;
+  onUpdateCabinet: (
+    id: string,
+    updates: Partial<Pick<CabinetElement, "center" | "distanceFromFloorInches">>
+  ) => void;
   onPrevious: () => void;
   onNext: () => void;
 }) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const elevationDragRef = useRef<ElevationDragState | null>(null);
+  const [isElevationDragging, setIsElevationDragging] = useState(false);
+
   if (walls.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center bg-[#f5f5f5]">
@@ -3713,10 +4528,12 @@ function ElevationPlanView({
         getElevationWallElementCenterInches(wall, left.t) -
         getElevationWallElementCenterInches(wall, right.t)
     );
-  const wallCabinets = getCabinetElevationPlacementsForWall(wall, cabinets);
+  const wallCabinets = getCabinetElevationPlacementsForWall(wall, cabinets, walls);
 
   const elevationWallAxis = getElevationWallAxis(wall);
-  const wallLengthInches = pixelsToInches(elevationWallAxis.length);
+  const elevationWallInteriorSpan = getElevationWallInteriorSpan(wall, walls);
+  const wallStartOffsetInches = pixelsToInches(elevationWallInteriorSpan.startScalar);
+  const wallLengthInches = pixelsToInches(elevationWallInteriorSpan.length);
   const wallHeightInches = DEFAULT_ELEVATION_WALL_HEIGHT_INCHES;
   const drawingWidth = ELEVATION_VIEWBOX_WIDTH - 220;
   const drawingHeight = ELEVATION_VIEWBOX_HEIGHT - 260;
@@ -3733,38 +4550,71 @@ function ElevationPlanView({
   const overallHeightLabel = formatMeasurementFromInches(wallHeightInches);
 
   const cabinetRenderItems = wallCabinets.map((cabinetPlacement) => {
-    const left = wallLeft + cabinetPlacement.startInches * renderScale;
+    const relativeStartInches = clamp(
+      cabinetPlacement.startInches - wallStartOffsetInches,
+      0,
+      Math.max(0, wallLengthInches - cabinetPlacement.widthInches)
+    );
     const width = cabinetPlacement.widthInches * renderScale;
     const height = cabinetPlacement.heightInches * renderScale;
-    const bottom = wallBottom - cabinetPlacement.distanceFromFloorInches * renderScale;
-    const top = bottom - height;
+    // Elevation view is an orthographic projection onto the selected wall.
+    // Preserve the cabinet's floor-plan distance from the wall in data, but do
+    // not shift the drawing sideways because that makes cabinets that touch in
+    // floor plan look separated in elevation and misaligns their width guides.
+    const depthVisualOffsetInches = 0;
+    const depthShiftXInches = 0;
+    const displayStartInches = relativeStartInches;
+    const boundedDistanceFromFloorInches = clamp(
+      cabinetPlacement.distanceFromFloorInches,
+      0,
+      Math.max(0, wallHeightInches - cabinetPlacement.heightInches)
+    );
+    const left = wallLeft + displayStartInches * renderScale;
+    const boundedBottom = wallBottom - boundedDistanceFromFloorInches * renderScale;
+    const top = boundedBottom - height;
 
     return {
       key: cabinetPlacement.cabinet.id,
       type: 'cabinet' as const,
       placement: cabinetPlacement,
+      relativeStartInches,
+      displayStartInches,
+      dimensionLeft: left,
+      dimensionRight: left + width,
       left,
       right: left + width,
       width,
       top,
-      bottom,
+      bottom: boundedBottom,
       height,
+      depthShiftXInches,
+      depthVisualOffsetInches,
     };
   });
 
   const cabinetBodyItems = [...cabinetRenderItems].sort((left, right) => {
+    if (left.placement.depthFromWallInches !== right.placement.depthFromWallInches) {
+      return left.placement.depthFromWallInches - right.placement.depthFromWallInches;
+    }
+
     if (left.placement.distanceFromFloorInches !== right.placement.distanceFromFloorInches) {
       return left.placement.distanceFromFloorInches - right.placement.distanceFromFloorInches;
     }
 
     return left.placement.startInches - right.placement.startInches;
   });
+  const cabinetDrawItems = [...cabinetBodyItems].sort((left, right) => {
+    const leftSelected = left.key === selectedCabinetId;
+    const rightSelected = right.key === selectedCabinetId;
+    if (leftSelected !== rightSelected) return leftSelected ? 1 : -1;
+    return 0;
+  });
 
   const windowRenderItems = wallWindows.map((windowItem) => {
     const layout = getElevationOpeningLayoutFromCenter(
       wallLengthInches,
       windowItem.width,
-      getElevationWallElementCenterInches(wall, windowItem.t)
+      getElevationWallElementCenterInches(wall, windowItem.t) - wallStartOffsetInches
     );
     const width = layout.widthInches * renderScale;
     const height = windowItem.heightInches * renderScale;
@@ -3790,7 +4640,7 @@ function ElevationPlanView({
     const layout = getElevationOpeningLayoutFromCenter(
       wallLengthInches,
       doorItem.width,
-      getElevationWallElementCenterInches(wall, doorItem.t)
+      getElevationWallElementCenterInches(wall, doorItem.t) - wallStartOffsetInches
     );
     const width = layout.widthInches * renderScale;
     const height = doorItem.heightInches * renderScale;
@@ -3844,8 +4694,8 @@ function ElevationPlanView({
   cabinetRenderItems.forEach((item) => {
     const dimensionItem = {
       key: `cabinet-width-${item.key}`,
-      left: item.left,
-      right: item.right,
+      left: item.dimensionLeft,
+      right: item.dimensionRight,
       anchorY: item.placement.category === "base" ? item.bottom : item.top,
       label: formatMeasurementFromInches(item.placement.widthInches),
     };
@@ -3992,6 +4842,160 @@ function ElevationPlanView({
     return left.label.localeCompare(right.label);
   });
 
+  const getElevationSvgPoint = (event: React.PointerEvent<SVGElement>): Point | null => {
+    const svg = svgRef.current;
+    if (!svg) return null;
+
+    const rect = svg.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * ELEVATION_VIEWBOX_WIDTH,
+      y: ((event.clientY - rect.top) / rect.height) * ELEVATION_VIEWBOX_HEIGHT,
+    };
+  };
+
+  const getWallTFromElevationRelativeCenterInches = (centerInches: number) => {
+    const wallLength = distance(wall.start, wall.end);
+    if (wallLength < 0.001) return 0;
+
+    const wallDirection = normalize(sub(wall.end, wall.start));
+    const axisScalarPixels = inchesToPixels(wallStartOffsetInches + centerInches);
+    const floorPoint = add(
+      elevationWallAxis.start,
+      mul(elevationWallAxis.direction, axisScalarPixels)
+    );
+
+    return clamp(dot(sub(floorPoint, wall.start), wallDirection) / wallLength, 0, 1);
+  };
+
+  const beginElevationDrag = (
+    event: React.PointerEvent<SVGGElement>,
+    dragState: ElevationDragState
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    elevationDragRef.current = dragState;
+    setIsElevationDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleElevationPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    const dragState = elevationDragRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+    const point = getElevationSvgPoint(event);
+    if (!point) return;
+
+    event.preventDefault();
+
+    const dxInches = (point.x - dragState.startPointer.x) / renderScale;
+    const dyInches = (point.y - dragState.startPointer.y) / renderScale;
+
+    if (dragState.kind === "window") {
+      const halfWidth = Math.min(dragState.widthInches / 2, wallLengthInches / 2);
+      const nextCenterInches = clamp(
+        dragState.startCenterInches + dxInches,
+        halfWidth,
+        Math.max(halfWidth, wallLengthInches - halfWidth)
+      );
+      const nextDistanceFromFloor = clamp(
+        dragState.startDistanceFromFloorInches - dyInches,
+        0,
+        Math.max(0, wallHeightInches - dragState.heightInches)
+      );
+
+      onUpdateWindow(dragState.id, {
+        t: getWallTFromElevationRelativeCenterInches(nextCenterInches),
+        distanceFromFloorInches: nextDistanceFromFloor,
+      });
+      return;
+    }
+
+    if (dragState.kind === "door") {
+      const halfWidth = Math.min(dragState.widthInches / 2, wallLengthInches / 2);
+      const nextCenterInches = clamp(
+        dragState.startCenterInches + dxInches,
+        halfWidth,
+        Math.max(halfWidth, wallLengthInches - halfWidth)
+      );
+      const nextDistanceFromFloor = clamp(
+        dragState.startDistanceFromFloorInches - dyInches,
+        0,
+        Math.max(0, wallHeightInches - dragState.heightInches)
+      );
+
+      onUpdateDoor(dragState.id, {
+        t: getWallTFromElevationRelativeCenterInches(nextCenterInches),
+        distanceFromFloorInches: nextDistanceFromFloor,
+      });
+      return;
+    }
+
+    // Elevation drag only moves the cabinet along the viewed wall and in height.
+    // It intentionally preserves the wall-normal depth from the floor plan.
+    const nextDisplayStartInches = clamp(
+      dragState.startDisplayStartInches + dxInches,
+      0,
+      Math.max(0, wallLengthInches - dragState.widthInches)
+    );
+    const nextStartInches = clamp(
+      nextDisplayStartInches - dragState.depthVisualOffsetInches,
+      0,
+      Math.max(0, wallLengthInches - dragState.widthInches)
+    );
+    const nextDistanceFromFloor = dragState.category === "wall"
+      ? clamp(
+          dragState.startDistanceFromFloorInches - dyInches,
+          0,
+          Math.max(0, wallHeightInches - dragState.heightInches)
+        )
+      : 0;
+
+    const resolvedStartInches = resolveCabinetElevationMoveStartSamePath(
+      dragState.id,
+      nextStartInches,
+      dragState.widthInches,
+      nextDistanceFromFloor,
+      dragState.heightInches,
+      wallCabinets,
+      wallStartOffsetInches,
+      wallLengthInches
+    );
+
+    if (resolvedStartInches === null) {
+      return;
+    }
+
+    const startDeltaPixels = inchesToPixels(resolvedStartInches - dragState.startStartInches);
+    const nextCenter = add(
+      dragState.startCenter,
+      mul(elevationWallAxis.direction, startDeltaPixels)
+    );
+
+    if (dragState.category === "wall") {
+      const candidateCabinets = cabinets.map((cabinetItem) =>
+        cabinetItem.id === dragState.id
+          ? { ...cabinetItem, center: nextCenter, distanceFromFloorInches: nextDistanceFromFloor }
+          : cabinetItem
+      );
+      if (getWallCabinetStackOverflowMessage(candidateCabinets, walls, dragState.id)) return;
+    }
+
+    onUpdateCabinet(dragState.id, {
+      center: nextCenter,
+      distanceFromFloorInches: nextDistanceFromFloor,
+    });
+  };
+
+  const stopElevationDrag = (event: React.PointerEvent<SVGSVGElement>) => {
+    const dragState = elevationDragRef.current;
+    if (dragState && dragState.pointerId === event.pointerId) {
+      elevationDragRef.current = null;
+      setIsElevationDragging(false);
+    }
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#f5f5f5]">
       <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
@@ -4025,8 +5029,13 @@ function ElevationPlanView({
       <div className="min-h-0 flex-1 p-6">
         <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
           <svg
-            className="h-full w-full"
+            ref={svgRef}
+            className={cn("h-full w-full", isElevationDragging && "cursor-grabbing")}
             viewBox={`0 0 ${ELEVATION_VIEWBOX_WIDTH} ${ELEVATION_VIEWBOX_HEIGHT}`}
+            onPointerMove={handleElevationPointerMove}
+            onPointerUp={stopElevationDrag}
+            onPointerCancel={stopElevationDrag}
+            onPointerLeave={stopElevationDrag}
           >
             <rect x="0" y="0" width={ELEVATION_VIEWBOX_WIDTH} height={ELEVATION_VIEWBOX_HEIGHT} fill="#ffffff" />
 
@@ -4066,40 +5075,113 @@ function ElevationPlanView({
               y2={wallBottom}
               label={overallHeightLabel}
               rotateText
-              labelXOverride={leftOverallDimensionX - 28}
+              textOffset={-30}
             />
 
-            {cabinetBodyItems.map((cabinetItem) => (
-              <g key={`elevation-cabinet-body-${cabinetItem.key}`}>
-                <ElevationCabinetOnWall
-                  x={cabinetItem.left}
-                  y={cabinetItem.top}
-                  width={cabinetItem.width}
-                  height={cabinetItem.height}
-                  category={cabinetItem.placement.category}
-                />
-              </g>
-            ))}
+            {windowRenderItems.map((windowItem) => {
+              const selected = windowItem.key === selectedWindowId;
+              const stroke = selected ? "#22bfd6" : "#111827";
+              const strokeWidth = selected ? 3 : 2;
+              return (
+                <g
+                  key={windowItem.key}
+                  className={isElevationDragging ? "cursor-grabbing" : "cursor-move"}
+                  onPointerDown={(event) => {
+                    const startPointer = getElevationSvgPoint(event);
+                    onSelectWindow(windowItem.key);
+                    if (!startPointer) return;
+                    beginElevationDrag(event, {
+                      kind: "window",
+                      id: windowItem.key,
+                      pointerId: event.pointerId,
+                      startPointer,
+                      startCenterInches: windowItem.layout.centerInches,
+                      startDistanceFromFloorInches: windowItem.windowItem.distanceFromFloorInches,
+                      widthInches: windowItem.layout.widthInches,
+                      heightInches: windowItem.windowItem.heightInches,
+                    });
+                  }}
+                >
+                  <rect x={windowItem.left} y={windowItem.top} width={windowItem.width} height={windowItem.height} fill="#f1ede4" stroke={stroke} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" />
+                  <rect x={windowItem.left + 8} y={windowItem.top + 8} width={Math.max(0, windowItem.width - 16)} height={Math.max(0, windowItem.height - 16)} fill="#fafaf9" stroke={stroke} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+                  <line x1={windowItem.left + windowItem.width / 2} y1={windowItem.top + 8} x2={windowItem.left + windowItem.width / 2} y2={windowItem.top + windowItem.height - 8} stroke="#111827" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+                  <line x1={windowItem.left + 8} y1={windowItem.top + windowItem.height / 2} x2={windowItem.left + windowItem.width - 8} y2={windowItem.top + windowItem.height / 2} stroke="#111827" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+                </g>
+              );
+            })}
 
-            {windowRenderItems.map((windowItem) => (
-              <g key={windowItem.key}>
-                <rect x={windowItem.left} y={windowItem.top} width={windowItem.width} height={windowItem.height} fill="#f1ede4" stroke="#111827" strokeWidth="2" />
-                <rect x={windowItem.left + 8} y={windowItem.top + 8} width={Math.max(0, windowItem.width - 16)} height={Math.max(0, windowItem.height - 16)} fill="#fafaf9" stroke="#111827" strokeWidth="1.5" />
-                <line x1={windowItem.left + windowItem.width / 2} y1={windowItem.top + 8} x2={windowItem.left + windowItem.width / 2} y2={windowItem.top + windowItem.height - 8} stroke="#111827" strokeWidth="1.5" />
-                <line x1={windowItem.left + 8} y1={windowItem.top + windowItem.height / 2} x2={windowItem.left + windowItem.width - 8} y2={windowItem.top + windowItem.height / 2} stroke="#111827" strokeWidth="1.5" />
-              </g>
-            ))}
+            {doorRenderItems.map((doorItem) => {
+              const selected = doorItem.key === selectedDoorId;
+              const stroke = selected ? "#22bfd6" : "#111827";
+              const strokeWidth = selected ? 3 : 2;
+              return (
+                <g
+                  key={doorItem.key}
+                  className={isElevationDragging ? "cursor-grabbing" : "cursor-move"}
+                  onPointerDown={(event) => {
+                    const startPointer = getElevationSvgPoint(event);
+                    onSelectDoor(doorItem.key);
+                    if (!startPointer) return;
+                    beginElevationDrag(event, {
+                      kind: "door",
+                      id: doorItem.key,
+                      pointerId: event.pointerId,
+                      startPointer,
+                      startCenterInches: doorItem.layout.centerInches,
+                      startDistanceFromFloorInches: doorItem.doorItem.distanceFromFloorInches,
+                      widthInches: doorItem.layout.widthInches,
+                      heightInches: doorItem.doorItem.heightInches,
+                    });
+                  }}
+                >
+                  <rect x={doorItem.left} y={doorItem.top} width={doorItem.width} height={doorItem.height} fill="#d6dee8" stroke={stroke} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" />
+                  <rect x={doorItem.left + 10} y={doorItem.top + 10} width={Math.max(0, doorItem.width - 20)} height={Math.max(0, doorItem.height - 20)} fill="#f8fafc" opacity="0.65" />
+                  <circle cx={doorItem.left + doorItem.width - 14} cy={doorItem.top + doorItem.height / 2} r="4" fill="#6b7280" />
+                </g>
+              );
+            })}
 
-            {doorRenderItems.map((doorItem) => (
-              <g key={doorItem.key}>
-                <rect x={doorItem.left} y={doorItem.top} width={doorItem.width} height={doorItem.height} fill="#d6dee8" stroke="#111827" strokeWidth="2" />
-                <rect x={doorItem.left + 10} y={doorItem.top + 10} width={Math.max(0, doorItem.width - 20)} height={Math.max(0, doorItem.height - 20)} fill="#f8fafc" opacity="0.65" />
-                <circle cx={doorItem.left + doorItem.width - 14} cy={doorItem.top + doorItem.height / 2} r="4" fill="#6b7280" />
-              </g>
-            ))}
+            {cabinetDrawItems.map((cabinetItem) => {
+              const selected = cabinetItem.key === selectedCabinetId;
+              return (
+                <g
+                  key={`elevation-cabinet-body-${cabinetItem.key}`}
+                  className={isElevationDragging ? "cursor-grabbing" : "cursor-move"}
+                  onPointerDown={(event) => {
+                    const startPointer = getElevationSvgPoint(event);
+                    onSelectCabinet(cabinetItem.key);
+                    if (!startPointer) return;
+                    beginElevationDrag(event, {
+                      kind: "cabinet",
+                      id: cabinetItem.key,
+                      pointerId: event.pointerId,
+                      startPointer,
+                      startCenter: cabinetItem.placement.cabinet.center,
+                      startStartInches: cabinetItem.relativeStartInches,
+                      startDisplayStartInches: cabinetItem.displayStartInches,
+                      depthVisualOffsetInches: cabinetItem.depthShiftXInches,
+                      startDistanceFromFloorInches: cabinetItem.placement.distanceFromFloorInches,
+                      widthInches: cabinetItem.placement.widthInches,
+                      heightInches: cabinetItem.placement.heightInches,
+                      category: cabinetItem.placement.category,
+                    });
+                  }}
+                >
+                  <ElevationCabinetOnWall
+                    x={cabinetItem.left}
+                    y={cabinetItem.top}
+                    width={cabinetItem.width}
+                    height={cabinetItem.height}
+                    category={cabinetItem.placement.category}
+                    selected={selected}
+                    invalid={Boolean(cabinetItem.placement.stackOverflow)}
+                  />
+                </g>
+              );
+            })}
 
             {topHorizontalDimensionItems.map((dimensionItem) => (
-              <g key={dimensionItem.key}>
+              <g key={dimensionItem.key} pointerEvents="none">
                 <line x1={dimensionItem.left} y1={dimensionItem.anchorY} x2={dimensionItem.left} y2={topDetailDimensionY} stroke="#4f46e5" strokeWidth="1.4" opacity="0.75" />
                 <line x1={dimensionItem.right} y1={dimensionItem.anchorY} x2={dimensionItem.right} y2={topDetailDimensionY} stroke="#4f46e5" strokeWidth="1.4" opacity="0.75" />
                 <ElevationDimensionLine
@@ -4116,7 +5198,7 @@ function ElevationPlanView({
             ))}
 
             {bottomHorizontalDimensionItems.map((dimensionItem) => (
-              <g key={dimensionItem.key}>
+              <g key={dimensionItem.key} pointerEvents="none">
                 <line x1={dimensionItem.left} y1={dimensionItem.anchorY} x2={dimensionItem.left} y2={bottomDetailDimensionY} stroke="#4f46e5" strokeWidth="1.4" opacity="0.75" />
                 <line x1={dimensionItem.right} y1={dimensionItem.anchorY} x2={dimensionItem.right} y2={bottomDetailDimensionY} stroke="#4f46e5" strokeWidth="1.4" opacity="0.75" />
                 <ElevationDimensionLine
@@ -4133,7 +5215,7 @@ function ElevationPlanView({
             ))}
 
             {verticalDetailDimensionItems.map((dimensionItem) => (
-              <g key={dimensionItem.key}>
+              <g key={dimensionItem.key} pointerEvents="none">
                 <line x1={leftDetailDimensionX} y1={dimensionItem.top} x2={wallLeft} y2={dimensionItem.top} stroke="#4f46e5" strokeWidth="1.4" opacity="0.75" />
                 <line x1={leftDetailDimensionX} y1={dimensionItem.bottom} x2={wallLeft} y2={dimensionItem.bottom} stroke="#4f46e5" strokeWidth="1.4" opacity="0.75" />
                 <ElevationDimensionLine
@@ -4143,7 +5225,7 @@ function ElevationPlanView({
                   y2={dimensionItem.bottom}
                   label={dimensionItem.label}
                   rotateText
-                  labelXOverride={(leftDetailDimensionX + leftOverallDimensionX) / 2}
+                  textOffset={-32}
                   extensionTop={8}
                   extensionBottom={8}
                 />
@@ -4193,16 +5275,16 @@ function ElevationDimensionLine({
   const isVertical = Math.abs(x1 - x2) < Math.abs(y1 - y2);
   const midX = (x1 + x2) / 2;
   const midY = (y1 + y2) / 2;
-  const labelX = labelXOverride ?? (rotateText ? midX + textOffset : midX);
-  const labelY = labelYOverride ?? (rotateText ? midY : midY + textOffset);
+  const labelX = rotateText ? midX + textOffset : midX;
+  const labelY = rotateText ? midY : midY + textOffset;
   const approxLabelWidth = Math.max(34, label.length * 12);
   const labelPaddingX = 8;
   const labelPaddingY = 5;
   const labelBoxWidth = approxLabelWidth + labelPaddingX * 2;
-  const labelBoxHeight = rotateText ? 34 : 22 + labelPaddingY * 2;
+  const labelBoxHeight = rotateText ? 46 : 22 + labelPaddingY * 2;
 
   return (
-    <g>
+    <g pointerEvents="none">
       <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#4f46e5" strokeWidth="1.6" />
       {isVertical ? (
         <>
@@ -4223,7 +5305,7 @@ function ElevationDimensionLine({
           height={labelBoxHeight}
           rx="4"
           fill="#ffffff"
-          fillOpacity="1"
+          fillOpacity="0.96"
           pointerEvents="none"
         />
         <text
@@ -4538,7 +5620,7 @@ function WindowOnWall({
         geometry={geometry}
         wall={wall}
         selected={selected}
-        tabSide={windowItem.tabSide ?? 1}
+        tabSide={windowItem.tabSide ?? getWindowTabSideFacingMeasurementGuide(wall, walls)}
       />
 
       {selected && (
@@ -4695,7 +5777,7 @@ function WindowPreview({
         geometry={geometry}
         wall={preview.wall}
         preview
-        tabSide={1}
+        tabSide={getWindowTabSideFacingMeasurementGuide(preview.wall, walls)}
       />
 
       <WindowPlacementMeasurements
@@ -4723,11 +5805,10 @@ function WindowPlacementMeasurements({
   showWidth: boolean;
 }) {
   const direction = normalize(sub(wall.end, wall.start));
-  const normal = getPreferredNormal(wall.start, wall.end);
   const baseNormal = normalize(perp(direction));
-  const guideSide: Exclude<MeasurementSide, "length"> =
-    dot(normal, baseNormal) >= 0 ? "left" : "right";
   const measurementWalls = walls?.length ? walls : [wall];
+  const guideSide = getInteriorMeasurementGuideSide(wall, measurementWalls);
+  const normal = guideSide === "left" ? baseNormal : mul(baseNormal, -1);
   const halfWidth = width / 2;
   const guideEndpoints = getStructureGuideEndpointsFromSideAnchors(
     wall,
@@ -6776,6 +7857,92 @@ function WindowPropertiesPanel({
   );
 }
 
+function CabinetPropertiesPanel({
+  selectedCabinet,
+  onBack,
+}: {
+  selectedCabinet: CabinetSelectionDetail;
+  onBack: () => void;
+}) {
+  const updateCabinetNumber = (
+    field: "widthInches" | "depthInches" | "heightInches",
+    value: string
+  ) => {
+    const nextValue = Number(value);
+
+    if (!Number.isFinite(nextValue)) return;
+
+    window.dispatchEvent(
+      new CustomEvent("pelican-cabinet-attribute-change", {
+        detail: {
+          id: selectedCabinet.id,
+          field,
+          value: nextValue,
+        },
+      })
+    );
+  };
+
+  return (
+    <aside className="h-full w-[280px] overflow-y-auto border-r border-slate-200 bg-white">
+      <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-pelican-navy hover:text-pelican-teal"
+        >
+          <ChevronLeft className="h-5 w-5" />
+          Back
+        </button>
+      </div>
+
+      <div className="space-y-6 px-4 py-5">
+        <div className="flex items-center gap-4">
+          <SimpleBaseCabinetImage />
+          <div>
+            <div className="text-[11px] font-bold uppercase text-slate-400">
+              Cabinets
+            </div>
+            <div className="text-sm font-bold text-slate-700">
+              Selected Cabinet
+            </div>
+          </div>
+        </div>
+
+        <WindowPropertyInput
+          label="Width"
+          value={roundToQuarter(selectedCabinet.widthInches)}
+          unit="in"
+          onChange={(value) => updateCabinetNumber("widthInches", value)}
+        />
+        <WindowPropertyInput
+          label="Depth"
+          value={roundToQuarter(selectedCabinet.depthInches)}
+          unit="in"
+          onChange={(value) => updateCabinetNumber("depthInches", value)}
+        />
+        <WindowPropertyInput
+          label="Height"
+          value={roundToQuarter(selectedCabinet.heightInches)}
+          unit="in"
+          onChange={(value) => updateCabinetNumber("heightInches", value)}
+        />
+
+        <div className="space-y-3">
+          <div className="text-[11px] font-bold uppercase text-pelican-navy">
+            Cabinet finish
+          </div>
+          <FinishCard label="Decorator's White" subLabel="Benjamin Moore" />
+          <div className="text-[11px] font-bold uppercase text-pelican-navy">
+            Hardware finish
+          </div>
+          <FinishCard label="Stainless Steel" subLabel="Matcap" />
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 function WindowPropertyInput({
   label,
   value,
@@ -6839,6 +8006,7 @@ function ContextPanel({
   setIsSelectionMode,
   selectedWindow,
   selectedDoor,
+  selectedCabinet,
   cabinetCategoryTab,
   selectedCabinetCatalogId,
   onSelectCabinetCategory,
@@ -6850,6 +8018,7 @@ function ContextPanel({
   setIsSelectionMode: React.Dispatch<React.SetStateAction<boolean>>;
   selectedWindow: WindowSelectionDetail | null;
   selectedDoor: DoorSelectionDetail | null;
+  selectedCabinet: CabinetSelectionDetail | null;
   cabinetCategoryTab: CabinetCategory;
   selectedCabinetCatalogId: string;
   onSelectCabinetCategory: (category: CabinetCategory) => void;
@@ -6861,6 +8030,15 @@ function ContextPanel({
     setIsSelectionMode(false);
     setActiveTool(tool);
   };
+
+  if (activePanel === "cabinets" && selectedCabinet) {
+    return (
+      <CabinetPropertiesPanel
+        selectedCabinet={selectedCabinet}
+        onBack={() => window.dispatchEvent(new Event("pelican-deselect-cabinet"))}
+      />
+    );
+  }
 
   if (activePanel === "cabinets") {
     const visibleCabinets = CABINET_CATALOG.filter((item) => item.category === cabinetCategoryTab);
@@ -7361,6 +8539,7 @@ function CabinetOnFloor({
   cabinetItem,
   walls,
   selected,
+  showDegree = false,
   disabled,
   onSelect,
   onDragStart,
@@ -7369,6 +8548,7 @@ function CabinetOnFloor({
   cabinetItem: CabinetElement;
   walls: Wall[];
   selected: boolean;
+  showDegree?: boolean;
   disabled?: boolean;
   onSelect: (event: React.PointerEvent<SVGGElement>) => void;
   onDragStart: (event: React.PointerEvent<SVGGElement>) => void;
@@ -7389,7 +8569,7 @@ function CabinetOnFloor({
         <CabinetMoveRotateControl
           cabinetItem={cabinetItem}
           onRotateStart={onRotateStart}
-          showDegree
+          showDegree={showDegree}
         />
       )}
     </g>
@@ -7429,10 +8609,12 @@ function CabinetPlanShape({
   invalid?: boolean;
 }) {
   const { center, width, depth, rotation } = cabinetItem;
-  const fill = invalid ? "#fee2e2" : "#f8fafc";
-  const fillOpacity = invalid ? 0.28 : preview ? 0.38 : 0.36;
-  const detailOpacity = invalid ? 0.45 : preview ? 0.58 : 0.5;
-  const stroke = invalid ? "#ef4444" : selected ? "#22bfd6" : "#64748b";
+  const fill = invalid ? "#fee2e2" : preview ? "#d9f8fd" : "#f1ede4";
+  const fillOpacity = 1;
+  const detailOpacity = invalid ? 0.75 : 1;
+  const stroke = invalid ? "#ef4444" : selected ? "#22bfd6" : "#475569";
+  const innerStroke = invalid ? "#ef4444" : selected ? "#67e8f9" : "#64748b";
+  const inset = Math.min(7, Math.max(3, Math.min(width, depth) * 0.16));
 
   return (
     <g transform={`translate(${center.x} ${center.y}) rotate(${rotation})`}>
@@ -7444,9 +8626,22 @@ function CabinetPlanShape({
         fill={fill}
         fillOpacity={fillOpacity}
         stroke={stroke}
-        strokeWidth={selected ? 2 : 1.5}
+        strokeWidth={selected ? 2.2 : 2}
         vectorEffect="non-scaling-stroke"
       />
+      {width > inset * 2 && depth > inset * 2 && (
+        <rect
+          x={-width / 2 + inset}
+          y={-depth / 2 + inset}
+          width={width - inset * 2}
+          height={depth - inset * 2}
+          fill="none"
+          stroke={innerStroke}
+          strokeWidth="1.2"
+          strokeOpacity={detailOpacity}
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
       <line
         x1={-width / 2 + 6}
         y1={-depth / 2 + 6}
@@ -7457,16 +8652,19 @@ function CabinetPlanShape({
         strokeWidth="2"
         vectorEffect="non-scaling-stroke"
       />
-      <line
-        x1="0"
-        y1={-depth / 2}
-        x2="0"
-        y2={depth / 2}
-        stroke="#d1d5db"
-        strokeOpacity={detailOpacity}
-        strokeWidth="1"
-        vectorEffect="non-scaling-stroke"
-      />
+      {getCabinetPlanHandleTabRects(cabinetItem).map((tab, index) => (
+        <rect
+          key={`cabinet-plan-handle-tab-${index}`}
+          x={tab.x}
+          y={tab.y}
+          width={tab.width}
+          height={tab.height}
+          rx="1.2"
+          fill="#111827"
+          fillOpacity={invalid ? 0.55 : 1}
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
       {selected && [
         { x: 0, y: -depth / 2 },
         { x: width / 2, y: 0 },
@@ -7503,7 +8701,6 @@ function CabinetMoveRotateControl({
   showDegree?: boolean;
 }) {
   const radius = Math.max(cabinetItem.width, cabinetItem.depth) / 2 + 20;
-  const arrowDistance = radius + 18;
   const ringCenterRadius = radius - 7;
   const tickHalfLength = 2.7;
   const arcRadius = ringCenterRadius;
@@ -7536,14 +8733,15 @@ function CabinetMoveRotateControl({
           />
         </marker>
       </defs>
-      <circle r={radius} fill="#7eeaf4" opacity="0.45" pointerEvents="none" />
-      <circle r={radius - 14} fill="#ffffff" opacity="0.72" pointerEvents="none" />
-      <g pointerEvents="none">
-        <CabinetArrow x={0} y={-arrowDistance} rotation={-90} />
-        <CabinetArrow x={arrowDistance} y={0} rotation={0} />
-        <CabinetArrow x={0} y={arrowDistance} rotation={90} />
-        <CabinetArrow x={-arrowDistance} y={0} rotation={180} />
-      </g>
+      <circle
+        r={radius - 7}
+        fill="none"
+        stroke="#7eeaf4"
+        strokeWidth="14"
+        strokeOpacity="0.45"
+        pointerEvents="none"
+        vectorEffect="non-scaling-stroke"
+      />
       {Array.from({ length: 8 }).map((_, index) => {
         const angle = (index * Math.PI) / 4;
         const x1 = Math.cos(angle) * (ringCenterRadius - tickHalfLength);
@@ -7647,62 +8845,63 @@ function CabinetDistanceGuides({ metrics }: { metrics: CabinetDistanceMetric[] }
 // SelectedCabinetContextMenu
 function SelectedCabinetContextMenu({
   position,
-  onRotateLeft,
-  onRotateRight,
   onDelete,
   onDragStart,
   onDragMove,
   onDragEnd,
 }: {
   position: Point;
-  onRotateLeft: () => void;
-  onRotateRight: () => void;
   onDelete: () => void;
-  onDragStart: (event: React.PointerEvent<HTMLDivElement>, startPosition: Point) => void;
+  onDragStart: (
+    event: React.PointerEvent<HTMLDivElement>,
+    startPosition: Point
+  ) => void;
   onDragMove: (event: React.PointerEvent<HTMLDivElement>) => void;
   onDragEnd: (event: React.PointerEvent<HTMLDivElement>) => void;
 }) {
   return (
-    <foreignObject x={position.x} y={position.y} width="230" height="68" pointerEvents="none" className="overflow-visible">
-      <div
-        className="pointer-events-auto relative flex h-[52px] items-center rounded-md border-2 border-pelican-teal bg-white shadow-lg"
-        onPointerDown={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-        }}
-      >
+    <foreignObject
+      x={position.x}
+      y={position.y}
+      width={82}
+      height={54}
+      pointerEvents="all"
+      className="overflow-visible"
+      onPointerDown={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      <div className="flex h-[46px] w-[74px] overflow-hidden rounded-md border-2 border-[#00aee6] bg-white shadow-md">
         <div
           role="button"
           tabIndex={0}
           aria-label="Drag selected cabinet menu"
-          className="flex h-full w-5 cursor-grab items-center justify-center rounded-l bg-pelican-teal text-white active:cursor-grabbing"
+          className="flex w-6 shrink-0 cursor-grab items-center justify-center bg-[#0fb8d2] active:cursor-grabbing"
           onPointerDown={(event) => onDragStart(event, position)}
           onPointerMove={onDragMove}
           onPointerUp={onDragEnd}
           onPointerCancel={onDragEnd}
         >
-          <span className="rotate-90 text-lg leading-none">•••</span>
+          <div className="flex flex-col gap-1">
+            <span className="h-1 w-1 rounded-full bg-white" />
+            <span className="h-1 w-1 rounded-full bg-white" />
+            <span className="h-1 w-1 rounded-full bg-white" />
+          </div>
         </div>
-        <div className="flex flex-1 items-center justify-around px-2 text-slate-600">
-          <button type="button" onPointerDown={(event) => event.stopPropagation()} className="rounded p-1 hover:bg-slate-100" aria-label="Duplicate cabinet"><Box className="h-5 w-5" /></button>
-          <button type="button" onPointerDown={(event) => event.stopPropagation()} className="rounded p-1 hover:bg-slate-100" aria-label="Flip cabinet"><ArrowLeftRight className="h-5 w-5" /></button>
-          <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); onRotateLeft(); }} className="rounded p-1 hover:bg-slate-100" aria-label="Rotate cabinet left"><Undo2 className="h-5 w-5" /></button>
-          <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); onRotateRight(); }} className="rounded p-1 hover:bg-slate-100" aria-label="Rotate cabinet right"><Redo2 className="h-5 w-5" /></button>
-          <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); onDelete(); }} className="rounded p-1 hover:bg-red-50 hover:text-red-500" aria-label="Delete cabinet"><Trash2 className="h-5 w-5" /></button>
-        </div>
-        <div className="pointer-events-none absolute left-1/2 top-full h-7 w-[86px] -translate-x-1/2 -translate-y-[7px] overflow-visible">
-          <svg className="absolute inset-0 overflow-visible" viewBox="0 0 86 28" aria-hidden="true">
-            <rect x="0" y="0" width="86" height="10" fill="#ffffff" />
-            <path
-              d="M 0 8 H 32 L 43 19 L 54 8 H 86"
-              fill="none"
-              stroke="#22bfd6"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
+
+        <button
+          type="button"
+          aria-label="Delete selected cabinet"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onDelete();
+          }}
+          className="flex h-full w-11 items-center justify-center text-slate-500 hover:bg-slate-50"
+        >
+          <Trash2 className="h-5 w-5" />
+        </button>
       </div>
     </foreignObject>
   );
@@ -7730,9 +8929,9 @@ function getCabinetPlacementPreview(
   excludedCabinetId?: string,
   cabinetCategory?: CabinetCategory
 ): CabinetPlacementPreview {
-  const snappedCenter = snapToGrid(rawPoint);
+  const freeCenter = rawPoint;
   const wallSnappedCenter = getWallFaceSnappedCabinetCenter(
-    snappedCenter,
+    freeCenter,
     walls.filter(isThickWall),
     width,
     depth,
@@ -7748,14 +8947,32 @@ function getCabinetPlacementPreview(
     excludedCabinetId
   );
   const preview = { center, width, depth, rotation, isValid: true };
+  const intersectsWall = cabinetIntersectsAnyWall(preview, walls);
+  const intersectsCabinet = cabinetIntersectsAnyCabinet(preview, cabinets, excludedCabinetId);
+  let invalidReason: string | undefined;
+
+  if (!intersectsWall && !intersectsCabinet && cabinetCategory === "wall") {
+    const candidateCabinet: CabinetElement = {
+      id: excludedCabinetId ?? "pending-wall-cabinet",
+      center,
+      width,
+      depth,
+      rotation,
+      category: "wall",
+      heightInches: 30,
+      distanceFromFloorInches: 54,
+    };
+    const candidateCabinets = [
+      ...cabinets.filter((cabinetItem) => cabinetItem.id !== excludedCabinetId),
+      candidateCabinet,
+    ];
+    invalidReason = getWallCabinetStackOverflowMessage(candidateCabinets, walls, candidateCabinet.id);
+  }
 
   return {
     ...preview,
-    // Cabinet-to-cabinet overlap is intentionally allowed while placing or
-    // dragging. Snapping still provides clean edge-to-edge placement when the
-    // user is close to another cabinet, but another cabinet must never block
-    // movement. The only hard invalid state is crossing through a wall.
-    isValid: !cabinetIntersectsAnyWall(preview, walls),
+    isValid: !intersectsWall && !intersectsCabinet && !invalidReason,
+    invalidReason,
   };
 }
 
@@ -7988,7 +9205,7 @@ function cabinetIntersectsAnyCabinet(
   cabinets: CabinetElement[],
   excludedCabinetId?: string
 ) {
-  const bounds = getRotatedRectBounds(
+  const bodyBounds = getRotatedRectBounds(
     cabinetItem.center,
     Math.max(1, cabinetItem.width - 1),
     Math.max(1, cabinetItem.depth - 1),
@@ -8002,28 +9219,80 @@ function cabinetIntersectsAnyCabinet(
     rotation: cabinetItem.rotation,
     category: cabinetItem.category,
   });
+  const tabBounds = getCabinetPlanHandleTabWorldBounds(cabinetItem);
 
   return cabinets.some((otherCabinet) => {
     if (otherCabinet.id === excludedCabinetId) return false;
 
     const otherCategory = getCabinetElevationCategory(otherCabinet);
-    const hasWallCabinetLayer = cabinetCategory === "wall" || otherCategory === "wall";
-    const bothAreWallCabinets = cabinetCategory === "wall" && otherCategory === "wall";
 
-    if (hasWallCabinetLayer && !bothAreWallCabinets) return false;
+    // Wall cabinets live above the base/tall layer in elevation and may be
+    // stacked above other wall cabinets. In floor plan, allow those overlaps so
+    // the elevation stacking logic can resolve their height instead of blocking
+    // placement on the 2D footprint.
+    if (cabinetCategory === "wall" || otherCategory === "wall") return false;
 
-    const otherBounds = getRotatedRectBounds(
+    const otherBodyBounds = getRotatedRectBounds(
       otherCabinet.center,
       Math.max(1, otherCabinet.width - 1),
       Math.max(1, otherCabinet.depth - 1),
       otherCabinet.rotation
     );
 
-    const overlapX = Math.min(bounds.maxX, otherBounds.maxX) - Math.max(bounds.minX, otherBounds.minX);
-    const overlapY = Math.min(bounds.maxY, otherBounds.maxY) - Math.max(bounds.minY, otherBounds.minY);
+    const bodyOverlapX = Math.min(bodyBounds.maxX, otherBodyBounds.maxX) - Math.max(bodyBounds.minX, otherBodyBounds.minX);
+    const bodyOverlapY = Math.min(bodyBounds.maxY, otherBodyBounds.maxY) - Math.max(bodyBounds.minY, otherBodyBounds.minY);
+    if (bodyOverlapX > 0.5 && bodyOverlapY > 0.5) return true;
 
-    return overlapX > 0.5 && overlapY > 0.5;
+    const otherTabBounds = getCabinetPlanHandleTabWorldBounds(otherCabinet);
+    const tabCoverageTolerance = 0.75;
+
+    return (
+      tabBounds.some((tab) => rectContainsRect(otherBodyBounds, tab, tabCoverageTolerance)) ||
+      otherTabBounds.some((tab) => rectContainsRect(bodyBounds, tab, tabCoverageTolerance))
+    );
   });
+}
+
+function getCabinetPlanHandleTabWorldBounds(
+  cabinetItem: Pick<CabinetElement, "center" | "width" | "depth" | "rotation"> & Partial<Pick<CabinetElement, "category">>
+) {
+  const radians = degreesToRadians(cabinetItem.rotation);
+  const cosValue = Math.cos(radians);
+  const sinValue = Math.sin(radians);
+
+  return getCabinetPlanHandleTabRects(cabinetItem).map((tab) => {
+    const corners = [
+      { x: tab.x, y: tab.y },
+      { x: tab.x + tab.width, y: tab.y },
+      { x: tab.x + tab.width, y: tab.y + tab.height },
+      { x: tab.x, y: tab.y + tab.height },
+    ].map((corner) => ({
+      x: cabinetItem.center.x + corner.x * cosValue - corner.y * sinValue,
+      y: cabinetItem.center.y + corner.x * sinValue + corner.y * cosValue,
+    }));
+    const xs = corners.map((corner) => corner.x);
+    const ys = corners.map((corner) => corner.y);
+
+    return {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minY: Math.min(...ys),
+      maxY: Math.max(...ys),
+    };
+  });
+}
+
+function rectContainsRect(
+  outer: { minX: number; maxX: number; minY: number; maxY: number },
+  inner: { minX: number; maxX: number; minY: number; maxY: number },
+  tolerance = 0
+) {
+  return (
+    inner.minX >= outer.minX - tolerance &&
+    inner.maxX <= outer.maxX + tolerance &&
+    inner.minY >= outer.minY - tolerance &&
+    inner.maxY <= outer.maxY + tolerance
+  );
 }
 
 // cabinetOpenSegmentsIntersect
@@ -8046,14 +9315,13 @@ function cabinetOpenSegmentsIntersect(a: Point, b: Point, c: Point, d: Point) {
 
 // getCabinetMenuPosition
 function getCabinetMenuPosition(cabinetItem: CabinetElement): Point {
-  const menuWidth = 230;
-  const menuHeight = 52;
-  const radius = Math.max(cabinetItem.width, cabinetItem.depth) / 2 + 20;
-  const pointerOverlap = 9;
-  const gapAboveRing = 3;
+  const menuWidth = 82;
+  const menuHeight = 54;
+  const ringOuterRadius = Math.max(cabinetItem.width, cabinetItem.depth) / 2 + 20;
+  const gapAboveRing = 10;
   return {
     x: cabinetItem.center.x - menuWidth / 2,
-    y: cabinetItem.center.y - radius - menuHeight - gapAboveRing + pointerOverlap,
+    y: cabinetItem.center.y - ringOuterRadius - menuHeight - gapAboveRing,
   };
 }
 
@@ -8071,6 +9339,8 @@ function areCabinetsEqual(left: CabinetElement[], right: CabinetElement[]) {
       Math.abs(cabinetItem.width - otherCabinet.width) < 0.001 &&
       Math.abs(cabinetItem.depth - otherCabinet.depth) < 0.001 &&
       Math.abs(cabinetItem.rotation - otherCabinet.rotation) < 0.001 &&
+      Math.abs((cabinetItem.heightInches ?? 0) - (otherCabinet.heightInches ?? 0)) < 0.001 &&
+      Math.abs((cabinetItem.distanceFromFloorInches ?? 0) - (otherCabinet.distanceFromFloorInches ?? 0)) < 0.001 &&
       (cabinetItem.category ?? null) === (otherCabinet.category ?? null)
     );
   });
@@ -8238,6 +9508,317 @@ function cabinetIntersectsAnyWall(
   });
 }
 
+function detectCabinetAttachmentSides(
+  cabinetItem: CabinetElement,
+  walls: Wall[],
+  cabinets: CabinetElement[]
+): Set<"left" | "right" | "top" | "bottom"> {
+  const touchTolerance = 4;
+  const bounds = getRotatedRectBounds(
+    cabinetItem.center,
+    cabinetItem.width,
+    cabinetItem.depth,
+    cabinetItem.rotation
+  );
+  const attachedSides = new Set<"left" | "right" | "top" | "bottom">();
+
+  const rangesOverlap = (
+    minA: number,
+    maxA: number,
+    minB: number,
+    maxB: number,
+    tolerance = touchTolerance
+  ) => Math.min(maxA, maxB) - Math.max(minA, minB) >= -tolerance;
+
+  walls.filter(isThickWall).forEach((wall) => {
+    const wallBounds = getWallRectBounds(wall);
+
+    if (rangesOverlap(bounds.minY, bounds.maxY, wallBounds.minY, wallBounds.maxY)) {
+      if (Math.abs(bounds.minX - wallBounds.maxX) <= touchTolerance) attachedSides.add("left");
+      if (Math.abs(bounds.maxX - wallBounds.minX) <= touchTolerance) attachedSides.add("right");
+    }
+
+    if (rangesOverlap(bounds.minX, bounds.maxX, wallBounds.minX, wallBounds.maxX)) {
+      if (Math.abs(bounds.minY - wallBounds.maxY) <= touchTolerance) attachedSides.add("top");
+      if (Math.abs(bounds.maxY - wallBounds.minY) <= touchTolerance) attachedSides.add("bottom");
+    }
+  });
+
+  cabinets.forEach((otherCabinet) => {
+    if (otherCabinet.id === cabinetItem.id) return;
+
+    const otherBounds = getRotatedRectBounds(
+      otherCabinet.center,
+      otherCabinet.width,
+      otherCabinet.depth,
+      otherCabinet.rotation
+    );
+
+    if (rangesOverlap(bounds.minY, bounds.maxY, otherBounds.minY, otherBounds.maxY)) {
+      if (Math.abs(bounds.minX - otherBounds.maxX) <= touchTolerance) attachedSides.add("left");
+      if (Math.abs(bounds.maxX - otherBounds.minX) <= touchTolerance) attachedSides.add("right");
+    }
+
+    if (rangesOverlap(bounds.minX, bounds.maxX, otherBounds.minX, otherBounds.maxX)) {
+      if (Math.abs(bounds.minY - otherBounds.maxY) <= touchTolerance) attachedSides.add("top");
+      if (Math.abs(bounds.maxY - otherBounds.minY) <= touchTolerance) attachedSides.add("bottom");
+    }
+  });
+
+  return attachedSides;
+}
+
+function keepCabinetResizeAnchoredToAttachments(
+  previousCabinet: CabinetElement,
+  proposedCabinet: CabinetElement,
+  walls: Wall[],
+  cabinets: CabinetElement[]
+): CabinetElement {
+  const attachedSides = detectCabinetAttachmentSides(previousCabinet, walls, cabinets);
+  if (attachedSides.size === 0) return proposedCabinet;
+
+  const previousBounds = getRotatedRectBounds(
+    previousCabinet.center,
+    previousCabinet.width,
+    previousCabinet.depth,
+    previousCabinet.rotation
+  );
+  const radians = degreesToRadians(normalizeDegrees(previousCabinet.rotation));
+  const widthAxisHorizontal = Math.abs(Math.cos(radians)) >= Math.abs(Math.sin(radians));
+  let nextCenter = { ...proposedCabinet.center };
+
+  if (Math.abs(previousCabinet.width - proposedCabinet.width) > 0.001) {
+    if (widthAxisHorizontal) {
+      if (attachedSides.has("left") && !attachedSides.has("right")) {
+        nextCenter = { ...nextCenter, x: previousBounds.minX + proposedCabinet.width / 2 };
+      } else if (attachedSides.has("right") && !attachedSides.has("left")) {
+        nextCenter = { ...nextCenter, x: previousBounds.maxX - proposedCabinet.width / 2 };
+      }
+    } else {
+      if (attachedSides.has("top") && !attachedSides.has("bottom")) {
+        nextCenter = { ...nextCenter, y: previousBounds.minY + proposedCabinet.width / 2 };
+      } else if (attachedSides.has("bottom") && !attachedSides.has("top")) {
+        nextCenter = { ...nextCenter, y: previousBounds.maxY - proposedCabinet.width / 2 };
+      }
+    }
+  }
+
+  if (Math.abs(previousCabinet.depth - proposedCabinet.depth) > 0.001) {
+    if (widthAxisHorizontal) {
+      if (attachedSides.has("top") && !attachedSides.has("bottom")) {
+        nextCenter = { ...nextCenter, y: previousBounds.minY + proposedCabinet.depth / 2 };
+      } else if (attachedSides.has("bottom") && !attachedSides.has("top")) {
+        nextCenter = { ...nextCenter, y: previousBounds.maxY - proposedCabinet.depth / 2 };
+      }
+    } else {
+      if (attachedSides.has("left") && !attachedSides.has("right")) {
+        nextCenter = { ...nextCenter, x: previousBounds.minX + proposedCabinet.depth / 2 };
+      } else if (attachedSides.has("right") && !attachedSides.has("left")) {
+        nextCenter = { ...nextCenter, x: previousBounds.maxX - proposedCabinet.depth / 2 };
+      }
+    }
+  }
+
+  return {
+    ...proposedCabinet,
+    center: nextCenter,
+  };
+}
+
+function resolveCabinetDimensionChange(
+  previousCabinet: CabinetElement,
+  proposedCabinet: CabinetElement,
+  walls: Wall[],
+  cabinets: CabinetElement[]
+): CabinetElement {
+  const attachmentAwareCabinet = keepCabinetResizeAnchoredToAttachments(
+    previousCabinet,
+    proposedCabinet,
+    walls,
+    cabinets
+  );
+
+  return resolveCabinetDimensionChangeAgainstWalls(
+    previousCabinet,
+    attachmentAwareCabinet,
+    walls
+  );
+}
+
+function resolveCabinetDimensionChangeAgainstWalls(
+  previousCabinet: CabinetElement,
+  proposedCabinet: CabinetElement,
+  walls: Wall[]
+): CabinetElement {
+  const thickWalls = walls.filter(isThickWall);
+  if (!cabinetIntersectsAnyWall(proposedCabinet, thickWalls)) return proposedCabinet;
+
+  const wallAnchoredCabinet = keepCabinetOnTouchedWallFaces(
+    previousCabinet,
+    proposedCabinet,
+    thickWalls
+  );
+  if (!cabinetIntersectsAnyWall(wallAnchoredCabinet, thickWalls)) return wallAnchoredCabinet;
+
+  const pushedCabinet = pushCabinetOutsideWallOverlaps(wallAnchoredCabinet, thickWalls);
+  if (!cabinetIntersectsAnyWall(pushedCabinet, thickWalls)) return pushedCabinet;
+
+  return previousCabinet;
+}
+
+function keepCabinetOnTouchedWallFaces(
+  previousCabinet: CabinetElement,
+  proposedCabinet: CabinetElement,
+  walls: Wall[]
+): CabinetElement {
+  const touchTolerance = 3;
+  const previousBounds = getRotatedRectBounds(
+    previousCabinet.center,
+    previousCabinet.width,
+    previousCabinet.depth,
+    previousCabinet.rotation
+  );
+  let adjustedCabinet = { ...proposedCabinet };
+
+  const rangesOverlap = (minA: number, maxA: number, minB: number, maxB: number) =>
+    Math.min(maxA, maxB) - Math.max(minA, minB) >= -touchTolerance;
+
+  for (const wall of walls) {
+    const wallBounds = getWallRectBounds(wall);
+    let nextBounds = getRotatedRectBounds(
+      adjustedCabinet.center,
+      adjustedCabinet.width,
+      adjustedCabinet.depth,
+      adjustedCabinet.rotation
+    );
+
+    const overlapsY = rangesOverlap(previousBounds.minY, previousBounds.maxY, wallBounds.minY, wallBounds.maxY);
+    if (overlapsY) {
+      if (Math.abs(previousBounds.maxX - wallBounds.minX) <= touchTolerance && nextBounds.maxX > wallBounds.minX) {
+        adjustedCabinet = {
+          ...adjustedCabinet,
+          center: { ...adjustedCabinet.center, x: adjustedCabinet.center.x - (nextBounds.maxX - wallBounds.minX) },
+        };
+      }
+      nextBounds = getRotatedRectBounds(
+        adjustedCabinet.center,
+        adjustedCabinet.width,
+        adjustedCabinet.depth,
+        adjustedCabinet.rotation
+      );
+      if (Math.abs(previousBounds.minX - wallBounds.maxX) <= touchTolerance && nextBounds.minX < wallBounds.maxX) {
+        adjustedCabinet = {
+          ...adjustedCabinet,
+          center: { ...adjustedCabinet.center, x: adjustedCabinet.center.x + (wallBounds.maxX - nextBounds.minX) },
+        };
+      }
+    }
+
+    nextBounds = getRotatedRectBounds(
+      adjustedCabinet.center,
+      adjustedCabinet.width,
+      adjustedCabinet.depth,
+      adjustedCabinet.rotation
+    );
+    const overlapsX = rangesOverlap(previousBounds.minX, previousBounds.maxX, wallBounds.minX, wallBounds.maxX);
+    if (overlapsX) {
+      if (Math.abs(previousBounds.maxY - wallBounds.minY) <= touchTolerance && nextBounds.maxY > wallBounds.minY) {
+        adjustedCabinet = {
+          ...adjustedCabinet,
+          center: { ...adjustedCabinet.center, y: adjustedCabinet.center.y - (nextBounds.maxY - wallBounds.minY) },
+        };
+      }
+      nextBounds = getRotatedRectBounds(
+        adjustedCabinet.center,
+        adjustedCabinet.width,
+        adjustedCabinet.depth,
+        adjustedCabinet.rotation
+      );
+      if (Math.abs(previousBounds.minY - wallBounds.maxY) <= touchTolerance && nextBounds.minY < wallBounds.maxY) {
+        adjustedCabinet = {
+          ...adjustedCabinet,
+          center: { ...adjustedCabinet.center, y: adjustedCabinet.center.y + (wallBounds.maxY - nextBounds.minY) },
+        };
+      }
+    }
+  }
+
+  return adjustedCabinet;
+}
+
+function pushCabinetOutsideWallOverlaps(cabinetItem: CabinetElement, walls: Wall[]): CabinetElement {
+  let adjustedCabinet = { ...cabinetItem };
+
+  for (let index = 0; index < 6; index += 1) {
+    let moved = false;
+    let cabinetBounds = getRotatedRectBounds(
+      adjustedCabinet.center,
+      adjustedCabinet.width,
+      adjustedCabinet.depth,
+      adjustedCabinet.rotation
+    );
+
+    for (const wall of walls) {
+      const wallBounds = getWallRectBounds(wall);
+      const overlapX = Math.min(cabinetBounds.maxX, wallBounds.maxX) - Math.max(cabinetBounds.minX, wallBounds.minX);
+      const overlapY = Math.min(cabinetBounds.maxY, wallBounds.maxY) - Math.max(cabinetBounds.minY, wallBounds.minY);
+      if (overlapX <= 0 || overlapY <= 0) continue;
+
+      const cabinetCenterX = (cabinetBounds.minX + cabinetBounds.maxX) / 2;
+      const cabinetCenterY = (cabinetBounds.minY + cabinetBounds.maxY) / 2;
+      const wallCenterX = (wallBounds.minX + wallBounds.maxX) / 2;
+      const wallCenterY = (wallBounds.minY + wallBounds.maxY) / 2;
+      const clearance = 0.75;
+
+      if (overlapX <= overlapY) {
+        const direction = cabinetCenterX < wallCenterX ? -1 : 1;
+        adjustedCabinet = {
+          ...adjustedCabinet,
+          center: { ...adjustedCabinet.center, x: adjustedCabinet.center.x + direction * (overlapX + clearance) },
+        };
+      } else {
+        const direction = cabinetCenterY < wallCenterY ? -1 : 1;
+        adjustedCabinet = {
+          ...adjustedCabinet,
+          center: { ...adjustedCabinet.center, y: adjustedCabinet.center.y + direction * (overlapY + clearance) },
+        };
+      }
+
+      cabinetBounds = getRotatedRectBounds(
+        adjustedCabinet.center,
+        adjustedCabinet.width,
+        adjustedCabinet.depth,
+        adjustedCabinet.rotation
+      );
+      moved = true;
+    }
+
+    if (!moved) break;
+  }
+
+  return adjustedCabinet;
+}
+
+function getWallRectBounds(wall: Wall) {
+  const direction = normalize(sub(wall.end, wall.start));
+  const normal = perp(direction);
+  const corners = [
+    add(wall.start, mul(normal, WALL_THICKNESS / 2)),
+    add(wall.end, mul(normal, WALL_THICKNESS / 2)),
+    add(wall.end, mul(normal, -WALL_THICKNESS / 2)),
+    add(wall.start, mul(normal, -WALL_THICKNESS / 2)),
+  ];
+  const xs = corners.map((corner) => corner.x);
+  const ys = corners.map((corner) => corner.y);
+
+  return {
+    minX: Math.min(...xs),
+    maxX: Math.max(...xs),
+    minY: Math.min(...ys),
+    maxY: Math.max(...ys),
+  };
+}
+
 // getRotatedRectCorners
 function getRotatedRectCorners(center: Point, width: number, depth: number, rotation: number) {
   const radians = degreesToRadians(rotation);
@@ -8254,6 +9835,77 @@ function getRotatedRectCorners(center: Point, width: number, depth: number, rota
     x: center.x + corner.x * cosValue - corner.y * sinValue,
     y: center.y + corner.x * sinValue + corner.y * cosValue,
   }));
+}
+
+
+function getCabinetPlanHandleTabRects(
+  cabinetItem: Pick<CabinetElement, "width" | "depth" | "center" | "rotation"> & Partial<Pick<CabinetElement, "category">>
+) {
+  const category = getCabinetElevationCategory({
+    id: "cabinet-plan-handle-tabs",
+    center: cabinetItem.center,
+    width: cabinetItem.width,
+    depth: cabinetItem.depth,
+    rotation: cabinetItem.rotation,
+    category: cabinetItem.category,
+  });
+  const tabCount = category === "base" ? 1 : 2;
+  const tabWidth = Math.min(22, Math.max(10, cabinetItem.width * 0.18));
+  const tabHeight = Math.min(8, Math.max(5, cabinetItem.depth * 0.18));
+  const tabY = cabinetItem.depth / 2 - tabHeight * 0.12;
+  const tabCenters = tabCount === 1
+    ? [cabinetItem.width / 2 - tabWidth * 0.9]
+    : [-cabinetItem.width * 0.24, cabinetItem.width * 0.24];
+
+  return tabCenters.map((centerX) => ({
+    x: centerX - tabWidth / 2,
+    y: tabY,
+    width: tabWidth,
+    height: tabHeight,
+  }));
+}
+
+function getCabinetPlanOccupiedCorners(
+  cabinetItem: Pick<CabinetElement, "center" | "width" | "depth" | "rotation"> & Partial<Pick<CabinetElement, "category">>
+) {
+  const radians = degreesToRadians(cabinetItem.rotation);
+  const cosValue = Math.cos(radians);
+  const sinValue = Math.sin(radians);
+  const localCorners = [
+    { x: -cabinetItem.width / 2, y: -cabinetItem.depth / 2 },
+    { x: cabinetItem.width / 2, y: -cabinetItem.depth / 2 },
+    { x: cabinetItem.width / 2, y: cabinetItem.depth / 2 },
+    { x: -cabinetItem.width / 2, y: cabinetItem.depth / 2 },
+  ];
+
+  getCabinetPlanHandleTabRects(cabinetItem).forEach((tab) => {
+    localCorners.push(
+      { x: tab.x, y: tab.y },
+      { x: tab.x + tab.width, y: tab.y },
+      { x: tab.x + tab.width, y: tab.y + tab.height },
+      { x: tab.x, y: tab.y + tab.height }
+    );
+  });
+
+  return localCorners.map((corner) => ({
+    x: cabinetItem.center.x + corner.x * cosValue - corner.y * sinValue,
+    y: cabinetItem.center.y + corner.x * sinValue + corner.y * cosValue,
+  }));
+}
+
+function getCabinetPlanOccupiedBounds(
+  cabinetItem: Pick<CabinetElement, "center" | "width" | "depth" | "rotation"> & Partial<Pick<CabinetElement, "category">>
+) {
+  const corners = getCabinetPlanOccupiedCorners(cabinetItem);
+  const xs = corners.map((corner) => corner.x);
+  const ys = corners.map((corner) => corner.y);
+
+  return {
+    minX: Math.min(...xs),
+    maxX: Math.max(...xs),
+    minY: Math.min(...ys),
+    maxY: Math.max(...ys),
+  };
 }
 
 // getRotatedRectBounds
@@ -8407,7 +10059,8 @@ function getDoorGeometry(doorItem: DoorElement, wall: Wall) {
 function getDoorMenuPosition(
   doorItem: DoorElement,
   wall: Wall,
-  overrideT?: number
+  overrideT?: number,
+  walls: Wall[] = []
 ): Point {
   const geometry = getDoorGeometry(
     {
@@ -8421,7 +10074,11 @@ function getDoorMenuPosition(
     return { x: wall.start.x + 24, y: wall.start.y - 24 };
   }
 
-  const normal = getPreferredNormal(wall.start, wall.end);
+  const direction = normalize(sub(wall.end, wall.start));
+  const baseNormal = normalize(perp(direction));
+  const measurementSide = getInteriorMeasurementGuideSide(wall, walls.length ? walls : [wall]);
+  const menuSide = getOppositeMeasurementSide(measurementSide);
+  const normal = menuSide === "left" ? baseNormal : mul(baseNormal, -1);
   const menuWidth = 74;
   const menuHeight = 46;
   const doorHalfHeight = 7;
@@ -8431,7 +10088,7 @@ function getDoorMenuPosition(
     (Math.abs(normal.x) * menuWidth + Math.abs(normal.y) * menuHeight) / 2;
   const menuCenter = add(
     doorCenter,
-    mul(normal, -(doorHalfHeight + menuGapFromDoor + menuHalfProjectionOnNormal))
+    mul(normal, doorHalfHeight + menuGapFromDoor + menuHalfProjectionOnNormal)
   );
 
   return {
@@ -8448,8 +10105,9 @@ function getWindowPlacementOnWall(
   let bestPlacement: WindowPlacementPreview | null = null;
   let bestDistance = Infinity;
   const placementTolerance = WALL_ATTACH_THRESHOLD + WALL_STROKE_WIDTH / 2 + 16;
+  const thickWalls = walls.filter(isThickWall);
 
-  for (const wall of walls.filter(isThickWall)) {
+  for (const wall of thickWalls) {
     const wallLength = distance(wall.start, wall.end);
     if (wallLength < width + 4) continue;
 
@@ -8461,8 +10119,32 @@ function getWindowPlacementOnWall(
     }
 
     const direction = normalize(sub(wall.end, wall.start));
+    const interiorSide = getInteriorMeasurementGuideSide(wall, thickWalls);
+    const interiorRun = getStructureGuideEndpointsFromMeasurementRun(
+      wall,
+      thickWalls,
+      interiorSide
+    );
+    const rawInteriorStart = interiorRun
+      ? dot(sub(interiorRun.startAnchor, wall.start), direction)
+      : 0;
+    const rawInteriorEnd = interiorRun
+      ? dot(sub(interiorRun.endAnchor, wall.start), direction)
+      : wallLength;
+    const interiorStart = clamp(Math.min(rawInteriorStart, rawInteriorEnd), 0, wallLength);
+    const interiorEnd = clamp(Math.max(rawInteriorStart, rawInteriorEnd), 0, wallLength);
+
+    // Bound every preview/drag to the interior usable span of the wall. This keeps
+    // the door/window fully inside the two interior black-dot endpoints instead
+    // of allowing the opening to slide into the thick-wall corner/exterior run.
+    if (interiorEnd - interiorStart < width + 0.001) continue;
+
     const rawDistance = dot(sub(projection, wall.start), direction);
-    const clampedDistance = clamp(rawDistance, width / 2, wallLength - width / 2);
+    const clampedDistance = clamp(
+      rawDistance,
+      interiorStart + width / 2,
+      interiorEnd - width / 2
+    );
     const centerPoint = add(wall.start, mul(direction, clampedDistance));
 
     bestDistance = distanceToWall;
@@ -8504,10 +10186,28 @@ function getWindowGeometry(windowItem: WindowElement, wall: Wall) {
   };
 }
 
+function getWindowTabSideFacingMeasurementGuide(
+  wall: Wall,
+  walls: Wall[] = []
+): 1 | -1 {
+  const direction = normalize(sub(wall.end, wall.start));
+  const baseNormal = normalize(perp(direction));
+  const measurementSide = getInteriorMeasurementGuideSide(
+    wall,
+    walls.length ? walls : [wall]
+  );
+  const measurementNormal =
+    measurementSide === "left" ? baseNormal : mul(baseNormal, -1);
+  const windowShapeNormal = getPreferredNormal(wall.start, wall.end);
+
+  return dot(windowShapeNormal, measurementNormal) >= 0 ? 1 : -1;
+}
+
 function getWindowMenuPosition(
   windowItem: WindowElement,
   wall: Wall,
-  overrideT?: number
+  overrideT?: number,
+  walls: Wall[] = []
 ): Point {
   const geometry = getWindowGeometry(
     {
@@ -8521,7 +10221,11 @@ function getWindowMenuPosition(
     return { x: wall.start.x + 24, y: wall.start.y - 24 };
   }
 
-  const normal = getPreferredNormal(wall.start, wall.end);
+  const direction = normalize(sub(wall.end, wall.start));
+  const baseNormal = normalize(perp(direction));
+  const measurementSide = getInteriorMeasurementGuideSide(wall, walls.length ? walls : [wall]);
+  const menuSide = getOppositeMeasurementSide(measurementSide);
+  const normal = menuSide === "left" ? baseNormal : mul(baseNormal, -1);
   const menuWidth = 112;
   const menuHeight = 46;
   const windowHalfHeight = 7;
@@ -8535,7 +10239,7 @@ function getWindowMenuPosition(
     (Math.abs(normal.x) * menuWidth + Math.abs(normal.y) * menuHeight) / 2;
   const menuCenter = add(
     windowCenter,
-    mul(normal, -(windowHalfHeight + menuGapFromWindow + menuHalfProjectionOnNormal))
+    mul(normal, windowHalfHeight + menuGapFromWindow + menuHalfProjectionOnNormal)
   );
 
   return {
@@ -8558,9 +10262,10 @@ function measurementSideMatchesStructureGuide(
   segmentStart: Point,
   segmentEnd: Point,
   side: "left" | "right",
-  wall: Wall
+  wall: Wall,
+  walls: Wall[] = []
 ) {
-  const guideSide = getStructureGuideSideForWall(wall);
+  const guideSide = getInteriorMeasurementGuideSide(wall, walls);
 
   if (samePoint(segmentStart, wall.start) && samePoint(segmentEnd, wall.end)) {
     return side === guideSide;
