@@ -5257,6 +5257,8 @@ function ElevationDimensionLine({
   textOffset = -10,
   extensionTop = 12,
   extensionBottom = 12,
+  labelXOverride,
+  labelYOverride,
 }: {
   x1: number;
   y1: number;
@@ -5267,6 +5269,8 @@ function ElevationDimensionLine({
   textOffset?: number;
   extensionTop?: number;
   extensionBottom?: number;
+  labelXOverride?: number;
+  labelYOverride?: number;
 }) {
   const isVertical = Math.abs(x1 - x2) < Math.abs(y1 - y2);
   const midX = (x1 + x2) / 2;
