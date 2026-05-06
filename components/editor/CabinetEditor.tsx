@@ -187,6 +187,15 @@ type DoorPlacementPreview = {
   invalidReason?: string;
 };
 
+type StructurePlacementSnapOptions = {
+  windows?: WindowElement[];
+  doors?: DoorElement[];
+  cabinets?: CabinetElement[];
+  excludeWindowId?: string;
+  excludeDoorId?: string;
+  excludeCabinetId?: string;
+};
+
 // CabinetPlacementPreview
 type CabinetPlacementPreview = {
   center: Point;
@@ -247,6 +256,8 @@ type ElevationDragState =
       startPointer: Point;
       startCenterInches: number;
       startDistanceFromFloorInches: number;
+      grabOffsetCenterXInches: number;
+      grabOffsetBottomYInches: number;
       widthInches: number;
       heightInches: number;
     }
@@ -257,6 +268,8 @@ type ElevationDragState =
       startPointer: Point;
       startCenterInches: number;
       startDistanceFromFloorInches: number;
+      grabOffsetCenterXInches: number;
+      grabOffsetBottomYInches: number;
       widthInches: number;
       heightInches: number;
     }
@@ -270,6 +283,8 @@ type ElevationDragState =
       startDisplayStartInches: number;
       depthVisualOffsetInches: number;
       startDistanceFromFloorInches: number;
+      grabOffsetXInches: number;
+      grabOffsetBottomYInches: number;
       widthInches: number;
       heightInches: number;
       category: CabinetCategory;
@@ -612,6 +627,7 @@ export default function CabinetEditor() {
     useState<CabinetSelectionDetail | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [planViewMode, setPlanViewMode] = useState<PlanViewMode>("floor");
+  const [showElevationMeasurements, setShowElevationMeasurements] = useState(true);
   const [canConvertSelectedThinWalls, setCanConvertSelectedThinWalls] = useState(false);
 
   const selectedCabinetCatalogItem = useMemo(
@@ -736,6 +752,8 @@ export default function CabinetEditor() {
             isSelectionMode={isSelectionMode}
             planViewMode={planViewMode}
             onSelectPlanView={setPlanViewMode}
+            showMeasurements={showElevationMeasurements}
+            onToggleMeasurements={() => setShowElevationMeasurements((current) => !current)}
             canConvertSelectedThinWalls={canConvertSelectedThinWalls}
             onCreateWallExterior={() =>
               window.dispatchEvent(new Event("pelican-create-selected-wall-exterior"))
@@ -763,6 +781,7 @@ export default function CabinetEditor() {
             selectedCabinetDepth={selectedCabinetDepth}
             selectedCabinetCategory={selectedCabinetCatalogItem.category}
             selectedCabinetCatalogItem={selectedCabinetCatalogItem}
+            showElevationMeasurements={showElevationMeasurements}
           />
         </section>
 
@@ -881,6 +900,8 @@ function ModeBar({
   isSelectionMode,
   planViewMode,
   onSelectPlanView,
+  showMeasurements,
+  onToggleMeasurements,
   canConvertSelectedThinWalls,
   onCreateWallExterior,
   onCreateWallInterior,
@@ -892,14 +913,16 @@ function ModeBar({
   isSelectionMode: boolean;
   planViewMode: PlanViewMode;
   onSelectPlanView: (mode: PlanViewMode) => void;
+  showMeasurements: boolean;
+  onToggleMeasurements: () => void;
   canConvertSelectedThinWalls: boolean;
   onCreateWallExterior: () => void;
   onCreateWallInterior: () => void;
   onToggleSelectionMode: () => void;
 }) {
   return (
-    <div className="grid h-[62px] shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b border-slate-200 bg-white px-6">
-      <div className="flex items-center gap-2 justify-self-start">
+    <div className="flex h-[62px] shrink-0 items-center gap-3 overflow-x-auto border-b border-slate-200 bg-white px-6">
+      <div className="flex shrink-0 items-center gap-2">
         <ModeIconButton icon={ZoomOut} label="Zoom out" onClick={onZoomOut} />
         <ModeIconButton icon={ZoomIn} label="Zoom in" onClick={onZoomIn} />
         <ModeIconButton
@@ -935,26 +958,26 @@ function ModeBar({
         </button>
       </div>
 
-      <div className="flex items-center rounded-full bg-slate-100 p-1 justify-self-center">
+      <div className="flex shrink-0 items-center rounded-full bg-slate-100 p-1">
         <button
           type="button"
           onClick={() => onSelectPlanView("floor")}
           className={cn(
-            "inline-flex h-9 items-center gap-2 rounded-full px-5 text-[13px] font-semibold transition",
+            "inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[13px] font-semibold transition",
             planViewMode === "floor"
               ? "bg-white text-pelican-navy shadow-sm"
               : "text-slate-500 hover:text-pelican-navy"
           )}
         >
           <Grid3X3 className="h-4 w-4" />
-          Floor plan
+          Floorplan
         </button>
 
         <button
           type="button"
           onClick={() => onSelectPlanView("elevation")}
           className={cn(
-            "inline-flex h-9 items-center gap-2 rounded-full px-5 text-[13px] font-semibold transition",
+            "inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[13px] font-semibold transition",
             planViewMode === "elevation"
               ? "bg-white text-pelican-navy shadow-sm"
               : "text-slate-500 hover:text-pelican-navy"
@@ -964,18 +987,38 @@ function ModeBar({
           Elevation plan
         </button>
 
-        <button className="inline-flex h-9 items-center gap-2 rounded-full px-5 text-[13px] font-semibold text-slate-500 hover:text-pelican-navy">
+        <button className="inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[13px] font-semibold text-slate-500 hover:text-pelican-navy">
           <Square className="h-4 w-4" />
           Top-down
         </button>
 
-        <button className="inline-flex h-9 items-center gap-2 rounded-full px-5 text-[13px] font-semibold text-slate-500 hover:text-pelican-navy">
+        <button className="inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[13px] font-semibold text-slate-500 hover:text-pelican-navy">
           <Grid3X3 className="h-4 w-4" />
           Perspective
         </button>
       </div>
 
-      <div className="justify-self-end">
+      <div className="flex min-w-max flex-1 items-center justify-end gap-3">
+        <button
+          type="button"
+          onClick={onToggleMeasurements}
+          className={cn(
+            "inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-md border border-slate-200 bg-slate-50 px-3 text-[13px] font-semibold text-pelican-navy hover:bg-slate-100",
+            showMeasurements && "bg-white shadow-sm"
+          )}
+          aria-pressed={showMeasurements}
+        >
+          <span
+            className={cn(
+              "flex h-4 w-4 items-center justify-center rounded-sm border border-slate-400 bg-white",
+              showMeasurements && "border-pelican-teal bg-pelican-teal text-white"
+            )}
+            aria-hidden="true"
+          >
+            {showMeasurements && <span className="text-[11px] leading-none">✓</span>}
+          </span>
+          Measurement
+        </button>
         <ModeIconButton icon={Settings} label="Canvas settings" />
       </div>
     </div>
@@ -1084,6 +1127,7 @@ function CanvasArea({
   selectedCabinetDepth,
   selectedCabinetCategory,
   selectedCabinetCatalogItem,
+  showElevationMeasurements,
 }: {
   activeTool: Tool;
   setActiveTool: React.Dispatch<React.SetStateAction<Tool>>;
@@ -1098,6 +1142,7 @@ function CanvasArea({
   selectedCabinetDepth: number;
   selectedCabinetCategory: CabinetCategory;
   selectedCabinetCatalogItem: CabinetCatalogItem;
+  showElevationMeasurements: boolean;
 }) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const offsetRef = useRef<Point>(offset);
@@ -2312,7 +2357,11 @@ useEffect(() => {
 
       const rawPoint = screenToWorkspace(event.clientX, event.clientY);
       const placement = rawPoint
-        ? getDoorPlacementPreviewForPoint(rawPoint, thickWalls, DEFAULT_DOOR_WIDTH)
+        ? getDoorPlacementPreviewForPoint(rawPoint, thickWalls, DEFAULT_DOOR_WIDTH, {
+            windows: windowsRef.current,
+            doors: doorsRef.current,
+            cabinets: cabinetsRef.current,
+          })
         : null;
 
       updateDoorPreview(placement);
@@ -2325,7 +2374,11 @@ useEffect(() => {
 
       const rawPoint = screenToWorkspace(event.clientX, event.clientY);
       const placement = rawPoint
-        ? getWindowPlacementPreviewForPoint(rawPoint, thickWalls, DEFAULT_WINDOW_WIDTH)
+        ? getWindowPlacementPreviewForPoint(rawPoint, thickWalls, DEFAULT_WINDOW_WIDTH, {
+            windows: windowsRef.current,
+            doors: doorsRef.current,
+            cabinets: cabinetsRef.current,
+          })
         : null;
 
       updateWindowPreview(placement);
@@ -2551,7 +2604,12 @@ useEffect(() => {
         (doorItem) => doorItem.id === doorDragState.id
       );
       const placement = currentDoor
-        ? getDoorPlacementPreviewForPoint(rawPoint, thickWalls, currentDoor.width)
+        ? getDoorPlacementPreviewForPoint(rawPoint, thickWalls, currentDoor.width, {
+            windows: windowsRef.current,
+            doors: doorsRef.current,
+            cabinets: cabinetsRef.current,
+            excludeDoorId: currentDoor.id,
+          })
         : null;
 
       if (placement && currentDoor) {
@@ -2591,7 +2649,12 @@ useEffect(() => {
         (windowItem) => windowItem.id === windowDragState.id
       );
       const placement = currentWindow
-        ? getWindowPlacementPreviewForPoint(rawPoint, thickWalls, currentWindow.width)
+        ? getWindowPlacementPreviewForPoint(rawPoint, thickWalls, currentWindow.width, {
+            windows: windowsRef.current,
+            doors: doorsRef.current,
+            cabinets: cabinetsRef.current,
+            excludeWindowId: currentWindow.id,
+          })
         : null;
 
       if (placement && currentWindow) {
@@ -2685,7 +2748,11 @@ useEffect(() => {
     if (activeToolRef.current === "place-door") {
       const rawPoint = screenToWorkspace(event.clientX, event.clientY);
       const placement = rawPoint
-        ? getDoorPlacementPreviewForPoint(rawPoint, thickWalls, DEFAULT_DOOR_WIDTH)
+        ? getDoorPlacementPreviewForPoint(rawPoint, thickWalls, DEFAULT_DOOR_WIDTH, {
+            windows: windowsRef.current,
+            doors: doorsRef.current,
+            cabinets: cabinetsRef.current,
+          })
         : null;
 
       updateDoorPreview(placement);
@@ -2695,7 +2762,11 @@ useEffect(() => {
     if (activeToolRef.current === "place-window") {
       const rawPoint = screenToWorkspace(event.clientX, event.clientY);
       const placement = rawPoint
-        ? getWindowPlacementPreviewForPoint(rawPoint, thickWalls, DEFAULT_WINDOW_WIDTH)
+        ? getWindowPlacementPreviewForPoint(rawPoint, thickWalls, DEFAULT_WINDOW_WIDTH, {
+            windows: windowsRef.current,
+            doors: doorsRef.current,
+            cabinets: cabinetsRef.current,
+          })
         : null;
 
       updateWindowPreview(placement);
@@ -3266,6 +3337,7 @@ useEffect(() => {
           selectedDoorId={selectedDoorId}
           selectedCabinetId={selectedCabinetId}
           activeIndex={activeElevationIndex}
+          showMeasurements={showElevationMeasurements}
           onSelectWindow={selectWindowFromElevation}
           onSelectDoor={selectDoorFromElevation}
           onSelectCabinet={selectCabinetFromElevation}
@@ -5852,6 +5924,7 @@ function ElevationPlanView({
   selectedDoorId,
   selectedCabinetId,
   activeIndex,
+  showMeasurements,
   onSelectWindow,
   onSelectDoor,
   onSelectCabinet,
@@ -5871,6 +5944,7 @@ function ElevationPlanView({
   selectedDoorId: string | null;
   selectedCabinetId: string | null;
   activeIndex: number;
+  showMeasurements: boolean;
   onSelectWindow: (id: string) => void;
   onSelectDoor: (id: string) => void;
   onSelectCabinet: (id: string) => void;
@@ -5948,6 +6022,7 @@ function ElevationPlanView({
   const wallRenderWidth = wallLengthInches * renderScale;
   const wallRenderHeight = wallHeightInches * renderScale;
   const wallLeft = (ELEVATION_VIEWBOX_WIDTH - wallRenderWidth) / 2;
+  const wallRight = wallLeft + wallRenderWidth;
   const wallTop = 190;
   const wallBottom = wallTop + wallRenderHeight;
   const overallLengthLabel = formatMeasurementFromInches(wallLengthInches);
@@ -6081,8 +6156,175 @@ function ElevationPlanView({
     ...doorRenderItems.map(toElevationObjectBox),
   ];
 
-  const getElevationAlignmentGuidesForBox = (_movingBox: ElevationObjectBox, _movingKey: string): ElevationAlignmentGuide[] => {
-    return [];
+  const rangesOverlapOrTouch = (minA: number, maxA: number, minB: number, maxB: number, tolerance = 0) =>
+    minA <= maxB + tolerance && minB <= maxA + tolerance;
+
+  const getElevationAlignmentGuidesForBox = (movingBox: ElevationObjectBox, movingKey: string): ElevationAlignmentGuide[] => {
+    const snapThreshold = 9;
+    const guideColorPadding = 34;
+    const guides: ElevationAlignmentGuide[] = [];
+    const otherBoxes = elevationObjectBoxes.filter((box) => box.key !== movingKey);
+    const wallCenterX = (wallLeft + wallRight) / 2;
+    const wallCenterY = (wallTop + wallBottom) / 2;
+
+    const pushGuide = (guide: ElevationAlignmentGuide) => {
+      const guideKey = guide.kind === "vertical"
+        ? `v-${Math.round(guide.x)}-${Math.round(guide.y1)}-${Math.round(guide.y2)}-${guide.label ?? ""}`
+        : `h-${Math.round(guide.y)}-${Math.round(guide.x1)}-${Math.round(guide.x2)}-${guide.label ?? ""}`;
+      const alreadyExists = guides.some((existingGuide) => {
+        const existingKey = existingGuide.kind === "vertical"
+          ? `v-${Math.round(existingGuide.x)}-${Math.round(existingGuide.y1)}-${Math.round(existingGuide.y2)}-${existingGuide.label ?? ""}`
+          : `h-${Math.round(existingGuide.y)}-${Math.round(existingGuide.x1)}-${Math.round(existingGuide.x2)}-${existingGuide.label ?? ""}`;
+        return existingKey === guideKey;
+      });
+      if (!alreadyExists) guides.push(guide);
+    };
+
+    if (Math.abs(movingBox.centerX - wallCenterX) <= snapThreshold) {
+      pushGuide({
+        kind: "vertical",
+        x: wallCenterX,
+        y1: wallTop - guideColorPadding,
+        y2: wallBottom + guideColorPadding,
+      });
+    }
+
+    if (Math.abs(movingBox.centerY - wallCenterY) <= snapThreshold) {
+      pushGuide({
+        kind: "horizontal",
+        y: wallCenterY,
+        x1: wallLeft - guideColorPadding,
+        x2: wallRight + guideColorPadding,
+      });
+    }
+
+    const xAnchors = [
+      { name: "left", value: movingBox.left },
+      { name: "center", value: movingBox.centerX },
+      { name: "right", value: movingBox.right },
+    ];
+    const yAnchors = [
+      { name: "top", value: movingBox.top },
+      { name: "center", value: movingBox.centerY },
+      { name: "bottom", value: movingBox.bottom },
+    ];
+
+    let bestVertical: (ElevationAlignmentGuide & { distance: number }) | null = null;
+    let bestHorizontal: (ElevationAlignmentGuide & { distance: number }) | null = null;
+    const horizontalSpacingGuides: Array<ElevationAlignmentGuide & { sortDistance: number }> = [];
+    const verticalSpacingGuides: Array<ElevationAlignmentGuide & { sortDistance: number }> = [];
+
+    otherBoxes.forEach((otherBox) => {
+      const otherXAnchors = [
+        { name: "left", value: otherBox.left },
+        { name: "center", value: otherBox.centerX },
+        { name: "right", value: otherBox.right },
+      ];
+      const otherYAnchors = [
+        { name: "top", value: otherBox.top },
+        { name: "center", value: otherBox.centerY },
+        { name: "bottom", value: otherBox.bottom },
+      ];
+
+      xAnchors.forEach((movingAnchor) => {
+        otherXAnchors.forEach((otherAnchor) => {
+          const delta = Math.abs(movingAnchor.value - otherAnchor.value);
+          if (delta > snapThreshold) return;
+          const y1 = Math.min(movingBox.top, otherBox.top) - guideColorPadding;
+          const y2 = Math.max(movingBox.bottom, otherBox.bottom) + guideColorPadding;
+          if (!bestVertical || delta < bestVertical.distance) {
+            bestVertical = { kind: "vertical", x: otherAnchor.value, y1, y2, distance: delta };
+          }
+        });
+      });
+
+      yAnchors.forEach((movingAnchor) => {
+        otherYAnchors.forEach((otherAnchor) => {
+          const delta = Math.abs(movingAnchor.value - otherAnchor.value);
+          if (delta > snapThreshold) return;
+          const x1 = Math.min(movingBox.left, otherBox.left) - guideColorPadding;
+          const x2 = Math.max(movingBox.right, otherBox.right) + guideColorPadding;
+          if (!bestHorizontal || delta < bestHorizontal.distance) {
+            bestHorizontal = { kind: "horizontal", y: otherAnchor.value, x1, x2, distance: delta };
+          }
+        });
+      });
+
+      const sameHorizontalBand =
+        Math.abs(movingBox.centerY - otherBox.centerY) <= snapThreshold ||
+        Math.abs(movingBox.top - otherBox.top) <= snapThreshold ||
+        Math.abs(movingBox.bottom - otherBox.bottom) <= snapThreshold ||
+        rangesOverlapOrTouch(movingBox.top, movingBox.bottom, otherBox.top, otherBox.bottom, snapThreshold);
+
+      if (sameHorizontalBand) {
+        const gap = movingBox.left >= otherBox.right
+          ? movingBox.left - otherBox.right
+          : otherBox.left >= movingBox.right
+            ? otherBox.left - movingBox.right
+            : 0;
+
+        if (gap > 8) {
+          const x1 = movingBox.left >= otherBox.right ? otherBox.right : movingBox.right;
+          const x2 = movingBox.left >= otherBox.right ? movingBox.left : otherBox.left;
+          const y = Math.max(movingBox.bottom, otherBox.bottom) + 14;
+          horizontalSpacingGuides.push({
+            kind: "horizontal",
+            y,
+            x1,
+            x2,
+            label: formatMeasurementFromInches(Math.max(0, gap / renderScale)),
+            labelX: (x1 + x2) / 2,
+            labelY: y - 14,
+            sortDistance: gap,
+          });
+        }
+      }
+
+      const sameVerticalBand =
+        Math.abs(movingBox.centerX - otherBox.centerX) <= snapThreshold ||
+        Math.abs(movingBox.left - otherBox.left) <= snapThreshold ||
+        Math.abs(movingBox.right - otherBox.right) <= snapThreshold ||
+        rangesOverlapOrTouch(movingBox.left, movingBox.right, otherBox.left, otherBox.right, snapThreshold);
+
+      if (sameVerticalBand) {
+        const gap = movingBox.top >= otherBox.bottom
+          ? movingBox.top - otherBox.bottom
+          : otherBox.top >= movingBox.bottom
+            ? otherBox.top - movingBox.bottom
+            : 0;
+
+        if (gap > 8) {
+          const y1 = movingBox.top >= otherBox.bottom ? otherBox.bottom : movingBox.bottom;
+          const y2 = movingBox.top >= otherBox.bottom ? movingBox.top : otherBox.top;
+          const x = Math.max(movingBox.right, otherBox.right) + 16;
+          verticalSpacingGuides.push({
+            kind: "vertical",
+            x,
+            y1,
+            y2,
+            label: formatMeasurementFromInches(Math.max(0, gap / renderScale)),
+            labelX: x + 18,
+            labelY: (y1 + y2) / 2,
+            sortDistance: gap,
+          });
+        }
+      }
+    });
+
+    if (bestVertical) pushGuide(bestVertical);
+    if (bestHorizontal) pushGuide(bestHorizontal);
+
+    horizontalSpacingGuides
+      .sort((left, right) => left.sortDistance - right.sortDistance)
+      .slice(0, 2)
+      .forEach((guide) => pushGuide(guide));
+
+    verticalSpacingGuides
+      .sort((left, right) => left.sortDistance - right.sortDistance)
+      .slice(0, 2)
+      .forEach((guide) => pushGuide(guide));
+
+    return guides;
   };
 
   const getDisabledElevationAlignmentGuidesForBox = (movingBox: ElevationObjectBox, movingKey: string): ElevationAlignmentGuide[] => {
@@ -6663,18 +6905,15 @@ function ElevationPlanView({
 
     event.preventDefault();
 
-    const dxInches = (point.x - dragState.startPointer.x) / renderScale;
-    const dyInches = (point.y - dragState.startPointer.y) / renderScale;
-
     if (dragState.kind === "window") {
       const halfWidth = Math.min(dragState.widthInches / 2, wallLengthInches / 2);
       const nextCenterInches = clamp(
-        dragState.startCenterInches + dxInches,
+        (point.x - wallLeft) / renderScale - dragState.grabOffsetCenterXInches,
         halfWidth,
         Math.max(halfWidth, wallLengthInches - halfWidth)
       );
       const nextDistanceFromFloor = clamp(
-        dragState.startDistanceFromFloorInches - dyInches,
+        (wallBottom - point.y) / renderScale - dragState.grabOffsetBottomYInches,
         0,
         Math.max(0, wallHeightInches - dragState.heightInches)
       );
@@ -6702,18 +6941,19 @@ function ElevationPlanView({
         t: getWallTFromElevationRelativeCenterInches(nextCenterInches),
         distanceFromFloorInches: nextDistanceFromFloor,
       });
+      elevationDragRef.current = dragState;
       return;
     }
 
     if (dragState.kind === "door") {
       const halfWidth = Math.min(dragState.widthInches / 2, wallLengthInches / 2);
       const nextCenterInches = clamp(
-        dragState.startCenterInches + dxInches,
+        (point.x - wallLeft) / renderScale - dragState.grabOffsetCenterXInches,
         halfWidth,
         Math.max(halfWidth, wallLengthInches - halfWidth)
       );
       const nextDistanceFromFloor = clamp(
-        dragState.startDistanceFromFloorInches - dyInches,
+        (wallBottom - point.y) / renderScale - dragState.grabOffsetBottomYInches,
         0,
         Math.max(0, wallHeightInches - dragState.heightInches)
       );
@@ -6741,15 +6981,20 @@ function ElevationPlanView({
         t: getWallTFromElevationRelativeCenterInches(nextCenterInches),
         distanceFromFloorInches: nextDistanceFromFloor,
       });
+      elevationDragRef.current = dragState;
       return;
     }
 
     // Elevation drag only moves the cabinet along the viewed wall and in height.
     // It intentionally preserves the wall-normal depth from the floor plan.
-    const desiredDisplayStartInches = dragState.startDisplayStartInches + dxInches;
+    // Keep the original pointer-to-cabinet grab offset while dragging. Do not
+    // rebase the drag start on every pointer move, because wall-edge clamping or
+    // snapping would otherwise change that grab offset and make the cabinet
+    // visibly drift away from the cursor.
+    const desiredDisplayStartInches = (point.x - wallLeft) / renderScale - dragState.grabOffsetXInches;
     const desiredStartInches = desiredDisplayStartInches - dragState.depthVisualOffsetInches;
     const desiredDistanceFromFloor = dragState.category === "wall"
-      ? dragState.startDistanceFromFloorInches - dyInches
+      ? (wallBottom - point.y) / renderScale - dragState.grabOffsetBottomYInches
       : 0;
 
     const resolvedCabinetDrag = getCabinetElevationDragResolution(
@@ -6803,6 +7048,7 @@ function ElevationPlanView({
       center: nextCenter,
       distanceFromFloorInches: nextDistanceFromFloor,
     });
+    elevationDragRef.current = dragState;
   };
 
   const stopElevationDrag = (event: React.PointerEvent<SVGSVGElement>) => {
@@ -6903,33 +7149,37 @@ function ElevationPlanView({
               strokeWidth="2"
             />
 
-            <ElevationDimensionLine
-              x1={wallLeft}
-              y1={topOverallDimensionY}
-              x2={wallLeft + wallRenderWidth}
-              y2={topOverallDimensionY}
-              label={overallLengthLabel}
-              textOffset={-12}
-            />
+            {showMeasurements && (
+              <>
+                <ElevationDimensionLine
+                  x1={wallLeft}
+                  y1={topOverallDimensionY}
+                  x2={wallLeft + wallRenderWidth}
+                  y2={topOverallDimensionY}
+                  label={overallLengthLabel}
+                  textOffset={-12}
+                />
 
-            <ElevationDimensionLine
-              x1={wallLeft}
-              y1={bottomOverallDimensionY}
-              x2={wallLeft + wallRenderWidth}
-              y2={bottomOverallDimensionY}
-              label={overallLengthLabel}
-              textOffset={16}
-            />
+                <ElevationDimensionLine
+                  x1={wallLeft}
+                  y1={bottomOverallDimensionY}
+                  x2={wallLeft + wallRenderWidth}
+                  y2={bottomOverallDimensionY}
+                  label={overallLengthLabel}
+                  textOffset={16}
+                />
 
-            <ElevationDimensionLine
-              x1={leftOverallDimensionX}
-              y1={wallTop}
-              x2={leftOverallDimensionX}
-              y2={wallBottom}
-              label={overallHeightLabel}
-              rotateText
-              textOffset={-30}
-            />
+                <ElevationDimensionLine
+                  x1={leftOverallDimensionX}
+                  y1={wallTop}
+                  x2={leftOverallDimensionX}
+                  y2={wallBottom}
+                  label={overallHeightLabel}
+                  rotateText
+                  textOffset={-30}
+                />
+              </>
+            )}
 
             {windowRenderItems.map((windowItem) => {
               const selected = windowItem.key === selectedWindowId;
@@ -6952,6 +7202,8 @@ function ElevationPlanView({
                       startPointer,
                       startCenterInches: windowItem.layout.centerInches,
                       startDistanceFromFloorInches: windowItem.windowItem.distanceFromFloorInches,
+                      grabOffsetCenterXInches: (startPointer.x - (wallLeft + windowItem.layout.centerInches * renderScale)) / renderScale,
+                      grabOffsetBottomYInches: ((wallBottom - windowItem.windowItem.distanceFromFloorInches * renderScale) - startPointer.y) / renderScale,
                       widthInches: windowItem.layout.widthInches,
                       heightInches: windowItem.windowItem.heightInches,
                     });
@@ -6986,6 +7238,8 @@ function ElevationPlanView({
                       startPointer,
                       startCenterInches: doorItem.layout.centerInches,
                       startDistanceFromFloorInches: doorItem.doorItem.distanceFromFloorInches,
+                      grabOffsetCenterXInches: (startPointer.x - (wallLeft + doorItem.layout.centerInches * renderScale)) / renderScale,
+                      grabOffsetBottomYInches: ((wallBottom - doorItem.doorItem.distanceFromFloorInches * renderScale) - startPointer.y) / renderScale,
                       widthInches: doorItem.layout.widthInches,
                       heightInches: doorItem.doorItem.heightInches,
                     });
@@ -7020,6 +7274,8 @@ function ElevationPlanView({
                       startDisplayStartInches: cabinetItem.displayStartInches,
                       depthVisualOffsetInches: cabinetItem.depthShiftXInches,
                       startDistanceFromFloorInches: cabinetItem.placement.distanceFromFloorInches,
+                      grabOffsetXInches: (startPointer.x - (wallLeft + cabinetItem.displayStartInches * renderScale)) / renderScale,
+                      grabOffsetBottomYInches: ((wallBottom - cabinetItem.placement.distanceFromFloorInches * renderScale) - startPointer.y) / renderScale,
                       widthInches: cabinetItem.placement.widthInches,
                       heightInches: cabinetItem.placement.heightInches,
                       category: cabinetItem.placement.category,
@@ -7045,7 +7301,7 @@ function ElevationPlanView({
               <ElevationAlignmentGuideOverlay key={`elevation-alignment-${index}`} guide={guideItem} />
             ))}
 
-            {topHorizontalDimensionItems.map((dimensionItem) => (
+            {showMeasurements && topHorizontalDimensionItems.map((dimensionItem) => (
               <g key={dimensionItem.key} pointerEvents="none">
                 <line x1={dimensionItem.left} y1={dimensionItem.anchorY} x2={dimensionItem.left} y2={topDetailDimensionY} stroke="#4f46e5" strokeWidth="1.4" opacity="0.75" />
                 <line x1={dimensionItem.right} y1={dimensionItem.anchorY} x2={dimensionItem.right} y2={topDetailDimensionY} stroke="#4f46e5" strokeWidth="1.4" opacity="0.75" />
@@ -7062,7 +7318,7 @@ function ElevationPlanView({
               </g>
             ))}
 
-            {bottomHorizontalDimensionItems.map((dimensionItem) => (
+            {showMeasurements && bottomHorizontalDimensionItems.map((dimensionItem) => (
               <g key={dimensionItem.key} pointerEvents="none">
                 <line x1={dimensionItem.left} y1={dimensionItem.anchorY} x2={dimensionItem.left} y2={bottomDetailDimensionY} stroke="#4f46e5" strokeWidth="1.4" opacity="0.75" />
                 <line x1={dimensionItem.right} y1={dimensionItem.anchorY} x2={dimensionItem.right} y2={bottomDetailDimensionY} stroke="#4f46e5" strokeWidth="1.4" opacity="0.75" />
@@ -7079,7 +7335,7 @@ function ElevationPlanView({
               </g>
             ))}
 
-            {verticalDetailDimensionItems.map((dimensionItem) => (
+            {showMeasurements && verticalDetailDimensionItems.map((dimensionItem) => (
               <g key={dimensionItem.key} pointerEvents="none">
                 <line x1={leftDetailDimensionX} y1={dimensionItem.top} x2={wallLeft} y2={dimensionItem.top} stroke="#4f46e5" strokeWidth="1.4" opacity="0.75" />
                 <line x1={leftDetailDimensionX} y1={dimensionItem.bottom} x2={wallLeft} y2={dimensionItem.bottom} stroke="#4f46e5" strokeWidth="1.4" opacity="0.75" />
@@ -10020,7 +10276,7 @@ function ContextPanel({
               type="button"
               onClick={() => onSelectCabinetCategory("base")}
               className={cn(
-                "h-8 rounded-md px-2 text-[13px] font-medium transition",
+                "flex min-h-[56px] items-center justify-center rounded-md px-2 py-2 text-center text-[13px] font-medium leading-tight transition",
                 cabinetCategoryTab === "base"
                   ? "bg-pelican-teal/25 text-pelican-navy"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -10032,7 +10288,7 @@ function ContextPanel({
               type="button"
               onClick={() => onSelectCabinetCategory("tall")}
               className={cn(
-                "h-8 rounded-md px-2 text-[13px] font-medium transition",
+                "flex min-h-[56px] items-center justify-center rounded-md px-2 py-2 text-center text-[13px] font-medium leading-tight transition",
                 cabinetCategoryTab === "tall"
                   ? "bg-pelican-teal/25 text-pelican-navy"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -10044,7 +10300,7 @@ function ContextPanel({
               type="button"
               onClick={() => onSelectCabinetCategory("wall")}
               className={cn(
-                "h-8 rounded-md px-2 text-[13px] font-medium transition",
+                "flex min-h-[56px] items-center justify-center rounded-md px-2 py-2 text-center text-[13px] font-medium leading-tight transition",
                 cabinetCategoryTab === "wall"
                   ? "bg-pelican-teal/25 text-pelican-navy"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -13230,9 +13486,10 @@ function describeArc(centerX: number, centerY: number, radius: number, startAngl
 function getDoorPlacementOnWall(
   point: Point,
   walls: Wall[],
-  width: number
+  width: number,
+  snapOptions: StructurePlacementSnapOptions = {}
 ): DoorPlacementPreview | null {
-  const placement = getWindowPlacementOnWall(point, walls, width);
+  const placement = getWindowPlacementOnWall(point, walls, width, snapOptions);
 
   if (!placement) return null;
 
@@ -13302,10 +13559,70 @@ function getDoorMenuPosition(
   };
 }
 
+function snapStructureCenterDistanceToNeighbor(
+  centerDistance: number,
+  width: number,
+  wall: Wall,
+  walls: Wall[],
+  options: StructurePlacementSnapOptions,
+  interiorStart: number,
+  interiorEnd: number
+) {
+  const wallLength = distance(wall.start, wall.end);
+  if (wallLength < 0.001) return centerDistance;
+
+  const halfWidth = width / 2;
+  const minCenter = interiorStart + halfWidth;
+  const maxCenter = interiorEnd - halfWidth;
+  const snapThreshold = inchesToPixels(3);
+  const snapTargets: { start: number; end: number }[] = [];
+
+  (options.windows ?? []).forEach((windowItem) => {
+    if (windowItem.id === options.excludeWindowId || windowItem.wallId !== wall.id) return;
+    const targetHalfWidth = windowItem.width / 2;
+    const targetCenter = clamp(windowItem.t * wallLength, targetHalfWidth, wallLength - targetHalfWidth);
+    snapTargets.push({ start: targetCenter - targetHalfWidth, end: targetCenter + targetHalfWidth });
+  });
+
+  (options.doors ?? []).forEach((doorItem) => {
+    if (doorItem.id === options.excludeDoorId || doorItem.wallId !== wall.id) return;
+    const targetHalfWidth = doorItem.width / 2;
+    const targetCenter = clamp(doorItem.t * wallLength, targetHalfWidth, wallLength - targetHalfWidth);
+    snapTargets.push({ start: targetCenter - targetHalfWidth, end: targetCenter + targetHalfWidth });
+  });
+
+  (options.cabinets ?? []).forEach((cabinetItem) => {
+    if (cabinetItem.id === options.excludeCabinetId) return;
+    if (cabinetItem.wallId && cabinetItem.wallId !== wall.id) return;
+    const projection = getCabinetProjectionOnWallAxis(cabinetItem, wall);
+    if (!projection) return;
+    snapTargets.push({ start: projection.startProjection, end: projection.endProjection });
+  });
+
+  let bestCenter = centerDistance;
+  let bestDistance = snapThreshold;
+
+  snapTargets.forEach((target) => {
+    const candidates = [target.start - halfWidth, target.end + halfWidth];
+
+    candidates.forEach((candidateCenter) => {
+      if (candidateCenter < minCenter - 0.001 || candidateCenter > maxCenter + 0.001) return;
+      const snapDistance = Math.abs(candidateCenter - centerDistance);
+      if (snapDistance <= bestDistance) {
+        bestDistance = snapDistance;
+        bestCenter = candidateCenter;
+      }
+    });
+  });
+
+  return clamp(bestCenter, minCenter, maxCenter);
+}
+
 function getWindowPlacementOnWall(
   point: Point,
   walls: Wall[],
-  width: number
+  width: number,
+  snapOptions: StructurePlacementSnapOptions = {}
 ): WindowPlacementPreview | null {
   let bestPlacement: WindowPlacementPreview | null = null;
   let bestDistance = Infinity;
@@ -13350,12 +13667,21 @@ function getWindowPlacementOnWall(
       interiorStart + width / 2,
       interiorEnd - width / 2
     );
-    const centerPoint = add(wall.start, mul(direction, clampedDistance));
+    const snappedDistance = snapStructureCenterDistanceToNeighbor(
+      clampedDistance,
+      width,
+      wall,
+      walls,
+      snapOptions,
+      interiorStart,
+      interiorEnd
+    );
+    const centerPoint = add(wall.start, mul(direction, snappedDistance));
 
     bestDistance = distanceToWall;
     bestPlacement = {
       wall,
-      t: clampedDistance / wallLength,
+      t: snappedDistance / wallLength,
       point: centerPoint,
       isValid: true,
     };
@@ -13367,9 +13693,10 @@ function getWindowPlacementOnWall(
 function getWindowPlacementPreviewForPoint(
   point: Point,
   walls: Wall[],
-  width: number
+  width: number,
+  snapOptions: StructurePlacementSnapOptions = {}
 ): WindowPlacementPreview {
-  return getWindowPlacementOnWall(point, walls, width) ?? {
+  return getWindowPlacementOnWall(point, walls, width, snapOptions) ?? {
     wall: null,
     t: 0,
     point,
@@ -13381,9 +13708,10 @@ function getWindowPlacementPreviewForPoint(
 function getDoorPlacementPreviewForPoint(
   point: Point,
   walls: Wall[],
-  width: number
+  width: number,
+  snapOptions: StructurePlacementSnapOptions = {}
 ): DoorPlacementPreview {
-  return getDoorPlacementOnWall(point, walls, width) ?? {
+  return getDoorPlacementOnWall(point, walls, width, snapOptions) ?? {
     wall: null,
     t: 0,
     point,
