@@ -441,7 +441,7 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
   {
     id: "base-corner-cabinet",
     category: "base",
-    title: "Corner Cabinet",
+    title: "L-Shaped Corner Cabinet",
     subtitle: '36" W x 36" D',
     widthInches: 36,
     depthInches: 36,
@@ -5136,6 +5136,108 @@ function ElevationBaseCabinetDetails({
   const drawerHandleWidth = Math.max(12, Math.min(34, width * 0.26));
   const drawerHandleX1 = x + width / 2 - drawerHandleWidth / 2;
   const drawerHandleX2 = x + width / 2 + drawerHandleWidth / 2;
+
+  if (image === "base-corner") {
+    const returnSectionWidth = Math.max(12, Math.min(innerWidth * 0.24, 26));
+    const mainSectionX = innerX + returnSectionWidth;
+    const mainSectionWidth = Math.max(0, innerWidth - returnSectionWidth);
+    const mainPanelInsetX = Math.max(4, mainSectionWidth * 0.05);
+    const mainPanelInsetY = Math.max(4, innerHeight * 0.06);
+    const mainPanelX = mainSectionX + mainPanelInsetX;
+    const mainPanelY = innerY + mainPanelInsetY;
+    const mainPanelWidth = Math.max(0, mainSectionWidth - mainPanelInsetX * 2);
+    const mainPanelHeight = Math.max(0, innerHeight - mainPanelInsetY * 2);
+    const returnPanelInsetX = Math.max(2.5, returnSectionWidth * 0.12);
+    const returnPanelInsetY = Math.max(4, innerHeight * 0.08);
+    const returnPanelX = innerX + returnPanelInsetX;
+    const returnPanelY = innerY + returnPanelInsetY;
+    const returnPanelWidth = Math.max(0, returnSectionWidth - returnPanelInsetX * 1.5);
+    const returnPanelHeight = Math.max(0, innerHeight - returnPanelInsetY * 2);
+    const mainDoorDividerX = mainPanelX + mainPanelWidth / 2;
+    const leftDoorHandleX = mainDoorDividerX - Math.max(6, Math.min(13, mainPanelWidth * 0.11));
+    const rightDoorHandleX = mainDoorDividerX + Math.max(6, Math.min(13, mainPanelWidth * 0.11));
+    const seamY = innerY + Math.max(4, innerHeight * 0.1);
+    const seamDrop = Math.max(5, Math.min(12, innerHeight * 0.14));
+    const returnKnobR = Math.max(1.2, Math.min(2.2, width * 0.015));
+
+    return (
+      <g>
+        <line
+          x1={mainSectionX}
+          y1={innerY}
+          x2={mainSectionX}
+          y2={innerY + innerHeight}
+          stroke={innerStroke}
+          strokeWidth="1.25"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={innerX + returnSectionWidth * 0.3}
+          y1={seamY}
+          x2={mainSectionX}
+          y2={seamY + seamDrop}
+          stroke={innerStroke}
+          strokeWidth="1.15"
+          vectorEffect="non-scaling-stroke"
+        />
+        <rect
+          x={returnPanelX}
+          y={returnPanelY}
+          width={returnPanelWidth}
+          height={returnPanelHeight}
+          fill="none"
+          stroke={innerStroke}
+          strokeWidth="1.15"
+          vectorEffect="non-scaling-stroke"
+        />
+        <circle
+          cx={returnPanelX + Math.max(3.5, returnPanelWidth * 0.2)}
+          cy={returnPanelY + returnPanelHeight * 0.42}
+          r={returnKnobR}
+          fill={handleStroke}
+        />
+        <rect
+          x={mainPanelX}
+          y={mainPanelY}
+          width={mainPanelWidth}
+          height={mainPanelHeight}
+          fill="none"
+          stroke={innerStroke}
+          strokeWidth="1.2"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={mainDoorDividerX}
+          y1={mainPanelY}
+          x2={mainDoorDividerX}
+          y2={mainPanelY + mainPanelHeight}
+          stroke={innerStroke}
+          strokeWidth="1.2"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={leftDoorHandleX}
+          y1={handleTop}
+          x2={leftDoorHandleX}
+          y2={handleTop + handleHeight}
+          stroke={handleStroke}
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={rightDoorHandleX}
+          y1={handleTop}
+          x2={rightDoorHandleX}
+          y2={handleTop + handleHeight}
+          stroke={handleStroke}
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </g>
+    );
+  }
 
   if (image === "base-drawer") {
     return (
@@ -11659,12 +11761,19 @@ function getCabinetCatalogPreviewFrame(image: CabinetImage) {
   return { x: 28, y: 28, width: 74, height: 50, category };
 }
 
+
+const L_SHAPED_CORNER_CABINET_DISPLAY_IMAGE = "data:image/webp;base64,UklGRsoMAABXRUJQVlA4IL4MAACQPgCdASrwALQAPjEYikOiIaERqV1MIAMEtLd9Siv9Wv//n/AgWhH8A/0/R/8v+f/SmEii+sz0EfzuQHY5eeP89rZ6UOez07vosfWy/32TV9APQb9J/bv7z+TnZW+MfZb5P8D9pf0EfEf07y7/xH97/bf+2+l/tr/nfta+QL8Y/kn9c/If+scY1l/9y/03879gj0s+Pf2b+xftt/gfjj6gfkB7h/6X6u+4B/mP2g/JnnJaAH5b/xn5Jf4D4bf6f/P/k17xfzX+3f7L+9fkj9jX8b/o/+W/vX7p/47///+77meqK/dIj4kVcofArG4kVcofArG4kVLMY69dPvFtLXpyib/rn7APcCaxtLlPtjY+GDL49jHfRr/l7DO4dNrdzVHw3aXIva5+S1QilxDN8tZp9EbaxihhE8O0zIwxULUjxskEJwI6kEigmmdRKwKAHD0hzNikRhXFNyvuWm2uinKcswpj432V3x5Fg9AqDHuTlukaasStZUluUo1l02iWN+iBz5JVOj3J6dnrYWoZ7KAPedSvTOUueXZo0OAGZaAibVbKjxKDwlctD9UxAHq8LOpMnWMmNhiVEq7i7d0f8U+wtTtdl51OdPCWy4+eOIzBxrxO6+4OIOJ56Xo/zWmKuSkUuyluIZd0NBaRJZdQdxIONxIq5Q+BWNxIq5QaAAD+/7cQAABG8aq+7TV/7xUfc+GB2mNd55z+P5iLHo+u5dc1dMV9YZS/cPEFqVZvTQFbnGRuvBvDinMObJpbww6KyA4z2ky/JWspNzctyOJ6ny86inHC4Xo9YNE2mwBA51422ADPNPHn9DARq1o4WVE9LI+tRUVvIR+cVm9V0r2O2EwoF6ovRWtNQxCabvE3dCkVtt5eVpsADTo8+u6xlXj1omoCgZ3rxPsp8WfF5jvZGUNdM6j12kiTR6vArylKvGLHDgJLoiWolqMxrtoWVKLUt1C2RXXrItAN9hKZMruXLfTq93W7Hn3Yqt+m/0zxWenRzWAeNw8MGXWi/YmbSjOuglsKKi3gbQ8ce1k042l8aXogWL40zhoE0L9HcWPACP4lGUe1tlOanb/t08FQYRFQeElqZY7ODDm7gRoUyeWukvxy8c/EuSlpFBZVlkQvpg8fAKv897cUzCnBQeZCG7v0iGZOmFzKMKrgO6Mf/gTATHtPA4t331Yro78fULWK3CQ1SO7dZN89f+OpMVfPr6+UTXtAyDkXJjojps1f4gkySpKTm8/M8qYiSql8+zejiPaVxUaFoJQBomPUrohwuqDG2cgoaptpAU/M3yrSx4z1YqRhc99GxFVAzTVlaxA9lp8CLbX1Wd0AMMknQGA6aBgt9ViNRH+Nl4sZyp5gBYlrCdZvtiR4SauKINcYrT0lHxDKjYKx+ls++q2YavzwagUnSU2MIynPWX5LnqxIkeSQt5MetxzLfrpvNIBarGa4VW6bgmncBS0mGXMlLBBHfOEjedosXaBZV3/3rdfQeAnmFylMh7KYc36p0ndLGzH5BdOkS3D0Kde51mNzVsHpnNcQM+9ltG9Rfsz2MfkdW2A+qb3I30K4wJssQh/n2O4685SGG4TMKyY4IMhTwN8JXEWso8wrgv7gL2L0cXsac7aNVTXqB53+oRZ87mTUyXnTe8ajrzRBZHlf2CzlK+TbWf2gbSfWvFtx/15xrWy1iowUw7otI/g0w//7yGz/mhFUjHSWepvXDAS0yd+ESOtNu8exeVp+gAui6Fp71gNMshyJ8Hoja8NQ8GyQr28Q7+NIruIrueArp4OecEaJ8K/PZCwtp19kUDWPmhZ9FGdZzQzP4IcHYad3hpRtjZT/51R0WGqYbBlWleTFR6aI7iBH3aQw2JtQBJKcj1AfJVZnBQEpaDaxeOij2/PexGhFBRruZ1yTcqnaJBKfs9LIFyLQHnESagWcWOU/w2Mz4r8OTCgUrWNXZ8FbFgK42JKS/vBaKqGhL4kwmAb1lt7l6M/gIX0NKvUEBK/J17Re76BdzMH6KSHZOlQqo/D+0oCl3z+n+C5nQ71zYxF2unl2OFF3tcrIoREz1T6eOCfixto7/g/zvRhd3VIKQpjmFgKZvkkF/s2N5Ei+5SZu1TeGz0aiP3rmiEXLRLWJu2XHZfs19DnuULxuovfrtoyz7OyLc9kNIqiRvziAisczrCZV0NZL3q2gInoBqSkLVdJGqRcUwFnG0Wo/oenN/xxoRxjLN/cgyrnQe5h8IleSVxmsJDb1r4LJJts5QwVJyBUIsrV6UCRN5SJdvdrXYxWbg+EI9wJ099kUBs1FVLayBs6j7fZd5DklMfOzg59HuSccYfIa+RZ+gJL8TmxFttdSj57gBCCukr+99N4djlhNnVYj+v6ORe+GEW7CdOxvWfxrGxUVp7LPQoFksH357FtSZqd1kB4+ksZo4724ZR7muYlweEfVWAsr0sPifvKWvunn0+XXuIiTlwApptGdL6acB0PyfqAwpxJ3OrxhbkcYAioXL0uZdKPYsduSGPUG0buYCfH8WHZ5zmwOD1lugUlYDavq0DMslXGUWSfMh5u8L+/jYmgD3X81xe5pFubl40iKUXXiTF4yVvkwhEWrnB4inylZGCX6a1O6fPQYsZURFHqr3+AUmW+CeZas7/N67WUJOtthrc4FI5olWziEHOtO5S2PNaEw+e2CzaEr0VYeYweZ+Wierwy7qWbl3lhRY07/ej/Gc57/UdgUic2ArzyyHjI2tnIxZRX9p8W2BYWvaQHQ9O6P4KpDxv2HH80oWPl5GiZzi088PTFeStdSIUyqUAf8lRVjEVyUbFpANdCzxFotfzU2cOH7Kv3sLCoUpTpQidPdO1tR00/A4D5d/o9y556q2i9zbD7RxZQVjTc9lT6Jhh5JEaZN+6SxFtvDhB4a+uPX12QKVTZW2E6rA5dluSTOGEIgQdaHQ5x2kstyHQ+NO+SaZT6Qa2DOIRSFj5oQrXpdwX3HYsWO907O4cZ3ZcGNPxFa5fexXKp5p25oYaitMHd5mnLY1sxRU6fH0l+KFR2f3AtQzX7onWhw8T6f2mqysSD0Bi0IsX0bjnnIcTjfQt9OicIldF7Hd99xa3yco353kJNbV3vnSAUT1v+7oBqp7C2y5E7Z8BAO8i0uslB0oH+da03whLHra34yu4SrGfYmvpIViyTkUDzXRsbjFcxgG+3BN1/lopVlIPVAzFG65F/mVHTCr/IqBg61rJnNZZzKmBaRt8jIkxZfIjJJeeE5Kq1HqB7vzqID/Y99KgzAQvvgCPqjXJyqw1IvpCyTl5zTBwBTaz3Y25tXMpU4LPgedhTe7rfwBNNfObxdilrCp1fShRyvK9s0Wtz4s8zm/KqdbGOwBbbUVQgNyMAlFevEP65X9C98g8o9Sd6CoBUTVDPDTxuCf1gBTyqBCHngf6y+DVOY1XGi4hwPrt49nnXbGB7bTHs8tIbAYLtlTeYespL0SM+TJvmxTZi+/2vPx3mrGmdMuuSYRh5LXcT6/sGgFYnXRhpM9Z99b6OpSM6SiTilbxPFaxIWZ5HQrifYzE0T35+6QET4okKui4ZH82LDw8jSx5XnZf8YTLhkwJ+EArwUSLuKAEhjuiV4AzGOJedXmGVI4VbQTuJyoLlh/EHCPlZ8aM2dDG6j3KAdGL+435EBzeIbZ5nJWHEIMzfMFSeWPayPfrZfK2sb4UhXDRhIYZNzrWolswjvnhDbOMHsOLGUR9FnzmFlt6+ubzA6V7BmTjB+LZiakmkCqH6N2YX/r+wurTGHHu/gm1vKrphdkoEg5Fk+BTxuYpSRZFbdOchkAniJsjTm6xPg/s6J7vNNrRRqSSkWLtnIfU7L6adqN3tMReKUfsG9LDFgysbSsmz+jgJmP75mBsltFB8DGH1W4QlJVbLa4wP7eIrePPvj9xeXZMJTg0F4ylVwYKBdXGGwJW0HTMn0waTJ5Ekc5XawxEJARWo0+UVj045LaLaZ0945qvpLtpPLnRrgNttTt4l2Tg77gUdv18EnqSQwlpq0vXxr6m9lAQsoVeI8epAuxs5mBY2o3BICOnQgoBUE/g8q+uRVy4KQSiMSK9BOKRQrCcNaBR+sYyd2thdXY+/LsxI28pPpkcmO7Qf71jDjuVb9aqw7Jvk6cgmN5rKujSjvaEPsuy2N62oOmZPYzUzkJfNDQii1Cl1nBfyhOeKfMyiTfN6okIMuTJeeSWVJG7yYeKSOOk4oLkXu/3fgYREhw39hsLI9iUCSKOh5ck+Lq1UJVpbmKUQ/Dz03+VC+M9Vt7ekftwAAFXetBNFcsGrhVL+BGj7hPd2wdB1EtRACjw5H0AAACPr8qotLHMbXIZ3dctIbXLhpGJrXO8uKIVtgAAAAAAAA";
+
 function CabinetCatalogImage({ image }: { image: CabinetImage }) {
   const frame = getCabinetCatalogPreviewFrame(image);
   const isSinkCabinet =
     image === "base-sink" ||
     image === "base-sink-one-door-panel" ||
     image === "base-sink-two-door-panel";
+
+  if (image === "base-corner") {
+    return <SimpleCornerBaseCabinetImage />;
+  }
 
   return (
     <svg viewBox="0 0 130 110" className="h-24 w-28">
@@ -11683,17 +11792,14 @@ function CabinetCatalogImage({ image }: { image: CabinetImage }) {
 
 function SimpleCornerBaseCabinetImage() {
   return (
-    <svg viewBox="0 0 130 110" className="h-24 w-28">
-      <defs><linearGradient id="cornerCabinetFaceGradient" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stopColor="#f8f5ef" /><stop offset="100%" stopColor="#ded9cf" /></linearGradient></defs>
-      <polygon points="24,34 54,24 102,24 114,31 64,31 54,38 54,82 24,73" fill="#ece8df" stroke="#c8c1b6" strokeWidth="1.4" />
-      <polygon points="102,24 114,31 114,83 102,76" fill="#d9d4cb" stroke="#bfb8ad" strokeWidth="1.4" />
-      <rect x="54" y="31" width="48" height="45" fill="url(#cornerCabinetFaceGradient)" stroke="#bfb8ad" strokeWidth="1.4" />
-      <polygon points="24,34 54,38 54,82 24,73" fill="#e9e4da" stroke="#bfb8ad" strokeWidth="1.4" />
-      <rect x="58" y="76" width="42" height="7" fill="#d1cbc1" stroke="#bbb3a8" strokeWidth="1" />
-      <rect x="27" y="73" width="27" height="7" fill="#d1cbc1" stroke="#bbb3a8" strokeWidth="1" />
-      <line x1="32" y1="29" x2="108" y2="29" stroke="#c6c1b8" strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="59" cy="51" r="1.25" fill="#aaa49b" />
-    </svg>
+    <div className="flex h-24 w-28 items-center justify-center">
+      <img
+        src={L_SHAPED_CORNER_CABINET_DISPLAY_IMAGE}
+        alt="L-Shaped Corner Cabinet"
+        className="h-full w-full object-contain"
+        draggable={false}
+      />
+    </div>
   );
 }
 
@@ -11888,9 +11994,23 @@ function CabinetOnFloor({
   onDragStart: (event: React.PointerEvent<SVGGElement>) => void;
   onRotateStart: (event: React.PointerEvent<SVGPathElement>) => void;
 }) {
-  const metrics = getCabinetWallDistanceMetrics(cabinetItem, walls);
   const dragInvalid = Boolean(dragPreview && !dragPreview.isValid);
-  const showDistanceGuides = selected && (!dragPreview || isCabinetAttachedToWallFace(cabinetItem, walls));
+  const visibleCabinet: CabinetElement = dragPreview
+    ? {
+        ...cabinetItem,
+        center: dragPreview.center,
+        width: dragPreview.width,
+        depth: dragPreview.depth,
+        rotation: dragPreview.rotation,
+        category: dragPreview.category,
+        image: dragPreview.image ?? cabinetItem.image,
+        wallId: dragPreview.wallId ?? cabinetItem.wallId,
+      }
+    : cabinetItem;
+
+  const metrics = getCabinetWallDistanceMetrics(visibleCabinet, walls);
+  const showDistanceGuides =
+    selected && (!dragPreview || isCabinetAttachedToWallFace(visibleCabinet, walls));
 
   return (
     <g>
@@ -11899,12 +12019,12 @@ function CabinetOnFloor({
         onPointerDown={disabled ? undefined : selected ? onDragStart : onSelect}
         style={{ cursor: disabled ? "default" : selected ? "move" : "pointer" }}
       >
-        <CabinetPlanShape cabinetItem={cabinetItem} selected={selected} invalid={dragInvalid} />
+        <CabinetPlanShape cabinetItem={visibleCabinet} selected={selected} invalid={dragInvalid} />
       </g>
       {selected && (
         <CabinetMoveRotateControl
-          cabinetItem={cabinetItem}
-          onRotateStart={onRotateStart}
+          cabinetItem={visibleCabinet}
+          onRotateStart={dragPreview || disabled ? undefined : onRotateStart}
           invalid={dragInvalid}
           showDegree={showDegree}
         />
@@ -12002,22 +12122,33 @@ function CabinetPlanSelectionOverlay({
   const { center, width, depth, rotation } = cabinetItem;
   const stroke = invalid ? "#ef4444" : "#22bfd6";
   const handleFill = invalid ? "#ef4444" : "#22bfd6";
+  const image = getCabinetImage(cabinetItem);
 
   return (
     <g
       transform={`translate(${center.x} ${center.y}) rotate(${rotation})`}
       pointerEvents="none"
     >
-      <rect
-        x={-width / 2}
-        y={-depth / 2}
-        width={width}
-        height={depth}
-        fill="none"
-        stroke={stroke}
-        strokeWidth="2.6"
-        vectorEffect="non-scaling-stroke"
-      />
+      {image === "base-corner" ? (
+        <path
+          d={getBaseCornerPlanPath(width, depth)}
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2.6"
+          vectorEffect="non-scaling-stroke"
+        />
+      ) : (
+        <rect
+          x={-width / 2}
+          y={-depth / 2}
+          width={width}
+          height={depth}
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2.6"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
       {[
         { x: 0, y: -depth / 2 },
         { x: width / 2, y: 0 },
@@ -12063,6 +12194,33 @@ function CabinetPreview({ preview, walls }: { preview: CabinetPlacementPreview; 
 }
 
 // CabinetPlanShape
+function getBaseCornerPlanPath(width: number, depth: number, inset = 0) {
+  const outerLeft = -width / 2;
+  const outerRight = width / 2;
+  const outerTop = -depth / 2;
+  const outerBottom = depth / 2;
+  const outerNotchX = outerLeft + width * 0.48;
+  const outerNotchY = outerTop + depth * 0.54;
+
+  if (inset <= 0) {
+    return `M ${outerLeft} ${outerTop} L ${outerRight} ${outerTop} L ${outerRight} ${outerBottom} L ${outerNotchX} ${outerBottom} L ${outerNotchX} ${outerNotchY} L ${outerLeft} ${outerNotchY} Z`;
+  }
+
+  const left = outerLeft + inset;
+  const right = outerRight - inset;
+  const top = outerTop + inset;
+  const bottom = outerBottom - inset;
+
+  // Local base-corner geometry has a bottom-left notch before rotation.
+  // For a consistent inset border, offset the concave notch edges toward the
+  // remaining cabinet body: the vertical notch edge moves right, and the
+  // horizontal notch edge moves up.
+  const notchX = Math.min(right, Math.max(left, outerNotchX + inset));
+  const notchY = Math.min(bottom, Math.max(top, outerNotchY - inset));
+
+  return `M ${left} ${top} L ${right} ${top} L ${right} ${bottom} L ${notchX} ${bottom} L ${notchX} ${notchY} L ${left} ${notchY} Z`;
+}
+
 function CabinetPlanShape({
   cabinetItem,
   selected = false,
@@ -12081,32 +12239,59 @@ function CabinetPlanShape({
   const stroke = invalid ? "#ef4444" : selected ? "#22bfd6" : "#475569";
   const innerStroke = invalid ? "#ef4444" : selected ? "#67e8f9" : "#64748b";
   const inset = Math.min(7, Math.max(3, Math.min(width, depth) * 0.16));
+  const image = getCabinetImage(cabinetItem);
+  const isLShapedCornerCabinet = image === "base-corner";
 
   return (
     <g transform={`translate(${center.x} ${center.y}) rotate(${rotation})`}>
-      <rect
-        x={-width / 2}
-        y={-depth / 2}
-        width={width}
-        height={depth}
-        fill={fill}
-        fillOpacity={fillOpacity}
-        stroke={stroke}
-        strokeWidth={selected ? 2.2 : 2}
-        vectorEffect="non-scaling-stroke"
-      />
-      {width > inset * 2 && depth > inset * 2 && (
-        <rect
-          x={-width / 2 + inset}
-          y={-depth / 2 + inset}
-          width={width - inset * 2}
-          height={depth - inset * 2}
-          fill="none"
-          stroke={innerStroke}
-          strokeWidth="1.2"
-          strokeOpacity={detailOpacity}
-          vectorEffect="non-scaling-stroke"
-        />
+      {isLShapedCornerCabinet ? (
+        <>
+          <path
+            d={getBaseCornerPlanPath(width, depth)}
+            fill={fill}
+            fillOpacity={fillOpacity}
+            stroke={stroke}
+            strokeWidth={selected ? 2.2 : 2}
+            vectorEffect="non-scaling-stroke"
+          />
+          {width > inset * 2 && depth > inset * 2 && (
+            <path
+              d={getBaseCornerPlanPath(width, depth, inset)}
+              fill="none"
+              stroke={innerStroke}
+              strokeWidth="1.2"
+              strokeOpacity={detailOpacity}
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+        </>
+      ) : (
+        <>
+          <rect
+            x={-width / 2}
+            y={-depth / 2}
+            width={width}
+            height={depth}
+            fill={fill}
+            fillOpacity={fillOpacity}
+            stroke={stroke}
+            strokeWidth={selected ? 2.2 : 2}
+            vectorEffect="non-scaling-stroke"
+          />
+          {width > inset * 2 && depth > inset * 2 && (
+            <rect
+              x={-width / 2 + inset}
+              y={-depth / 2 + inset}
+              width={width - inset * 2}
+              height={depth - inset * 2}
+              fill="none"
+              stroke={innerStroke}
+              strokeWidth="1.2"
+              strokeOpacity={detailOpacity}
+              vectorEffect="non-scaling-stroke"
+            />
+          )}
+        </>
       )}
       <CabinetPlanVariantDetails
         cabinetItem={cabinetItem}
@@ -14519,13 +14704,7 @@ function CabinetPlanVariantDetails({
   }
 
   if (image === "base-corner") {
-    return (
-      <g opacity={detailOpacity}>
-        {topLine}
-        <path d={`M ${-width / 2 + inset} ${depth / 2 - inset} L ${-width / 2 + inset} ${-depth / 2 + inset} L ${width / 2 - inset} ${-depth / 2 + inset}`} fill="none" stroke={stroke} strokeWidth="1.1" vectorEffect="non-scaling-stroke" />
-        <path d={`M ${-width / 2 + width * 0.45} ${depth / 2 - inset} L ${-width / 2 + width * 0.45} ${-depth / 2 + width * 0.45}`} fill="none" stroke={stroke} strokeWidth="1.1" vectorEffect="non-scaling-stroke" />
-      </g>
-    );
+    return null;
   }
 
   return <g opacity={detailOpacity}>{topLine}</g>;
@@ -14546,6 +14725,38 @@ function getCabinetPlanHandleTabRects(
   const tabWidth = Math.min(22, Math.max(10, cabinetItem.width * 0.18));
   const tabHeight = Math.min(8, Math.max(5, cabinetItem.depth * 0.18));
   const tabY = cabinetItem.depth / 2 - tabHeight * 0.12;
+
+  if (image === "base-corner") {
+    const left = -cabinetItem.width / 2;
+    const top = -cabinetItem.depth / 2;
+    const bottom = cabinetItem.depth / 2;
+    const innerX = left + cabinetItem.width * 0.48;
+    const innerY = top + cabinetItem.depth * 0.54;
+
+    // Define the handle placement in the cabinet's base local orientation,
+    // where the L-shape notch is on the bottom-left. The whole cabinet group
+    // is rotated afterward, so this local placement will rotate with it and
+    // match the user-facing orientation.
+    const horizontalWidth = Math.max(16, Math.min(24, tabWidth * 1.05));
+    const horizontalHeight = Math.max(5, Math.min(7, tabHeight));
+    const verticalWidth = Math.max(5, Math.min(7, tabHeight));
+    const verticalHeight = Math.max(16, Math.min(24, tabWidth * 1.05));
+
+    const notchVerticalCenterY = innerY + (bottom - innerY) * 0.44;
+    const notchHorizontalCenterX = left + (innerX - left) * 0.58;
+    const edgeGap = 1.5;
+
+    return [
+      {
+        // vertical handle on the inner vertical notch face, protruding into the notch
+        x: innerX - verticalWidth - edgeGap,
+        y: notchVerticalCenterY - verticalHeight / 2,
+        width: verticalWidth,
+        height: verticalHeight,
+      },
+    ];
+  }
+
   let tabCenters: number[];
 
   if (
