@@ -6,6 +6,7 @@ import type {
   AiRoomInput,
   AiWall,
   GeneratedKitchenLayout,
+  SmartKitchenPlacement,
   SmartKitchenPlan,
   SmartKitchenWallPlan,
 } from "@/lib/ai/types";
@@ -1499,6 +1500,15 @@ function getNormalizedWallPlans(
     wallPlans.set(wallPlan.wallId, {
       ...wallPlan,
       wallId: wallPlan.wallId,
+      wallLabel: wallPlan.wallLabel ?? wallPlan.wallId,
+      needsPlacement: wallPlan.needsPlacement ?? true,
+      placements: Array.isArray(wallPlan.placements)
+        ? wallPlan.placements.filter((placement) =>
+            Boolean(getCatalogItemById(room.catalog, placement.catalogId, "base")) ||
+            Boolean(getCatalogItemById(room.catalog, placement.catalogId, "wall")) ||
+            Boolean(getCatalogItemById(room.catalog, placement.catalogId, "tall"))
+          )
+        : undefined,
       sinkCatalogId:
         getCatalogItemById(room.catalog, wallPlan.sinkCatalogId, "base")?.id ?? null,
       pantryCatalogId:
@@ -1557,6 +1567,69 @@ function sortWallsByPlanOrder(
 
       return right.axis.lengthInches - left.axis.lengthInches;
     });
+}
+
+function getDefaultHeightInches(item: AiCatalogItem) {
+  return item.defaultHeightInches ?? (item.category === "wall" ? 30 : item.category === "tall" ? 84 : 34.5);
+}
+
+function applyPlacementTopOption(
+  cabinet: AiCabinet,
+  placement: SmartKitchenPlacement
+): AiCabinet {
+  if (placement.topOption === "sink") {
+    return {
+      ...cabinet,
+      sinkFixture: true,
+      cooktopFixture: undefined,
+      cooktopFrontHeightInches: undefined,
+    };
+  }
+
+  if (placement.topOption === "surface-cooktop") {
+    return {
+      ...cabinet,
+      sinkFixture: false,
+      cooktopFixture: "surface",
+      cooktopFrontHeightInches: undefined,
+    };
+  }
+
+  if (placement.topOption === "front-control-cooktop") {
+    return {
+      ...cabinet,
+      sinkFixture: false,
+      cooktopFixture: "front",
+      cooktopFrontHeightInches: 3,
+    };
+  }
+
+  return cabinet;
+}
+
+function addCabinetReservations(
+  baseReservations: Map<string, WallReservation[]>,
+  upperReservations: Map<string, WallReservation[]>,
+  wallId: string,
+  centerOffsetInches: number,
+  widthInches: number,
+  category: AiCabinetCategory
+) {
+  if (category === "base" || category === "tall") {
+    reserveCabinetFootprint(baseReservations, wallId, centerOffsetInches, widthInches, 1);
+  }
+
+  if (category === "wall" || category === "tall") {
+    reserveCabinetFootprint(upperReservations, wallId, centerOffsetInches, widthInches, 1);
+  }
+}
+
+function hasExplicitPlacementPlan(wallPlans: Map<string, NormalizedWallPlan>) {
+  return Array.from(wallPlans.values()).some(
+    (wallPlan) =>
+      wallPlan.needsPlacement !== undefined ||
+      Array.isArray(wallPlan.placements)
+  );
 }
 
 export function generateSmartKitchenLayout(
@@ -1628,6 +1701,105 @@ export function generateSmartKitchenLayout(
     upperReservations,
     notes
   );
+
+  if (hasExplicitPlacementPlan(wallPlans)) {
+    for (let wallIndex = 0; wallIndex < selectedWalls.length; wallIndex += 1) {
+      const wallEntry = selectedWalls[wallIndex];
+      const wallPlan = wallPlans.get(wallEntry.wall.id);
+
+      if (!wallPlan || wallPlan.needsPlacement === false) continue;
+
+      wallPlan.notes.forEach((note) => {
+        notes.push(`${wallPlan.wallLabel ?? `Wall ${wallIndex + 1}`}: ${note}`);
+      });
+
+      if ((wallPlan.placements?.length ?? 0) === 0) {
+        notes.push(`${wallPlan.wallLabel ?? `Wall ${wallIndex + 1}`}: left open intentionally.`);
+        continue;
+      }
+
+      for (const placement of wallPlan.placements ?? []) {
+        const catalogItem =
+          filteredRoom.catalog.find((item) => item.id === placement.catalogId) ?? null;
+
+        if (!catalogItem) continue;
+
+        const wallWidthInches = wallEntry.axis.lengthInches;
+        const leftInches = placement.leftInches;
+        const widthInches = catalogItem.widthInches;
+
+        if (leftInches < -0.01 || leftInches + widthInches > wallWidthInches + 0.01) {
+          notes.push(
+            `${wallPlan.wallLabel ?? `Wall ${wallIndex + 1}`}: skipped ${catalogItem.title.toLowerCase()} because it would exceed the wall width.`
+          );
+          continue;
+        }
+
+        const heightInches = getDefaultHeightInches(catalogItem);
+        const bottomInches =
+          catalogItem.category === "wall"
+            ? clamp(
+                placement.bottomInches ??
+                  catalogItem.defaultDistanceFromFloorInches ??
+                  54,
+                0,
+                96 - heightInches
+              )
+            : 0;
+        const centerOffsetInches =
+          -wallWidthInches / 2 + leftInches + widthInches / 2;
+
+        let plannedCabinet = placeCabinetOnWall({
+          wall: wallEntry.wall,
+          axis: wallEntry.axis,
+          catalogItem,
+          centerOffsetInches,
+          gridSize,
+          wallThickness,
+          distanceFromFloorInches: bottomInches,
+          heightInches,
+        });
+        plannedCabinet = {
+          ...applyPlacementTopOption(plannedCabinet, placement),
+          isProduct: catalogItem.isProduct ?? false,
+        };
+
+        if (cabinets.some((existing) => cabinetsOverlap(plannedCabinet, existing))) {
+          notes.push(
+            `${wallPlan.wallLabel ?? `Wall ${wallIndex + 1}`}: skipped ${catalogItem.title.toLowerCase()} because it would overlap an existing object.`
+          );
+          continue;
+        }
+
+        cabinets.push(plannedCabinet);
+        addCabinetReservations(
+          baseReservations,
+          upperReservations,
+          wallEntry.wall.id,
+          centerOffsetInches,
+          widthInches,
+          catalogItem.category
+        );
+      }
+    }
+
+    return {
+      room: filteredRoom,
+      cabinets,
+      summary: {
+        layoutType: plan.layoutType,
+        notes,
+        selectedWallIds: selectedWalls.map((item) => item.wall.id),
+        generationMethod: "smart-ai",
+        plannerModel: plan.plannerModel,
+      },
+      elevations: targetWalls.map((wall, index) => ({
+        wallId: wall.id,
+        label: `Wall ${index + 1}`,
+        cabinetCount: cabinets.filter((cabinet) => cabinet.wallId === wall.id).length,
+      })),
+    };
+  }
 
   if (corners.length > 0 && plan.layoutType !== "single-wall") {
     notes.push(

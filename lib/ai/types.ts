@@ -135,8 +135,24 @@ export type SmartKitchenWallRole =
   | "storage"
   | "upper-focus";
 
+export type SmartKitchenPlacementTopOption =
+  | "sink"
+  | "surface-cooktop"
+  | "front-control-cooktop";
+
+export type SmartKitchenPlacement = {
+  catalogId: string;
+  leftInches: number;
+  bottomInches?: number | null;
+  topOption?: SmartKitchenPlacementTopOption | null;
+  notes?: string[];
+};
+
 export type SmartKitchenWallPlan = {
   wallId: string;
+  wallLabel?: string | null;
+  needsPlacement?: boolean;
+  placements?: SmartKitchenPlacement[];
   role: SmartKitchenWallRole;
   placeSink: boolean;
   sinkCatalogId?: string | null;

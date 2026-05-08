@@ -998,6 +998,14 @@ export default function CabinetEditorBase({
             ? () => window.dispatchEvent(new Event("pelican-ai-start-wall-selection"))
             : undefined
         }
+        onDownloadSmartKitchenInput={
+          isAiPrototype
+            ? () =>
+                window.dispatchEvent(
+                  new Event("pelican-ai-download-smart-kitchen-input-request")
+                )
+            : undefined
+        }
         onGenerateKitchen={
           isAiPrototype
             ? () => window.dispatchEvent(new Event("pelican-ai-generate-kitchen-request"))
@@ -1201,6 +1209,7 @@ function TopBar({
   onImportRoom,
   onExportRoom,
   onStartWallSelection,
+  onDownloadSmartKitchenInput,
   onGenerateKitchen,
   onGenerateSmartKitchen,
   isGeneratingSmartKitchen = false,
@@ -1209,6 +1218,7 @@ function TopBar({
   onImportRoom?: () => void;
   onExportRoom?: () => void;
   onStartWallSelection?: () => void;
+  onDownloadSmartKitchenInput?: () => void;
   onGenerateKitchen?: () => void;
   onGenerateSmartKitchen?: () => void;
   isGeneratingSmartKitchen?: boolean;
@@ -1246,6 +1256,13 @@ function TopBar({
             icon={Scan}
             label="Select kitchen walls"
             onClick={onStartWallSelection}
+          />
+        ) : null}
+        {onDownloadSmartKitchenInput ? (
+          <TopAction
+            icon={Download}
+            label="Download smart input"
+            onClick={onDownloadSmartKitchenInput}
           />
         ) : null}
         {onGenerateKitchen ? (
@@ -1903,6 +1920,134 @@ function CanvasArea({
     },
     []
   );
+
+  useEffect(() => {
+    if (!enableAiPrototype) return undefined;
+
+    const handleDownloadSmartKitchenInputRequest = async () => {
+      const room = exportRoomInput({
+        walls: wallsRef.current as never,
+        windows: windowsRef.current as never,
+        doors: doorsRef.current as never,
+        cabinets: cabinetsRef.current as never,
+        catalog: CABINET_CATALOG as never,
+        gridSize: GRID_SIZE,
+        wallThickness: WALL_THICKNESS,
+      });
+
+      if (room.walls.length === 0) {
+        showEditorAlert(
+          "Draw thin walls and convert them into thick walls first, then download the smart kitchen input.",
+          "Smart input blocked"
+        );
+        return;
+      }
+
+      const currentGroupSelectedWallIds = groupSelectedWallIdsRef.current;
+      const currentSelectedWallId = selectedWallIdRef.current;
+      const selectedWallIds = [
+        ...(currentGroupSelectedWallIds.length > 0 ? currentGroupSelectedWallIds : []),
+        ...(currentGroupSelectedWallIds.length === 0 && currentSelectedWallId ? [currentSelectedWallId] : []),
+      ];
+      const selectedEditorWalls = Array.from(new Set(selectedWallIds))
+        .map((wallId) => wallsRef.current.find((wall) => wall.id === wallId) ?? null)
+        .filter((wall): wall is Wall => Boolean(wall && isThickWall(wall)));
+      const selectedThickWallIds = resolveSelectedAiWallIds(room.walls, selectedEditorWalls);
+
+      if (selectedWallIds.length > 0 && selectedEditorWalls.length === 0) {
+        showEditorAlert(
+          "Your current selection does not include any thick wall sides. Select one or more thick walls, or clear the selection to use all thick walls.",
+          "Smart input blocked"
+        );
+        return;
+      }
+
+      if (selectedEditorWalls.length > 0 && selectedThickWallIds.length === 0) {
+        showEditorAlert(
+          "The selected wall sides could not be matched to the exported AI room. Select the kitchen walls again, then download the smart kitchen input.",
+          "Smart input blocked"
+        );
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/smart-kitchen", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            room,
+            selectedWallIds:
+              selectedThickWallIds.length > 0 ? selectedThickWallIds : undefined,
+            designerFeedback: smartKitchenFeedbackRef.current.trim() || undefined,
+            previewOnly: true,
+          }),
+        });
+
+        const payload = (await response.json()) as {
+          error?: string;
+          preview?: unknown;
+        };
+
+        if (!response.ok || !payload.preview) {
+          showEditorAlert(
+            payload.error ??
+              "The smart kitchen input could not be prepared for download.",
+            "Smart input failed"
+          );
+          return;
+        }
+
+        const previewRequest = payload.preview as {
+          input?: Array<{
+            role?: string;
+            content?: Array<{
+              type?: string;
+              text?: string;
+            }>;
+          }>;
+        };
+        const userTextPayload =
+          previewRequest.input
+            ?.find((item) => item.role === "user")
+            ?.content?.find((item) => item.type === "input_text")
+            ?.text ?? null;
+
+        if (!userTextPayload) {
+          showEditorAlert(
+            "The smart kitchen input preview did not contain a downloadable user JSON payload.",
+            "Smart input failed"
+          );
+          return;
+        }
+
+        downloadJsonFile(
+          "pelican-smart-kitchen-ai-input.json",
+          JSON.parse(userTextPayload)
+        );
+      } catch (error) {
+        showEditorAlert(
+          error instanceof Error
+            ? error.message
+            : "The smart kitchen input request failed.",
+          "Smart input failed"
+        );
+      }
+    };
+
+    window.addEventListener(
+      "pelican-ai-download-smart-kitchen-input-request",
+      handleDownloadSmartKitchenInputRequest
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pelican-ai-download-smart-kitchen-input-request",
+        handleDownloadSmartKitchenInputRequest
+      );
+    };
+  }, [enableAiPrototype, showEditorAlert]);
 
   useEffect(() => {
     if (!enableAiPrototype) return undefined;

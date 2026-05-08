@@ -6,7 +6,9 @@ import {
   generateSmartKitchenLayout,
 } from "@/lib/ai/kitchenDesigner";
 import type {
+  AiPoint,
   AiRoomInput,
+  SmartKitchenPlacement,
   SmartKitchenPlan,
   SmartKitchenWallPlan,
 } from "@/lib/ai/types";
@@ -15,6 +17,7 @@ type SmartKitchenRequestBody = {
   room?: AiRoomInput;
   selectedWallIds?: string[];
   designerFeedback?: string;
+  previewOnly?: boolean;
 };
 
 type OpenAIResponsesOutputMessage = {
@@ -123,12 +126,808 @@ function toNullableNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function add(a: AiPoint, b: AiPoint): AiPoint {
+  return { x: a.x + b.x, y: a.y + b.y };
+}
+
+function sub(a: AiPoint, b: AiPoint): AiPoint {
+  return { x: a.x - b.x, y: a.y - b.y };
+}
+
+function mul(point: AiPoint, scalar: number): AiPoint {
+  return { x: point.x * scalar, y: point.y * scalar };
+}
+
+function dot(a: AiPoint, b: AiPoint) {
+  return a.x * b.x + a.y * b.y;
+}
+
+function perp(point: AiPoint): AiPoint {
+  return { x: -point.y, y: point.x };
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function pixelsToInches(pixels: number, gridSize: number) {
+  return (pixels / gridSize) * 12;
+}
+
+function pointsMatch(a: AiPoint, b: AiPoint, tolerance = 0.5) {
+  return Math.abs(a.x - b.x) <= tolerance && Math.abs(a.y - b.y) <= tolerance;
+}
+
+function pointKey(point: AiPoint) {
+  return `${Math.round(point.x)}:${Math.round(point.y)}`;
+}
+
+function samePoint(a: AiPoint, b: AiPoint) {
+  return Math.round(a.x) === Math.round(b.x) && Math.round(a.y) === Math.round(b.y);
+}
+
+function uniquePoints(points: AiPoint[]) {
+  const seen = new Set<string>();
+  const result: AiPoint[] = [];
+
+  for (const point of points) {
+    const key = pointKey(point);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(point);
+  }
+
+  return result;
+}
+
 function getWallLabelLookup(room: AiRoomInput) {
   return new Map(
     room.walls
       .filter((wall) => wall.kind !== "thin-wall")
       .map((wall, index) => [wall.id, `Wall ${index + 1}`] as const)
   );
+}
+
+function getWallHeightInches() {
+  return 96;
+}
+
+function getWallThicknessInches(room: AiRoomInput) {
+  return (room.meta.wallThickness / room.meta.gridSize) * 12;
+}
+
+function getRawWallLengthInches(room: AiRoomInput, wall: AiRoomInput["walls"][number]) {
+  return (
+    (Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y) / room.meta.gridSize) * 12
+  );
+}
+
+function getElevationWallAxis(wall: AiRoomInput["walls"][number]) {
+  const isMostlyHorizontal =
+    Math.abs(wall.end.x - wall.start.x) >= Math.abs(wall.end.y - wall.start.y);
+  const shouldFlip = isMostlyHorizontal
+    ? wall.start.x > wall.end.x
+    : wall.start.y > wall.end.y;
+  const start = shouldFlip ? wall.end : wall.start;
+  const end = shouldFlip ? wall.start : wall.end;
+  const length = distanceBetweenPoints(start, end);
+  const direction = length > 0.001 ? normalize(sub(end, start)) : { x: 1, y: 0 };
+  const normal = perp(direction);
+
+  return {
+    start,
+    end,
+    direction,
+    normal,
+    length,
+  };
+}
+
+function vectorLength(point: AiPoint) {
+  return Math.sqrt(dot(point, point));
+}
+
+function normalize(point: AiPoint): AiPoint {
+  const pointLength = vectorLength(point);
+  if (!pointLength) return { x: 0, y: 0 };
+  return {
+    x: point.x / pointLength,
+    y: point.y / pointLength,
+  };
+}
+
+function distanceBetweenPoints(a: AiPoint, b: AiPoint) {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+function midpoint(a: AiPoint, b: AiPoint): AiPoint {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  };
+}
+
+function lineIntersection(
+  p1: AiPoint,
+  d1: AiPoint,
+  p2: AiPoint,
+  d2: AiPoint
+) {
+  const crossValue = d1.x * d2.y - d1.y * d2.x;
+  if (Math.abs(crossValue) < 0.0001) return null;
+
+  const diff = sub(p2, p1);
+  const t = (diff.x * d2.y - diff.y * d2.x) / crossValue;
+  return add(p1, mul(d1, t));
+}
+
+function getNormal(a: AiPoint, b: AiPoint): AiPoint {
+  const unit = normalize(sub(b, a));
+  return {
+    x: -unit.y,
+    y: unit.x,
+  };
+}
+
+function getPreferredNormal(start: AiPoint, end: AiPoint): AiPoint {
+  const normal = getNormal(start, end);
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+
+  if (Math.abs(dy) < 0.001) return { x: 0, y: -1 };
+  if (dy < 0) {
+    return normal.y < 0 ? normal : { x: -normal.x, y: -normal.y };
+  }
+  if (dx >= 0) {
+    return normal.y > 0 ? normal : { x: -normal.x, y: -normal.y };
+  }
+
+  return normal.y > 0 ? normal : { x: -normal.x, y: -normal.y };
+}
+
+function getWallEndpoints(room: AiRoomInput) {
+  return room.walls
+    .filter((wall) => wall.kind !== "thin-wall")
+    .flatMap((wall) => [wall.start, wall.end]);
+}
+
+function buildWallChainsForMeasurement(room: AiRoomInput) {
+  const walls = room.walls.filter((wall) => wall.kind !== "thin-wall");
+  if (walls.length === 0) return [] as Array<{ points: AiPoint[] }>;
+
+  const pointToWalls = new Map<string, typeof walls>();
+
+  for (const wall of walls) {
+    for (const point of [wall.start, wall.end]) {
+      const key = pointKey(point);
+      pointToWalls.set(key, [...(pointToWalls.get(key) ?? []), wall]);
+    }
+  }
+
+  const usedWallIds = new Set<string>();
+  const chains: Array<{ points: AiPoint[] }> = [];
+
+  const getOtherPoint = (wall: AiRoomInput["walls"][number], point: AiPoint) =>
+    samePoint(wall.start, point) ? wall.end : wall.start;
+
+  const isPassThroughPoint = (point: AiPoint) =>
+    (pointToWalls.get(pointKey(point)) ?? []).length === 2;
+
+  const getContinuationWall = (
+    previousPoint: AiPoint,
+    currentPoint: AiPoint,
+    currentWall: AiRoomInput["walls"][number]
+  ) => {
+    const connectedWalls = pointToWalls.get(pointKey(currentPoint)) ?? [];
+    const unusedWalls = connectedWalls.filter(
+      (wall) => wall.id !== currentWall.id && !usedWallIds.has(wall.id)
+    );
+
+    if (unusedWalls.length === 0) return undefined;
+    if (connectedWalls.length === 2) return unusedWalls[0];
+
+    const incomingDirection = normalize(sub(currentPoint, previousPoint));
+    let bestWall: AiRoomInput["walls"][number] | undefined;
+    let bestDot = 0.999;
+
+    for (const wall of unusedWalls) {
+      const outgoingDirection = normalize(sub(getOtherPoint(wall, currentPoint), currentPoint));
+      const continuationDot = dot(incomingDirection, outgoingDirection);
+
+      if (continuationDot > bestDot) {
+        bestDot = continuationDot;
+        bestWall = wall;
+      }
+    }
+
+    return bestWall;
+  };
+
+  const walkChain = (startPoint: AiPoint, firstWall: AiRoomInput["walls"][number]) => {
+    const points: AiPoint[] = [startPoint];
+    let currentPoint = startPoint;
+    let currentWall: AiRoomInput["walls"][number] | undefined = firstWall;
+
+    while (currentWall && !usedWallIds.has(currentWall.id)) {
+      usedWallIds.add(currentWall.id);
+      const previousPoint = currentPoint;
+      const nextPoint = getOtherPoint(currentWall, currentPoint);
+      points.push(nextPoint);
+      currentPoint = nextPoint;
+      currentWall = getContinuationWall(previousPoint, currentPoint, currentWall);
+    }
+
+    return points;
+  };
+
+  const junctionOrOpenPoints = uniquePoints(
+    getWallEndpoints(room).filter((point) => !isPassThroughPoint(point))
+  ).sort((a, b) => {
+    const degreeA = pointToWalls.get(pointKey(a))?.length ?? 0;
+    const degreeB = pointToWalls.get(pointKey(b))?.length ?? 0;
+    return degreeA - degreeB;
+  });
+
+  for (const startPoint of junctionOrOpenPoints) {
+    for (const wall of pointToWalls.get(pointKey(startPoint)) ?? []) {
+      if (usedWallIds.has(wall.id)) continue;
+      chains.push({ points: walkChain(startPoint, wall) });
+    }
+  }
+
+  for (const wall of walls) {
+    if (usedWallIds.has(wall.id)) continue;
+    chains.push({ points: walkChain(wall.start, wall) });
+  }
+
+  return chains.filter((chain) => chain.points.length >= 2);
+}
+
+function getExteriorMeasurementSide(
+  wall: AiRoomInput["walls"][number],
+  room: AiRoomInput
+): "left" | "right" {
+  const wallPoints = getWallEndpoints(room);
+  if (wallPoints.length === 0) return "left";
+
+  const centroid = wallPoints.reduce(
+    (sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }),
+    { x: 0, y: 0 }
+  );
+  centroid.x /= wallPoints.length;
+  centroid.y /= wallPoints.length;
+
+  const segmentMidpoint = midpoint(wall.start, wall.end);
+  const direction = normalize(sub(wall.end, wall.start));
+  const leftNormal = perp(direction);
+  const outwardVector = sub(segmentMidpoint, centroid);
+
+  return dot(leftNormal, outwardVector) >= 0 ? "left" : "right";
+}
+
+function getConnectedDirectionsAtPoint(point: AiPoint, room: AiRoomInput) {
+  const directions = room.walls
+    .filter(
+      (wall) =>
+        wall.kind !== "thin-wall" &&
+        (pointsMatch(wall.start, point) || pointsMatch(wall.end, point))
+    )
+    .map((wall) => {
+      const otherPoint = pointsMatch(wall.start, point) ? wall.end : wall.start;
+      return normalize(sub(otherPoint, point));
+    })
+    .filter((direction) => vectorLength(direction));
+
+  const uniqueDirections: AiPoint[] = [];
+  for (const direction of directions) {
+    if (uniqueDirections.some((existingDirection) => dot(existingDirection, direction) > 0.999)) {
+      continue;
+    }
+    uniqueDirections.push(direction);
+  }
+
+  return uniqueDirections.sort(
+    (a, b) => Math.atan2(a.y, a.x) - Math.atan2(b.y, b.x)
+  );
+}
+
+function findMatchingDirectionIndex(directions: AiPoint[], target: AiPoint) {
+  let bestIndex = -1;
+  let bestDot = 0.999;
+
+  directions.forEach((direction, index) => {
+    const match = dot(direction, target);
+    if (match > bestDot) {
+      bestDot = match;
+      bestIndex = index;
+    }
+  });
+
+  return bestIndex;
+}
+
+function getMiterAnchorForDirectionPair(
+  room: AiRoomInput,
+  point: AiPoint,
+  firstDirection: AiPoint,
+  secondDirection: AiPoint,
+  whichSide: "first-left" | "second-right"
+) {
+  const halfThickness = room.meta.wallThickness / 2;
+  const firstLeftNormal = normalize(perp(firstDirection));
+  const secondRightNormal = mul(normalize(perp(secondDirection)), -1);
+  const firstOffsetPoint = add(point, mul(firstLeftNormal, halfThickness));
+  const secondOffsetPoint = add(point, mul(secondRightNormal, halfThickness));
+  const intersection = lineIntersection(
+    firstOffsetPoint,
+    firstDirection,
+    secondOffsetPoint,
+    secondDirection
+  );
+  const fallback = whichSide === "first-left" ? firstOffsetPoint : secondOffsetPoint;
+
+  if (!intersection) return fallback;
+
+  const distanceFromPoint = distanceBetweenPoints(point, intersection);
+  if (distanceFromPoint > room.meta.wallThickness * 2.25) {
+    return fallback;
+  }
+
+  return intersection;
+}
+
+function getMeasurementGuideAnchor(
+  room: AiRoomInput,
+  endpoint: AiPoint,
+  segmentNeighbor: AiPoint,
+  sideNormal: AiPoint
+) {
+  const segmentDirection = normalize(sub(segmentNeighbor, endpoint));
+  const wallFacePoint = add(endpoint, mul(sideNormal, room.meta.wallThickness / 2));
+
+  if (!vectorLength(segmentDirection)) return wallFacePoint;
+
+  const connectedDirections = getConnectedDirectionsAtPoint(endpoint, room);
+  if (connectedDirections.length <= 1) return wallFacePoint;
+
+  const matchingIndex = findMatchingDirectionIndex(connectedDirections, segmentDirection);
+  if (matchingIndex < 0) return wallFacePoint;
+
+  const leftNormal = normalize(perp(segmentDirection));
+  const isLeftSide = dot(sideNormal, leftNormal) >= 0;
+  const currentDirection = connectedDirections[matchingIndex];
+
+  if (isLeftSide) {
+    const nextDirection =
+      connectedDirections[(matchingIndex + 1) % connectedDirections.length];
+    return getMiterAnchorForDirectionPair(
+      room,
+      endpoint,
+      currentDirection,
+      nextDirection,
+      "first-left"
+    );
+  }
+
+  const previousDirection =
+    connectedDirections[
+      (matchingIndex - 1 + connectedDirections.length) % connectedDirections.length
+    ];
+
+  return getMiterAnchorForDirectionPair(
+    room,
+    endpoint,
+    previousDirection,
+    currentDirection,
+    "second-right"
+  );
+}
+
+function getWallSideMeasurementAnchor(
+  room: AiRoomInput,
+  segmentStart: AiPoint,
+  segmentEnd: AiPoint,
+  side: "left" | "right"
+) {
+  const direction = normalize(sub(segmentEnd, segmentStart));
+  const baseNormal = normalize(perp(direction));
+  const normal = side === "left" ? baseNormal : mul(baseNormal, -1);
+
+  return getMeasurementGuideAnchor(room, segmentStart, segmentEnd, normal);
+}
+
+function getWallSideMeasurementLayout(
+  room: AiRoomInput,
+  segmentStart: AiPoint,
+  segmentEnd: AiPoint,
+  side: "left" | "right"
+) {
+  const direction = normalize(sub(segmentEnd, segmentStart));
+  const baseNormal = normalize(perp(direction));
+  const normal = side === "left" ? baseNormal : mul(baseNormal, -1);
+  const lineOffsetFromWallFace = 14;
+
+  const startAnchor = getMeasurementGuideAnchor(room, segmentStart, segmentEnd, normal);
+  const endAnchor = getMeasurementGuideAnchor(room, segmentEnd, segmentStart, normal);
+  const lineStart = add(startAnchor, mul(normal, lineOffsetFromWallFace));
+  const lineEnd = add(endAnchor, mul(normal, lineOffsetFromWallFace));
+  const mid = midpoint(lineStart, lineEnd);
+
+  return {
+    lineStart,
+    lineEnd,
+    labelPoint: add(mid, mul(normal, 18)),
+  };
+}
+
+function getMergedMeasurementLayout(
+  firstLayout: ReturnType<typeof getWallSideMeasurementLayout>,
+  lastLayout: ReturnType<typeof getWallSideMeasurementLayout>
+) {
+  const lineStart = firstLayout.lineStart;
+  const lineEnd = lastLayout.lineEnd;
+  const mergedMidpoint = midpoint(lineStart, lineEnd);
+  const firstMidpoint = midpoint(firstLayout.lineStart, firstLayout.lineEnd);
+  const labelOffsetVector = sub(firstLayout.labelPoint, firstMidpoint);
+
+  return {
+    lineStart,
+    lineEnd,
+    labelPoint: add(mergedMidpoint, labelOffsetVector),
+  };
+}
+
+function isMultiWallMeasurementJunction(point: AiPoint, room: AiRoomInput) {
+  const connectedWalls = room.walls.filter(
+    (wall) =>
+      wall.kind !== "thin-wall" &&
+      (samePoint(wall.start, point) || samePoint(wall.end, point))
+  );
+
+  if (connectedWalls.length <= 2) return false;
+
+  const uniqueDirections: AiPoint[] = [];
+
+  for (const wall of connectedWalls) {
+    const otherPoint = samePoint(wall.start, point) ? wall.end : wall.start;
+    const direction = normalize(sub(otherPoint, point));
+    if (!vectorLength(direction)) continue;
+
+    if (
+      uniqueDirections.some(
+        (existingDirection) => Math.abs(dot(existingDirection, direction)) > 0.999
+      )
+    ) {
+      continue;
+    }
+
+    uniqueDirections.push(direction);
+  }
+
+  return uniqueDirections.length >= 2;
+}
+
+function shouldMergeMeasurementRun(
+  room: AiRoomInput,
+  points: AiPoint[],
+  index: number,
+  side: "left" | "right"
+) {
+  if (index >= points.length - 2) return false;
+
+  const currentStart = points[index];
+  const joint = points[index + 1];
+  const currentEnd = points[index + 1];
+  const nextEnd = points[index + 2];
+
+  if (isMultiWallMeasurementJunction(joint, room)) return false;
+
+  const currentDirection = normalize(sub(currentEnd, currentStart));
+  const nextDirection = normalize(sub(nextEnd, joint));
+
+  if (!vectorLength(currentDirection) || !vectorLength(nextDirection)) return false;
+  if (dot(currentDirection, nextDirection) < 0.999) return false;
+
+  const currentExteriorSide = getExteriorMeasurementSide(
+    { id: "", start: currentStart, end: currentEnd },
+    room
+  );
+  const nextExteriorSide = getExteriorMeasurementSide(
+    { id: "", start: joint, end: nextEnd },
+    room
+  );
+
+  return side === currentExteriorSide && side === nextExteriorSide;
+}
+
+function getStructureGuideEndpointsFromMeasurementRun(
+  room: AiRoomInput,
+  wall: AiRoomInput["walls"][number],
+  guideSide: "left" | "right"
+) {
+  const chains = buildWallChainsForMeasurement(room);
+  const direction = normalize(sub(wall.end, wall.start));
+
+  if (!vectorLength(direction)) return null;
+
+  const baseNormal = normalize(perp(direction));
+  const normal = guideSide === "left" ? baseNormal : mul(baseNormal, -1);
+  const sideFaceBase = add(wall.start, mul(normal, room.meta.wallThickness / 2));
+  const wallLineOffset = 14;
+
+  for (const chain of chains) {
+    const points = chain.points;
+    let segmentIndex = -1;
+    let isReversedInChain = false;
+
+    for (let index = 0; index < points.length - 1; index += 1) {
+      if (samePoint(points[index], wall.start) && samePoint(points[index + 1], wall.end)) {
+        segmentIndex = index;
+        isReversedInChain = false;
+        break;
+      }
+
+      if (samePoint(points[index], wall.end) && samePoint(points[index + 1], wall.start)) {
+        segmentIndex = index;
+        isReversedInChain = true;
+        break;
+      }
+    }
+
+    if (segmentIndex < 0) continue;
+
+    const chainGuideSide = isReversedInChain
+      ? guideSide === "left" ? "right" : "left"
+      : guideSide;
+    let runStart = segmentIndex;
+    let runEnd = segmentIndex;
+
+    while (runStart > 0 && shouldMergeMeasurementRun(room, points, runStart - 1, chainGuideSide)) {
+      runStart -= 1;
+    }
+
+    while (runEnd < points.length - 2 && shouldMergeMeasurementRun(room, points, runEnd, chainGuideSide)) {
+      runEnd += 1;
+    }
+
+    const firstLayout = getWallSideMeasurementLayout(
+      room,
+      points[runStart],
+      points[runStart + 1],
+      chainGuideSide
+    );
+    const lastLayout = getWallSideMeasurementLayout(
+      room,
+      points[runEnd],
+      points[runEnd + 1],
+      chainGuideSide
+    );
+    const mergedLayout = getMergedMeasurementLayout(firstLayout, lastLayout);
+
+    const startScalar = dot(
+      sub(add(mergedLayout.lineStart, mul(normal, -wallLineOffset)), wall.start),
+      direction
+    );
+    const endScalar = dot(
+      sub(add(mergedLayout.lineEnd, mul(normal, -wallLineOffset)), wall.start),
+      direction
+    );
+    const minScalar = Math.min(startScalar, endScalar);
+    const maxScalar = Math.max(startScalar, endScalar);
+
+    return {
+      startAnchor: add(sideFaceBase, mul(direction, minScalar)),
+      endAnchor: add(sideFaceBase, mul(direction, maxScalar)),
+    };
+  }
+
+  return null;
+}
+
+function getWallSideGuideRunLength(
+  room: AiRoomInput,
+  wall: AiRoomInput["walls"][number],
+  side: "left" | "right"
+) {
+  const runEndpoints = getStructureGuideEndpointsFromMeasurementRun(room, wall, side);
+  if (runEndpoints) {
+    return distanceBetweenPoints(runEndpoints.startAnchor, runEndpoints.endAnchor);
+  }
+
+  return distanceBetweenPoints(wall.start, wall.end);
+}
+
+function getInteriorMeasurementGuideSide(room: AiRoomInput, wall: AiRoomInput["walls"][number]) {
+  const direction = normalize(sub(wall.end, wall.start));
+  if (!vectorLength(direction)) return "left" as const;
+
+  const leftLength = getWallSideGuideRunLength(room, wall, "left");
+  const rightLength = getWallSideGuideRunLength(room, wall, "right");
+  const tolerance = 0.5;
+
+  if (leftLength + tolerance < rightLength) return "left" as const;
+  if (rightLength + tolerance < leftLength) return "right" as const;
+
+  const baseNormal = normalize(perp(direction));
+  const interiorNormal = mul(getPreferredNormal(wall.start, wall.end), -1);
+
+  return dot(interiorNormal, baseNormal) >= 0 ? "left" as const : "right" as const;
+}
+
+function getElevationWallSpanInches(room: AiRoomInput, wall: AiRoomInput["walls"][number]) {
+  const rawLengthInches = getRawWallLengthInches(room, wall);
+  const axis = getElevationWallAxis(wall);
+  const interiorSide = getInteriorMeasurementGuideSide(room, wall);
+  const runEndpoints = getStructureGuideEndpointsFromMeasurementRun(room, wall, interiorSide);
+
+  const fallbackStartAnchor = getWallSideMeasurementAnchor(
+    room,
+    wall.start,
+    wall.end,
+    interiorSide
+  );
+  const fallbackEndAnchor = getWallSideMeasurementAnchor(
+    room,
+    wall.end,
+    wall.start,
+    interiorSide
+  );
+  const startAnchor = runEndpoints?.startAnchor ?? fallbackStartAnchor;
+  const endAnchor = runEndpoints?.endAnchor ?? fallbackEndAnchor;
+  const startScalar = clamp(dot(sub(startAnchor, axis.start), axis.direction), 0, axis.length);
+  const endScalar = clamp(dot(sub(endAnchor, axis.start), axis.direction), 0, axis.length);
+  const spanStartPixels = Math.min(startScalar, endScalar);
+  const spanEndPixels = Math.max(startScalar, endScalar);
+  const lengthPixels = Math.max(0, spanEndPixels - spanStartPixels);
+
+  if (lengthPixels < 0.001) {
+    return {
+      rawLengthInches,
+      startInset: 0,
+      endInset: 0,
+      lengthInches: rawLengthInches,
+    };
+  }
+
+  const lengthInches = pixelsToInches(lengthPixels, room.meta.gridSize);
+
+  return {
+    rawLengthInches,
+    startInset: pixelsToInches(spanStartPixels, room.meta.gridSize),
+    endInset: Math.max(0, rawLengthInches - pixelsToInches(spanEndPixels, room.meta.gridSize)),
+    lengthInches,
+  };
+}
+
+function getCenterOffsetInchesForWall(
+  room: AiRoomInput,
+  wall: AiRoomInput["walls"][number],
+  point: AiPoint
+) {
+  const axis = getElevationWallAxis(wall);
+  const axisMidpoint = midpoint(axis.start, axis.end);
+  const direction = axis.direction;
+  return (
+    (((point.x - axisMidpoint.x) * direction.x + (point.y - axisMidpoint.y) * direction.y) /
+      room.meta.gridSize) *
+    12
+  );
+}
+
+function getElevationOffsets(params: {
+  room: AiRoomInput;
+  wall: AiRoomInput["walls"][number];
+  center: AiPoint;
+  widthInches: number;
+  bottomInches: number;
+}) {
+  const wallSpan = getElevationWallSpanInches(params.room, params.wall);
+  const centerOffsetInches = getCenterOffsetInchesForWall(params.room, params.wall, params.center);
+  const absoluteLeftFromRawStart =
+    wallSpan.rawLengthInches / 2 + centerOffsetInches - params.widthInches / 2;
+  const leftInches = absoluteLeftFromRawStart - wallSpan.startInset;
+  const rightInches = wallSpan.lengthInches - leftInches - params.widthInches;
+
+  return {
+    leftInches: Math.round(leftInches * 10) / 10,
+    rightInches: Math.round(rightInches * 10) / 10,
+    bottomInches: Math.round(params.bottomInches * 10) / 10,
+  };
+}
+
+function getTopOption(cabinetItem: AiRoomInput["cabinets"][number]) {
+  if (cabinetItem.sinkFixture) return "sink";
+  if (cabinetItem.cooktopFixture === "surface") return "surface-cooktop";
+  if (cabinetItem.cooktopFixture === "front") return "front-control-cooktop";
+  return null;
+}
+
+function summarizeCorners(room: AiRoomInput) {
+  const thickWalls = room.walls.filter((wall) => wall.kind !== "thin-wall");
+  const wallLabelLookup = getWallLabelLookup(room);
+  const corners: Array<{
+    cornerId: string;
+    point: AiPoint;
+    walls: Array<{
+      wallId: string;
+      wallLabel: string;
+      side: "start" | "end";
+    }>;
+  }> = [];
+
+  for (let index = 0; index < thickWalls.length; index += 1) {
+    for (let nextIndex = index + 1; nextIndex < thickWalls.length; nextIndex += 1) {
+      const first = thickWalls[index];
+      const second = thickWalls[nextIndex];
+      const matches: Array<{
+        point: AiPoint;
+        firstSide: "start" | "end";
+        secondSide: "start" | "end";
+      }> = [];
+
+      if (pointsMatch(first.start, second.start)) {
+        matches.push({ point: first.start, firstSide: "start", secondSide: "start" });
+      }
+      if (pointsMatch(first.start, second.end)) {
+        matches.push({ point: first.start, firstSide: "start", secondSide: "end" });
+      }
+      if (pointsMatch(first.end, second.start)) {
+        matches.push({ point: first.end, firstSide: "end", secondSide: "start" });
+      }
+      if (pointsMatch(first.end, second.end)) {
+        matches.push({ point: first.end, firstSide: "end", secondSide: "end" });
+      }
+
+      matches.forEach((match) => {
+        corners.push({
+          cornerId: `corner-${corners.length + 1}`,
+          point: {
+            x: Math.round(match.point.x * 10) / 10,
+            y: Math.round(match.point.y * 10) / 10,
+          },
+          walls: [
+            {
+              wallId: first.id,
+              wallLabel: wallLabelLookup.get(first.id) ?? first.id,
+              side: match.firstSide,
+            },
+            {
+              wallId: second.id,
+              wallLabel: wallLabelLookup.get(second.id) ?? second.id,
+              side: match.secondSide,
+            },
+          ],
+        });
+      });
+    }
+  }
+
+  return corners;
+}
+
+function normalizePlacement(value: unknown): SmartKitchenPlacement | null {
+  if (!value || typeof value !== "object") return null;
+
+  const candidate = value as Record<string, unknown>;
+  const catalogId = typeof candidate.catalogId === "string" ? candidate.catalogId : null;
+  const leftInches = toNullableNumber(candidate.leftInches);
+  const bottomInches = toNullableNumber(candidate.bottomInches);
+  const topOption =
+    candidate.topOption === "sink" ||
+    candidate.topOption === "surface-cooktop" ||
+    candidate.topOption === "front-control-cooktop"
+      ? candidate.topOption
+      : null;
+
+  if (!catalogId || leftInches === null) return null;
+
+  return {
+    catalogId,
+    leftInches,
+    bottomInches,
+    topOption,
+    notes: toStringArray(candidate.notes),
+  };
 }
 
 function normalizeWallPlan(
@@ -170,6 +969,11 @@ function normalizeWallPlan(
 
   return {
     wallId,
+    wallLabel: wallLabelLookup.get(wallId) ?? wallId,
+    needsPlacement: toBoolean(candidate.needsPlacement),
+    placements: (Array.isArray(candidate.placements) ? candidate.placements : [])
+      .map((placement) => normalizePlacement(placement))
+      .filter((placement): placement is SmartKitchenPlacement => Boolean(placement)),
     role,
     placeSink: toBoolean(candidate.placeSink),
     sinkCatalogId:
@@ -216,7 +1020,13 @@ function normalizeSmartKitchenPlan(
   }
 
   const candidate = rawPlan as Record<string, unknown>;
-  const normalizedWallPlans = (Array.isArray(candidate.wallPlans) ? candidate.wallPlans : [])
+  const normalizedWallPlans = (
+    Array.isArray(candidate.walls)
+      ? candidate.walls
+      : Array.isArray(candidate.wallPlans)
+        ? candidate.wallPlans
+        : []
+  )
     .map((wallPlan) => normalizeWallPlan(room, wallPlan))
     .filter((wallPlan): wallPlan is SmartKitchenWallPlan => Boolean(wallPlan));
 
@@ -246,55 +1056,102 @@ function normalizeSmartKitchenPlan(
   };
 }
 
-function summarizeRoom(room: AiRoomInput) {
+function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
   const wallLabelLookup = getWallLabelLookup(room);
+  const selectedWallSet = selectedWallIds?.length ? new Set(selectedWallIds) : null;
+  const corners = summarizeCorners(room);
+
   return room.walls
     .filter((wall) => wall.kind !== "thin-wall")
     .map((wall) => {
       const dx = Math.abs(wall.end.x - wall.start.x);
       const dy = Math.abs(wall.end.y - wall.start.y);
-      const lengthInches =
-        (Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y) / room.meta.gridSize) *
-        12;
-      const midpoint = {
-        x: (wall.start.x + wall.end.x) / 2,
-        y: (wall.start.y + wall.end.y) / 2,
-      };
-      const directionLength = Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y) || 1;
-      const direction = {
-        x: (wall.end.x - wall.start.x) / directionLength,
-        y: (wall.end.y - wall.start.y) / directionLength,
-      };
+      const wallSpan = getElevationWallSpanInches(room, wall);
+      const lengthInches = wallSpan.lengthInches;
+      const wallHeightInches = getWallHeightInches();
+      const matchingCorners = corners.filter((corner) =>
+        corner.walls.some((cornerWall) => cornerWall.wallId === wall.id)
+      );
 
       return {
         wallId: wall.id,
         wallLabel: wallLabelLookup.get(wall.id) ?? wall.id,
-        lengthInches: Math.round(lengthInches * 10) / 10,
-        orientation: dx >= dy ? "horizontal" : "vertical",
-        windows: room.windows
-          .filter((windowItem) => windowItem.wallId === wall.id)
-          .map((windowItem) => ({
-            widthInches: Math.round((windowItem.width / room.meta.gridSize) * 12 * 10) / 10,
-            heightInches: windowItem.heightInches,
-            distanceFromFloorInches: windowItem.distanceFromFloorInches,
-          })),
-        doors: room.doors
-          .filter((doorItem) => doorItem.wallId === wall.id)
-          .map((doorItem) => ({
-            widthInches: Math.round((doorItem.width / room.meta.gridSize) * 12 * 10) / 10,
-            heightInches: doorItem.heightInches,
-            distanceFromFloorInches: doorItem.distanceFromFloorInches,
-          })),
-        prePlacedObjects: room.cabinets
+        needsPlacement: selectedWallSet ? selectedWallSet.has(wall.id) : true,
+        floorPlan: {
+          orientation: dx >= dy ? "horizontal" : "vertical",
+          start: {
+            x: Math.round(wall.start.x * 10) / 10,
+            y: Math.round(wall.start.y * 10) / 10,
+          },
+          end: {
+            x: Math.round(wall.end.x * 10) / 10,
+            y: Math.round(wall.end.y * 10) / 10,
+          },
+          lengthInches: Math.round(lengthInches * 10) / 10,
+          connectedCornerIds: matchingCorners.map((corner) => corner.cornerId),
+        },
+        elevationPlan: {
+          widthInches: Math.round(lengthInches * 10) / 10,
+          heightInches: wallHeightInches,
+          leftCornerId:
+            matchingCorners.find((corner) =>
+              corner.walls.some(
+                (cornerWall) => cornerWall.wallId === wall.id && cornerWall.side === "start"
+              )
+            )?.cornerId ?? null,
+          rightCornerId:
+            matchingCorners.find((corner) =>
+              corner.walls.some(
+                (cornerWall) => cornerWall.wallId === wall.id && cornerWall.side === "end"
+              )
+            )?.cornerId ?? null,
+        },
+        fixedObjects: [
+          ...room.windows
+            .filter((windowItem) => windowItem.wallId === wall.id)
+            .map((windowItem) => {
+              const widthInches =
+                Math.round((windowItem.width / room.meta.gridSize) * 12 * 10) / 10;
+              const centerOffsetInches =
+                windowItem.t * lengthInches;
+              const leftInches = lengthInches / 2 + centerOffsetInches - widthInches / 2;
+              const rightInches = lengthInches - leftInches - widthInches;
+
+              return {
+                id: windowItem.id,
+                type: "window",
+                leftInches: Math.round(leftInches * 10) / 10,
+                rightInches: Math.round(rightInches * 10) / 10,
+                bottomInches: Math.round(windowItem.distanceFromFloorInches * 10) / 10,
+                widthInches,
+                heightInches: Math.round(windowItem.heightInches * 10) / 10,
+              };
+            }),
+          ...room.doors
+            .filter((doorItem) => doorItem.wallId === wall.id)
+            .map((doorItem) => {
+              const widthInches =
+                Math.round((doorItem.width / room.meta.gridSize) * 12 * 10) / 10;
+              const centerOffsetInches =
+                doorItem.t * lengthInches;
+              const leftInches = lengthInches / 2 + centerOffsetInches - widthInches / 2;
+              const rightInches = lengthInches - leftInches - widthInches;
+
+              return {
+                id: doorItem.id,
+                type: "door",
+                leftInches: Math.round(leftInches * 10) / 10,
+                rightInches: Math.round(rightInches * 10) / 10,
+                bottomInches: Math.round(doorItem.distanceFromFloorInches * 10) / 10,
+                widthInches,
+                heightInches: Math.round(doorItem.heightInches * 10) / 10,
+              };
+            }),
+          ...room.cabinets
           .filter((cabinetItem) => cabinetItem.wallId === wall.id)
           .map((cabinetItem) => {
             const catalogItem =
               room.catalog.find((item) => item.id === cabinetItem.catalogId) ?? null;
-            const centerOffsetInches =
-              (((cabinetItem.center.x - midpoint.x) * direction.x +
-                (cabinetItem.center.y - midpoint.y) * direction.y) /
-                room.meta.gridSize) *
-              12;
             const widthInches =
               Math.round(((cabinetItem.width / room.meta.gridSize) * 12) * 10) / 10;
             const heightInches =
@@ -303,26 +1160,33 @@ function summarizeRoom(room: AiRoomInput) {
               cabinetItem.distanceFromFloorInches ??
               catalogItem?.defaultDistanceFromFloorInches ??
               0;
+            const elevationOffsets = getElevationOffsets({
+              room,
+              wall,
+              center: cabinetItem.center,
+              widthInches,
+              bottomInches: distanceFromFloorInches,
+            });
 
             return {
               id: cabinetItem.id,
+              type:
+                cabinetItem.isProduct ?? catalogItem?.isProduct ? "product" : "cabinet",
               catalogId: cabinetItem.catalogId ?? null,
               title: catalogItem?.title ?? "Placed object",
               category: cabinetItem.category ?? catalogItem?.category ?? "base",
               image: cabinetItem.image ?? catalogItem?.image ?? null,
-              isProduct: cabinetItem.isProduct ?? catalogItem?.isProduct ?? false,
+              topOption: getTopOption(cabinetItem),
               widthInches,
               depthInches:
                 Math.round(((cabinetItem.depth / room.meta.gridSize) * 12) * 10) / 10,
               heightInches,
-              distanceFromFloorInches,
-              centerOffsetInches: Math.round(centerOffsetInches * 10) / 10,
-              spanStartInches: Math.round((centerOffsetInches - widthInches / 2) * 10) / 10,
-              spanEndInches: Math.round((centerOffsetInches + widthInches / 2) * 10) / 10,
-              sinkFixture: cabinetItem.sinkFixture ?? false,
-              cooktopFixture: cabinetItem.cooktopFixture ?? null,
+              leftInches: elevationOffsets.leftInches,
+              rightInches: elevationOffsets.rightInches,
+              bottomInches: elevationOffsets.bottomInches,
             };
           }),
+        ],
       };
     });
 }
@@ -332,13 +1196,13 @@ function summarizeCatalog(room: AiRoomInput) {
     id: item.id,
     category: item.category,
     title: item.title,
-    widthInches: item.widthInches,
-    depthInches: item.depthInches,
     image: item.image,
+    widthInches: item.widthInches,
+    heightInches: item.defaultHeightInches ?? null,
+    depthInches: item.depthInches,
+    bottomInches: item.defaultDistanceFromFloorInches ?? null,
     isProduct: item.isProduct ?? false,
     productCategory: item.productCategory ?? null,
-    defaultHeightInches: item.defaultHeightInches ?? null,
-    defaultDistanceFromFloorInches: item.defaultDistanceFromFloorInches ?? null,
   }));
 }
 
@@ -399,11 +1263,12 @@ export async function POST(request: Request) {
   }
 
   const selectedWallIds = body.selectedWallIds?.length ? body.selectedWallIds : undefined;
-  const roomForGeneration = filterRoomForKitchenGeneration(body.room, selectedWallIds);
+  const fullRoom = body.room;
+  const roomForGeneration = filterRoomForKitchenGeneration(fullRoom, selectedWallIds);
   const designerFeedback =
     typeof body.designerFeedback === "string" ? body.designerFeedback.trim() : "";
 
-  if (roomForGeneration.walls.length === 0) {
+  if (fullRoom.walls.filter((wall) => wall.kind !== "thin-wall").length === 0) {
     return NextResponse.json(
       { error: "No thick walls were available for smart kitchen generation." },
       { status: 400 }
@@ -411,13 +1276,18 @@ export async function POST(request: Request) {
   }
 
   const plannerModel = process.env.OPENAI_SMART_KITCHEN_MODEL ?? "gpt-5.5";
-  const summarizedWalls = summarizeRoom(roomForGeneration);
-  const summarizedCatalog = summarizeCatalog(roomForGeneration);
+  const summarizedWalls = summarizeWalls(fullRoom, selectedWallIds);
+  const summarizedCatalog = summarizeCatalog(fullRoom);
+  const summarizedCorners = summarizeCorners(fullRoom);
   const plannerInput = {
-    selectedWallIds: selectedWallIds ?? roomForGeneration.walls.map((wall) => wall.id),
+    selectedWallIds: selectedWallIds ?? fullRoom.walls
+      .filter((wall) => wall.kind !== "thin-wall")
+      .map((wall) => wall.id),
     selectedWallLabels: summarizedWalls.map((wall) => wall.wallLabel),
+    corners: summarizedCorners,
     walls: summarizedWalls,
     catalog: summarizedCatalog,
+    catalogVersion: `${summarizedCatalog.length}-items`,
     designerFeedback: designerFeedback || null,
   };
 
@@ -426,20 +1296,97 @@ export async function POST(request: Request) {
     "Return JSON only.",
     "Keep the JSON compact and complete.",
     "Use the provided cabinet catalog IDs exactly when selecting cabinets.",
-    "Choose the wall order, sink wall, optional tall-unit placement, upper cabinet strategy, and cabinet patterns so the kitchen feels practical, balanced, realistic, and attractive in both floor plan and especially elevation view.",
-    "Treat pre-placed objects as fixed. Do not move, replace, or overlap them.",
-    "Respect door and window openings. Do not block doors. Avoid placing uppers across windows unless the wall should simply stay open.",
-    "It is valid to leave a wall partly or fully empty when the openings, preserved objects, or composition make that the better choice.",
-    "Optimize for a polished customer-facing elevation: balanced compositions, sensible alignments, good negative space, and intentional framing around ranges, windows, refrigerators, ovens, and tall units.",
+    "The input walls describe the room in both floor plan and elevation plan. Use all walls to understand the room shape, but only place new objects on walls where needsPlacement is true.",
+    "Treat fixedObjects as fixed. Do not move, replace, or overlap them.",
+    "Respect door and window openings. Do not block doors. Avoid placing uppers across windows unless that wall should stay visually open.",
+    "Design for both top view and especially the customer-facing elevation view.",
+    "Use the corner connections and wall order to understand which walls form corners.",
+    "Place cabinets and products creatively using the catalog, with realistic kitchen composition such as sink and cleanup zones, range-plus-hood relationships, refrigerator framing, balanced uppers, and intentional negative space.",
     "Tall pantry or other tall storage is optional, not required. Only use it when it improves the design.",
-    "Wall cabinets may use different mounting heights on different walls when that improves the elevation composition.",
-    "Use real-life kitchen composition instincts such as sink-under-window opportunities, balanced framing around major appliances, and sensible work-zone spacing.",
+    "Wall cabinets and wall products may use different bottom heights when that improves the elevation composition.",
     "If the user provided designer feedback, treat it as high-priority guidance unless it would cause collisions or block an opening.",
     "Keep notes very short: at most 2 overall notes and at most 2 notes per wall.",
-    "Prefer concise cabinet patterns. Do not over-explain.",
+    "Return explicit placements using leftInches and bottomInches. Do not return cabinet patterns.",
     "Avoid inventing unavailable cabinet IDs.",
     "Keep notes concise and practical.",
   ].join(" ");
+
+  const aiPlannerRequestPayload = {
+    model: plannerModel,
+    reasoning: {
+      effort: "medium",
+    },
+    max_output_tokens: 5000,
+    text: {
+      format: {
+        type: "json_object",
+      },
+    },
+    input: [
+      {
+        role: "system",
+        content: [
+          {
+            type: "input_text",
+            text: plannerInstructions,
+          },
+        ],
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: JSON.stringify({
+              task:
+                "Plan a smart kitchen using the room walls, fixed objects, and the available cabinet/product catalog.",
+              outputShape: {
+                layoutType: "single-wall | galley | l-shape",
+                wallOrder: ["wall-id-1", "wall-id-2"],
+                notes: ["overall design note"],
+                walls: [
+                  {
+                    wallId: "wall id",
+                    wallLabel: "Wall 2",
+                    needsPlacement: true,
+                    placements: [
+                      {
+                        catalogId: "catalog id",
+                        leftInches: 12,
+                        bottomInches: 0,
+                        topOption:
+                          "null | sink | surface-cooktop | front-control-cooktop",
+                        notes: ["optional short placement note"],
+                      },
+                    ],
+                    notes: ["short wall-specific note"],
+                  },
+                ],
+              },
+              importantRules: [
+                "Only include wall objects for walls where needsPlacement is true.",
+                "If a selected wall should stay empty, return that wall with placements: [].",
+                "For floor-standing cabinets/products, bottomInches should be 0.",
+                "For wall-mounted cabinets/products, choose bottomInches to make the elevation look good.",
+                "Do not overlap any fixedObjects or new placements on the same wall.",
+                "Use the provided wallLabel values such as Wall 1 and Wall 2 to understand designer feedback.",
+                "Return wallId when possible. wallLabel is also accepted if needed.",
+                "Keep the response compact so the JSON finishes completely.",
+              ],
+              plannerInput,
+            }),
+          },
+        ],
+      },
+    ],
+  };
+
+  if (body.previewOnly) {
+    return NextResponse.json({
+      preview: aiPlannerRequestPayload,
+      plannerInput,
+    });
+  }
 
   const plannerResponse = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -447,72 +1394,7 @@ export async function POST(request: Request) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model: plannerModel,
-      reasoning: {
-        effort: "medium",
-      },
-      max_output_tokens: 5000,
-      text: {
-        format: {
-          type: "json_object",
-        },
-      },
-      input: [
-        {
-          role: "system",
-          content: [
-            {
-              type: "input_text",
-              text: plannerInstructions,
-            },
-          ],
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: JSON.stringify({
-                task:
-                  "Plan a smart kitchen using the selected walls and the available cabinet catalog.",
-                outputShape: {
-                  layoutType: "single-wall | galley | l-shape",
-                  wallOrder: ["wall-id-1", "wall-id-2"],
-                  notes: ["overall design note"],
-                  wallPlans: [
-                    {
-                      wallId: "wall id",
-                      role: "primary | secondary | storage | upper-focus",
-                      placeSink: true,
-                      sinkCatalogId: "catalog id or null",
-                      placePantry: false,
-                      pantryCatalogId: "catalog id or null",
-                      placeHood: true,
-                      upperFeatureCatalogId: "catalog id or null",
-                      upperDistanceFromFloorInches: 54,
-                      upperFeatureDistanceFromFloorInches: 54,
-                      basePattern: ["catalog-id", "catalog-id"],
-                      upperPattern: ["catalog-id"],
-                      notes: ["short wall-specific note"],
-                    },
-                  ],
-                },
-                importantRules: [
-                  "If a wall should not receive new base cabinets, set basePattern to [] and keep placeSink/placePantry false.",
-                  "If a wall should not receive new upper cabinets, set upperPattern to [] and keep placeHood false.",
-                  "Pre-placed objects are already on the selected walls and must stay in place.",
-                  "Use the provided wallLabel values such as Wall 1 and Wall 2 to understand designer feedback.",
-                  "Return wallId when possible. wallLabel is also accepted if needed.",
-                  "Keep the response compact so the JSON finishes completely.",
-                ],
-                plannerInput,
-              }),
-            },
-          ],
-        },
-      ],
-    }),
+    body: JSON.stringify(aiPlannerRequestPayload),
   });
 
   if (!plannerResponse.ok) {
@@ -567,8 +1449,8 @@ export async function POST(request: Request) {
     });
   }
 
-  const plan = normalizeSmartKitchenPlan(roomForGeneration, rawPlan, plannerModel);
-  const smartLayout = generateSmartKitchenLayout(roomForGeneration, plan, {
+  const plan = normalizeSmartKitchenPlan(fullRoom, rawPlan, plannerModel);
+  const smartLayout = generateSmartKitchenLayout(fullRoom, plan, {
     selectedWallIds,
   });
 
