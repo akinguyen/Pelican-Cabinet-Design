@@ -998,6 +998,14 @@ export default function CabinetEditorBase({
             ? () => window.dispatchEvent(new Event("pelican-ai-start-wall-selection"))
             : undefined
         }
+        onDownloadSmartKitchenInput={
+          isAiPrototype
+            ? () =>
+                window.dispatchEvent(
+                  new Event("pelican-ai-download-smart-kitchen-input-request")
+                )
+            : undefined
+        }
         onGenerateKitchen={
           isAiPrototype
             ? () => window.dispatchEvent(new Event("pelican-ai-generate-kitchen-request"))
@@ -1201,6 +1209,7 @@ function TopBar({
   onImportRoom,
   onExportRoom,
   onStartWallSelection,
+  onDownloadSmartKitchenInput,
   onGenerateKitchen,
   onGenerateSmartKitchen,
   isGeneratingSmartKitchen = false,
@@ -1209,6 +1218,7 @@ function TopBar({
   onImportRoom?: () => void;
   onExportRoom?: () => void;
   onStartWallSelection?: () => void;
+  onDownloadSmartKitchenInput?: () => void;
   onGenerateKitchen?: () => void;
   onGenerateSmartKitchen?: () => void;
   isGeneratingSmartKitchen?: boolean;
@@ -1246,6 +1256,13 @@ function TopBar({
             icon={Scan}
             label="Select kitchen walls"
             onClick={onStartWallSelection}
+          />
+        ) : null}
+        {onDownloadSmartKitchenInput ? (
+          <TopAction
+            icon={Download}
+            label="Download smart input"
+            onClick={onDownloadSmartKitchenInput}
           />
         ) : null}
         {onGenerateKitchen ? (
@@ -1903,6 +1920,134 @@ function CanvasArea({
     },
     []
   );
+
+  useEffect(() => {
+    if (!enableAiPrototype) return undefined;
+
+    const handleDownloadSmartKitchenInputRequest = async () => {
+      const room = exportRoomInput({
+        walls: wallsRef.current as never,
+        windows: windowsRef.current as never,
+        doors: doorsRef.current as never,
+        cabinets: cabinetsRef.current as never,
+        catalog: CABINET_CATALOG as never,
+        gridSize: GRID_SIZE,
+        wallThickness: WALL_THICKNESS,
+      });
+
+      if (room.walls.length === 0) {
+        showEditorAlert(
+          "Draw thin walls and convert them into thick walls first, then download the smart kitchen input.",
+          "Smart input blocked"
+        );
+        return;
+      }
+
+      const currentGroupSelectedWallIds = groupSelectedWallIdsRef.current;
+      const currentSelectedWallId = selectedWallIdRef.current;
+      const selectedWallIds = [
+        ...(currentGroupSelectedWallIds.length > 0 ? currentGroupSelectedWallIds : []),
+        ...(currentGroupSelectedWallIds.length === 0 && currentSelectedWallId ? [currentSelectedWallId] : []),
+      ];
+      const selectedEditorWalls = Array.from(new Set(selectedWallIds))
+        .map((wallId) => wallsRef.current.find((wall) => wall.id === wallId) ?? null)
+        .filter((wall): wall is Wall => Boolean(wall && isThickWall(wall)));
+      const selectedThickWallIds = resolveSelectedAiWallIds(room.walls, selectedEditorWalls);
+
+      if (selectedWallIds.length > 0 && selectedEditorWalls.length === 0) {
+        showEditorAlert(
+          "Your current selection does not include any thick wall sides. Select one or more thick walls, or clear the selection to use all thick walls.",
+          "Smart input blocked"
+        );
+        return;
+      }
+
+      if (selectedEditorWalls.length > 0 && selectedThickWallIds.length === 0) {
+        showEditorAlert(
+          "The selected wall sides could not be matched to the exported AI room. Select the kitchen walls again, then download the smart kitchen input.",
+          "Smart input blocked"
+        );
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/smart-kitchen", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            room,
+            selectedWallIds:
+              selectedThickWallIds.length > 0 ? selectedThickWallIds : undefined,
+            designerFeedback: smartKitchenFeedbackRef.current.trim() || undefined,
+            previewOnly: true,
+          }),
+        });
+
+        const payload = (await response.json()) as {
+          error?: string;
+          preview?: unknown;
+        };
+
+        if (!response.ok || !payload.preview) {
+          showEditorAlert(
+            payload.error ??
+              "The smart kitchen input could not be prepared for download.",
+            "Smart input failed"
+          );
+          return;
+        }
+
+        const previewRequest = payload.preview as {
+          input?: Array<{
+            role?: string;
+            content?: Array<{
+              type?: string;
+              text?: string;
+            }>;
+          }>;
+        };
+        const userTextPayload =
+          previewRequest.input
+            ?.find((item) => item.role === "user")
+            ?.content?.find((item) => item.type === "input_text")
+            ?.text ?? null;
+
+        if (!userTextPayload) {
+          showEditorAlert(
+            "The smart kitchen input preview did not contain a downloadable user JSON payload.",
+            "Smart input failed"
+          );
+          return;
+        }
+
+        downloadJsonFile(
+          "pelican-smart-kitchen-ai-input.json",
+          JSON.parse(userTextPayload)
+        );
+      } catch (error) {
+        showEditorAlert(
+          error instanceof Error
+            ? error.message
+            : "The smart kitchen input request failed.",
+          "Smart input failed"
+        );
+      }
+    };
+
+    window.addEventListener(
+      "pelican-ai-download-smart-kitchen-input-request",
+      handleDownloadSmartKitchenInputRequest
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pelican-ai-download-smart-kitchen-input-request",
+        handleDownloadSmartKitchenInputRequest
+      );
+    };
+  }, [enableAiPrototype, showEditorAlert]);
 
   useEffect(() => {
     if (!enableAiPrototype) return undefined;
@@ -3251,7 +3396,12 @@ useEffect(() => {
             0,
             cabinetsRef.current,
             undefined,
-            selectedCabinetCategory
+            selectedCabinetCategory,
+            true,
+            false,
+            true,
+            undefined,
+            selectedCabinetCatalogItem.image
           )
         : null;
 
@@ -3429,7 +3579,8 @@ useEffect(() => {
         true,
         true,
         false,
-        currentCabinet.wallId
+        currentCabinet.wallId,
+        currentCabinet.image
       );
 
       if (!preview.isValid) return;
@@ -3458,6 +3609,7 @@ useEffect(() => {
         depth: currentCabinet.depth,
         rotation: resolvedPreview.rotation,
         cabinetCategory: currentCabinet.category,
+        cabinetImage: currentCabinet.image,
         excludedCabinetId: currentCabinet.id,
         preferredWallId: resolvedPreview.wallId ?? currentCabinet.wallId,
       });
@@ -3512,7 +3664,8 @@ useEffect(() => {
         false,
         false,
         true,
-        wallResolvedPreview.wallId ?? currentCabinet.wallId
+        wallResolvedPreview.wallId ?? currentCabinet.wallId,
+        currentCabinet.image
       );
 
       const movingCabinetForElevationCheck: CabinetElement = {
@@ -3699,7 +3852,12 @@ useEffect(() => {
             0,
             cabinetsRef.current,
             undefined,
-            selectedCabinetCategory
+            selectedCabinetCategory,
+            true,
+            false,
+            true,
+            undefined,
+            selectedCabinetCatalogItem.image
           )
         : null;
 
@@ -7265,6 +7423,11 @@ type ElevationCornerReservation = {
   widthInches: number;
   heightInches: number;
   distanceFromFloorInches: number;
+  boundary?: "start" | "end";
+  boundaryDistanceInches?: number;
+  distanceToSharedCornerPixels?: number;
+  wallFaceGapPixels?: number;
+  coveredSameWallCorner?: boolean;
 };
 
 function getCabinetDisplayTitle(cabinetItem: CabinetElement) {
@@ -7289,10 +7452,325 @@ function getCabinetDisplayTitle(cabinetItem: CabinetElement) {
   return category === "wall" ? "Wall cabinet" : "Base cabinet";
 }
 
-function getElevationCornerReservationsForWall(
+function isLShapedCornerCabinet(cabinetItem: Partial<Pick<CabinetElement, "image" | "category">>) {
+  return getCabinetImage(cabinetItem) === "base-corner";
+}
+
+function getCabinetPlanBodyPolygon(
+  cabinetItem: Pick<CabinetElement, "center" | "width" | "depth" | "rotation"> & Partial<Pick<CabinetElement, "image" | "category">>
+): Point[] {
+  const radians = degreesToRadians(cabinetItem.rotation);
+  const cosValue = Math.cos(radians);
+  const sinValue = Math.sin(radians);
+  const halfWidth = cabinetItem.width / 2;
+  const halfDepth = cabinetItem.depth / 2;
+  const left = -halfWidth;
+  const right = halfWidth;
+  const top = -halfDepth;
+  const bottom = halfDepth;
+  const image = getCabinetImage(cabinetItem);
+  const localPoints = image === "base-corner"
+    ? [
+        { x: left, y: top },
+        { x: right, y: top },
+        { x: right, y: bottom },
+        { x: left + cabinetItem.width * 0.48, y: bottom },
+        { x: left + cabinetItem.width * 0.48, y: top + cabinetItem.depth * 0.54 },
+        { x: left, y: top + cabinetItem.depth * 0.54 },
+      ]
+    : [
+        { x: left, y: top },
+        { x: right, y: top },
+        { x: right, y: bottom },
+        { x: left, y: bottom },
+      ];
+
+  return localPoints.map((point) => ({
+    x: cabinetItem.center.x + point.x * cosValue - point.y * sinValue,
+    y: cabinetItem.center.y + point.x * sinValue + point.y * cosValue,
+  }));
+}
+
+function rangesOverlapOrTouchInches(firstStart: number, firstEnd: number, secondStart: number, secondEnd: number, tolerance = 0) {
+  return firstStart <= secondEnd + tolerance && secondStart <= firstEnd + tolerance;
+}
+
+function getCabinetAttachedWallForElevationFootprint(
+  cabinetItem: CabinetElement,
+  walls: Wall[],
+  attachmentTolerance: number
+): Wall | null {
+  if (cabinetItem.wallId) {
+    return walls.find((candidateWall) => candidateWall.id === cabinetItem.wallId) ?? null;
+  }
+
+  return getBestCabinetWallAttachment(cabinetItem, walls, attachmentTolerance)?.wall ?? null;
+}
+
+function getCoveredSameWallCornerCabinetIdsForElevation(
   wall: Wall,
   cabinets: CabinetElement[],
   walls: Wall[]
+): Set<string> {
+  const coveredIds = new Set<string>();
+  const axis = getElevationWallAxis(wall);
+  if (axis.length < 0.001) return coveredIds;
+
+  const thickWalls = walls.filter(isThickWall);
+  const attachmentTolerance = Math.max(WALL_ATTACH_THRESHOLD, WALL_THICKNESS / 2 + 8);
+  const sharedEndpointTolerance = Math.max(2, WALL_THICKNESS + 4);
+  const cornerTouchTolerancePixels = Math.max(inchesToPixels(3), WALL_THICKNESS + 8);
+  const bodyTouchTolerancePixels = Math.max(2, inchesToPixels(0.75));
+  const elevationOverlapToleranceInches = 1.5;
+  const perpendicularTolerance = 0.12;
+
+  cabinets.forEach((cornerCabinet) => {
+    if (!isLShapedCornerCabinet(cornerCabinet)) return;
+
+    const cornerAttachedWall = getCabinetAttachedWallForElevationFootprint(
+      cornerCabinet,
+      thickWalls,
+      attachmentTolerance
+    );
+    if (!cornerAttachedWall || cornerAttachedWall.id !== wall.id) return;
+
+    const cornerPlacement = getCabinetElevationPlacementsForWall(wall, [cornerCabinet], thickWalls)[0] ?? null;
+    if (!cornerPlacement) return;
+
+    const cornerStart = cornerPlacement.startInches;
+    const cornerEnd = cornerPlacement.startInches + cornerPlacement.widthInches;
+    const touchesStartBoundary = cornerStart <= pixelsToInches(cornerTouchTolerancePixels);
+    const touchesEndBoundary = pixelsToInches(axis.length) - cornerEnd <= pixelsToInches(cornerTouchTolerancePixels);
+    if (!touchesStartBoundary && !touchesEndBoundary) return;
+
+    const cornerPolygon = getCabinetPlanBodyPolygon(cornerCabinet);
+
+    const hasCoveringBaseCabinet = cabinets.some((otherCabinet) => {
+      if (otherCabinet.id === cornerCabinet.id) return false;
+      if (isLShapedCornerCabinet(otherCabinet)) return false;
+      if (getCabinetElevationCategory(otherCabinet) === "wall") return false;
+
+      const otherAttachedWall = getCabinetAttachedWallForElevationFootprint(
+        otherCabinet,
+        thickWalls,
+        attachmentTolerance
+      );
+      if (!otherAttachedWall) return false;
+
+      if (otherAttachedWall.id === wall.id) {
+        const otherPlacement = getCabinetElevationPlacementsForWall(wall, [otherCabinet], thickWalls)[0] ?? null;
+        if (!otherPlacement) return false;
+
+        const otherStart = otherPlacement.startInches;
+        const otherEnd = otherPlacement.startInches + otherPlacement.widthInches;
+        const touchesCornerInElevation = rangesOverlapOrTouchInches(
+          cornerStart,
+          cornerEnd,
+          otherStart,
+          otherEnd,
+          elevationOverlapToleranceInches
+        );
+        if (!touchesCornerInElevation) return false;
+
+        return polygonsOverlapForCabinetBlocking(
+          cornerPolygon,
+          getCabinetPlanBodyPolygon(otherCabinet)
+        ) || Math.max(
+          getCabinetPlanOccupiedBounds(cornerCabinet).minX - getCabinetPlanOccupiedBounds(otherCabinet).maxX,
+          getCabinetPlanOccupiedBounds(otherCabinet).minX - getCabinetPlanOccupiedBounds(cornerCabinet).maxX,
+          getCabinetPlanOccupiedBounds(cornerCabinet).minY - getCabinetPlanOccupiedBounds(otherCabinet).maxY,
+          getCabinetPlanOccupiedBounds(otherCabinet).minY - getCabinetPlanOccupiedBounds(cornerCabinet).maxY,
+          0
+        ) <= bodyTouchTolerancePixels;
+      }
+
+      const sharedEndpoint = getSharedWallEndpoint(wall, otherAttachedWall, sharedEndpointTolerance);
+      if (!sharedEndpoint) return false;
+
+      const otherAxis = getElevationWallAxis(otherAttachedWall);
+      if (otherAxis.length < 0.001) return false;
+      const parallelAmount = Math.abs(dot(axis.direction, otherAxis.direction));
+      if (parallelAmount > perpendicularTolerance) return false;
+
+      const cornerRangeOnActiveWall = cabinetProjectionRangeRelativeToWallAxis(cornerCabinet, axis);
+      const sharedScalarOnActiveWall = dot(sub(sharedEndpoint, axis.start), axis.direction);
+      const cornerReachesSharedEndpoint = Math.max(
+        cornerRangeOnActiveWall.min - sharedScalarOnActiveWall,
+        sharedScalarOnActiveWall - cornerRangeOnActiveWall.max,
+        0
+      ) <= cornerTouchTolerancePixels;
+      if (!cornerReachesSharedEndpoint) return false;
+
+      const otherRangeOnAttachedWall = cabinetProjectionRangeRelativeToWallAxis(otherCabinet, otherAxis);
+      const sharedScalarOnAttachedWall = dot(sub(sharedEndpoint, otherAxis.start), otherAxis.direction);
+      const otherReachesSharedEndpoint = Math.max(
+        otherRangeOnAttachedWall.min - sharedScalarOnAttachedWall,
+        sharedScalarOnAttachedWall - otherRangeOnAttachedWall.max,
+        0
+      ) <= Math.max(cornerTouchTolerancePixels, Math.max(cornerCabinet.width, cornerCabinet.depth));
+
+      if (!otherReachesSharedEndpoint) return false;
+
+      return polygonsOverlapForCabinetBlocking(
+        cornerPolygon,
+        getCabinetPlanBodyPolygon(otherCabinet)
+      ) || Math.max(
+        getCabinetPlanOccupiedBounds(cornerCabinet).minX - getCabinetPlanOccupiedBounds(otherCabinet).maxX,
+        getCabinetPlanOccupiedBounds(otherCabinet).minX - getCabinetPlanOccupiedBounds(cornerCabinet).maxX,
+        getCabinetPlanOccupiedBounds(cornerCabinet).minY - getCabinetPlanOccupiedBounds(otherCabinet).maxY,
+        getCabinetPlanOccupiedBounds(otherCabinet).minY - getCabinetPlanOccupiedBounds(cornerCabinet).maxY,
+        0
+      ) <= bodyTouchTolerancePixels;
+    });
+
+    if (hasCoveringBaseCabinet) {
+      coveredIds.add(cornerCabinet.id);
+    }
+  });
+
+  return coveredIds;
+}
+
+function wallsShareEndpoint(firstWall: Wall, secondWall: Wall, tolerance = 2) {
+  return [firstWall.start, firstWall.end].some((firstPoint) =>
+    [secondWall.start, secondWall.end].some((secondPoint) =>
+      distance(firstPoint, secondPoint) <= tolerance
+    )
+  );
+}
+
+function getSharedWallEndpoint(firstWall: Wall, secondWall: Wall, tolerance = 2): Point | null {
+  for (const firstPoint of [firstWall.start, firstWall.end]) {
+    for (const secondPoint of [secondWall.start, secondWall.end]) {
+      if (distance(firstPoint, secondPoint) <= tolerance) {
+        return {
+          x: (firstPoint.x + secondPoint.x) / 2,
+          y: (firstPoint.y + secondPoint.y) / 2,
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+function getReservationBoundaryForWall(
+  reservation: Pick<ElevationCornerReservation, "startInches" | "widthInches" | "boundary">,
+  wallLengthInches: number
+): "start" | "end" {
+  if (reservation.boundary) return reservation.boundary;
+
+  const endInches = reservation.startInches + reservation.widthInches;
+  return reservation.startInches <= wallLengthInches - endInches ? "start" : "end";
+}
+
+function getReservationBoundaryDistanceInches(
+  reservation: Pick<ElevationCornerReservation, "startInches" | "widthInches" | "boundary" | "boundaryDistanceInches">,
+  wallLengthInches: number
+): number {
+  if (reservation.boundaryDistanceInches !== undefined) {
+    return reservation.boundaryDistanceInches;
+  }
+
+  const boundary = getReservationBoundaryForWall(reservation, wallLengthInches);
+  return boundary === "start"
+    ? reservation.startInches
+    : Math.max(0, wallLengthInches - (reservation.startInches + reservation.widthInches));
+}
+
+function compareElevationCornerReservations(
+  left: ElevationCornerReservation,
+  right: ElevationCornerReservation,
+  wallLengthInches: number
+): number {
+  const leftWallFaceGap = left.wallFaceGapPixels ?? 0;
+  const rightWallFaceGap = right.wallFaceGapPixels ?? 0;
+  if (Math.abs(leftWallFaceGap - rightWallFaceGap) > 0.001) {
+    return leftWallFaceGap - rightWallFaceGap;
+  }
+
+  const leftSharedCornerDistance = left.distanceToSharedCornerPixels ?? inchesToPixels(
+    getReservationBoundaryDistanceInches(left, wallLengthInches)
+  );
+  const rightSharedCornerDistance = right.distanceToSharedCornerPixels ?? inchesToPixels(
+    getReservationBoundaryDistanceInches(right, wallLengthInches)
+  );
+  if (Math.abs(leftSharedCornerDistance - rightSharedCornerDistance) > 0.001) {
+    return leftSharedCornerDistance - rightSharedCornerDistance;
+  }
+
+  const leftBoundaryDistance = getReservationBoundaryDistanceInches(left, wallLengthInches);
+  const rightBoundaryDistance = getReservationBoundaryDistanceInches(right, wallLengthInches);
+  if (Math.abs(leftBoundaryDistance - rightBoundaryDistance) > 0.001) {
+    return leftBoundaryDistance - rightBoundaryDistance;
+  }
+
+  const leftCoveredCorner = left.coveredSameWallCorner ? 0 : 1;
+  const rightCoveredCorner = right.coveredSameWallCorner ? 0 : 1;
+  if (leftCoveredCorner !== rightCoveredCorner) {
+    return leftCoveredCorner - rightCoveredCorner;
+  }
+
+  const leftIsCorner = isLShapedCornerCabinet(left.sourceCabinet) ? 0 : 1;
+  const rightIsCorner = isLShapedCornerCabinet(right.sourceCabinet) ? 0 : 1;
+  if (leftIsCorner !== rightIsCorner) {
+    return leftIsCorner - rightIsCorner;
+  }
+
+  return right.widthInches - left.widthInches;
+}
+
+function dedupeElevationCornerReservationsByClosestCabinet(
+  reservations: ElevationCornerReservation[],
+  wallLengthInches: number
+): ElevationCornerReservation[] {
+  const verticalOverlapToleranceInches = 1;
+  const boundaryClusterToleranceInches = Math.max(6, pixelsToInches(WALL_THICKNESS) + 2);
+  const groups: ElevationCornerReservation[][] = [];
+
+  reservations.forEach((reservation) => {
+    const boundary = getReservationBoundaryForWall(reservation, wallLengthInches);
+    const bottom = reservation.distanceFromFloorInches;
+    const top = reservation.distanceFromFloorInches + reservation.heightInches;
+    const boundaryDistance = getReservationBoundaryDistanceInches(reservation, wallLengthInches);
+
+    const group = groups.find((existingGroup) => {
+      const existing = existingGroup[0];
+      const existingBoundary = getReservationBoundaryForWall(existing, wallLengthInches);
+      if (existingBoundary !== boundary) return false;
+
+      const existingBottom = existing.distanceFromFloorInches;
+      const existingTop = existing.distanceFromFloorInches + existing.heightInches;
+      const overlapsVertically = rangesOverlapOrTouchInches(
+        bottom,
+        top,
+        existingBottom,
+        existingTop,
+        verticalOverlapToleranceInches
+      );
+      if (!overlapsVertically) return false;
+
+      const existingBoundaryDistance = getReservationBoundaryDistanceInches(existing, wallLengthInches);
+      return Math.min(boundaryDistance, existingBoundaryDistance) <= boundaryClusterToleranceInches;
+    });
+
+    if (group) {
+      group.push(reservation);
+    } else {
+      groups.push([reservation]);
+    }
+  });
+
+  return groups.map((group) =>
+    [...group].sort((left, right) => compareElevationCornerReservations(left, right, wallLengthInches))[0]
+  );
+}
+
+function getElevationCornerReservationsForWall(
+  wall: Wall,
+  cabinets: CabinetElement[],
+  walls: Wall[],
+  coveredSameWallCornerCabinetIds: Set<string> = new Set()
 ): ElevationCornerReservation[] {
   const axis = getElevationWallAxis(wall);
   const wallInteriorSpan = getElevationWallInteriorSpan(wall, walls);
@@ -7300,67 +7778,203 @@ function getElevationCornerReservationsForWall(
   const wallLengthInches = pixelsToInches(wallInteriorSpan.length);
   if (axis.length < 0.001 || wallLengthInches <= 0.001) return [];
 
+  const thickWalls = walls.filter(isThickWall);
   const perpendicularTolerance = 0.12;
-  const boundaryToleranceInches = Math.max(0.75, pixelsToInches(WALL_THICKNESS) + 0.35);
+  const boundaryToleranceInches = Math.max(2, pixelsToInches(WALL_THICKNESS) + 1);
   const touchTolerancePixels = Math.max(1.5, inchesToPixels(0.75));
   const attachmentTolerance = Math.max(WALL_ATTACH_THRESHOLD, WALL_THICKNESS / 2 + 8);
+  const sharedEndpointTolerance = Math.max(2, WALL_THICKNESS + 4);
 
-  return cabinets.flatMap((cabinetItem) => {
-    const attachedWall = cabinetItem.wallId
-      ? walls.find((candidateWall) => candidateWall.id === cabinetItem.wallId) ?? null
-      : getBestCabinetWallAttachment(cabinetItem, walls, attachmentTolerance)?.wall ?? null;
+  type ReservationCandidate = ElevationCornerReservation & {
+    attachedWallId: string;
+    boundary: "start" | "end";
+    distanceToSharedCornerPixels: number;
+    boundaryDistanceInches: number;
+    projectedWidthInches: number;
+  };
 
-    if (!attachedWall || attachedWall.id === wall.id || !isThickWall(attachedWall)) return [];
+  const candidates: ReservationCandidate[] = [];
+
+  thickWalls.forEach((attachedWall) => {
+    if (attachedWall.id === wall.id) return;
+
+    const sharedEndpoint = getSharedWallEndpoint(wall, attachedWall, sharedEndpointTolerance);
+    if (!sharedEndpoint) return;
 
     const attachedAxis = getElevationWallAxis(attachedWall);
-    if (attachedAxis.length < 0.001) return [];
+    if (attachedAxis.length < 0.001) return;
 
     const parallelAmount = Math.abs(dot(axis.direction, attachedAxis.direction));
-    if (parallelAmount > perpendicularTolerance) return [];
+    if (parallelAmount > perpendicularTolerance) return;
 
-    const axisRange = cabinetProjectionRangeRelativeToWallAxis(cabinetItem, axis);
-    const startInches = clamp(
-      pixelsToInches(axisRange.min) - wallStartOffsetInches,
+    const sharedScalarOnWall = dot(sub(sharedEndpoint, axis.start), axis.direction);
+    const sharedInchesOnWall = clamp(
+      pixelsToInches(sharedScalarOnWall) - wallStartOffsetInches,
       0,
       wallLengthInches
     );
-    const endInches = clamp(
-      pixelsToInches(axisRange.max) - wallStartOffsetInches,
-      0,
-      wallLengthInches
+    const boundary: "start" | "end" =
+      sharedInchesOnWall <= wallLengthInches - sharedInchesOnWall ? "start" : "end";
+
+    const sharedScalarOnAttachedWall = dot(
+      sub(sharedEndpoint, attachedAxis.start),
+      attachedAxis.direction
     );
-    const widthInches = endInches - startInches;
-    if (widthInches <= 0.5) return [];
 
-    const touchesBoundary =
-      startInches <= boundaryToleranceInches ||
-      wallLengthInches - endInches <= boundaryToleranceInches;
-    if (!touchesBoundary) return [];
+    cabinets.forEach((cabinetItem) => {
+      // A footprint on this elevation represents the cabinet face/depth that is
+      // occupied by a cabinet on the perpendicular, connected wall. Cabinets
+      // already attached to the active wall are drawn normally, not as a
+      // footprint. For legacy cabinets without wallId, infer the best wall the
+      // same way the elevation placement code does.
+      if (cabinetItem.wallId === wall.id) return;
 
-    const normalRange = cabinetProjectionRange(cabinetItem, axis.normal);
-    const nearestDistanceToWallCenterline = Math.min(
-      Math.abs(normalRange.min),
-      Math.abs(normalRange.max)
-    );
-    const gapToWallFace = Math.max(0, nearestDistanceToWallCenterline - WALL_THICKNESS / 2);
-    const severity: ElevationCornerReservationSeverity = gapToWallFace <= touchTolerancePixels
-      ? "taken"
-      : "caution";
+      const cabinetAttachedWall = cabinetItem.wallId
+        ? thickWalls.find((candidateWall) => candidateWall.id === cabinetItem.wallId) ?? null
+        : getBestCabinetWallAttachment(cabinetItem, thickWalls, attachmentTolerance)?.wall ?? null;
 
-    const category = getCabinetElevationCategory(cabinetItem);
-    const spec = getCabinetElevationSpec(cabinetItem, category);
+      if (!cabinetAttachedWall || cabinetAttachedWall.id !== attachedWall.id) return;
 
-    return [{
-      key: `corner-reservation-${wall.id}-${cabinetItem.id}`,
-      sourceCabinet: cabinetItem,
-      title: getCabinetDisplayTitle(cabinetItem),
-      severity,
-      startInches,
-      widthInches,
-      heightInches: spec.heightInches,
-      distanceFromFloorInches: spec.distanceFromFloorInches,
-    }];
+      const axisRange = cabinetProjectionRangeRelativeToWallAxis(cabinetItem, axis);
+      const rawStartInches = pixelsToInches(axisRange.min) - wallStartOffsetInches;
+      const rawEndInches = pixelsToInches(axisRange.max) - wallStartOffsetInches;
+      const projectedStartInches = clamp(rawStartInches, 0, wallLengthInches);
+      const projectedEndInches = clamp(rawEndInches, 0, wallLengthInches);
+      const projectedWidthInches = projectedEndInches - projectedStartInches;
+      if (projectedWidthInches <= 0.5) return;
+
+      const boundaryDistanceInches = boundary === "start"
+        ? projectedStartInches
+        : wallLengthInches - projectedEndInches;
+
+      // Only use cabinets whose perpendicular projection actually reaches the
+      // shared corner of this elevation wall. This prevents a cabinet farther
+      // down the same perpendicular wall from leaving a stale footprint on the
+      // wrong elevation.
+      if (boundaryDistanceInches > boundaryToleranceInches) return;
+
+      const attachedRange = cabinetProjectionRangeRelativeToWallAxis(cabinetItem, attachedAxis);
+      const distanceToSharedCornerPixels = Math.max(
+        attachedRange.min - sharedScalarOnAttachedWall,
+        sharedScalarOnAttachedWall - attachedRange.max,
+        0
+      );
+
+      const cabinetCorners = getRotatedRectCorners(
+        cabinetItem.center,
+        cabinetItem.width,
+        cabinetItem.depth,
+        cabinetItem.rotation
+      );
+      const normalValues = cabinetCorners.map((corner) =>
+        dot(sub(corner, axis.start), axis.normal)
+      );
+      const normalMin = Math.min(...normalValues);
+      const normalMax = Math.max(...normalValues);
+      const nearestDistanceToWallCenterline = normalMin <= 0 && normalMax >= 0
+        ? 0
+        : Math.min(Math.abs(normalMin), Math.abs(normalMax));
+      const gapToWallFace = Math.max(0, nearestDistanceToWallCenterline - WALL_THICKNESS / 2);
+      const severity: ElevationCornerReservationSeverity = gapToWallFace <= touchTolerancePixels
+        ? "taken"
+        : "caution";
+
+      const category = getCabinetElevationCategory(cabinetItem);
+      const spec = getCabinetElevationSpec(cabinetItem, category);
+      const startInches = boundary === "start"
+        ? 0
+        : Math.max(0, wallLengthInches - projectedWidthInches);
+
+      candidates.push({
+        key: `corner-reservation-${wall.id}-${attachedWall.id}-${boundary}-${cabinetItem.id}`,
+        sourceCabinet: cabinetItem,
+        title: getCabinetDisplayTitle(cabinetItem),
+        severity,
+        startInches,
+        widthInches: projectedWidthInches,
+        heightInches: spec.heightInches,
+        distanceFromFloorInches: spec.distanceFromFloorInches,
+        boundary,
+        boundaryDistanceInches,
+        distanceToSharedCornerPixels,
+        wallFaceGapPixels: gapToWallFace,
+        attachedWallId: attachedWall.id,
+        projectedWidthInches,
+      });
+    });
   });
+
+  const closestByCorrespondingWall = new Map<string, ReservationCandidate>();
+
+  candidates.forEach((candidate) => {
+    const groupKey = `${candidate.attachedWallId}:${candidate.boundary}`;
+    const existing = closestByCorrespondingWall.get(groupKey);
+
+    if (
+      !existing ||
+      candidate.distanceToSharedCornerPixels < existing.distanceToSharedCornerPixels - 0.001 ||
+      (
+        Math.abs(candidate.distanceToSharedCornerPixels - existing.distanceToSharedCornerPixels) <= 0.001 &&
+        candidate.boundaryDistanceInches < existing.boundaryDistanceInches - 0.001
+      ) ||
+      (
+        Math.abs(candidate.distanceToSharedCornerPixels - existing.distanceToSharedCornerPixels) <= 0.001 &&
+        Math.abs(candidate.boundaryDistanceInches - existing.boundaryDistanceInches) <= 0.001 &&
+        candidate.projectedWidthInches > existing.projectedWidthInches
+      )
+    ) {
+      closestByCorrespondingWall.set(groupKey, candidate);
+    }
+  });
+
+  const perpendicularReservations = Array.from(closestByCorrespondingWall.values())
+    .sort((left, right) => {
+      if (left.boundary !== right.boundary) return left.boundary === "start" ? -1 : 1;
+      return left.startInches - right.startInches;
+    })
+    .map(({ attachedWallId, projectedWidthInches, ...reservation }) => reservation);
+
+  const sameWallCoveredCornerReservations = cabinets
+    .filter((cabinetItem) => coveredSameWallCornerCabinetIds.has(cabinetItem.id))
+    .map((cabinetItem): ElevationCornerReservation | null => {
+      const placement = getCabinetElevationPlacementsForWall(wall, [cabinetItem], thickWalls)[0] ?? null;
+      if (!placement) return null;
+
+      const relativeStartInches = clamp(
+        placement.startInches - wallStartOffsetInches,
+        0,
+        Math.max(0, wallLengthInches - placement.widthInches)
+      );
+
+      const coveredBoundary = getReservationBoundaryForWall(
+        { startInches: relativeStartInches, widthInches: placement.widthInches },
+        wallLengthInches
+      );
+
+      return {
+        key: `covered-corner-reservation-${wall.id}-${cabinetItem.id}`,
+        sourceCabinet: cabinetItem,
+        title: getCabinetDisplayTitle(cabinetItem),
+        severity: "taken",
+        startInches: relativeStartInches,
+        widthInches: placement.widthInches,
+        heightInches: placement.heightInches,
+        distanceFromFloorInches: placement.distanceFromFloorInches,
+        boundary: coveredBoundary,
+        boundaryDistanceInches: coveredBoundary === "start"
+          ? relativeStartInches
+          : Math.max(0, wallLengthInches - (relativeStartInches + placement.widthInches)),
+        distanceToSharedCornerPixels: 0,
+        wallFaceGapPixels: 0,
+        coveredSameWallCorner: true,
+      };
+    })
+    .filter((reservation): reservation is ElevationCornerReservation => Boolean(reservation));
+
+  return dedupeElevationCornerReservationsByClosestCabinet(
+    [...perpendicularReservations, ...sameWallCoveredCornerReservations],
+    wallLengthInches
+  ).sort((left, right) => left.startInches - right.startInches);
 }
 
 
@@ -7455,7 +8069,13 @@ function ElevationPlanView({
         getElevationWallElementCenterInches(wall, left.t) -
         getElevationWallElementCenterInches(wall, right.t)
     );
-  const wallCabinets = getCabinetElevationPlacementsForWall(wall, cabinets, walls);
+  const coveredSameWallCornerCabinetIds = getCoveredSameWallCornerCabinetIdsForElevation(
+    wall,
+    cabinets,
+    walls
+  );
+  const wallCabinets = getCabinetElevationPlacementsForWall(wall, cabinets, walls)
+    .filter((placement) => !coveredSameWallCornerCabinetIds.has(placement.cabinet.id));
 
   const elevationWallAxis = getElevationWallAxis(wall);
   const elevationWallInteriorSpan = getElevationWallInteriorSpan(wall, walls);
@@ -7520,7 +8140,12 @@ function ElevationPlanView({
     };
   });
 
-  const elevationCornerReservations = getElevationCornerReservationsForWall(wall, cabinets, walls);
+  const elevationCornerReservations = getElevationCornerReservationsForWall(
+    wall,
+    cabinets,
+    walls,
+    coveredSameWallCornerCabinetIds
+  );
   const reservationRenderItems = elevationCornerReservations.map((reservation) => {
     const clampedStartInches = clamp(
       reservation.startInches,
@@ -8683,6 +9308,12 @@ function ElevationPlanView({
               <pattern id="elevation-reservation-cabinet-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                 <line x1="0" y1="0" x2="0" y2="12" stroke="#64748b" strokeWidth="2" opacity="0.3" />
               </pattern>
+              <pattern id="elevation-reservation-caution-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="12" stroke="#64748b" strokeWidth="2" opacity="0.3" />
+              </pattern>
+              <pattern id="elevation-reservation-taken-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <line x1="0" y1="0" x2="0" y2="12" stroke="#64748b" strokeWidth="2" opacity="0.3" />
+              </pattern>
             </defs>
             <rect x="0" y="0" width={ELEVATION_VIEWBOX_WIDTH} height={ELEVATION_VIEWBOX_HEIGHT} fill="#ffffff" />
 
@@ -8698,55 +9329,11 @@ function ElevationPlanView({
             />
 
             {reservationRenderItems.map((item) => {
+              const isTaken = item.reservation.severity === "taken";
               const fill = "rgba(148, 163, 184, 0.18)";
               const hatch = "url(#elevation-reservation-cabinet-hatch)";
               const stroke = "#64748b";
               const labelColor = "#334155";
-              const label = "cabinet here";
-              const labelFontSize = Math.max(15, Math.min(22, item.width * 0.12));
-
-              return (
-                <g key={item.key} pointerEvents="none">
-                  <rect
-                    x={item.left}
-                    y={item.top}
-                    width={item.width}
-                    height={item.height}
-                    fill={fill}
-                    stroke={stroke}
-                    strokeWidth="2"
-                    strokeDasharray="10 8"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <rect
-                    x={item.left}
-                    y={item.top}
-                    width={item.width}
-                    height={item.height}
-                    fill={hatch}
-                    opacity="0.95"
-                  />
-                  <text
-                    x={item.left + item.width / 2}
-                    y={item.top + item.height / 2}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fontSize={labelFontSize}
-                    fontWeight="700"
-                    fill={labelColor}
-                  >
-                    {label}
-                  </text>
-                </g>
-              );
-            })}
-
-            {reservationRenderItems.map((item) => {
-              const isTaken = item.reservation.severity === "taken";
-              const fill = isTaken ? "rgba(248, 113, 113, 0.20)" : "rgba(148, 163, 184, 0.18)";
-              const hatch = isTaken ? "url(#elevation-reservation-taken-hatch)" : "url(#elevation-reservation-caution-hatch)";
-              const stroke = isTaken ? "#b91c1c" : "#64748b";
-              const labelColor = isTaken ? "#7f1d1d" : "#334155";
               const lineGap = Math.min(22, Math.max(14, item.height * 0.18));
               const titleY = item.top + item.height / 2 - lineGap / 2;
               const subtitleY = item.top + item.height / 2 + lineGap / 2;
@@ -13402,7 +13989,8 @@ function getCabinetPlacementPreview(
   snapToCabinets = true,
   ignoreCabinetCollisions = false,
   enforcePlacementRules = true,
-  preferredWallId?: string
+  preferredWallId?: string,
+  cabinetImage?: CabinetImage
 ): CabinetPlacementPreview {
   const freeCenter = rawPoint;
   const thickWalls = walls.filter(isThickWall);
@@ -13495,7 +14083,7 @@ function getCabinetPlacementPreview(
     depth,
     rotation: resolvedRotation,
     cabinetCategory,
-    cabinetImage: undefined,
+    cabinetImage,
     preferredWallId: stickyWallId,
   });
   center = handleSafePlacement.center;
@@ -13511,6 +14099,7 @@ function getCabinetPlacementPreview(
       depth,
       rotation: resolvedRotation,
       cabinetCategory,
+      cabinetImage,
       excludedCabinetId,
       preferredWallId: stickyWallId,
     });
@@ -13539,6 +14128,7 @@ function getCabinetPlacementPreview(
     depth,
     rotation: resolvedRotation,
     category: cabinetCategory,
+    image: cabinetImage,
     heightInches: cabinetCategory === "wall" ? 30 : 36,
     distanceFromFloorInches: cabinetCategory === "wall" ? 54 : 0,
     wallId: attachment?.wall.id,
@@ -14512,6 +15102,7 @@ type CabinetEdgeSnapOptions = {
   depth: number;
   rotation: number;
   cabinetCategory?: CabinetCategory;
+  cabinetImage?: CabinetImage;
   excludedCabinetId?: string;
   preferredWallId?: string;
   snapThreshold?: number;
@@ -14525,6 +15116,7 @@ function getCabinetEdgeToEdgeSnappedCenter({
   depth,
   rotation,
   cabinetCategory,
+  cabinetImage,
   excludedCabinetId,
   preferredWallId,
   snapThreshold = 18,
@@ -14556,15 +15148,30 @@ function getCabinetEdgeToEdgeSnappedCenter({
       ? ["y"]
       : ["x"];
   const overlapTolerance = Math.max(8, snapThreshold);
+  const targetWallId = preferredWallId ?? attachedWall?.id;
+  const targetWall = targetWallId
+    ? thickWalls.find((candidateWall) => candidateWall.id === targetWallId) ?? null
+    : null;
+  const movingCabinetFromList = excludedCabinetId
+    ? cabinets.find((cabinetItem) => cabinetItem.id === excludedCabinetId) ?? null
+    : null;
+  const movingImage = cabinetImage ?? movingCabinetFromList?.image;
 
   const rangesNearOrOverlap = (minA: number, maxA: number, minB: number, maxB: number, tolerance = 0) =>
     Math.min(maxA, maxB) - Math.max(minA, minB) >= -tolerance;
 
   const belongsToSameSnapRun = (otherCabinet: CabinetElement) => {
-    if (!preferredWallId && !attachedWall?.id) return true;
-    const targetWallId = preferredWallId ?? attachedWall?.id;
     if (!targetWallId || !otherCabinet.wallId) return true;
-    return otherCabinet.wallId === targetWallId;
+    if (otherCabinet.wallId === targetWallId) return true;
+
+    const involvesCornerCabinet = movingImage === "base-corner" || otherCabinet.image === "base-corner";
+    if (!involvesCornerCabinet || !targetWall) return false;
+
+    const otherWall = thickWalls.find((candidateWall) => candidateWall.id === otherCabinet.wallId) ?? null;
+    return Boolean(
+      otherWall &&
+      wallsShareEndpoint(targetWall, otherWall, Math.max(2, WALL_THICKNESS + 4))
+    );
   };
 
   const snapCandidates: Array<{ center: Point; distance: number; axis: "x" | "y" }> = [];
@@ -14661,6 +15268,7 @@ function getCabinetEdgeToEdgeSnappedCenter({
         depth,
         rotation,
         category: cabinetCategory,
+        image: movingImage,
       };
       const wallPenalty = cabinetIntersectsAnyWall(candidateCabinet, thickWalls) ||
         cabinetHandleTabsIntersectAnyWall(candidateCabinet, thickWalls)
