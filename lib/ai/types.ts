@@ -65,6 +65,10 @@ export type AiCatalogItem = {
   widthInches: number;
   depthInches: number;
   image: AiCabinetImage;
+  isProduct?: boolean;
+  productCategory?: "base" | "wall";
+  defaultHeightInches?: number;
+  defaultDistanceFromFloorInches?: number;
 };
 
 export type AiCabinet = {
@@ -79,6 +83,10 @@ export type AiCabinet = {
   heightInches?: number;
   distanceFromFloorInches?: number;
   wallId?: string;
+  sinkFixture?: boolean;
+  cooktopFixture?: "surface" | "front";
+  cooktopFrontHeightInches?: number;
+  isProduct?: boolean;
 };
 
 export type AiWallChain = {
@@ -90,6 +98,7 @@ export type AiRoomInput = {
   walls: AiWall[];
   windows: AiWindow[];
   doors: AiDoor[];
+  cabinets: AiCabinet[];
   catalog: AiCatalogItem[];
   wallChains: AiWallChain[];
   meta: {
@@ -114,6 +123,40 @@ export type GeneratedKitchenLayout = {
     layoutType: "single-wall" | "galley" | "l-shape";
     notes: string[];
     selectedWallIds: string[];
+    generationMethod?: "rule-based" | "smart-ai";
+    plannerModel?: string;
   };
   elevations: AiElevationSummary[];
+};
+
+export type SmartKitchenWallRole =
+  | "primary"
+  | "secondary"
+  | "storage"
+  | "upper-focus";
+
+export type SmartKitchenWallPlan = {
+  wallId: string;
+  role: SmartKitchenWallRole;
+  placeSink: boolean;
+  sinkCatalogId?: string | null;
+  placePantry: boolean;
+  pantryCatalogId?: string | null;
+  placeHood: boolean;
+  upperFeatureCatalogId?: string | null;
+  upperDistanceFromFloorInches?: number | null;
+  upperFeatureDistanceFromFloorInches?: number | null;
+  skipBaseRun?: boolean;
+  skipUpperRun?: boolean;
+  basePattern: string[];
+  upperPattern: string[];
+  notes: string[];
+};
+
+export type SmartKitchenPlan = {
+  layoutType: "single-wall" | "galley" | "l-shape";
+  wallOrder: string[];
+  wallPlans: SmartKitchenWallPlan[];
+  notes: string[];
+  plannerModel?: string;
 };

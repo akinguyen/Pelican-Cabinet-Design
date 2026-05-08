@@ -6,10 +6,16 @@ import type {
   AiRoomInput,
   AiWall,
   GeneratedKitchenLayout,
+  SmartKitchenPlan,
+  SmartKitchenWallPlan,
 } from "@/lib/ai/types";
 
 type KitchenDesignOptions = {
   selectedWallIds?: string[];
+};
+
+type NormalizedWallPlan = SmartKitchenWallPlan & {
+  wallId: string;
 };
 
 type WallAxis = {
@@ -301,6 +307,15 @@ function cabinetsOverlap(first: AiCabinet, second: AiCabinet) {
   return !sameWall || verticalRangesOverlap(first, second);
 }
 
+function getCabinetElevationCategory(cabinet: AiCabinet): AiCabinetCategory {
+  if (cabinet.category) return cabinet.category;
+  if (cabinet.isProduct && cabinet.distanceFromFloorInches && cabinet.distanceFromFloorInches >= 36) {
+    return "wall";
+  }
+  if ((cabinet.heightInches ?? 0) >= 80) return "tall";
+  return "base";
+}
+
 function getCatalogItem(
   catalog: AiCatalogItem[],
   category: AiCabinetCategory,
@@ -469,7 +484,7 @@ function createRun(params: {
   const usable = segmentEnd - segmentStart;
   const cabinets: AiCabinet[] = [];
 
-  if (usable < 18) return cabinets;
+  if (usable < 18 || params.preferredPattern.length === 0) return cabinets;
 
   const maxCount = params.maxCount ?? 12;
   let cursor = params.align === "end" ? segmentEnd : segmentStart;
@@ -550,6 +565,130 @@ function reserveCabinetFootprint(
     centerOffsetInches - widthInches / 2 - padding,
     centerOffsetInches + widthInches / 2 + padding
   );
+}
+
+function reserveOpeningFootprint(
+  reservations: Map<string, WallReservation[]>,
+  wallId: string,
+  wallLengthInches: number,
+  centerOffsetInches: number,
+  widthInches: number,
+  padding = 1.5
+) {
+  const halfWidth = widthInches / 2;
+  addReservation(
+    reservations,
+    wallId,
+    clamp(centerOffsetInches - halfWidth - padding, -wallLengthInches / 2, wallLengthInches / 2),
+    clamp(centerOffsetInches + halfWidth + padding, -wallLengthInches / 2, wallLengthInches / 2)
+  );
+}
+
+function getCabinetCenterOffsetInches(
+  cabinet: AiCabinet,
+  axis: WallAxis,
+  gridSize: number
+) {
+  return pixelsToInches(dot(sub(cabinet.center, axis.midpoint), axis.direction), gridSize);
+}
+
+function reserveExistingWallObjects(
+  room: AiRoomInput,
+  selectedWalls: WallEntry[],
+  baseReservations: Map<string, WallReservation[]>,
+  upperReservations: Map<string, WallReservation[]>,
+  notes: string[]
+) {
+  const reservedBaseIds = new Set<string>();
+  const reservedUpperIds = new Set<string>();
+
+  selectedWalls.forEach((wallEntry, wallIndex) => {
+    const wallLengthInches = wallEntry.axis.lengthInches;
+
+    room.doors
+      .filter((doorItem) => doorItem.wallId === wallEntry.wall.id)
+      .forEach((doorItem) => {
+        const centerOffset = doorItem.t * wallLengthInches;
+        const widthInches = pixelsToInches(doorItem.width, room.meta.gridSize);
+        reserveOpeningFootprint(
+          baseReservations,
+          wallEntry.wall.id,
+          wallLengthInches,
+          centerOffset,
+          widthInches,
+          2
+        );
+        reserveOpeningFootprint(
+          upperReservations,
+          wallEntry.wall.id,
+          wallLengthInches,
+          centerOffset,
+          widthInches,
+          2
+        );
+      });
+
+    room.windows
+      .filter((windowItem) => windowItem.wallId === wallEntry.wall.id)
+      .forEach((windowItem) => {
+        const centerOffset = windowItem.t * wallLengthInches;
+        const widthInches = pixelsToInches(windowItem.width, room.meta.gridSize);
+        reserveOpeningFootprint(
+          upperReservations,
+          wallEntry.wall.id,
+          wallLengthInches,
+          centerOffset,
+          widthInches,
+          2
+        );
+      });
+
+    room.cabinets
+      .filter((cabinetItem) => cabinetItem.wallId === wallEntry.wall.id)
+      .forEach((cabinetItem) => {
+        const category = getCabinetElevationCategory(cabinetItem);
+        const centerOffset = getCabinetCenterOffsetInches(
+          cabinetItem,
+          wallEntry.axis,
+          room.meta.gridSize
+        );
+        const widthInches = pixelsToInches(cabinetItem.width, room.meta.gridSize);
+
+        if (category === "base" || category === "tall") {
+          reserveCabinetFootprint(
+            baseReservations,
+            wallEntry.wall.id,
+            centerOffset,
+            widthInches,
+            1
+          );
+          reservedBaseIds.add(cabinetItem.id);
+        }
+
+        if (category === "wall" || category === "tall") {
+          reserveCabinetFootprint(
+            upperReservations,
+            wallEntry.wall.id,
+            centerOffset,
+            widthInches,
+            1
+          );
+          reservedUpperIds.add(cabinetItem.id);
+        }
+      });
+
+    const preservedCount = room.cabinets.filter(
+      (cabinetItem) => cabinetItem.wallId === wallEntry.wall.id
+    ).length;
+    const doorCount = room.doors.filter((doorItem) => doorItem.wallId === wallEntry.wall.id).length;
+    const windowCount = room.windows.filter((windowItem) => windowItem.wallId === wallEntry.wall.id).length;
+
+    if (preservedCount > 0 || doorCount > 0 || windowCount > 0) {
+      notes.push(
+        `Wall ${wallIndex + 1} includes ${preservedCount} pre-placed object(s), ${doorCount} door opening(s), and ${windowCount} window opening(s), so those spans were reserved before new cabinet placement.`
+      );
+    }
+  });
 }
 
 function subtractReservations(
@@ -757,15 +896,17 @@ function getAvailableBaseSegments(
 
 function getAvailableUpperSegments(
   wallEntry: WallEntry,
-  allWalls: AiWall[]
+  allWalls: AiWall[],
+  reservations: Map<string, WallReservation[]>
 ) {
   const insets = getInsets(wallEntry.wall, "wall", allWalls);
-  return [
-    {
-      start: -wallEntry.axis.lengthInches / 2 + insets.start,
-      end: wallEntry.axis.lengthInches / 2 - insets.end,
-    },
-  ].filter((segment) => segment.end - segment.start >= 18);
+  const wallStart = -wallEntry.axis.lengthInches / 2 + insets.start;
+  const wallEnd = wallEntry.axis.lengthInches / 2 - insets.end;
+  return subtractReservations(
+    wallStart,
+    wallEnd,
+    reservations.get(wallEntry.wall.id) ?? []
+  );
 }
 
 function placeCornerBaseCabinets(params: {
@@ -905,6 +1046,33 @@ function getLayoutType(selectedWalls: WallEntry[], corners: CornerPair[]) {
   return "galley";
 }
 
+export function filterRoomForKitchenGeneration(
+  room: AiRoomInput,
+  selectedWallIds?: string[]
+): AiRoomInput {
+  if (!selectedWallIds?.length) return room;
+
+  const selectedWallSet = new Set(selectedWallIds);
+
+  return {
+    ...room,
+    walls: room.walls.filter(
+      (wall) => wall.kind === "thin-wall" || selectedWallSet.has(wall.id)
+    ),
+    windows: room.windows.filter((windowItem) => selectedWallSet.has(windowItem.wallId)),
+    doors: room.doors.filter((doorItem) => selectedWallSet.has(doorItem.wallId)),
+    cabinets: room.cabinets.filter(
+      (cabinetItem) => Boolean(cabinetItem.wallId && selectedWallSet.has(cabinetItem.wallId))
+    ),
+    wallChains: room.wallChains
+      .map((chain) => ({
+        ...chain,
+        wallIds: chain.wallIds.filter((wallId) => selectedWallSet.has(wallId)),
+      }))
+      .filter((chain) => chain.wallIds.length > 0),
+  };
+}
+
 export function generateKitchenLayout(
   room: AiRoomInput,
   options: KitchenDesignOptions = {}
@@ -931,9 +1099,10 @@ export function generateKitchenLayout(
     .sort((left, right) => right.axis.lengthInches - left.axis.lengthInches);
 
   const primary = selectedWalls[0] ?? null;
-  const cabinets: AiCabinet[] = [];
+  const cabinets: AiCabinet[] = [...room.cabinets];
   const notes: string[] = [];
-  const reservations = new Map<string, WallReservation[]>();
+  const baseReservations = new Map<string, WallReservation[]>();
+  const upperReservations = new Map<string, WallReservation[]>();
 
   if (!primary) {
     return {
@@ -983,6 +1152,12 @@ export function generateKitchenLayout(
       ? `Using ${selectedWalls.length} selected wall side(s) for kitchen generation.`
       : `No wall sides were selected, so the designer used all ${selectedWalls.length} thick wall side(s).`
   );
+  if (room.cabinets.length > 0) {
+    notes.push(
+      `Preserved ${room.cabinets.length} pre-placed cabinet/product object(s) on the selected walls before filling new runs.`
+    );
+  }
+  reserveExistingWallObjects(room, selectedWalls, baseReservations, upperReservations, notes);
 
   if (corners.length > 0) {
     notes.push(
@@ -995,7 +1170,7 @@ export function generateKitchenLayout(
       room,
       corner,
       cabinets,
-      reservations,
+      reservations: baseReservations,
       notes,
     });
   }
@@ -1006,10 +1181,10 @@ export function generateKitchenLayout(
     const availableSegments = getAvailableBaseSegments(
       wallEntry,
       thickWalls,
-      reservations
+      baseReservations
     );
     const isPrimaryWall = wallIndex === 0;
-    const hasCornerReservation = (reservations.get(wallEntry.wall.id) ?? []).length > 0;
+    const hasCornerReservation = (baseReservations.get(wallEntry.wall.id) ?? []).length > 0;
     let pantryPlaced = false;
 
     for (const segment of availableSegments) {
@@ -1054,7 +1229,7 @@ export function generateKitchenLayout(
             heightInches: 34.5,
           }),
         ]);
-        reserveCabinetFootprint(reservations, wallEntry.wall.id, 0, sinkBase.widthInches);
+        reserveCabinetFootprint(baseReservations, wallEntry.wall.id, 0, sinkBase.widthInches);
         appendWithoutOverlap(
           cabinets,
           createRun({
@@ -1099,7 +1274,13 @@ export function generateKitchenLayout(
           }),
         ]);
         reserveCabinetFootprint(
-          reservations,
+          baseReservations,
+          wallEntry.wall.id,
+          pantryCenter,
+          tallPantry.widthInches
+        );
+        reserveCabinetFootprint(
+          upperReservations,
           wallEntry.wall.id,
           pantryCenter,
           tallPantry.widthInches
@@ -1112,9 +1293,9 @@ export function generateKitchenLayout(
     const refreshedSegments = getAvailableBaseSegments(
       wallEntry,
       thickWalls,
-      reservations
+      baseReservations
     );
-    const wallReservations = reservations.get(wallEntry.wall.id) ?? [];
+    const wallReservations = baseReservations.get(wallEntry.wall.id) ?? [];
     for (const segment of refreshedSegments) {
       appendWithoutOverlap(
         cabinets,
@@ -1147,7 +1328,7 @@ export function generateKitchenLayout(
     const wallEntry = selectedWalls[wallIndex];
     if (!wallPair) continue;
 
-    const upperSegments = getAvailableUpperSegments(wallEntry, thickWalls);
+    const upperSegments = getAvailableUpperSegments(wallEntry, thickWalls, upperReservations);
     const isPrimaryWall = wallIndex === 0;
     const centeredUpperFeature = selectedWalls.length === 1 && isPrimaryWall && wallHood
       ? wallHood
@@ -1246,7 +1427,505 @@ export function generateKitchenLayout(
     },
     elevations: targetWalls.map((wall, index) => ({
       wallId: wall.id,
-      label: `Wall elevation ${index + 1}`,
+      label: `Wall ${index + 1}`,
+      cabinetCount: cabinets.filter((cabinet) => cabinet.wallId === wall.id).length,
+    })),
+  };
+}
+
+function isStandardUpperRunCatalogItem(item: AiCatalogItem) {
+  return item.category === "wall" && item.image === "wall";
+}
+
+function getCatalogItemById(
+  catalog: AiCatalogItem[],
+  catalogId: string | null | undefined,
+  category: AiCabinetCategory
+) {
+  if (!catalogId) return null;
+
+  return (
+    catalog.find(
+      (candidate) => candidate.id === catalogId && candidate.category === category
+    ) ?? null
+  );
+}
+
+function getFallbackBasePattern(catalog: AiCatalogItem[]) {
+  return [
+    getCatalogItemById(catalog, "base-drawer-cabinet", "base")?.id,
+    getCatalogItemById(catalog, "base-two-door-cabinet", "base")?.id,
+    getCatalogItemById(catalog, "base-one-door-cabinet", "base")?.id,
+  ].filter((itemId): itemId is string => Boolean(itemId));
+}
+
+function getFallbackUpperPattern(catalog: AiCatalogItem[]) {
+  return [
+    getCatalogItemById(catalog, "wall-cabinet", "wall")?.id,
+  ].filter((itemId): itemId is string => Boolean(itemId));
+}
+
+function normalizeBasePattern(catalog: AiCatalogItem[], pattern: string[] | undefined) {
+  const normalized = (pattern ?? [])
+    .map((itemId) => getCatalogItemById(catalog, itemId, "base"))
+    .filter((item): item is AiCatalogItem => Boolean(item && isStandardRunCatalogItem(item)))
+    .map((item) => item.id);
+
+  return normalized.length > 0 ? normalized : getFallbackBasePattern(catalog);
+}
+
+function normalizeUpperPattern(catalog: AiCatalogItem[], pattern: string[] | undefined) {
+  const normalized = (pattern ?? [])
+    .map((itemId) => getCatalogItemById(catalog, itemId, "wall"))
+    .filter(
+      (item): item is AiCatalogItem => Boolean(item && isStandardUpperRunCatalogItem(item))
+    )
+    .map((item) => item.id);
+
+  return normalized.length > 0 ? normalized : getFallbackUpperPattern(catalog);
+}
+
+function getNormalizedWallPlans(
+  room: AiRoomInput,
+  plan: SmartKitchenPlan,
+  targetWalls: AiWall[]
+) {
+  const targetWallIds = new Set(targetWalls.map((wall) => wall.id));
+  const wallPlans = new Map<string, NormalizedWallPlan>();
+
+  plan.wallPlans.forEach((wallPlan) => {
+    if (!targetWallIds.has(wallPlan.wallId)) return;
+
+    wallPlans.set(wallPlan.wallId, {
+      ...wallPlan,
+      wallId: wallPlan.wallId,
+      sinkCatalogId:
+        getCatalogItemById(room.catalog, wallPlan.sinkCatalogId, "base")?.id ?? null,
+      pantryCatalogId:
+        getCatalogItemById(room.catalog, wallPlan.pantryCatalogId, "tall")?.id ?? null,
+      upperFeatureCatalogId:
+        getCatalogItemById(room.catalog, wallPlan.upperFeatureCatalogId, "wall")?.id ?? null,
+      upperDistanceFromFloorInches:
+        typeof wallPlan.upperDistanceFromFloorInches === "number"
+          ? clamp(wallPlan.upperDistanceFromFloorInches, 36, 84)
+          : null,
+      upperFeatureDistanceFromFloorInches:
+        typeof wallPlan.upperFeatureDistanceFromFloorInches === "number"
+          ? clamp(wallPlan.upperFeatureDistanceFromFloorInches, 36, 84)
+          : null,
+      basePattern: wallPlan.skipBaseRun
+        ? []
+        : normalizeBasePattern(room.catalog, wallPlan.basePattern),
+      upperPattern: wallPlan.skipUpperRun
+        ? []
+        : normalizeUpperPattern(room.catalog, wallPlan.upperPattern),
+      notes: wallPlan.notes ?? [],
+    });
+  });
+
+  return wallPlans;
+}
+
+function sortWallsByPlanOrder(
+  walls: AiWall[],
+  plan: SmartKitchenPlan,
+  roomCenter: AiPoint,
+  gridSize: number,
+  wallThickness: number
+) {
+  const planOrder = new Map(plan.wallOrder.map((wallId, index) => [wallId, index]));
+
+  return [...walls]
+    .map((wall) => {
+      const axis = getWallAxis(wall, roomCenter, gridSize, wallThickness);
+
+      return {
+        wall,
+        axis,
+        orientation: getWallOrientation(axis),
+      } satisfies WallEntry;
+    })
+    .sort((left, right) => {
+      const leftOrder = planOrder.get(left.wall.id);
+      const rightOrder = planOrder.get(right.wall.id);
+
+      if (leftOrder !== undefined && rightOrder !== undefined) {
+        return leftOrder - rightOrder;
+      }
+      if (leftOrder !== undefined) return -1;
+      if (rightOrder !== undefined) return 1;
+
+      return right.axis.lengthInches - left.axis.lengthInches;
+    });
+}
+
+export function generateSmartKitchenLayout(
+  room: AiRoomInput,
+  plan: SmartKitchenPlan,
+  options: KitchenDesignOptions = {}
+): GeneratedKitchenLayout {
+  const filteredRoom = filterRoomForKitchenGeneration(room, options.selectedWallIds);
+  const thickWalls = filteredRoom.walls.filter((wall) => wall.kind !== "thin-wall");
+  const targetWalls = thickWalls;
+  const roomCenter = getRoomCenter(thickWalls);
+  const wallThickness = filteredRoom.meta.wallThickness;
+  const gridSize = filteredRoom.meta.gridSize;
+  const selectedWalls = sortWallsByPlanOrder(
+    targetWalls,
+    plan,
+    roomCenter,
+    gridSize,
+    wallThickness
+  );
+  const wallPlans = getNormalizedWallPlans(filteredRoom, plan, targetWalls);
+  const primary = selectedWalls[0] ?? null;
+  const cabinets: AiCabinet[] = [...filteredRoom.cabinets];
+  const notes = [
+    `Smart planner selected ${selectedWalls.length} wall side(s) for a ${plan.layoutType} kitchen.`,
+    ...plan.notes,
+  ];
+  const baseReservations = new Map<string, WallReservation[]>();
+  const upperReservations = new Map<string, WallReservation[]>();
+
+  if (!primary) {
+    return {
+      room: filteredRoom,
+      cabinets: [],
+      summary: {
+        layoutType: plan.layoutType,
+        notes: [
+          "The smart planner did not receive any usable thick walls to design against.",
+        ],
+        selectedWallIds: [],
+        generationMethod: "smart-ai",
+        plannerModel: plan.plannerModel,
+      },
+      elevations: [],
+    };
+  }
+
+  const defaultSinkBase = getCatalogItem(filteredRoom.catalog, "base", [
+    "base-sink-cabinet",
+    "base-sink-two-door-panel-cabinet",
+    "base-sink-one-door-panel-cabinet",
+  ]);
+  const defaultTallPantry = getCatalogItem(filteredRoom.catalog, "tall", ["tall-cabinet"]);
+  const defaultWallHood = getCatalogItem(filteredRoom.catalog, "wall", [
+    "wall-hood-one-door-cabinet",
+    "wall-cabinet",
+  ]);
+  const corners = findCornerPairs(selectedWalls);
+
+  if (filteredRoom.cabinets.length > 0) {
+    notes.push(
+      `Preserved ${filteredRoom.cabinets.length} pre-placed cabinet/product object(s) from the selected walls and designed around them.`
+    );
+  }
+  reserveExistingWallObjects(
+    filteredRoom,
+    selectedWalls,
+    baseReservations,
+    upperReservations,
+    notes
+  );
+
+  if (corners.length > 0 && plan.layoutType !== "single-wall") {
+    notes.push(
+      `The smart planner kept ${corners.length} detected corner connection(s) available for corner-first cabinet placement.`
+    );
+
+    for (const corner of corners) {
+      placeCornerBaseCabinets({
+        room: filteredRoom,
+        corner,
+        cabinets,
+        reservations: baseReservations,
+        notes,
+      });
+    }
+  }
+
+  for (let wallIndex = 0; wallIndex < selectedWalls.length; wallIndex += 1) {
+    const wallEntry = selectedWalls[wallIndex];
+    const wallPlan = wallPlans.get(wallEntry.wall.id);
+    const basePattern = wallPlan?.basePattern ?? getFallbackBasePattern(filteredRoom.catalog);
+    const sinkBase =
+      getCatalogItemById(filteredRoom.catalog, wallPlan?.sinkCatalogId, "base") ??
+      defaultSinkBase;
+    const tallPantry =
+      getCatalogItemById(filteredRoom.catalog, wallPlan?.pantryCatalogId, "tall") ??
+      defaultTallPantry;
+    const availableSegments = getAvailableBaseSegments(
+      wallEntry,
+      thickWalls,
+      baseReservations
+    );
+    const hasCornerReservation =
+      (baseReservations.get(wallEntry.wall.id) ?? []).length > 0;
+    let pantryPlaced = false;
+
+    wallPlan?.notes.forEach((note) => {
+      notes.push(`Wall ${wallIndex + 1}: ${note}`);
+    });
+
+    for (const segment of availableSegments) {
+      const segmentWidth = segment.end - segment.start;
+      const canCenterSink =
+        Boolean(wallPlan?.placeSink) &&
+        !hasCornerReservation &&
+        sinkBase &&
+        segment.start <= -sinkBase.widthInches / 2 &&
+        segment.end >= sinkBase.widthInches / 2 &&
+        segmentWidth >= sinkBase.widthInches + 24;
+
+      if (canCenterSink && sinkBase) {
+        const leftEnd = -sinkBase.widthInches / 2 - 1.5;
+        const rightStart = sinkBase.widthInches / 2 + 1.5;
+
+        appendWithoutOverlap(
+          cabinets,
+          createRun({
+            wall: wallEntry.wall,
+            axis: wallEntry.axis,
+            catalog: filteredRoom.catalog,
+            gridSize,
+            wallThickness,
+            category: "base",
+            preferredPattern: basePattern,
+            distanceFromFloorInches: 0,
+            heightInches: 34.5,
+            segmentStartInches: segment.start,
+            segmentEndInches: leftEnd,
+          })
+        );
+        appendWithoutOverlap(cabinets, [
+          placeCabinetOnWall({
+            wall: wallEntry.wall,
+            axis: wallEntry.axis,
+            catalogItem: sinkBase,
+            centerOffsetInches: 0,
+            gridSize,
+            wallThickness,
+            distanceFromFloorInches: 0,
+            heightInches: 34.5,
+          }),
+        ]);
+        reserveCabinetFootprint(baseReservations, wallEntry.wall.id, 0, sinkBase.widthInches);
+        appendWithoutOverlap(
+          cabinets,
+          createRun({
+            wall: wallEntry.wall,
+            axis: wallEntry.axis,
+            catalog: filteredRoom.catalog,
+            gridSize,
+            wallThickness,
+            category: "base",
+            preferredPattern: basePattern,
+            distanceFromFloorInches: 0,
+            heightInches: 34.5,
+            segmentStartInches: rightStart,
+            segmentEndInches: segment.end,
+            align: "end",
+          })
+        );
+        notes.push(
+          `Wall ${wallIndex + 1}: centered ${sinkBase.title.toLowerCase()} as the main work-zone anchor.`
+        );
+        continue;
+      }
+
+      const canPlacePantry =
+        !pantryPlaced &&
+        Boolean(wallPlan?.placePantry) &&
+        tallPantry &&
+        segmentWidth >= tallPantry.widthInches + 18;
+
+      if (canPlacePantry && tallPantry) {
+        const pantryCenter = segment.end - tallPantry.widthInches / 2 - 1.5;
+
+        appendWithoutOverlap(cabinets, [
+          placeCabinetOnWall({
+            wall: wallEntry.wall,
+            axis: wallEntry.axis,
+            catalogItem: tallPantry,
+            centerOffsetInches: pantryCenter,
+            gridSize,
+            wallThickness,
+            distanceFromFloorInches: 0,
+            heightInches: 84,
+          }),
+        ]);
+        reserveCabinetFootprint(
+          baseReservations,
+          wallEntry.wall.id,
+          pantryCenter,
+          tallPantry.widthInches
+        );
+        reserveCabinetFootprint(
+          upperReservations,
+          wallEntry.wall.id,
+          pantryCenter,
+          tallPantry.widthInches
+        );
+        pantryPlaced = true;
+        notes.push(
+          `Wall ${wallIndex + 1}: placed ${tallPantry.title.toLowerCase()} at the end of the run for tall storage.`
+        );
+      }
+    }
+
+    const refreshedSegments = getAvailableBaseSegments(
+      wallEntry,
+      thickWalls,
+      baseReservations
+    );
+    const wallReservations = baseReservations.get(wallEntry.wall.id) ?? [];
+
+    if (basePattern.length === 0) {
+      notes.push(`Wall ${wallIndex + 1}: left the base run open around the preserved objects and openings.`);
+      continue;
+    }
+
+    for (const segment of refreshedSegments) {
+      appendWithoutOverlap(
+        cabinets,
+        createRun({
+          wall: wallEntry.wall,
+          axis: wallEntry.axis,
+          catalog: filteredRoom.catalog,
+          gridSize,
+          wallThickness,
+          category: "base",
+          preferredPattern: basePattern,
+          distanceFromFloorInches: 0,
+          heightInches: 34.5,
+          segmentStartInches: segment.start,
+          segmentEndInches: segment.end,
+          align: getSegmentFillAlignment(segment, wallReservations),
+          maxCount: 12,
+        })
+      );
+    }
+  }
+
+  for (let wallIndex = 0; wallIndex < selectedWalls.length; wallIndex += 1) {
+    const wallEntry = selectedWalls[wallIndex];
+    const wallPlan = wallPlans.get(wallEntry.wall.id);
+    const upperPattern =
+      wallPlan?.upperPattern ?? getFallbackUpperPattern(filteredRoom.catalog);
+    const upperFeature =
+      wallPlan?.placeHood
+        ? getCatalogItemById(
+            filteredRoom.catalog,
+            wallPlan.upperFeatureCatalogId,
+            "wall"
+          ) ?? defaultWallHood
+        : null;
+    const upperDistanceFromFloorInches = wallPlan?.upperDistanceFromFloorInches ?? 54;
+    const upperFeatureDistanceFromFloorInches =
+      wallPlan?.upperFeatureDistanceFromFloorInches ?? upperDistanceFromFloorInches;
+    const upperSegments = getAvailableUpperSegments(
+      wallEntry,
+      thickWalls,
+      upperReservations
+    );
+
+    if (upperPattern.length === 0 && !upperFeature) {
+      notes.push(`Wall ${wallIndex + 1}: left the upper run open for balance, clearance, or to respect the existing features.`);
+      continue;
+    }
+
+    for (const segment of upperSegments) {
+      if (
+        upperFeature &&
+        segment.start <= -upperFeature.widthInches / 2 &&
+        segment.end >= upperFeature.widthInches / 2 &&
+        segment.end - segment.start >= upperFeature.widthInches + 24
+      ) {
+        appendWithoutOverlap(
+          cabinets,
+          createRun({
+            wall: wallEntry.wall,
+            axis: wallEntry.axis,
+            catalog: filteredRoom.catalog,
+            gridSize,
+            wallThickness,
+            category: "wall",
+            preferredPattern: upperPattern,
+            distanceFromFloorInches: upperDistanceFromFloorInches,
+            heightInches: 30,
+            segmentStartInches: segment.start,
+            segmentEndInches: -upperFeature.widthInches / 2 - 3,
+          })
+        );
+        appendWithoutOverlap(cabinets, [
+          placeCabinetOnWall({
+            wall: wallEntry.wall,
+            axis: wallEntry.axis,
+            catalogItem: upperFeature,
+            centerOffsetInches: 0,
+            gridSize,
+            wallThickness,
+            distanceFromFloorInches: upperFeatureDistanceFromFloorInches,
+            heightInches: 30,
+          }),
+        ]);
+        appendWithoutOverlap(
+          cabinets,
+          createRun({
+            wall: wallEntry.wall,
+            axis: wallEntry.axis,
+            catalog: filteredRoom.catalog,
+            gridSize,
+            wallThickness,
+            category: "wall",
+            preferredPattern: upperPattern,
+            distanceFromFloorInches: upperDistanceFromFloorInches,
+            heightInches: 30,
+            segmentStartInches: upperFeature.widthInches / 2 + 3,
+            segmentEndInches: segment.end,
+            align: "end",
+            maxCount: 8,
+          })
+        );
+        notes.push(
+          `Wall ${wallIndex + 1}: centered ${upperFeature.title.toLowerCase()} within the upper run.`
+        );
+      } else {
+        appendWithoutOverlap(
+          cabinets,
+          createRun({
+            wall: wallEntry.wall,
+            axis: wallEntry.axis,
+            catalog: filteredRoom.catalog,
+            gridSize,
+            wallThickness,
+            category: "wall",
+            preferredPattern: upperPattern,
+            distanceFromFloorInches: upperDistanceFromFloorInches,
+            heightInches: 30,
+            segmentStartInches: segment.start,
+            segmentEndInches: segment.end,
+            maxCount: 12,
+          })
+        );
+      }
+    }
+  }
+
+  return {
+    room: filteredRoom,
+    cabinets,
+    summary: {
+      layoutType: plan.layoutType,
+      notes,
+      selectedWallIds: selectedWalls.map((item) => item.wall.id),
+      generationMethod: "smart-ai",
+      plannerModel: plan.plannerModel,
+    },
+    elevations: targetWalls.map((wall, index) => ({
+      wallId: wall.id,
+      label: `Wall ${index + 1}`,
       cabinetCount: cabinets.filter((cabinet) => cabinet.wallId === wall.id).length,
     })),
   };

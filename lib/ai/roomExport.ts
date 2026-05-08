@@ -1,4 +1,5 @@
 import type {
+  AiCabinet,
   AiCatalogItem,
   AiDoor,
   AiRoomInput,
@@ -61,6 +62,7 @@ export function exportRoomInput(params: {
   walls: AiWall[];
   windows: AiWindow[];
   doors: AiDoor[];
+  cabinets: AiCabinet[];
   catalog: AiCatalogItem[];
   gridSize: number;
   wallThickness: number;
@@ -71,6 +73,9 @@ export function exportRoomInput(params: {
     walls: thickWalls,
     windows: params.windows.filter((item) => thickWalls.some((wall) => wall.id === item.wallId)),
     doors: params.doors.filter((item) => thickWalls.some((wall) => wall.id === item.wallId)),
+    cabinets: params.cabinets.filter(
+      (item) => Boolean(item.wallId && thickWalls.some((wall) => wall.id === item.wallId))
+    ),
     catalog: params.catalog,
     wallChains: buildWallChains(thickWalls),
     meta: {
