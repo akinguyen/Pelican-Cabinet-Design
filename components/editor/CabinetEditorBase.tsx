@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowLeftRight,
   Boxes,
@@ -62,6 +70,7 @@ type Tool =
 
 type CabinetCategory = "base" | "tall" | "wall";
 type ProductCategory = "base" | "wall";
+type MeasurementDisplayUnit = "feet-inches" | "inches";
 type CabinetImage =
   | "base"
   | "base-corner"
@@ -117,7 +126,6 @@ type Point = {
   y: number;
 };
 
-type WallElevationViewSide = "left" | "right";
 type WallKind = "wall" | "thin-wall" | "penin-wall" | "island-wall";
 
 type Wall = {
@@ -127,8 +135,6 @@ type Wall = {
   kind?: WallKind;
   sourceThinLength?: number;
   sourceThinMode?: ThickWallCreationMode;
-  elevationViewSideOverride?: WallElevationViewSide;
-  interiorSideOverride?: WallElevationViewSide;
 };
 
 type WindowElement = {
@@ -195,13 +201,6 @@ type CabinetSelectionDetail = {
   sinkFixture?: boolean;
   cooktopFixture?: "surface" | "front";
   cooktopFrontHeightInches?: number;
-};
-
-type WallSelectionDetail = {
-  id: string;
-  kind: WallKind;
-  elevationViewSide: WallElevationViewSide;
-  hasManualElevationViewOverride: boolean;
 };
 
 
@@ -845,6 +844,12 @@ function resolveSelectedAiWallIds(
 
 type CabinetEditorBaseMode = "default" | "ai-prototype" | "ai-viewer";
 
+const MeasurementDisplayUnitContext = createContext<MeasurementDisplayUnit>("feet-inches");
+
+function useMeasurementDisplayUnit() {
+  return useContext(MeasurementDisplayUnitContext);
+}
+
 type CabinetEditorBaseProps = {
   mode?: CabinetEditorBaseMode;
 };
@@ -866,11 +871,11 @@ export default function CabinetEditorBase({
     useState<DoorSelectionDetail | null>(null);
   const [selectedCabinetDetail, setSelectedCabinetDetail] =
     useState<CabinetSelectionDetail | null>(null);
-  const [selectedWallDetail, setSelectedWallDetail] =
-    useState<WallSelectionDetail | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [planViewMode, setPlanViewMode] = useState<PlanViewMode>("floor");
   const [showElevationMeasurements, setShowElevationMeasurements] = useState(true);
+  const [measurementDisplayUnit, setMeasurementDisplayUnit] =
+    useState<MeasurementDisplayUnit>("feet-inches");
   const [canConvertSelectedThinWalls, setCanConvertSelectedThinWalls] = useState(false);
   const [generatedLayout, setGeneratedLayout] = useState<GeneratedKitchenLayout | null>(null);
   const [isDesignerSummaryCollapsed, setIsDesignerSummaryCollapsed] = useState(false);
@@ -927,29 +932,6 @@ export default function CabinetEditorBase({
       window.removeEventListener(
         "pelican-door-selection-change",
         handleDoorSelectionChange
-      );
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleWallSelectionChange = (event: Event) => {
-      const customEvent = event as CustomEvent<WallSelectionDetail | null>;
-      const detail = customEvent.detail ?? null;
-      setSelectedWallDetail(detail);
-      if (detail) {
-        setActivePanel("walls");
-      }
-    };
-
-    window.addEventListener(
-      "pelican-wall-selection-change",
-      handleWallSelectionChange
-    );
-
-    return () => {
-      window.removeEventListener(
-        "pelican-wall-selection-change",
-        handleWallSelectionChange
       );
     };
   }, []);
@@ -1067,7 +1049,8 @@ export default function CabinetEditorBase({
   };
 
   return (
-    <main className="flex h-screen w-screen flex-col overflow-hidden bg-white text-pelican-navy">
+    <MeasurementDisplayUnitContext.Provider value={measurementDisplayUnit}>
+      <main className="flex h-screen w-screen flex-col overflow-hidden bg-white text-pelican-navy">
       <TopBar
         title={
           isAiPrototype
@@ -1206,6 +1189,7 @@ export default function CabinetEditorBase({
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <section className="flex min-w-0 flex-1 flex-col">
           <ModeBar
+            isAiPrototype={isAiPrototype}
             onZoomIn={zoomIn}
             onZoomOut={zoomOut}
             onResetView={resetCanvasView}
@@ -1214,6 +1198,12 @@ export default function CabinetEditorBase({
             onSelectPlanView={setPlanViewMode}
             showMeasurements={showElevationMeasurements}
             onToggleMeasurements={() => setShowElevationMeasurements((current) => !current)}
+            measurementDisplayUnit={measurementDisplayUnit}
+            onToggleMeasurementDisplayUnit={() =>
+              setMeasurementDisplayUnit((current) =>
+                current === "feet-inches" ? "inches" : "feet-inches"
+              )
+            }
             canConvertSelectedThinWalls={canConvertSelectedThinWalls}
             onCreateWallExterior={() =>
               window.dispatchEvent(new Event("pelican-create-selected-wall-exterior"))
@@ -1254,7 +1244,6 @@ export default function CabinetEditorBase({
             activeTool={activeTool}
             setActiveTool={setActiveTool}
             setIsSelectionMode={setIsSelectionMode}
-            selectedWall={selectedWallDetail}
             selectedWindow={selectedWindowDetail}
             selectedDoor={selectedDoorDetail}
             selectedCabinet={selectedCabinetDetail}
@@ -1290,7 +1279,8 @@ export default function CabinetEditorBase({
           />
         </section>
       </div>
-    </main>
+      </main>
+    </MeasurementDisplayUnitContext.Provider>
   );
 }
 
@@ -1421,6 +1411,7 @@ function TopAction({
 }
 
 function ModeBar({
+  isAiPrototype,
   onZoomIn,
   onZoomOut,
   onResetView,
@@ -1429,11 +1420,14 @@ function ModeBar({
   onSelectPlanView,
   showMeasurements,
   onToggleMeasurements,
+  measurementDisplayUnit,
+  onToggleMeasurementDisplayUnit,
   canConvertSelectedThinWalls,
   onCreateWallExterior,
   onCreateWallInterior,
   onToggleSelectionMode,
 }: {
+  isAiPrototype: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetView: () => void;
@@ -1442,6 +1436,8 @@ function ModeBar({
   onSelectPlanView: (mode: PlanViewMode) => void;
   showMeasurements: boolean;
   onToggleMeasurements: () => void;
+  measurementDisplayUnit: MeasurementDisplayUnit;
+  onToggleMeasurementDisplayUnit: () => void;
   canConvertSelectedThinWalls: boolean;
   onCreateWallExterior: () => void;
   onCreateWallInterior: () => void;
@@ -1546,6 +1542,18 @@ function ModeBar({
           </span>
           Measurement
         </button>
+        {isAiPrototype ? (
+          <button
+            type="button"
+            onClick={onToggleMeasurementDisplayUnit}
+            className="inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-md border border-slate-200 bg-slate-50 px-3 text-[13px] font-semibold text-pelican-navy hover:bg-slate-100"
+          >
+            <Ruler className="h-4 w-4" />
+            {measurementDisplayUnit === "inches"
+              ? "Show ft/in"
+              : "Convert to inches"}
+          </button>
+        ) : null}
         <ModeIconButton icon={Settings} label="Canvas settings" />
       </div>
     </div>
@@ -2537,24 +2545,6 @@ function CanvasArea({
   }, [selectedWallId]);
 
   useEffect(() => {
-    const thickWalls = walls.filter(isThickWall);
-    const detail = selectedWall
-      ? {
-          id: selectedWall.id,
-          kind: selectedWall.kind ?? "wall",
-          elevationViewSide: getWallElevationViewSide(selectedWall, thickWalls),
-          hasManualElevationViewOverride: Boolean(
-            selectedWall.elevationViewSideOverride ?? selectedWall.interiorSideOverride
-          ),
-        }
-      : null;
-
-    window.dispatchEvent(
-      new CustomEvent("pelican-wall-selection-change", { detail })
-    );
-  }, [selectedWall, walls]);
-
-  useEffect(() => {
     groupSelectedWallIdsRef.current = groupSelectedWallIds;
   }, [groupSelectedWallIds]);
 
@@ -2640,68 +2630,6 @@ function CanvasArea({
       new CustomEvent("pelican-cabinet-selection-change", { detail })
     );
   }, [selectedCabinet]);
-
-  useEffect(() => {
-    const handleWallDeselect = () => {
-      setSelectedWallId(null);
-      setGroupSelectedWallIds([]);
-    };
-
-    const handleToggleSelectedWallInteriorSide = () => {
-      const targetWallId = selectedWallIdRef.current;
-      if (!targetWallId) return;
-
-      commitWallsChange((currentWalls) => {
-        const thickWalls = currentWalls.filter(isThickWall);
-
-        return currentWalls.map((wall) => {
-          if (wall.id !== targetWallId) return wall;
-          const currentSide = getWallElevationViewSide(wall, thickWalls);
-          const nextSide = currentSide === "left" ? "right" : "left";
-
-          return {
-            ...wall,
-            elevationViewSideOverride: nextSide,
-          };
-        });
-      });
-    };
-
-    const handleResetSelectedWallInteriorSide = () => {
-      const targetWallId = selectedWallIdRef.current;
-      if (!targetWallId) return;
-
-      commitWallsChange((currentWalls) =>
-        currentWalls.map((wall) =>
-          wall.id === targetWallId
-            ? { ...wall, elevationViewSideOverride: undefined, interiorSideOverride: undefined }
-            : wall
-        )
-      );
-    };
-
-    window.addEventListener("pelican-deselect-wall", handleWallDeselect);
-    window.addEventListener(
-      "pelican-toggle-selected-wall-interior-side",
-      handleToggleSelectedWallInteriorSide
-    );
-    window.addEventListener(
-      "pelican-reset-selected-wall-interior-side",
-      handleResetSelectedWallInteriorSide
-    );
-
-    return () => {
-      window.removeEventListener("pelican-deselect-wall", handleWallDeselect);
-      window.removeEventListener(
-        "pelican-toggle-selected-wall-interior-side",
-        handleToggleSelectedWallInteriorSide
-      );
-      window.removeEventListener(
-        "pelican-reset-selected-wall-interior-side",
-        handleResetSelectedWallInteriorSide
-      );
-    };
-  }, [commitWallsChange]);
 
   useEffect(() => {
     const handleWindowAttributeChange = (event: Event) => {
@@ -5118,6 +5046,7 @@ useEffect(() => {
               points={chain.points}
               sourceWalls={structuralThickWalls}
               connectionMap={connectionMap}
+              renderElevationViewDebugLine
               //hideInteriorDetails={isCreatingWallPreview}
               onMeasurementClick={startMeasurementEdit}
               editingMeasurement={editingMeasurement}
@@ -5834,13 +5763,10 @@ function getElevationWallElementCenterInches(wall: Wall, t: number) {
   return pixelsToInches(centerPixels);
 }
 
-function getWallElevationViewSide(
+function getInteriorMeasurementGuideSide(
   wall: Wall,
   walls: Wall[] = []
 ): Exclude<MeasurementSide, "length"> {
-  const manualOverride = wall.elevationViewSideOverride ?? wall.interiorSideOverride;
-  if (manualOverride) return manualOverride;
-
   const direction = normalize(sub(wall.end, wall.start));
   if (!vectorLength(direction)) return "left";
 
@@ -5858,172 +5784,12 @@ function getWallElevationViewSide(
 
     if (leftLength + tolerance < rightLength) return "left";
     if (rightLength + tolerance < leftLength) return "right";
-
-    const componentSide = getWallElevationViewSideFromWallSystem(
-      wall,
-      measurementWalls
-    );
-
-    if (componentSide) return componentSide;
   }
 
   const baseNormal = normalize(perp(direction));
   const interiorNormal = mul(getPreferredNormal(wall.start, wall.end), -1);
 
   return dot(interiorNormal, baseNormal) >= 0 ? "left" : "right";
-}
-
-function getWallElevationViewSideFromWallSystem(
-  wall: Wall,
-  walls: Wall[]
-): Exclude<MeasurementSide, "length"> | null {
-  const component = getConnectedWallComponents(walls).find((candidateWalls) =>
-    candidateWalls.some((candidateWall) => candidateWall.id === wall.id)
-  );
-
-  if (!component || component.length === 0) return null;
-  const chains = buildWallChains(component);
-  const matchingChain = chains
-    .map((chain) => {
-      for (let index = 0; index < chain.points.length - 1; index += 1) {
-        const segmentStart = chain.points[index];
-        const segmentEnd = chain.points[index + 1];
-
-        if (samePoint(segmentStart, wall.start) && samePoint(segmentEnd, wall.end)) {
-          return { chain, segmentIndex: index, reversed: false };
-        }
-
-        if (samePoint(segmentStart, wall.end) && samePoint(segmentEnd, wall.start)) {
-          return { chain, segmentIndex: index, reversed: true };
-        }
-      }
-
-      return null;
-    })
-    .find((candidate): candidate is {
-      chain: { points: Point[] };
-      segmentIndex: number;
-      reversed: boolean;
-    } => Boolean(candidate));
-
-  if (!matchingChain) return null;
-
-  const componentPoints = uniquePoints(
-    component.flatMap((componentWall) => [componentWall.start, componentWall.end])
-  );
-
-  if (componentPoints.length === 0) return null;
-
-  const centroid = componentPoints.reduce(
-    (sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }),
-    { x: 0, y: 0 }
-  );
-
-  centroid.x /= componentPoints.length;
-  centroid.y /= componentPoints.length;
-  const candidateStartSides: Array<Exclude<MeasurementSide, "length">> = ["left", "right"];
-  let bestSolution: {
-    sides: Array<Exclude<MeasurementSide, "length">>;
-    continuityCost: number;
-    inwardScore: number;
-  } | null = null;
-
-  const getJointAnchorDistance = (
-    points: Point[],
-    segmentIndex: number,
-    previousSide: Exclude<MeasurementSide, "length">,
-    nextSide: Exclude<MeasurementSide, "length">
-  ) => {
-    const previousEndAnchor = getWallSideMeasurementAnchor(
-      points[segmentIndex + 1],
-      points[segmentIndex],
-      previousSide,
-      component
-    );
-    const nextStartAnchor = getWallSideMeasurementAnchor(
-      points[segmentIndex + 1],
-      points[segmentIndex + 2],
-      nextSide,
-      component
-    );
-
-    return distance(previousEndAnchor, nextStartAnchor);
-  };
-
-  const getInwardScore = (points: Point[], sides: Array<Exclude<MeasurementSide, "length">>) =>
-    sides.reduce((score, side, index) => {
-      const segmentStart = points[index];
-      const segmentEnd = points[index + 1];
-      const direction = normalize(sub(segmentEnd, segmentStart));
-      if (!vectorLength(direction)) return score;
-      const baseNormal = normalize(perp(direction));
-      const normal = side === "left" ? baseNormal : mul(baseNormal, -1);
-      const inwardVector = sub(centroid, midpoint(segmentStart, segmentEnd));
-
-      return score + dot(normal, inwardVector);
-    }, 0);
-
-  for (const forcedStartSide of candidateStartSides) {
-    const points = matchingChain.chain.points;
-    const segmentCount = points.length - 1;
-    const dp = Array.from({ length: segmentCount }, () => ({ left: Infinity, right: Infinity }));
-    const parent = Array.from({ length: segmentCount }, () => ({
-      left: null as Exclude<MeasurementSide, "length"> | null,
-      right: null as Exclude<MeasurementSide, "length"> | null,
-    }));
-
-    dp[0][forcedStartSide] = 0;
-
-    for (let index = 1; index < segmentCount; index += 1) {
-      for (const side of candidateStartSides) {
-        for (const previousSide of candidateStartSides) {
-          const candidateCost =
-            dp[index - 1][previousSide] +
-            getJointAnchorDistance(points, index - 1, previousSide, side);
-
-          if (candidateCost < dp[index][side]) {
-            dp[index][side] = candidateCost;
-            parent[index][side] = previousSide;
-          }
-        }
-      }
-    }
-
-    const endSide =
-      dp[segmentCount - 1].left <= dp[segmentCount - 1].right ? "left" : "right";
-    const continuityCost = dp[segmentCount - 1][endSide];
-    const sides = new Array<Exclude<MeasurementSide, "length">>(segmentCount).fill("left");
-    let currentSide: Exclude<MeasurementSide, "length"> = endSide;
-
-    for (let index = segmentCount - 1; index >= 0; index -= 1) {
-      sides[index] = currentSide;
-      currentSide = parent[index][currentSide] ?? forcedStartSide;
-    }
-
-    const inwardScore = getInwardScore(points, sides);
-    const isBetter =
-      !bestSolution ||
-      continuityCost < bestSolution.continuityCost - 0.001 ||
-      (
-        Math.abs(continuityCost - bestSolution.continuityCost) <= 0.001 &&
-        inwardScore > bestSolution.inwardScore
-      );
-
-    if (isBetter) {
-      bestSolution = {
-        sides,
-        continuityCost,
-        inwardScore,
-      };
-    }
-  }
-
-  if (!bestSolution) return null;
-
-  const chainSide = bestSolution.sides[matchingChain.segmentIndex];
-  return matchingChain.reversed
-    ? getOppositeMeasurementSide(chainSide)
-    : chainSide;
 }
 
 function getWallSideGuideRunLength(
@@ -6044,86 +5810,13 @@ function getWallSideGuideRunLength(
   return distance(wall.start, wall.end);
 }
 
-function getFloorPlanElevationViewLineLength(
-  wall: Wall,
-  walls: Wall[]
-) {
-  const measurementWalls = walls.filter(isThickWall);
-  const guideSide = getWallElevationViewSide(wall, measurementWalls);
-  const layout = getWallSideMeasurementLayout(
-    wall.start,
-    wall.end,
-    guideSide,
-    measurementWalls
-  );
-
-  return distance(layout.lineStart, layout.lineEnd);
-}
-
-type ElevationWallViewSpan = {
+type ElevationWallInteriorSpan = {
   startScalar: number;
   endScalar: number;
   length: number;
   startAnchor: Point;
   endAnchor: Point;
 };
-
-function getElevationWallViewSpan(
-  wall: Wall,
-  walls: Wall[],
-  cabinets: CabinetElement[] = []
-): ElevationWallViewSpan {
-  const axis = getElevationWallAxis(wall);
-  const fallback = {
-    startScalar: 0,
-    endScalar: axis.length,
-    length: axis.length,
-    startAnchor: axis.start,
-    endAnchor: axis.end,
-  };
-
-  if (axis.length < 0.001) return fallback;
-
-  const thickWalls = walls.filter(isThickWall);
-  const guideSide =
-    getCabinetFacingMeasurementGuideSide(wall, cabinets, thickWalls) ??
-    getWallElevationViewSide(wall, thickWalls);
-  const startAnchor = getWallSideMeasurementAnchor(
-    wall.start,
-    wall.end,
-    guideSide,
-    thickWalls
-  );
-  const endAnchor = getWallSideMeasurementAnchor(
-    wall.end,
-    wall.start,
-    guideSide,
-    thickWalls
-  );
-  const startScalar = clamp(
-    dot(sub(startAnchor, axis.start), axis.direction),
-    0,
-    axis.length
-  );
-  const endScalar = clamp(
-    dot(sub(endAnchor, axis.start), axis.direction),
-    0,
-    axis.length
-  );
-  const spanStart = Math.min(startScalar, endScalar);
-  const spanEnd = Math.max(startScalar, endScalar);
-  const spanLength = spanEnd - spanStart;
-
-  if (spanLength < 0.001) return fallback;
-
-  return {
-    startScalar: spanStart,
-    endScalar: spanEnd,
-    length: spanLength,
-    startAnchor,
-    endAnchor,
-  };
-}
 
 function getCabinetFacingMeasurementGuideSide(
   wall: Wall,
@@ -6170,6 +5863,50 @@ function getCabinetFacingMeasurementGuideSide(
   return votes.left >= votes.right ? "left" : "right";
 }
 
+function getElevationWallInteriorSpan(
+  wall: Wall,
+  walls: Wall[],
+  cabinets: CabinetElement[] = []
+): ElevationWallInteriorSpan {
+  const axis = getElevationWallAxis(wall);
+  const fallback = {
+    startScalar: 0,
+    endScalar: axis.length,
+    length: axis.length,
+    startAnchor: axis.start,
+    endAnchor: axis.end,
+  };
+
+  if (axis.length < 0.001) return fallback;
+
+  const thickWalls = walls.filter(isThickWall);
+  const guideSide = getCabinetFacingMeasurementGuideSide(wall, cabinets, thickWalls)
+    ?? getInteriorMeasurementGuideSide(wall, walls);
+  const runEndpoints = getStructureGuideEndpointsFromMeasurementRun(
+    wall,
+    thickWalls,
+    guideSide
+  );
+
+  if (!runEndpoints) return fallback;
+
+  const startScalar = dot(sub(runEndpoints.startAnchor, axis.start), axis.direction);
+  const endScalar = dot(sub(runEndpoints.endAnchor, axis.start), axis.direction);
+  const spanStart = Math.min(startScalar, endScalar);
+  const spanEnd = Math.max(startScalar, endScalar);
+
+  if (spanEnd - spanStart < 0.001) return fallback;
+
+  return {
+    startScalar: spanStart,
+    endScalar: spanEnd,
+    length: spanEnd - spanStart,
+    startAnchor: runEndpoints.startAnchor,
+    endAnchor: runEndpoints.endAnchor,
+  };
+}
+
+
 function getPeninWallAttachmentToWall(
   peninWall: Wall,
   hostWall: Wall,
@@ -6212,12 +5949,11 @@ function getPeninWallAttachmentToWall(
   }
 
   if (!best) return null;
-  const resolvedBest = best;
   return {
-    endpoint: resolvedBest.endpoint,
-    point: resolvedBest.point,
-    normalSign: resolvedBest.normalSign,
-    length: resolvedBest.length,
+    endpoint: best.endpoint,
+    point: best.point,
+    normalSign: best.normalSign,
+    length: best.length,
   };
 }
 
@@ -7701,11 +7437,6 @@ function getCabinetWallAttachments(
   for (const wall of walls.filter(isThickWall)) {
     const axis = getElevationWallAxis(wall);
     if (axis.length < 0.001) continue;
-    const interiorSpan = getElevationWallViewSpan(wall, walls);
-    const spanStart = clamp(interiorSpan.startScalar, 0, axis.length);
-    const spanEnd = clamp(interiorSpan.endScalar, spanStart, axis.length);
-    const spanLength = Math.max(0, spanEnd - spanStart);
-    if (spanLength < 0.001) continue;
 
     for (const edge of widthEdges) {
       const edgeLength = distance(edge.start, edge.end);
@@ -7724,8 +7455,8 @@ function getCabinetWallAttachments(
       const projectionB = dot(sub(edge.end, axis.start), axis.direction);
       const rawStartProjection = Math.min(projectionA, projectionB);
       const rawEndProjection = Math.max(projectionA, projectionB);
-      const attachedStartProjection = clamp(rawStartProjection, spanStart, spanEnd);
-      const attachedEndProjection = clamp(rawEndProjection, spanStart, spanEnd);
+      const attachedStartProjection = clamp(rawStartProjection, 0, axis.length);
+      const attachedEndProjection = clamp(rawEndProjection, 0, axis.length);
       const overlap = attachedEndProjection - attachedStartProjection;
       if (overlap <= Math.max(1, edgeLength * 0.2)) continue;
 
@@ -7734,27 +7465,27 @@ function getCabinetWallAttachments(
         const gap = sideDistance - faceDistance;
         if (Math.abs(gap) > tolerance) continue;
 
-        const displayWidthPixels = Math.min(rawEndProjection - rawStartProjection, spanLength);
+        const displayWidthPixels = Math.min(rawEndProjection - rawStartProjection, axis.length);
         if (displayWidthPixels <= 0.5) continue;
 
         let startProjection = rawStartProjection;
         let endProjection = rawEndProjection;
 
-        if (displayWidthPixels >= spanLength) {
-          startProjection = spanStart;
-          endProjection = spanEnd;
+        if (displayWidthPixels >= axis.length) {
+          startProjection = 0;
+          endProjection = axis.length;
         } else {
-          if (startProjection < spanStart) {
-            endProjection -= startProjection - spanStart;
-            startProjection = spanStart;
+          if (startProjection < 0) {
+            endProjection -= startProjection;
+            startProjection = 0;
           }
 
-          if (endProjection > spanEnd) {
-            startProjection -= endProjection - spanEnd;
-            endProjection = spanEnd;
+          if (endProjection > axis.length) {
+            startProjection -= endProjection - axis.length;
+            endProjection = axis.length;
           }
 
-          startProjection = clamp(startProjection, spanStart, spanEnd - displayWidthPixels);
+          startProjection = clamp(startProjection, 0, axis.length - displayWidthPixels);
           endProjection = startProjection + displayWidthPixels;
         }
 
@@ -7764,12 +7495,12 @@ function getCabinetWallAttachments(
         // jump to the rectangle edge even when the user wanted to leave a small
         // reveal/gap near the left or right side of the elevation wall.
         const wallEndBindThreshold = inchesToPixels(0.35);
-        if (startProjection - spanStart <= wallEndBindThreshold) {
-          startProjection = spanStart;
-          endProjection = Math.min(spanStart + displayWidthPixels, spanEnd);
-        } else if (spanEnd - endProjection <= wallEndBindThreshold) {
-          endProjection = spanEnd;
-          startProjection = Math.max(spanStart, spanEnd - displayWidthPixels);
+        if (startProjection <= wallEndBindThreshold) {
+          startProjection = 0;
+          endProjection = Math.min(displayWidthPixels, axis.length);
+        } else if (axis.length - endProjection <= wallEndBindThreshold) {
+          endProjection = axis.length;
+          startProjection = Math.max(0, axis.length - displayWidthPixels);
         }
 
         const centerSideDistance = dot(sub(cabinetItem.center, axis.start), axis.normal);
@@ -7849,7 +7580,7 @@ function getCabinetElevationPlacementsForWall(
             endProjection: attachment.endProjection,
             depthFromWallFace: attachment.depthFromWallFace,
           }
-        : getCabinetProjectionOnWallAxis(cabinetItem, wall, allWalls);
+        : getCabinetProjectionOnWallAxis(cabinetItem, wall);
 
       if (!projection) return null;
 
@@ -8900,7 +8631,7 @@ function getElevationCornerReservationsForWall(
   coveredSameWallCornerCabinetIds: Set<string> = new Set()
 ): ElevationCornerReservation[] {
   const axis = getElevationWallAxis(wall);
-  const wallInteriorSpan = getElevationWallViewSpan(wall, walls);
+  const wallInteriorSpan = getElevationWallInteriorSpan(wall, walls);
   const wallStartOffsetInches = pixelsToInches(wallInteriorSpan.startScalar);
   const wallLengthInches = pixelsToInches(wallInteriorSpan.length);
   if (axis.length < 0.001 || wallLengthInches <= 0.001) return [];
@@ -9173,6 +8904,7 @@ function ElevationPlanView({
   const [isElevationDragging, setIsElevationDragging] = useState(false);
   const [elevationAlignmentGuides, setElevationAlignmentGuides] = useState<ElevationAlignmentGuide[]>([]);
   const [elevationInvalidCabinetDrag, setElevationInvalidCabinetDrag] = useState<{ id: string; message: string } | null>(null);
+  const measurementDisplayUnit = useMeasurementDisplayUnit();
 
   const updateElevationInvalidCabinetDrag = (state: { id: string; message: string } | null) => {
     elevationInvalidCabinetDragRef.current = state;
@@ -9233,7 +8965,7 @@ function ElevationPlanView({
         startAnchor: elevationWallAxis.start,
         endAnchor: elevationWallAxis.end,
       }
-    : getElevationWallViewSpan(wall, elevationStructureWalls, cabinets);
+    : getElevationWallInteriorSpan(wall, elevationStructureWalls, cabinets);
   const wallStartOffsetInches = pixelsToInches(elevationWallInteriorSpan.startScalar);
   const wallLengthInches = pixelsToInches(elevationWallInteriorSpan.length);
   const wallHeightInches = DEFAULT_ELEVATION_WALL_HEIGHT_INCHES;
@@ -9249,8 +8981,8 @@ function ElevationPlanView({
   const wallRight = wallLeft + wallRenderWidth;
   const wallTop = 190;
   const wallBottom = wallTop + wallRenderHeight;
-  const overallLengthLabel = formatMeasurementFromInches(wallLengthInches);
-  const overallHeightLabel = formatMeasurementFromInches(wallHeightInches);
+  const overallLengthLabel = formatMeasurementFromInches(wallLengthInches, measurementDisplayUnit);
+  const overallHeightLabel = formatMeasurementFromInches(wallHeightInches, measurementDisplayUnit);
 
   const cabinetRenderItems = wallCabinets.map((cabinetPlacement) => {
     const relativeStartInches = clamp(
@@ -9565,7 +9297,7 @@ function ElevationPlanView({
             y,
             x1,
             x2,
-            label: formatMeasurementFromInches(Math.max(0, gap / renderScale)),
+            label: formatMeasurementFromInches(Math.max(0, gap / renderScale), measurementDisplayUnit),
             labelX: (x1 + x2) / 2,
             labelY: y - 14,
             sortDistance: gap,
@@ -9595,7 +9327,7 @@ function ElevationPlanView({
             x,
             y1,
             y2,
-            label: formatMeasurementFromInches(Math.max(0, gap / renderScale)),
+            label: formatMeasurementFromInches(Math.max(0, gap / renderScale), measurementDisplayUnit),
             labelX: x + 18,
             labelY: (y1 + y2) / 2,
             sortDistance: gap,
@@ -9656,7 +9388,7 @@ function ElevationPlanView({
       left: item.dimensionLeft,
       right: item.dimensionRight,
       anchorY: item.placement.category === "base" ? item.bottom : item.top,
-      label: formatMeasurementFromInches(item.placement.widthInches),
+      label: formatMeasurementFromInches(item.placement.widthInches, measurementDisplayUnit),
     };
 
     if (item.placement.category === "base") {
@@ -9672,7 +9404,7 @@ function ElevationPlanView({
       left: item.left,
       right: item.right,
       anchorY: item.top,
-      label: formatMeasurementFromInches(item.layout.widthInches),
+      label: formatMeasurementFromInches(item.layout.widthInches, measurementDisplayUnit),
     });
   });
 
@@ -9682,7 +9414,7 @@ function ElevationPlanView({
       left: item.left,
       right: item.right,
       anchorY: item.bottom,
-      label: formatMeasurementFromInches(item.layout.widthInches),
+      label: formatMeasurementFromInches(item.layout.widthInches, measurementDisplayUnit),
     });
   });
 
@@ -9718,7 +9450,7 @@ function ElevationPlanView({
         top: item.bottom,
         bottom: wallBottom,
         referenceX: wallLeft,
-        label: formatMeasurementFromInches(item.placement.distanceFromFloorInches),
+        label: formatMeasurementFromInches(item.placement.distanceFromFloorInches, measurementDisplayUnit),
       })),
     ...windowRenderItems
       .filter((item) => item.windowItem.distanceFromFloorInches > 0)
@@ -9727,7 +9459,7 @@ function ElevationPlanView({
         top: item.bottom,
         bottom: wallBottom,
         referenceX: wallLeft,
-        label: formatMeasurementFromInches(item.windowItem.distanceFromFloorInches),
+        label: formatMeasurementFromInches(item.windowItem.distanceFromFloorInches, measurementDisplayUnit),
       })),
     ...doorRenderItems
       .filter((item) => item.doorItem.distanceFromFloorInches > 0)
@@ -9736,7 +9468,7 @@ function ElevationPlanView({
         top: item.bottom,
         bottom: wallBottom,
         referenceX: wallLeft,
-        label: formatMeasurementFromInches(item.doorItem.distanceFromFloorInches),
+        label: formatMeasurementFromInches(item.doorItem.distanceFromFloorInches, measurementDisplayUnit),
       })),
   ].forEach((item) => {
     const top = Math.min(item.top, item.bottom);
@@ -9764,21 +9496,21 @@ function ElevationPlanView({
       top: item.top,
       bottom: item.bottom,
       referenceX: wallLeft,
-      label: formatMeasurementFromInches(item.placement.heightInches),
+      label: formatMeasurementFromInches(item.placement.heightInches, measurementDisplayUnit),
     })),
     ...windowRenderItems.map((item) => ({
       key: `window-height-${item.key}`,
       top: item.top,
       bottom: item.bottom,
       referenceX: wallLeft,
-      label: formatMeasurementFromInches(item.windowItem.heightInches),
+      label: formatMeasurementFromInches(item.windowItem.heightInches, measurementDisplayUnit),
     })),
     ...doorRenderItems.map((item) => ({
       key: `door-height-${item.key}`,
       top: item.top,
       bottom: item.bottom,
       referenceX: wallLeft,
-      label: formatMeasurementFromInches(item.doorItem.heightInches),
+      label: formatMeasurementFromInches(item.doorItem.heightInches, measurementDisplayUnit),
     })),
   ].forEach((item) => {
     const top = Math.min(item.top, item.bottom);
@@ -11586,10 +11318,11 @@ function WindowPlacementMeasurements({
   width: number;
   showWidth: boolean;
 }) {
+  const measurementDisplayUnit = useMeasurementDisplayUnit();
   const direction = normalize(sub(wall.end, wall.start));
   const baseNormal = normalize(perp(direction));
   const measurementWalls = walls?.length ? walls : [wall];
-  const guideSide = getWallElevationViewSide(wall, measurementWalls);
+  const guideSide = getInteriorMeasurementGuideSide(wall, measurementWalls);
   const normal = guideSide === "left" ? baseNormal : mul(baseNormal, -1);
   const halfWidth = width / 2;
   const guideEndpoints = getStructureGuideEndpointsFromSideAnchors(
@@ -11634,7 +11367,7 @@ function WindowPlacementMeasurements({
       <SvgTextHalo
         x={segmentLabel(bracketStart, bracketWindowStart).x}
         y={segmentLabel(bracketStart, bracketWindowStart).y}
-        text={formatFeetInches(distance(startAnchor, windowStart))}
+        text={formatFeetInches(distance(startAnchor, windowStart), measurementDisplayUnit)}
         rotate={rotation}
         className="fill-slate-950 text-[12px] font-bold"
       />
@@ -11642,7 +11375,7 @@ function WindowPlacementMeasurements({
         <SvgTextHalo
           x={segmentLabel(bracketWindowStart, bracketWindowEnd).x}
           y={segmentLabel(bracketWindowStart, bracketWindowEnd).y}
-          text={formatFeetInches(width)}
+          text={formatFeetInches(width, measurementDisplayUnit)}
           rotate={rotation}
           className="fill-slate-950 text-[12px] font-bold"
         />
@@ -11650,7 +11383,7 @@ function WindowPlacementMeasurements({
       <SvgTextHalo
         x={segmentLabel(bracketWindowEnd, bracketEnd).x}
         y={segmentLabel(bracketWindowEnd, bracketEnd).y}
-        text={formatFeetInches(distance(windowEnd, endAnchor))}
+        text={formatFeetInches(distance(windowEnd, endAnchor), measurementDisplayUnit)}
         rotate={rotation}
         className="fill-slate-950 text-[12px] font-bold"
       />
@@ -12050,6 +11783,7 @@ function ThinWallLine({
   onMeasurementClick?: (payload: MeasurementClickPayload) => void;
   editingMeasurement?: MeasurementEditState | null;
 }) {
+  const measurementDisplayUnit = useMeasurementDisplayUnit();
   const layout = getThinWallMeasurementLayout(wall.start, wall.end);
   const length = distance(wall.start, wall.end);
   const payload: MeasurementClickPayload = {
@@ -12074,7 +11808,7 @@ function ThinWallLine({
       />
       <MeasurementLabelOnly
         layout={layout}
-        label={formatFeetInches(length)}
+        label={formatFeetInches(length, measurementDisplayUnit)}
         onClick={onMeasurementClick ? () => onMeasurementClick(payload) : undefined}
       />
     </g>
@@ -12245,6 +11979,7 @@ function WallChain({
   editingMeasurement: _editingMeasurement,
   renderWallBody = true,
   renderMeasurements = true,
+  renderElevationViewDebugLine = false,
   getMeasurementLabelOffset,
 }: {
   points: Point[];
@@ -12255,6 +11990,7 @@ function WallChain({
   editingMeasurement?: MeasurementEditState | null;
   renderWallBody?: boolean;
   renderMeasurements?: boolean;
+  renderElevationViewDebugLine?: boolean;
   getMeasurementLabelOffset?: (
     segmentStart: Point,
     segmentEnd: Point,
@@ -12265,7 +12001,49 @@ function WallChain({
   if (points.length < 2) return null;
 
   const geometry = buildBlackDotWallBand(points, sourceWalls);
-  const thickSourceWalls = sourceWalls.filter(isThickWall);
+  const chainWalls = sourceWalls.filter((wall) =>
+    points.some(
+      (point, index) =>
+        index < points.length - 1 &&
+        segmentMatchesWall(points[index], points[index + 1], wall.id, sourceWalls)
+    )
+  );
+  const elevationViewDebugLines = renderElevationViewDebugLine
+    ? chainWalls
+        .map((wall) => {
+          const guideSide = getInteriorMeasurementGuideSide(wall, sourceWalls);
+          const runEndpoints = getStructureGuideEndpointsFromMeasurementRun(
+            wall,
+            sourceWalls,
+            guideSide
+          );
+
+          if (runEndpoints) {
+            return {
+              key: wall.id,
+              start: runEndpoints.startAnchor,
+              end: runEndpoints.endAnchor,
+            };
+          }
+
+          return {
+            key: wall.id,
+            start: getWallSideMeasurementAnchor(
+              wall.start,
+              wall.end,
+              guideSide,
+              sourceWalls
+            ),
+            end: getWallSideMeasurementAnchor(
+              wall.end,
+              wall.start,
+              guideSide,
+              sourceWalls
+            ),
+          };
+        })
+        .filter((line) => distance(line.start, line.end) > 0.001)
+    : [];
 
   return (
     <g>
@@ -12278,52 +12056,24 @@ function WallChain({
               fill="#c9c9c9"
             />
           ))}
+        </g>
+      )}
 
-          {points.slice(0, -1).map((segmentStart, segmentIndex) => {
-            const segmentEnd = points[segmentIndex + 1];
-            const matchedWall = thickSourceWalls.find((wall) =>
-              (samePoint(segmentStart, wall.start) && samePoint(segmentEnd, wall.end)) ||
-              (samePoint(segmentStart, wall.end) && samePoint(segmentEnd, wall.start))
-            );
-
-            if (!matchedWall) return null;
-
-            const guideSide = getWallElevationViewSide(matchedWall, thickSourceWalls);
-            const segmentSide =
-              samePoint(segmentStart, matchedWall.start) &&
-              samePoint(segmentEnd, matchedWall.end)
-                ? guideSide
-                : getOppositeMeasurementSide(guideSide);
-            const direction = normalize(sub(segmentEnd, segmentStart));
-            const baseNormal = normalize(perp(direction));
-            const normal = segmentSide === "left" ? baseNormal : mul(baseNormal, -1);
-            const startAnchor = getMeasurementGuideAnchor(
-              segmentStart,
-              segmentEnd,
-              normal,
-              thickSourceWalls
-            );
-            const endAnchor = getMeasurementGuideAnchor(
-              segmentEnd,
-              segmentStart,
-              normal,
-              thickSourceWalls
-            );
-
-            return (
-              <line
-                key={`interior-debug-${matchedWall.id}-${segmentIndex}`}
-                x1={startAnchor.x}
-                y1={startAnchor.y}
-                x2={endAnchor.x}
-                y2={endAnchor.y}
-                stroke="#dc2626"
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                vectorEffect="non-scaling-stroke"
-              />
-            );
-          })}
+      {elevationViewDebugLines.length > 0 && (
+        <g pointerEvents="none">
+          {elevationViewDebugLines.map((line) => (
+            <line
+              key={`elevation-view-debug-${line.key}`}
+              x1={line.start.x}
+              y1={line.start.y}
+              x2={line.end.x}
+              y2={line.end.y}
+              stroke="#ef4444"
+              strokeWidth="2"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
         </g>
       )}
 
@@ -12465,6 +12215,7 @@ function WallMeasurementRuns({
     index: number
   ) => number;
 }) {
+  const measurementDisplayUnit = useMeasurementDisplayUnit();
   const measurementLines: React.ReactNode[] = [];
   let index = 0;
 
@@ -12519,7 +12270,7 @@ function WallMeasurementRuns({
       <MeasurementLine
         key={`${side}-measure-run-${index}-${endIndex}`}
         layout={layout}
-        label={formatFeetInches(displayLength)}
+        label={formatFeetInches(displayLength, measurementDisplayUnit)}
         onClick={onMeasurementClick ? () => onMeasurementClick(payload) : undefined}
       />
     );
@@ -13281,9 +13032,10 @@ function WallDrawingOverlay({
   verticalX?: number;
   showSerialStart: boolean;
 }) {
+  const measurementDisplayUnit = useMeasurementDisplayUnit();
   const length = distance(start, end);
   const hasLength = length > 4;
-  const label = formatFeetInches(length);
+  const label = formatFeetInches(length, measurementDisplayUnit);
 
   const measure = getMeasurementLayout(start, end, "exterior");
   const angleGuide = getAngleGuideLayout(start, end);
@@ -13386,6 +13138,7 @@ function WallDrawingOverlay({
 }
 
 function ThinWallDrawingOverlay({ start, end, horizontalY, verticalX, showSerialStart: _showSerialStart }: { start: Point; end: Point; horizontalY?: number; verticalX?: number; showSerialStart: boolean }) {
+  const measurementDisplayUnit = useMeasurementDisplayUnit();
   const length = distance(start, end);
   const hasLength = length > 4;
   const measure = getThinWallMeasurementLayout(start, end);
@@ -13397,7 +13150,7 @@ function ThinWallDrawingOverlay({ start, end, horizontalY, verticalX, showSerial
       {hasLength && angleGuide.mode === "full" && <circle cx={start.x} cy={start.y} r={length} fill="none" stroke="#777" strokeWidth={1.25} opacity={0.85} vectorEffect="non-scaling-stroke" />}
       {hasLength && angleGuide.mode !== "full" && <path d={describeHalfArc(start, length, angleGuide.mode)} fill="none" stroke="#777" strokeWidth={1.25} opacity={0.85} vectorEffect="non-scaling-stroke" />}
       {hasLength && <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="#31bde2" strokeWidth={THIN_WALL_STROKE_WIDTH} strokeLinecap="round" vectorEffect="non-scaling-stroke" />}
-      {hasLength && <MeasurementLabelOnly layout={measure} label={formatFeetInches(length)} />}
+      {hasLength && <MeasurementLabelOnly layout={measure} label={formatFeetInches(length, measurementDisplayUnit)} />}
       {hasLength && angleGuide.labels.map((item) => <SvgTextHalo key={`${item.text}-${item.point.x}-${item.point.y}`} x={item.point.x} y={item.point.y} text={item.text} className="fill-slate-950 text-[14px] font-bold" />)}
       <ThinPointHandle point={start} variant="red" />
       {hasLength && <ThinPointHandle point={end} variant="blue" />}
@@ -13707,74 +13460,6 @@ function DoorPropertiesPanel({
             Hardware finish
           </div>
           <FinishCard label="Stainless Steel" subLabel="Matcap" />
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-function WallPropertiesPanel({
-  selectedWall,
-  onBack,
-  onToggleInteriorSide,
-  onResetInteriorSide,
-}: {
-  selectedWall: WallSelectionDetail;
-  onBack: () => void;
-  onToggleInteriorSide: () => void;
-  onResetInteriorSide: () => void;
-}) {
-  return (
-    <aside className="h-full w-[280px] overflow-y-auto border-r border-slate-200 bg-white">
-      <div className="sticky top-0 z-10 bg-white px-3 pt-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back
-        </button>
-      </div>
-
-      <div className="space-y-4 px-4 pb-6">
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <div className="text-sm font-semibold text-pelican-navy">Wall Properties</div>
-          <div className="mt-1 text-xs text-slate-500">
-            Choose which face of this wall should be used as the elevation view line when the automatic guess picks the wrong side.
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-            Elevation view side
-          </div>
-          <div className="mt-2 text-sm font-medium text-slate-900">
-            {selectedWall.elevationViewSide === "left" ? "Left side" : "Right side"}
-          </div>
-          <div className="mt-1 text-xs text-slate-500">
-            {selectedWall.hasManualElevationViewOverride
-              ? "Manual override is on for this wall face."
-              : "Using automatic detection right now."}
-          </div>
-
-          <button
-            type="button"
-            onClick={onToggleInteriorSide}
-            className="mt-4 flex h-10 w-full items-center justify-center rounded-md bg-pelican-teal px-3 text-sm font-semibold text-white shadow-sm hover:brightness-95"
-          >
-            Swap elevation view side
-          </button>
-
-          {selectedWall.hasManualElevationViewOverride && (
-            <button
-              type="button"
-              onClick={onResetInteriorSide}
-              className="mt-2 flex h-10 w-full items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Reset to auto
-            </button>
-          )}
         </div>
       </div>
     </aside>
@@ -14093,7 +13778,6 @@ function ContextPanel({
   activeTool,
   setActiveTool,
   setIsSelectionMode,
-  selectedWall,
   selectedWindow,
   selectedDoor,
   selectedCabinet,
@@ -14106,7 +13790,6 @@ function ContextPanel({
   activeTool: Tool;
   setActiveTool: React.Dispatch<React.SetStateAction<Tool>>;
   setIsSelectionMode: React.Dispatch<React.SetStateAction<boolean>>;
-  selectedWall: WallSelectionDetail | null;
   selectedWindow: WindowSelectionDetail | null;
   selectedDoor: DoorSelectionDetail | null;
   selectedCabinet: CabinetSelectionDetail | null;
@@ -14122,21 +13805,6 @@ function ContextPanel({
     setIsSelectionMode(false);
     setActiveTool(tool);
   };
-
-  if (activePanel === "walls" && selectedWall) {
-    return (
-      <WallPropertiesPanel
-        selectedWall={selectedWall}
-        onBack={() => window.dispatchEvent(new Event("pelican-deselect-wall"))}
-        onToggleInteriorSide={() =>
-          window.dispatchEvent(new Event("pelican-toggle-selected-wall-interior-side"))
-        }
-        onResetInteriorSide={() =>
-          window.dispatchEvent(new Event("pelican-reset-selected-wall-interior-side"))
-        }
-      />
-    );
-  }
 
   if (activePanel === "products" && selectedCabinet && isProductCabinetImage(selectedCabinet.image)) {
     return (
@@ -15522,6 +15190,7 @@ function CabinetArrow({ x, y, rotation }: { x: number; y: number; rotation: numb
 
 // CabinetDistanceGuides
 function CabinetDistanceGuides({ metrics }: { metrics: CabinetDistanceMetric[] }) {
+  const measurementDisplayUnit = useMeasurementDisplayUnit();
   return (
     <g pointerEvents="none">
       {metrics.map((metric) => (
@@ -15548,7 +15217,7 @@ function CabinetDistanceGuides({ metrics }: { metrics: CabinetDistanceMetric[] }
           <SvgTextHalo
             x={metric.label.x}
             y={metric.label.y}
-            text={formatFeetInches(metric.distance)}
+            text={formatFeetInches(metric.distance, measurementDisplayUnit)}
             className="fill-slate-700 text-[12px] font-bold"
           />
         </g>
@@ -17280,17 +16949,10 @@ function getWallCabinetSupportedWall(
 
 function getCabinetProjectionOnWallAxis(
   cabinetItem: Pick<CabinetElement, "center" | "width" | "depth" | "rotation">,
-  wall: Wall,
-  walls: Wall[] = [wall]
+  wall: Wall
 ): { startProjection: number; endProjection: number; depthFromWallFace: number } | null {
   const axis = getElevationWallAxis(wall);
   if (axis.length < 0.001) return null;
-  const measurementWalls = walls.length ? walls.filter(isThickWall) : [wall];
-  const interiorSpan = getElevationWallViewSpan(wall, measurementWalls);
-  const spanStart = clamp(interiorSpan.startScalar, 0, axis.length);
-  const spanEnd = clamp(interiorSpan.endScalar, spanStart, axis.length);
-  const spanLength = Math.max(0, spanEnd - spanStart);
-  if (spanLength < 0.001) return null;
 
   const corners = getRotatedRectCorners(
     cabinetItem.center,
@@ -17301,28 +16963,28 @@ function getCabinetProjectionOnWallAxis(
   const projections = corners.map((corner) => dot(sub(corner, axis.start), axis.direction));
   const rawStartProjection = Math.min(...projections);
   const rawEndProjection = Math.max(...projections);
-  const displayWidthPixels = Math.min(rawEndProjection - rawStartProjection, spanLength);
+  const displayWidthPixels = Math.min(rawEndProjection - rawStartProjection, axis.length);
 
   if (displayWidthPixels <= 0.5) return null;
 
   let startProjection = rawStartProjection;
   let endProjection = rawEndProjection;
 
-  if (displayWidthPixels >= spanLength) {
-    startProjection = spanStart;
-    endProjection = spanEnd;
+  if (displayWidthPixels >= axis.length) {
+    startProjection = 0;
+    endProjection = axis.length;
   } else {
-    if (startProjection < spanStart) {
-      endProjection -= startProjection - spanStart;
-      startProjection = spanStart;
+    if (startProjection < 0) {
+      endProjection -= startProjection;
+      startProjection = 0;
     }
 
-    if (endProjection > spanEnd) {
-      startProjection -= endProjection - spanEnd;
-      endProjection = spanEnd;
+    if (endProjection > axis.length) {
+      startProjection -= endProjection - axis.length;
+      endProjection = axis.length;
     }
 
-    startProjection = clamp(startProjection, spanStart, spanEnd - displayWidthPixels);
+    startProjection = clamp(startProjection, 0, axis.length - displayWidthPixels);
     endProjection = startProjection + displayWidthPixels;
   }
 
@@ -19112,7 +18774,7 @@ function getDoorMenuPosition(
 
   const direction = normalize(sub(wall.end, wall.start));
   const baseNormal = normalize(perp(direction));
-  const measurementSide = getWallElevationViewSide(wall, walls.length ? walls : [wall]);
+  const measurementSide = getInteriorMeasurementGuideSide(wall, walls.length ? walls : [wall]);
   const menuSide = getOppositeMeasurementSide(measurementSide);
   const normal = menuSide === "left" ? baseNormal : mul(baseNormal, -1);
   const menuWidth = 74;
@@ -19169,7 +18831,7 @@ function snapStructureCenterDistanceToNeighbor(
   (options.cabinets ?? []).forEach((cabinetItem) => {
     if (cabinetItem.id === options.excludeCabinetId) return;
     if (cabinetItem.wallId && cabinetItem.wallId !== wall.id) return;
-    const projection = getCabinetProjectionOnWallAxis(cabinetItem, wall, walls);
+    const projection = getCabinetProjectionOnWallAxis(cabinetItem, wall);
     if (!projection) return;
     snapTargets.push({ start: projection.startProjection, end: projection.endProjection });
   });
@@ -19216,7 +18878,7 @@ function getWindowPlacementOnWall(
     }
 
     const direction = normalize(sub(wall.end, wall.start));
-    const interiorSide = getWallElevationViewSide(wall, thickWalls);
+    const interiorSide = getInteriorMeasurementGuideSide(wall, thickWalls);
     const interiorRun = getStructureGuideEndpointsFromMeasurementRun(
       wall,
       thickWalls,
@@ -19330,7 +18992,7 @@ function getWindowTabSideFacingMeasurementGuide(
 ): 1 | -1 {
   const direction = normalize(sub(wall.end, wall.start));
   const baseNormal = normalize(perp(direction));
-  const measurementSide = getWallElevationViewSide(
+  const measurementSide = getInteriorMeasurementGuideSide(
     wall,
     walls.length ? walls : [wall]
   );
@@ -19361,7 +19023,7 @@ function getWindowMenuPosition(
 
   const direction = normalize(sub(wall.end, wall.start));
   const baseNormal = normalize(perp(direction));
-  const measurementSide = getWallElevationViewSide(wall, walls.length ? walls : [wall]);
+  const measurementSide = getInteriorMeasurementGuideSide(wall, walls.length ? walls : [wall]);
   const menuSide = getOppositeMeasurementSide(measurementSide);
   const normal = menuSide === "left" ? baseNormal : mul(baseNormal, -1);
   const menuWidth = 112;
@@ -19403,7 +19065,7 @@ function measurementSideMatchesStructureGuide(
   wall: Wall,
   walls: Wall[] = []
 ) {
-  const guideSide = getWallElevationViewSide(wall, walls);
+  const guideSide = getInteriorMeasurementGuideSide(wall, walls);
 
   if (samePoint(segmentStart, wall.start) && samePoint(segmentEnd, wall.end)) {
     return side === guideSide;
@@ -20295,8 +19957,6 @@ function areWallsEqual(a: Wall[], b: Wall[]) {
       other &&
       wall.id === other.id &&
       (wall.kind ?? "wall") === (other.kind ?? "wall") &&
-      (wall.elevationViewSideOverride ?? wall.interiorSideOverride ?? null) ===
-        (other.elevationViewSideOverride ?? other.interiorSideOverride ?? null) &&
       samePoint(wall.start, other.start) &&
       samePoint(wall.end, other.end)
     );
@@ -20867,8 +20527,6 @@ function areWallsEqualLoose(a: Wall[], b: Wall[]) {
       other &&
       wall.id === other.id &&
       (wall.kind ?? "wall") === (other.kind ?? "wall") &&
-      (wall.elevationViewSideOverride ?? wall.interiorSideOverride ?? null) ===
-        (other.elevationViewSideOverride ?? other.interiorSideOverride ?? null) &&
       samePoint(wall.start, other.start) &&
       samePoint(wall.end, other.end)
     );
@@ -21357,8 +21015,12 @@ function toSvgPoint(point: Point): string {
   return `${point.x},${point.y}`;
 }
 
-function formatMeasurementFromInches(totalInchesValue: number) {
+function formatMeasurementFromInches(
+  totalInchesValue: number,
+  unit: MeasurementDisplayUnit = "feet-inches"
+) {
   const totalInches = Math.max(1, Math.round(totalInchesValue));
+  if (unit === "inches") return `${totalInches}"`;
   const feet = Math.floor(totalInches / 12);
   const inches = totalInches % 12;
 
@@ -21368,18 +21030,15 @@ function formatMeasurementFromInches(totalInchesValue: number) {
   return `${feet}' ${inches}"`;
 }
 
-function formatFeetInches(pixelLength: number) {
+function formatFeetInches(
+  pixelLength: number,
+  unit: MeasurementDisplayUnit = "feet-inches"
+) {
   const inchesPerGrid = 12;
   const totalInches = Math.max(
     1,
     Math.round((pixelLength / GRID_SIZE) * inchesPerGrid)
   );
 
-  const feet = Math.floor(totalInches / 12);
-  const inches = totalInches % 12;
-
-  if (feet === 0) return `${inches}"`;
-  if (inches === 0) return `${feet}'`;
-
-  return `${feet}' ${inches}"`;
+  return formatMeasurementFromInches(totalInches, unit);
 }
