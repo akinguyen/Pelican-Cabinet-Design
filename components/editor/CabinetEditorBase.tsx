@@ -53,6 +53,8 @@ type Panel =
 type Tool =
   | "draw-wall"
   | "draw-thin-wall"
+  | "draw-penin-wall"
+  | "draw-island-wall"
   | "place-window"
   | "place-door"
   | "place-cabinet"
@@ -115,8 +117,8 @@ type Point = {
   y: number;
 };
 
-type WallKind = "wall" | "thin-wall";
 type WallElevationViewSide = "left" | "right";
+type WallKind = "wall" | "thin-wall" | "penin-wall" | "island-wall";
 
 type Wall = {
   id: string;
@@ -306,6 +308,20 @@ type ElevationDragState =
       heightInches: number;
     }
   | {
+      kind: "penin-wall";
+      id: string;
+      pointerId: number;
+      startPointer: Point;
+      startWall: Wall;
+      hostWallId: string;
+      anchorEndpoint: "start" | "end";
+      normalSign: number;
+      length: number;
+      grabOffsetCenterXInches: number;
+      widthInches: number;
+      startWalls: Wall[];
+    }
+  | {
       kind: "cabinet";
       id: string;
       pointerId: number;
@@ -416,6 +432,41 @@ type GroupDragState = {
   didMove: boolean;
 };
 
+type PeninWallDragState = {
+  id: string;
+  pointerId: number;
+  startPointer: Point;
+  startWall: Wall;
+  startWalls: Wall[];
+  didMove: boolean;
+};
+
+type PeninWallRotateState = {
+  id: string;
+  pointerId: number;
+  anchorEndpoint: "start" | "end";
+  anchorPoint: Point;
+  startAngle: number;
+  startRotation: number;
+  length: number;
+  startWall: Wall;
+  startWalls: Wall[];
+  didMove: boolean;
+  snappedRotation: number | null;
+};
+
+type PeninWallResizeState = {
+  id: string;
+  pointerId: number;
+  fixedEndpoint: "start" | "end";
+  fixedPoint: Point;
+  movingEndpoint: "start" | "end";
+  direction: Point;
+  startWall: Wall;
+  startWalls: Wall[];
+  didMove: boolean;
+};
+
 type SelectionRect = {
   x: number;
   y: number;
@@ -474,6 +525,9 @@ const SNAP_THRESHOLD = 9;
 const WALL_ATTACH_THRESHOLD = 22;
 const WALL_STROKE_WIDTH = 16;
 const WALL_THICKNESS = WALL_STROKE_WIDTH;
+const PENIN_WALL_THICKNESS = WALL_THICKNESS * 2;
+const PENIN_WALL_ELEVATION_HEIGHT_INCHES = 36;
+const PENIN_WALL_ELEVATION_FACE_WIDTH_INCHES = 24;
 const THIN_WALL_STROKE_WIDTH = 2;
 const DEFAULT_WINDOW_WIDTH = (39.25 / 12) * GRID_SIZE;
 const DEFAULT_DOOR_WIDTH = (36 / 12) * GRID_SIZE;
@@ -1631,8 +1685,12 @@ function CanvasArea({
   const dragOffsetStartRef = useRef<Point>({ x: 0, y: 0 });
   const menuDragRef = useRef<MenuDragState | null>(null);
   const groupDragRef = useRef<GroupDragState | null>(null);
+  const peninWallDragRef = useRef<PeninWallDragState | null>(null);
+  const peninWallRotateRef = useRef<PeninWallRotateState | null>(null);
+  const peninWallResizeRef = useRef<PeninWallResizeState | null>(null);
 
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
+  const [isPeninWallRotating, setIsPeninWallRotating] = useState(false);
   const [walls, setWalls] = useState<Wall[]>([]);
   const wallsRef = useRef<Wall[]>([]);
   const [windows, setWindows] = useState<WindowElement[]>([]);
@@ -1789,6 +1847,8 @@ function CanvasArea({
   }, [enableAiPrototype, setIsSelectionMode]);
 
   const thickWalls = useMemo(() => walls.filter(isThickWall), [walls]);
+  const structuralThickWalls = useMemo(() => thickWalls.filter((wall) => !isDetachedPanelWall(wall)), [thickWalls]);
+  const peninWalls = useMemo(() => thickWalls.filter(isDetachedPanelWall), [thickWalls]);
   const thinWalls = useMemo(() => walls.filter(isThinWall), [walls]);
 
   const wallPoints = useMemo(() => {
@@ -1830,11 +1890,11 @@ function CanvasArea({
     return canConvertThinWallSelection(groupSelectedWalls, thinWalls);
   }, [groupSelectedWalls, thinWalls]);
 
-  const connectionMap = useMemo(() => buildConnectionMap(thickWalls), [thickWalls]);
+  const connectionMap = useMemo(() => buildConnectionMap(structuralThickWalls), [structuralThickWalls]);
   const thinConnectionMap = useMemo(() => buildConnectionMap(thinWalls), [thinWalls]);
-  const wallChains = useMemo(() => buildWallChains(thickWalls), [thickWalls]);
+  const wallChains = useMemo(() => buildWallChains(structuralThickWalls), [structuralThickWalls]);
   const thinWallChains = useMemo(() => buildWallChains(thinWalls), [thinWalls]);
-  const elevationWalls = useMemo(() => thickWalls, [thickWalls]);
+  const elevationWalls = useMemo(() => [...structuralThickWalls, ...peninWalls], [structuralThickWalls, peninWalls]);
 
   useEffect(() => {
     setActiveElevationIndex((currentIndex) =>
@@ -3163,7 +3223,7 @@ useEffect(() => {
     const alignmentPoints =
       activeToolRef.current === "draw-thin-wall"
         ? getWallEndpoints(thinWalls)
-        : activeToolRef.current === "draw-wall"
+        : activeToolRef.current === "draw-wall" || activeToolRef.current === "draw-penin-wall" || activeToolRef.current === "draw-island-wall"
           ? getWallEndpoints(thickWalls)
           : wallPoints;
 
@@ -3208,7 +3268,7 @@ useEffect(() => {
     if (!isDrawingTool(activeTool) || !previewPoint || drawingStart) return null;
 
     const attachableWalls =
-      activeTool === "draw-thin-wall" ? thinWalls : thickWalls;
+      activeTool === "draw-island-wall" ? [] : activeTool === "draw-thin-wall" ? thinWalls : thickWalls;
 
     return getWallAttachPoint(previewPoint, attachableWalls);
   }, [activeTool, drawingStart, previewPoint, thickWalls, thinWalls]);
@@ -3582,7 +3642,11 @@ useEffect(() => {
       const attachableWalls =
         drawingTool === "draw-thin-wall"
           ? wallsRef.current.filter(isThinWall)
-          : wallsRef.current.filter(isThickWall);
+          : drawingTool === "draw-island-wall"
+            ? []
+            : drawingTool === "draw-penin-wall"
+              ? wallsRef.current.filter((wall) => isThickWall(wall) && !isDetachedPanelWall(wall))
+              : wallsRef.current.filter(isThickWall);
       const wallAttachPoint = getWallAttachPoint(rawPoint, attachableWalls);
 
       if (!drawingStart) {
@@ -3601,11 +3665,27 @@ useEffect(() => {
         id: crypto.randomUUID(),
         start: drawingStart,
         end: endPoint,
-        kind: drawingTool === "draw-thin-wall" ? "thin-wall" : "wall",
+        kind: drawingTool === "draw-thin-wall" ? "thin-wall" : drawingTool === "draw-penin-wall" ? "penin-wall" : drawingTool === "draw-island-wall" ? "island-wall" : "wall",
       };
+      const wallToAdd =
+        drawingTool === "draw-penin-wall"
+          ? getPeninWallMovePreview(newWall, wallsRef.current.filter((wall) => isThickWall(wall) && !isDetachedPanelWall(wall)))
+          : newWall;
+
+      if (
+        isDetachedPanelWall(wallToAdd) &&
+        detachedPanelWallIntersectsFloorCabinet(
+          wallToAdd,
+          cabinetsRef.current,
+          wallsRef.current.filter((wall) => isThickWall(wall) && !isDetachedPanelWall(wall)),
+          wallsRef.current
+        )
+      ) {
+        return;
+      }
 
       commitWallsChange((currentWalls) =>
-        splitConnectedWallsAndAddWall(currentWalls, newWall)
+        splitConnectedWallsAndAddWall(currentWalls, wallToAdd)
       );
 
       setDrawingStart(endPoint);
@@ -3636,6 +3716,93 @@ useEffect(() => {
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const peninWallRotateState = peninWallRotateRef.current;
+
+    if (peninWallRotateState && peninWallRotateState.pointerId === event.pointerId) {
+      const rawPoint = screenToWorkspace(event.clientX, event.clientY);
+
+      if (!rawPoint) return;
+
+      event.preventDefault();
+      peninWallRotateState.didMove = true;
+
+      const currentAngle = getAngleDegrees(peninWallRotateState.anchorPoint, rawPoint);
+      const rawRotation = normalizeDegrees(
+        peninWallRotateState.startRotation + currentAngle - peninWallRotateState.startAngle
+      );
+      const snappedRotationResult = cabinetSnapRotationToTick(
+        rawRotation,
+        peninWallRotateState.snappedRotation
+      );
+      peninWallRotateState.snappedRotation = snappedRotationResult.snappedRotation;
+      const nextRotation = snappedRotationResult.rotation;
+      const radians = degreesToRadians(nextRotation);
+      const nextFreePoint = add(peninWallRotateState.anchorPoint, {
+        x: Math.cos(radians) * peninWallRotateState.length,
+        y: Math.sin(radians) * peninWallRotateState.length,
+      });
+      const proposedWall: Wall = peninWallRotateState.anchorEndpoint === "start"
+        ? { ...peninWallRotateState.startWall, start: peninWallRotateState.anchorPoint, end: nextFreePoint }
+        : { ...peninWallRotateState.startWall, start: nextFreePoint, end: peninWallRotateState.anchorPoint };
+      const structuralWallsForAttach = peninWallRotateState.startWalls.filter(
+        (wall) => wall.id !== peninWallRotateState.id && isThickWall(wall) && !isDetachedPanelWall(wall)
+      );
+      const rotatedPeninWall = isIslandWall(peninWallRotateState.startWall)
+        ? proposedWall
+        : getPeninWallMovePreview(proposedWall, structuralWallsForAttach);
+      if (detachedPanelWallIntersectsFloorCabinet(rotatedPeninWall, cabinetsRef.current, structuralWallsForAttach, wallsRef.current, peninWallRotateState.id)) {
+        return;
+      }
+      const nextWalls = wallsRef.current.map((wall) =>
+        wall.id === peninWallRotateState.id ? rotatedPeninWall : wall
+      );
+
+      wallsRef.current = nextWalls;
+      setWalls(nextWalls);
+      setSelectedWallId(peninWallRotateState.id);
+      setMenuPosition(null);
+      setEditingMeasurement(null);
+      return;
+    }
+
+    const peninWallResizeState = peninWallResizeRef.current;
+
+    if (peninWallResizeState && peninWallResizeState.pointerId === event.pointerId) {
+      const rawPoint = screenToWorkspace(event.clientX, event.clientY);
+
+      if (!rawPoint) return;
+
+      event.preventDefault();
+      const rawLength = dot(sub(rawPoint, peninWallResizeState.fixedPoint), peninWallResizeState.direction);
+      const nextLength = Math.max(GRID_SIZE / 2, rawLength);
+      const nextMovingPoint = add(peninWallResizeState.fixedPoint, mul(peninWallResizeState.direction, nextLength));
+      const movedEnough = Math.abs(nextLength - distance(peninWallResizeState.startWall.start, peninWallResizeState.startWall.end)) > 0.001;
+      if (movedEnough) peninWallResizeState.didMove = true;
+
+      const proposedWall: Wall = peninWallResizeState.movingEndpoint === "start"
+        ? { ...peninWallResizeState.startWall, start: nextMovingPoint, end: peninWallResizeState.fixedPoint }
+        : { ...peninWallResizeState.startWall, start: peninWallResizeState.fixedPoint, end: nextMovingPoint };
+      const structuralWallsForAttach = peninWallResizeState.startWalls.filter(
+        (wall) => wall.id !== peninWallResizeState.id && isThickWall(wall) && !isDetachedPanelWall(wall)
+      );
+      const resizedPeninWall = isIslandWall(peninWallResizeState.startWall)
+        ? proposedWall
+        : getPeninWallMovePreview(proposedWall, structuralWallsForAttach);
+      if (detachedPanelWallIntersectsFloorCabinet(resizedPeninWall, cabinetsRef.current, structuralWallsForAttach, wallsRef.current, peninWallResizeState.id)) {
+        return;
+      }
+      const nextWalls = wallsRef.current.map((wall) =>
+        wall.id === peninWallResizeState.id ? resizedPeninWall : wall
+      );
+
+      wallsRef.current = nextWalls;
+      setWalls(nextWalls);
+      setSelectedWallId(peninWallResizeState.id);
+      setMenuPosition(null);
+      setEditingMeasurement(null);
+      return;
+    }
+
     const cabinetRotateState = cabinetRotateRef.current;
 
     if (cabinetRotateState && cabinetRotateState.pointerId === event.pointerId) {
@@ -3913,6 +4080,48 @@ useEffect(() => {
 
       return;
     }
+
+    const peninWallDragState = peninWallDragRef.current;
+
+    if (peninWallDragState && peninWallDragState.pointerId === event.pointerId) {
+      const rawPoint = screenToWorkspace(event.clientX, event.clientY);
+
+      if (!rawPoint) return;
+
+      event.preventDefault();
+
+      const delta = sub(rawPoint, peninWallDragState.startPointer);
+
+      if (Math.abs(delta.x) > 0.001 || Math.abs(delta.y) > 0.001) {
+        peninWallDragState.didMove = true;
+      }
+
+      const proposedWall: Wall = {
+        ...peninWallDragState.startWall,
+        start: add(peninWallDragState.startWall.start, delta),
+        end: add(peninWallDragState.startWall.end, delta),
+      };
+      const structuralWallsForAttach = wallsRef.current.filter(
+        (wall) => wall.id !== peninWallDragState.id && isThickWall(wall) && !isDetachedPanelWall(wall)
+      );
+      const movedPeninWall = isIslandWall(peninWallDragState.startWall)
+        ? proposedWall
+        : getPeninWallMovePreview(proposedWall, structuralWallsForAttach);
+      if (detachedPanelWallIntersectsFloorCabinet(movedPeninWall, cabinetsRef.current, structuralWallsForAttach, wallsRef.current, peninWallDragState.id)) {
+        return;
+      }
+      const movedWalls = wallsRef.current.map((wall) =>
+        wall.id === peninWallDragState.id ? movedPeninWall : wall
+      );
+
+      wallsRef.current = movedWalls;
+      setWalls(movedWalls);
+      setSelectedWallId(peninWallDragState.id);
+      setMenuPosition(null);
+      setEditingMeasurement(null);
+      return;
+    }
+
 
     const groupDragState = groupDragRef.current;
 
@@ -4198,6 +4407,63 @@ useEffect(() => {
     }
 
 
+    const peninWallRotateState = peninWallRotateRef.current;
+
+    if (peninWallRotateState && peninWallRotateState.pointerId === event.pointerId) {
+      if (peninWallRotateState.didMove) {
+        undoStackRef.current.push({
+          walls: peninWallRotateState.startWalls,
+          windows: windowsRef.current,
+          doors: doorsRef.current,
+          cabinets: cabinetsRef.current,
+        });
+        redoStackRef.current = [];
+      }
+
+      const finishedWall = wallsRef.current.find((wall) => wall.id === peninWallRotateState.id);
+      if (finishedWall) {
+        setSelectedWallId(finishedWall.id);
+        setMenuPosition(getWallMenuPosition(finishedWall));
+      }
+
+      peninWallRotateRef.current = null;
+      setIsPeninWallRotating(false);
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      return;
+    }
+
+    const peninWallResizeState = peninWallResizeRef.current;
+
+    if (peninWallResizeState && peninWallResizeState.pointerId === event.pointerId) {
+      if (peninWallResizeState.didMove) {
+        undoStackRef.current.push({
+          walls: peninWallResizeState.startWalls,
+          windows: windowsRef.current,
+          doors: doorsRef.current,
+          cabinets: cabinetsRef.current,
+        });
+        redoStackRef.current = [];
+      }
+
+      const finishedWall = wallsRef.current.find((wall) => wall.id === peninWallResizeState.id);
+      if (finishedWall) {
+        setSelectedWallId(finishedWall.id);
+        setMenuPosition(getWallMenuPosition(finishedWall));
+      }
+
+      peninWallResizeRef.current = null;
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      return;
+    }
+
     const cabinetRotateState = cabinetRotateRef.current;
 
     if (cabinetRotateState && cabinetRotateState.pointerId === event.pointerId) {
@@ -4310,6 +4576,34 @@ useEffect(() => {
 
       windowDragRef.current = null;
       updateWindowPreview(null);
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      return;
+    }
+
+    const peninWallDragState = peninWallDragRef.current;
+
+    if (peninWallDragState && peninWallDragState.pointerId === event.pointerId) {
+      if (peninWallDragState.didMove) {
+        undoStackRef.current.push({
+          walls: peninWallDragState.startWalls,
+          windows: windowsRef.current,
+          doors: doorsRef.current,
+          cabinets: cabinetsRef.current,
+        });
+        redoStackRef.current = [];
+      }
+
+      const finishedWall = wallsRef.current.find((wall) => wall.id === peninWallDragState.id);
+      if (finishedWall) {
+        setSelectedWallId(finishedWall.id);
+        setMenuPosition(getWallMenuPosition(finishedWall));
+      }
+
+      peninWallDragRef.current = null;
 
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
@@ -4534,6 +4828,173 @@ useEffect(() => {
     });
   };
 
+  const updateWallFromElevation = (
+    id: string,
+    updates: Partial<Pick<Wall, "start" | "end">>
+  ) => {
+    setWalls((currentWalls) => {
+      const nextWalls = currentWalls.map((wallItem) =>
+        wallItem.id === id ? { ...wallItem, ...updates } : wallItem
+      );
+      wallsRef.current = nextWalls;
+      return nextWalls;
+    });
+  };
+
+  const handlePeninWallDragStart = (event: React.PointerEvent<SVGLineElement>, wall: Wall) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const dragStartPoint = screenToWorkspace(event.clientX, event.clientY) ?? wall.start;
+
+    peninWallDragRef.current = {
+      id: wall.id,
+      pointerId: event.pointerId,
+      startPointer: dragStartPoint,
+      startWall: wall,
+      startWalls: wallsRef.current,
+      didMove: false,
+    };
+
+    setSelectedWallId(wall.id);
+    setSelectedWindowId(null);
+    setSelectedDoorId(null);
+    setSelectedCabinetId(null);
+    setGroupSelectedWallIds([]);
+    setGroupSelectedCabinetIds([]);
+    setGroupContextMenu(null);
+    setMenuPosition(null);
+    setEditingMeasurement(null);
+    updateWindowPreview(null);
+    updateDoorPreview(null);
+    updateCabinetPreview(null);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+
+  const getPeninWallAttachmentForControls = (wall: Wall) => {
+    if (isIslandWall(wall)) {
+      return {
+        anchorEndpoint: "start" as const,
+        anchorPoint: wall.start,
+        freeEndpoint: "end" as const,
+        freePoint: wall.end,
+      };
+    }
+
+    const structuralWallsForAttach = wallsRef.current.filter(
+      (candidateWall) => candidateWall.id !== wall.id && isThickWall(candidateWall) && !isDetachedPanelWall(candidateWall)
+    );
+    const startAttachment = getPeninWallEndpointAttachment(wall.start, structuralWallsForAttach);
+    const endAttachment = getPeninWallEndpointAttachment(wall.end, structuralWallsForAttach);
+
+    if (startAttachment && (!endAttachment || startAttachment.distance <= endAttachment.distance)) {
+      return {
+        anchorEndpoint: "start" as const,
+        anchorPoint: startAttachment.point,
+        freeEndpoint: "end" as const,
+        freePoint: wall.end,
+      };
+    }
+
+    if (endAttachment) {
+      return {
+        anchorEndpoint: "end" as const,
+        anchorPoint: endAttachment.point,
+        freeEndpoint: "start" as const,
+        freePoint: wall.start,
+      };
+    }
+
+    return {
+      anchorEndpoint: "start" as const,
+      anchorPoint: wall.start,
+      freeEndpoint: "end" as const,
+      freePoint: wall.end,
+    };
+  };
+
+  const handlePeninWallRotateStart = (event: React.PointerEvent<SVGPathElement>, wall: Wall) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const controlAttachment = getPeninWallAttachmentForControls(wall);
+    const startVector = sub(controlAttachment.freePoint, controlAttachment.anchorPoint);
+    const length = Math.max(GRID_SIZE / 2, vectorLength(startVector));
+    const pointerPoint = screenToWorkspace(event.clientX, event.clientY) ?? controlAttachment.freePoint;
+
+    peninWallRotateRef.current = {
+      id: wall.id,
+      pointerId: event.pointerId,
+      anchorEndpoint: controlAttachment.anchorEndpoint,
+      anchorPoint: controlAttachment.anchorPoint,
+      startAngle: getAngleDegrees(controlAttachment.anchorPoint, pointerPoint),
+      startRotation: getAngleDegrees(controlAttachment.anchorPoint, controlAttachment.freePoint),
+      length,
+      startWall: wall,
+      startWalls: wallsRef.current,
+      didMove: false,
+      snappedRotation: null,
+    };
+
+    setIsPeninWallRotating(true);
+    setSelectedWallId(wall.id);
+    setSelectedWindowId(null);
+    setSelectedDoorId(null);
+    setSelectedCabinetId(null);
+    setGroupSelectedWallIds([]);
+    setGroupSelectedCabinetIds([]);
+    setGroupContextMenu(null);
+    setMenuPosition(null);
+    setEditingMeasurement(null);
+    updateWindowPreview(null);
+    updateDoorPreview(null);
+    updateCabinetPreview(null);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePeninWallResizeStart = (
+    event: React.PointerEvent<SVGCircleElement>,
+    wall: Wall,
+    movingEndpoint: "start" | "end"
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const fixedEndpoint = movingEndpoint === "start" ? "end" : "start";
+    const fixedPoint = fixedEndpoint === "start" ? wall.start : wall.end;
+    const movingPoint = movingEndpoint === "start" ? wall.start : wall.end;
+    const direction = normalize(sub(movingPoint, fixedPoint));
+
+    if (!vectorLength(direction)) return;
+
+    peninWallResizeRef.current = {
+      id: wall.id,
+      pointerId: event.pointerId,
+      fixedEndpoint,
+      fixedPoint,
+      movingEndpoint,
+      direction,
+      startWall: wall,
+      startWalls: wallsRef.current,
+      didMove: false,
+    };
+
+    setSelectedWallId(wall.id);
+    setSelectedWindowId(null);
+    setSelectedDoorId(null);
+    setSelectedCabinetId(null);
+    setGroupSelectedWallIds([]);
+    setGroupSelectedCabinetIds([]);
+    setGroupContextMenu(null);
+    setMenuPosition(null);
+    setEditingMeasurement(null);
+    updateWindowPreview(null);
+    updateDoorPreview(null);
+    updateCabinetPreview(null);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
   const currentMenuPosition =
     selectedWall && menuPosition
       ? menuPosition
@@ -4556,20 +5017,24 @@ useEffect(() => {
       <>
         <ElevationPlanView
           walls={elevationWalls}
+          allWalls={thickWalls}
           windows={windows}
           doors={doors}
           cabinets={cabinets}
           selectedWindowId={selectedWindowId}
           selectedDoorId={selectedDoorId}
           selectedCabinetId={selectedCabinetId}
+          selectedWallId={selectedWallId}
           activeIndex={activeElevationIndex}
           showMeasurements={showElevationMeasurements}
           onSelectWindow={selectWindowFromElevation}
           onSelectDoor={selectDoorFromElevation}
           onSelectCabinet={selectCabinetFromElevation}
+          onSelectWall={selectWall}
           onUpdateWindow={updateWindowFromElevation}
           onUpdateDoor={updateDoorFromElevation}
           onUpdateCabinet={updateCabinetFromElevation}
+          onUpdateWall={updateWallFromElevation}
           onAlert={showEditorAlert}
           onClearSelection={() => {
             setSelectedWallId(null);
@@ -4651,12 +5116,22 @@ useEffect(() => {
             <WallChain
               key={`chain-${index}-${chain.points.map(pointKey).join("-")}`}
               points={chain.points}
-              sourceWalls={thickWalls}
+              sourceWalls={structuralThickWalls}
               connectionMap={connectionMap}
               //hideInteriorDetails={isCreatingWallPreview}
               onMeasurementClick={startMeasurementEdit}
               editingMeasurement={editingMeasurement}
               renderMeasurements={false}
+            />
+          ))}
+
+          {peninWalls.map((wall) => (
+            <PeninWallLine
+              key={`penin-wall-${wall.id}`}
+              wall={wall}
+              structuralWalls={structuralThickWalls}
+              onMeasurementClick={startMeasurementEdit}
+              editingMeasurement={editingMeasurement}
             />
           ))}
 
@@ -4673,7 +5148,7 @@ useEffect(() => {
             <WallChain
               key={`measurement-overlay-${index}-${chain.points.map(pointKey).join("-")}`}
               points={chain.points}
-              sourceWalls={thickWalls}
+              sourceWalls={structuralThickWalls}
               connectionMap={connectionMap}
               //hideInteriorDetails={isCreatingWallPreview}
               onMeasurementClick={startMeasurementEdit}
@@ -4682,19 +5157,19 @@ useEffect(() => {
               getMeasurementLabelOffset={(segmentStart, segmentEnd, side) => {
                 if (!activeStructureWallId) return 18;
 
-                const activeStructureWall = thickWalls.find(
+                const activeStructureWall = structuralThickWalls.find(
                   (wall) => wall.id === activeStructureWallId
                 );
 
                 if (!activeStructureWall) return 18;
 
-                return segmentMatchesWall(segmentStart, segmentEnd, activeStructureWall.id, thickWalls) &&
+                return segmentMatchesWall(segmentStart, segmentEnd, activeStructureWall.id, structuralThickWalls) &&
                   measurementSideMatchesStructureGuide(
                     segmentStart,
                     segmentEnd,
                     side,
                     activeStructureWall,
-                    thickWalls
+                    structuralThickWalls
                   )
                   ? 46
                   : 18;
@@ -4703,17 +5178,16 @@ useEffect(() => {
           ))}
 
           {groupSelectedWalls.map((wall) => (
-            <SelectedWallOverlay key={`group-selected-${wall.id}`} wall={wall} walls={thickWalls} />
+            isDetachedPanelWall(wall) ? null : <SelectedWallOverlay key={`group-selected-${wall.id}`} wall={wall} walls={thickWalls} />
           ))}
 
-          {selectedWall && <SelectedWallOverlay wall={selectedWall} walls={thickWalls} />}
-
-          {getOpenEndpoints(thickWalls, connectionMap).map((point) => (
+          {selectedWall && !isDetachedPanelWall(selectedWall) && <SelectedWallOverlay wall={selectedWall} walls={thickWalls} />}
+          {getOpenEndpoints(structuralThickWalls, connectionMap).map((point) => (
             <OpenEndpoint key={`open-${pointKey(point)}`} point={point} />
           ))}
 
           <MeasurementGuideAnchorDebugDots
-            walls={thickWalls}
+            walls={structuralThickWalls}
             chains={wallChains}
           />
 
@@ -4725,7 +5199,7 @@ useEffect(() => {
           ))}
 
 
-          {drawingStart && activeTool === "draw-wall" && (
+          {drawingStart && (activeTool === "draw-wall" || activeTool === "draw-penin-wall" || activeTool === "draw-island-wall") && (
             <WallDrawingOverlay
               start={drawingStart}
               end={currentPreviewPoint ?? drawingStart}
@@ -4753,15 +5227,28 @@ useEffect(() => {
             <WallSelectionHitAreas
               walls={thickWalls}
               activeTool={activeTool}
+              selectedWallId={selectedWallId}
               onSelectWall={toggleKitchenWallSelection}
             />
           ) : !isSelectionMode ? (
             <WallSelectionHitAreas
               walls={walls}
               activeTool={activeTool}
+              selectedWallId={selectedWallId}
               onSelectWall={selectWall}
+              onPeninWallDragStart={handlePeninWallDragStart}
             />
           ) : null}
+
+          {selectedWall && isDetachedPanelWall(selectedWall) && (
+            <PeninWallSelectionOverlay
+              wall={selectedWall}
+              structuralWalls={structuralThickWalls}
+              showDegree={isPeninWallRotating}
+              onRotateStart={(event) => handlePeninWallRotateStart(event, selectedWall)}
+              onResizeStart={(event, endpoint) => handlePeninWallResizeStart(event, selectedWall, endpoint)}
+            />
+          )}
 
           {doors.map((doorItem) => {
             const wall = thickWalls.find((currentWall) => currentWall.id === doorItem.wallId);
@@ -5300,6 +5787,15 @@ type ElevationOpeningLayout = {
   widthInches: number;
 };
 
+type PeninWallElevationPlacement = {
+  wall: Wall;
+  centerInches: number;
+  startInches: number;
+  widthInches: number;
+  heightInches: number;
+  distanceFromFloorInches: number;
+};
+
 type ElevationWallAxis = {
   start: Point;
   end: Point;
@@ -5574,7 +6070,8 @@ type ElevationWallViewSpan = {
 
 function getElevationWallViewSpan(
   wall: Wall,
-  walls: Wall[]
+  walls: Wall[],
+  cabinets: CabinetElement[] = []
 ): ElevationWallViewSpan {
   const axis = getElevationWallAxis(wall);
   const fallback = {
@@ -5587,22 +6084,32 @@ function getElevationWallViewSpan(
 
   if (axis.length < 0.001) return fallback;
 
-  const measurementWalls = walls.filter(isThickWall);
-  const guideSide = getWallElevationViewSide(wall, measurementWalls);
+  const thickWalls = walls.filter(isThickWall);
+  const guideSide =
+    getCabinetFacingMeasurementGuideSide(wall, cabinets, thickWalls) ??
+    getWallElevationViewSide(wall, thickWalls);
   const startAnchor = getWallSideMeasurementAnchor(
     wall.start,
     wall.end,
     guideSide,
-    measurementWalls
+    thickWalls
   );
   const endAnchor = getWallSideMeasurementAnchor(
     wall.end,
     wall.start,
     guideSide,
-    measurementWalls
+    thickWalls
   );
-  const startScalar = clamp(dot(sub(startAnchor, axis.start), axis.direction), 0, axis.length);
-  const endScalar = clamp(dot(sub(endAnchor, axis.start), axis.direction), 0, axis.length);
+  const startScalar = clamp(
+    dot(sub(startAnchor, axis.start), axis.direction),
+    0,
+    axis.length
+  );
+  const endScalar = clamp(
+    dot(sub(endAnchor, axis.start), axis.direction),
+    0,
+    axis.length
+  );
   const spanStart = Math.min(startScalar, endScalar);
   const spanEnd = Math.max(startScalar, endScalar);
   const spanLength = spanEnd - spanStart;
@@ -5616,6 +6123,281 @@ function getElevationWallViewSpan(
     startAnchor,
     endAnchor,
   };
+}
+
+function getCabinetFacingMeasurementGuideSide(
+  wall: Wall,
+  cabinets: CabinetElement[],
+  walls: Wall[]
+): Exclude<MeasurementSide, "length"> | null {
+  const thickWalls = walls.filter(isThickWall);
+  const attachmentTolerance = Math.max(WALL_ATTACH_THRESHOLD, WALL_THICKNESS / 2 + 8);
+  const wallDirection = normalize(sub(wall.end, wall.start));
+
+  if (!vectorLength(wallDirection)) return null;
+
+  const wallNormal = normalize(perp(wallDirection));
+  const votes = { left: 0, right: 0 } as Record<Exclude<MeasurementSide, "length">, number>;
+
+  cabinets.forEach((cabinetItem) => {
+    const isAttachedToWall = cabinetItem.wallId === wall.id
+      ? true
+      : !cabinetItem.wallId && getCabinetWallAttachments(cabinetItem, thickWalls, attachmentTolerance)
+        .some((attachment) => attachment.wall.id === wall.id);
+
+    if (!isAttachedToWall) return;
+
+    const corners = getRotatedRectCorners(
+      cabinetItem.center,
+      cabinetItem.width,
+      cabinetItem.depth,
+      cabinetItem.rotation
+    );
+    const normalValues = corners.map((corner) => dot(sub(corner, wall.start), wallNormal));
+    const minNormal = Math.min(...normalValues);
+    const maxNormal = Math.max(...normalValues);
+
+    // Use the cabinet edge that is physically closest to one of the wall faces.
+    // This keeps the elevation width tied to the wall side that the cabinet is
+    // actually attached to instead of falling back to the larger/opposite face.
+    const leftFaceDistance = Math.min(Math.abs(minNormal - WALL_THICKNESS / 2), Math.abs(maxNormal - WALL_THICKNESS / 2));
+    const rightFaceDistance = Math.min(Math.abs(minNormal + WALL_THICKNESS / 2), Math.abs(maxNormal + WALL_THICKNESS / 2));
+    const side: Exclude<MeasurementSide, "length"> = leftFaceDistance <= rightFaceDistance ? "left" : "right";
+    votes[side] += 1;
+  });
+
+  if (!votes.left && !votes.right) return null;
+  return votes.left >= votes.right ? "left" : "right";
+}
+
+function getPeninWallAttachmentToWall(
+  peninWall: Wall,
+  hostWall: Wall,
+  tolerance = Math.max(WALL_ATTACH_THRESHOLD, PENIN_WALL_THICKNESS)
+): { endpoint: "start" | "end"; point: Point; normalSign: number; length: number } | null {
+  const wallLength = distance(hostWall.start, hostWall.end);
+  if (wallLength < 0.001) return null;
+
+  const direction = normalize(sub(hostWall.end, hostWall.start));
+  const normal = normalize(perp(direction));
+  if (!vectorLength(normal)) return null;
+
+  const candidates: Array<{ endpoint: "start" | "end"; endpointPoint: Point; freePoint: Point }> = [
+    { endpoint: "start", endpointPoint: peninWall.start, freePoint: peninWall.end },
+    { endpoint: "end", endpointPoint: peninWall.end, freePoint: peninWall.start },
+  ];
+
+  let best: { endpoint: "start" | "end"; point: Point; normalSign: number; length: number; distance: number } | null = null;
+
+  for (const candidate of candidates) {
+    const projectedPoint = closestPointOnSegment(candidate.endpointPoint, hostWall.start, hostWall.end);
+    const scalar = dot(sub(projectedPoint, hostWall.start), direction);
+    const endpointDistance = distance(candidate.endpointPoint, projectedPoint);
+    if (endpointDistance > tolerance || scalar < -tolerance || scalar > wallLength + tolerance) {
+      continue;
+    }
+
+    const freeVector = sub(candidate.freePoint, projectedPoint);
+    const normalSign = dot(freeVector, normal) >= 0 ? 1 : -1;
+    const length = Math.max(GRID_SIZE / 2, vectorLength(freeVector));
+    if (!best || endpointDistance < best.distance) {
+      best = {
+        endpoint: candidate.endpoint,
+        point: projectedPoint,
+        normalSign,
+        length,
+        distance: endpointDistance,
+      };
+    }
+  }
+
+  if (!best) return null;
+  const resolvedBest = best;
+  return {
+    endpoint: resolvedBest.endpoint,
+    point: resolvedBest.point,
+    normalSign: resolvedBest.normalSign,
+    length: resolvedBest.length,
+  };
+}
+
+function getPeninWallEndpointAttachment(
+  endpoint: Point,
+  structuralWalls: Wall[],
+  tolerance = Math.max(WALL_ATTACH_THRESHOLD, WALL_THICKNESS / 2 + 2)
+): { wall: Wall; point: Point; distance: number } | null {
+  let bestAttachment: { wall: Wall; point: Point; distance: number } | null = null;
+
+  for (const wall of structuralWalls) {
+    if (isDetachedPanelWall(wall)) continue;
+
+    const wallLength = distance(wall.start, wall.end);
+    if (wallLength < 0.001) continue;
+
+    const direction = normalize(sub(wall.end, wall.start));
+    const projectedPoint = closestPointOnSegment(endpoint, wall.start, wall.end);
+    const scalar = dot(sub(projectedPoint, wall.start), direction);
+    const endpointDistance = distance(endpoint, projectedPoint);
+
+    if (endpointDistance > tolerance || scalar < -tolerance || scalar > wallLength + tolerance) continue;
+    if (!bestAttachment || endpointDistance < bestAttachment.distance) {
+      bestAttachment = { wall, point: projectedPoint, distance: endpointDistance };
+    }
+  }
+
+  return bestAttachment;
+}
+
+function getPeninWallVisibleSegment(wall: Wall, structuralWalls: Wall[] = []): { start: Point; end: Point } {
+  if (isIslandWall(wall)) return { start: wall.start, end: wall.end };
+
+  const length = distance(wall.start, wall.end);
+  if (length < 0.001) return { start: wall.start, end: wall.end };
+
+  const direction = normalize(sub(wall.end, wall.start));
+  const attachOffset = WALL_THICKNESS / 2;
+  let start = wall.start;
+  let end = wall.end;
+
+  if (getPeninWallEndpointAttachment(wall.start, structuralWalls)) {
+    start = add(start, mul(direction, attachOffset));
+  }
+
+  if (getPeninWallEndpointAttachment(wall.end, structuralWalls)) {
+    end = add(end, mul(direction, -attachOffset));
+  }
+
+  if (dot(sub(end, start), direction) <= 2) {
+    return { start: wall.start, end: wall.end };
+  }
+
+  return { start, end };
+}
+
+function getClosestPeninWallEndpointAttachment(
+  endpoint: Point,
+  structuralWalls: Wall[]
+): { wall: Wall; point: Point; distance: number } | null {
+  let bestAttachment: { wall: Wall; point: Point; distance: number } | null = null;
+
+  for (const wall of structuralWalls) {
+    if (isDetachedPanelWall(wall)) continue;
+
+    const wallLength = distance(wall.start, wall.end);
+    if (wallLength < 0.001) continue;
+
+    const projectedPoint = closestPointOnSegment(endpoint, wall.start, wall.end);
+    const endpointDistance = distance(endpoint, projectedPoint);
+
+    if (!bestAttachment || endpointDistance < bestAttachment.distance) {
+      bestAttachment = { wall, point: projectedPoint, distance: endpointDistance };
+    }
+  }
+
+  return bestAttachment;
+}
+
+function getPeninWallMovePreview(wall: Wall, structuralWalls: Wall[]): Wall {
+  const startAttachment = getClosestPeninWallEndpointAttachment(wall.start, structuralWalls);
+  const endAttachment = getClosestPeninWallEndpointAttachment(wall.end, structuralWalls);
+
+  if (!startAttachment && !endAttachment) return wall;
+
+  const useStartAttachment = Boolean(
+    startAttachment && (!endAttachment || startAttachment.distance <= endAttachment.distance)
+  );
+  const attachment = useStartAttachment ? startAttachment : endAttachment;
+
+  if (!attachment) return wall;
+
+  const currentAnchorPoint = useStartAttachment ? wall.start : wall.end;
+  const currentFreePoint = useStartAttachment ? wall.end : wall.start;
+  const anchorDelta = sub(attachment.point, currentAnchorPoint);
+  const desiredFreePoint = add(currentFreePoint, anchorDelta);
+  const currentLength = distance(wall.start, wall.end);
+  const nextLength = Math.max(GRID_SIZE / 2, currentLength);
+  const hostDirection = normalize(sub(attachment.wall.end, attachment.wall.start));
+  if (!vectorLength(hostDirection)) {
+    return {
+      ...wall,
+      start: add(wall.start, anchorDelta),
+      end: add(wall.end, anchorDelta),
+    };
+  }
+
+  const normal = normalize(perp(hostDirection));
+  const firstFreePoint = add(attachment.point, mul(normal, nextLength));
+  const secondFreePoint = add(attachment.point, mul(normal, -nextLength));
+  const freePoint = distance(firstFreePoint, desiredFreePoint) <= distance(secondFreePoint, desiredFreePoint)
+    ? firstFreePoint
+    : secondFreePoint;
+
+  return useStartAttachment
+    ? { ...wall, start: attachment.point, end: freePoint }
+    : { ...wall, start: freePoint, end: attachment.point };
+}
+
+
+function getPeninWallAttachmentPointForElevationWall(
+  peninWall: Wall,
+  wall: Wall,
+  tolerance = Math.max(WALL_ATTACH_THRESHOLD, PENIN_WALL_THICKNESS)
+): Point | null {
+  const wallLength = distance(wall.start, wall.end);
+  if (wallLength < 0.001) return null;
+
+  for (const endpoint of [peninWall.start, peninWall.end]) {
+    const projectedPoint = closestPointOnSegment(endpoint, wall.start, wall.end);
+    const scalar = dot(sub(projectedPoint, wall.start), normalize(sub(wall.end, wall.start)));
+    const endpointDistance = distance(endpoint, projectedPoint);
+
+    if (endpointDistance <= tolerance && scalar >= -tolerance && scalar <= wallLength + tolerance) {
+      return projectedPoint;
+    }
+  }
+
+  return null;
+}
+
+function getPeninWallElevationPlacementsForWall(
+  wall: Wall,
+  walls: Wall[]
+): PeninWallElevationPlacement[] {
+  const axis = getElevationWallAxis(wall);
+  const wallLength = distance(wall.start, wall.end);
+  if (wallLength < 0.001) return [];
+
+  return walls
+    .filter((candidate) => isPeninWall(candidate) && candidate.id !== wall.id)
+    .map((peninWall): PeninWallElevationPlacement | null => {
+      const peninLength = distance(peninWall.start, peninWall.end);
+      if (peninLength < 0.001) return null;
+
+      const peninDirection = normalize(sub(peninWall.end, peninWall.start));
+      const attachmentPoint = getPeninWallAttachmentPointForElevationWall(peninWall, wall);
+      if (!attachmentPoint) return null;
+
+      // A peninsula wall is shown as a front-facing fixed panel on the wall it
+      // attaches to. Parallel wall runs are not treated as peninsula faces.
+      if (Math.abs(dot(peninDirection, axis.direction)) > 0.35) return null;
+
+      const centerPixels = clamp(dot(sub(attachmentPoint, axis.start), axis.direction), 0, axis.length);
+      const centerInches = pixelsToInches(centerPixels);
+      const widthInches = Math.max(
+        PENIN_WALL_ELEVATION_FACE_WIDTH_INCHES,
+        pixelsToInches(PENIN_WALL_THICKNESS)
+      );
+
+      return {
+        wall: peninWall,
+        centerInches,
+        startInches: centerInches - widthInches / 2,
+        widthInches,
+        heightInches: PENIN_WALL_ELEVATION_HEIGHT_INCHES,
+        distanceFromFloorInches: 0,
+      };
+    })
+    .filter((placement): placement is PeninWallElevationPlacement => Boolean(placement));
 }
 
 function getElevationOpeningLayoutFromCenter(
@@ -5636,6 +6418,53 @@ function getElevationOpeningLayoutFromCenter(
     centerInches: clampedCenterInches,
     widthInches: halfWidthInches * 2,
   };
+}
+
+
+function ElevationPeninWallFace({
+  x,
+  y,
+  width,
+  height,
+  selected = false,
+  className,
+  onPointerDown,
+}: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  selected?: boolean;
+  className?: string;
+  onPointerDown?: (event: React.PointerEvent<SVGGElement>) => void;
+}) {
+  const inset = Math.max(7, Math.min(14, Math.min(width, height) * 0.12));
+  const stroke = selected ? "#22bfd6" : "#111827";
+  const strokeWidth = selected ? 3 : 2.25;
+  return (
+    <g className={className} onPointerDown={onPointerDown}>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill="#f1ede4"
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        vectorEffect="non-scaling-stroke"
+      />
+      <rect
+        x={x + inset}
+        y={y + inset}
+        width={Math.max(0, width - inset * 2)}
+        height={Math.max(0, height - inset * 2)}
+        fill="none"
+        stroke="#94a3b8"
+        strokeWidth="1.6"
+        vectorEffect="non-scaling-stroke"
+      />
+    </g>
+  );
 }
 
 // ElevationCabinetOnWall
@@ -8278,37 +9107,44 @@ function getElevationCornerReservationsForWall(
 
 function ElevationPlanView({
   walls,
+  allWalls,
   windows,
   doors,
   cabinets,
   selectedWindowId,
   selectedDoorId,
   selectedCabinetId,
+  selectedWallId,
   activeIndex,
   showMeasurements,
   onSelectWindow,
   onSelectDoor,
   onSelectCabinet,
+  onSelectWall,
   onUpdateWindow,
   onUpdateDoor,
   onUpdateCabinet,
+  onUpdateWall,
   onAlert,
   onClearSelection,
   onPrevious,
   onNext,
 }: {
   walls: Wall[];
+  allWalls?: Wall[];
   windows: WindowElement[];
   doors: DoorElement[];
   cabinets: CabinetElement[];
   selectedWindowId: string | null;
   selectedDoorId: string | null;
   selectedCabinetId: string | null;
+  selectedWallId: string | null;
   activeIndex: number;
   showMeasurements: boolean;
   onSelectWindow: (id: string) => void;
   onSelectDoor: (id: string) => void;
   onSelectCabinet: (id: string) => void;
+  onSelectWall: (id: string) => void;
   onUpdateWindow: (
     id: string,
     updates: Partial<Pick<WindowElement, "t" | "distanceFromFloorInches">>
@@ -8320,6 +9156,10 @@ function ElevationPlanView({
   onUpdateCabinet: (
     id: string,
     updates: Partial<Pick<CabinetElement, "center" | "distanceFromFloorInches">>
+  ) => void;
+  onUpdateWall: (
+    id: string,
+    updates: Partial<Pick<Wall, "start" | "end">>
   ) => void;
   onAlert: (message: string, title?: string) => void;
   onClearSelection: () => void;
@@ -8352,7 +9192,16 @@ function ElevationPlanView({
     );
   }
 
+  const calculationWalls = allWalls ?? walls;
+  const elevationStructureWalls = calculationWalls.filter((candidateWall) => !isDetachedPanelWall(candidateWall));
   const wall = walls[activeIndex] ?? walls[0];
+  const isPeninElevationWall = isDetachedPanelWall(wall);
+  const peninElevationSegment = isPeninElevationWall
+    ? getPeninWallVisibleSegment(wall, elevationStructureWalls)
+    : null;
+  const elevationWallForMeasurement = peninElevationSegment
+    ? { ...wall, start: peninElevationSegment.start, end: peninElevationSegment.end }
+    : wall;
   const wallWindows = windows
     .filter((windowItem) => windowItem.wallId === wall.id)
     .sort(
@@ -8370,13 +9219,21 @@ function ElevationPlanView({
   const coveredSameWallCornerCabinetIds = getCoveredSameWallCornerCabinetIdsForElevation(
     wall,
     cabinets,
-    walls
+    elevationStructureWalls
   );
-  const wallCabinets = getCabinetElevationPlacementsForWall(wall, cabinets, walls)
+  const wallCabinets = getCabinetElevationPlacementsForWall(wall, cabinets, elevationStructureWalls)
     .filter((placement) => !coveredSameWallCornerCabinetIds.has(placement.cabinet.id));
 
-  const elevationWallAxis = getElevationWallAxis(wall);
-  const elevationWallInteriorSpan = getElevationWallViewSpan(wall, walls);
+  const elevationWallAxis = getElevationWallAxis(elevationWallForMeasurement);
+  const elevationWallInteriorSpan = isPeninElevationWall
+    ? {
+        startScalar: 0,
+        endScalar: elevationWallAxis.length,
+        length: elevationWallAxis.length,
+        startAnchor: elevationWallAxis.start,
+        endAnchor: elevationWallAxis.end,
+      }
+    : getElevationWallViewSpan(wall, elevationStructureWalls, cabinets);
   const wallStartOffsetInches = pixelsToInches(elevationWallInteriorSpan.startScalar);
   const wallLengthInches = pixelsToInches(elevationWallInteriorSpan.length);
   const wallHeightInches = DEFAULT_ELEVATION_WALL_HEIGHT_INCHES;
@@ -8438,10 +9295,46 @@ function ElevationPlanView({
     };
   });
 
+  const selfPeninWallRenderItem = isPeninElevationWall
+    ? {
+        key: `penin-wall-self-elevation-${wall.id}`,
+        left: wallLeft,
+        right: wallRight,
+        width: wallRenderWidth,
+        height: PENIN_WALL_ELEVATION_HEIGHT_INCHES * renderScale,
+        top: wallBottom - PENIN_WALL_ELEVATION_HEIGHT_INCHES * renderScale,
+        bottom: wallBottom,
+      }
+    : null;
+
+  const peninWallRenderItems = getPeninWallElevationPlacementsForWall(wall, calculationWalls).map((placement) => {
+    const relativeStartInches = clamp(
+      placement.startInches - wallStartOffsetInches,
+      0,
+      Math.max(0, wallLengthInches - placement.widthInches)
+    );
+    const width = placement.widthInches * renderScale;
+    const height = placement.heightInches * renderScale;
+    const left = wallLeft + relativeStartInches * renderScale;
+    const bottom = wallBottom - placement.distanceFromFloorInches * renderScale;
+    const top = bottom - height;
+
+    return {
+      key: `penin-wall-elevation-${placement.wall.id}`,
+      placement,
+      left,
+      right: left + width,
+      width,
+      top,
+      bottom,
+      height,
+    };
+  });
+
   const elevationCornerReservations = getElevationCornerReservationsForWall(
     wall,
     cabinets,
-    walls,
+    elevationStructureWalls,
     coveredSameWallCornerCabinetIds
   );
   const reservationRenderItems = elevationCornerReservations.map((reservation) => {
@@ -8933,6 +9826,28 @@ function ElevationPlanView({
     );
 
     return clamp(dot(sub(floorPoint, wall.start), wallDirection) / wallLength, 0, 1);
+  };
+
+  const getPeninWallMoveAlongCurrentElevationWall = (
+    peninWall: Wall,
+    anchorEndpoint: "start" | "end",
+    normalSign: number,
+    length: number,
+    centerInches: number
+  ): Wall => {
+    const clampedCenterInches = clamp(centerInches, 0, wallLengthInches);
+    const anchorPoint = add(
+      elevationWallAxis.start,
+      mul(elevationWallAxis.direction, inchesToPixels(wallStartOffsetInches + clampedCenterInches))
+    );
+    const hostDirection = normalize(sub(wall.end, wall.start));
+    const hostNormal = normalize(perp(hostDirection));
+    if (!vectorLength(hostNormal)) return peninWall;
+
+    const freePoint = add(anchorPoint, mul(hostNormal, length * normalSign));
+    return anchorEndpoint === "start"
+      ? { ...peninWall, start: anchorPoint, end: freePoint }
+      : { ...peninWall, start: freePoint, end: anchorPoint };
   };
 
   const beginElevationDrag = (
@@ -9441,6 +10356,56 @@ function ElevationPlanView({
       return;
     }
 
+    if (dragState.kind === "penin-wall") {
+      if (isPeninElevationWall) return;
+
+      const halfWidth = Math.min(dragState.widthInches / 2, wallLengthInches / 2);
+      const nextCenterInches = clamp(
+        (point.x - wallLeft) / renderScale - dragState.grabOffsetCenterXInches,
+        halfWidth,
+        Math.max(halfWidth, wallLengthInches - halfWidth)
+      );
+      const movedPeninWall = getPeninWallMoveAlongCurrentElevationWall(
+        dragState.startWall,
+        dragState.anchorEndpoint,
+        dragState.normalSign,
+        dragState.length,
+        nextCenterInches
+      );
+      if (
+        detachedPanelWallIntersectsFloorCabinet(
+          movedPeninWall,
+          cabinets,
+          calculationWalls.filter((candidateWall) => isThickWall(candidateWall) && !isDetachedPanelWall(candidateWall)),
+          calculationWalls,
+          dragState.id
+        )
+      ) {
+        return;
+      }
+
+      const nextLeft = wallLeft + (nextCenterInches - dragState.widthInches / 2) * renderScale;
+      const nextRight = nextLeft + dragState.widthInches * renderScale;
+      const nextBottom = wallBottom;
+      const nextTop = wallBottom - PENIN_WALL_ELEVATION_HEIGHT_INCHES * renderScale;
+      setElevationAlignmentGuides(getElevationAlignmentGuidesForBox({
+        key: dragState.id,
+        left: nextLeft,
+        right: nextRight,
+        top: nextTop,
+        bottom: nextBottom,
+        centerX: (nextLeft + nextRight) / 2,
+        centerY: (nextTop + nextBottom) / 2,
+      }, dragState.id));
+
+      onUpdateWall(dragState.id, {
+        start: movedPeninWall.start,
+        end: movedPeninWall.end,
+      });
+      elevationDragRef.current = dragState;
+      return;
+    }
+
     // Elevation drag only moves the cabinet along the viewed wall and in height.
     // It intentionally preserves the wall-normal depth from the floor plan.
     // Keep the original pointer-to-cabinet grab offset while dragging. Do not
@@ -9534,7 +10499,7 @@ function ElevationPlanView({
             const ruleMessage = getCabinetPlacementRuleViolationMessage(
               finishedCabinet,
               cabinets,
-              walls,
+              calculationWalls,
               finishedCabinet.id,
               true
             );
@@ -9625,6 +10590,68 @@ function ElevationPlanView({
               stroke="#9ca3af"
               strokeWidth="2"
             />
+
+            {isPeninElevationWall && (
+              <text
+                x={wallLeft + wallRenderWidth / 2}
+                y={wallTop + Math.max(36, Math.min(90, wallRenderHeight * 0.18))}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="#334155"
+                fontSize="20"
+                fontWeight="700"
+                pointerEvents="none"
+              >
+                {isIslandWall(wall) ? "Island" : "Peninsula Wall"}
+              </text>
+            )}
+
+            {selfPeninWallRenderItem && (
+              <ElevationPeninWallFace
+                key={selfPeninWallRenderItem.key}
+                x={selfPeninWallRenderItem.left}
+                y={selfPeninWallRenderItem.top}
+                width={selfPeninWallRenderItem.width}
+                height={selfPeninWallRenderItem.height}
+              />
+            )}
+
+            {peninWallRenderItems.map((item) => {
+              const selected = item.placement.wall.id === selectedWallId;
+              return (
+                <ElevationPeninWallFace
+                  key={item.key}
+                  x={item.left}
+                  y={item.top}
+                  width={item.width}
+                  height={item.height}
+                  selected={selected}
+                  className={isElevationDragging ? "cursor-grabbing" : "cursor-move"}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const startPointer = getElevationSvgPoint(event);
+                    const attachment = getPeninWallAttachmentToWall(item.placement.wall, wall);
+                    onSelectWall(item.placement.wall.id);
+                    if (!startPointer || !attachment) return;
+                    beginElevationDrag(event, {
+                      kind: "penin-wall",
+                      id: item.placement.wall.id,
+                      pointerId: event.pointerId,
+                      startPointer,
+                      startWall: item.placement.wall,
+                      hostWallId: wall.id,
+                      anchorEndpoint: attachment.endpoint,
+                      normalSign: attachment.normalSign,
+                      length: attachment.length,
+                      grabOffsetCenterXInches: (startPointer.x - (item.left + item.width / 2)) / renderScale,
+                      widthInches: item.placement.widthInches,
+                      startWalls: calculationWalls,
+                    });
+                  }}
+                />
+              );
+            })}
 
             {reservationRenderItems.map((item) => {
               const isTaken = item.reservation.severity === "taken";
@@ -11054,6 +12081,161 @@ function ThinWallLine({
   );
 }
 
+
+function PeninWallLine({
+  wall,
+  structuralWalls = [],
+  onMeasurementClick,
+  editingMeasurement,
+}: {
+  wall: Wall;
+  structuralWalls?: Wall[];
+  onMeasurementClick?: (payload: MeasurementClickPayload) => void;
+  editingMeasurement?: MeasurementEditState | null;
+}) {
+  const visibleSegment = getPeninWallVisibleSegment(wall, structuralWalls);
+  const visibleWall = { ...wall, start: visibleSegment.start, end: visibleSegment.end };
+  const length = distance(visibleWall.start, visibleWall.end);
+  const direction = length > 0.001 ? normalize(sub(visibleWall.end, visibleWall.start)) : { x: 1, y: 0 };
+  const normal = normalize(perp(direction));
+  const halfThickness = PENIN_WALL_THICKNESS / 2;
+  const endInset = Math.min(10, Math.max(0, length / 5));
+  const insetHalfThickness = Math.max(2, halfThickness - 5);
+  const start = add(visibleWall.start, mul(direction, endInset));
+  const end = add(visibleWall.end, mul(direction, -endInset));
+  const outerPolygon = [
+    add(visibleWall.start, mul(normal, halfThickness)),
+    add(visibleWall.end, mul(normal, halfThickness)),
+    add(visibleWall.end, mul(normal, -halfThickness)),
+    add(visibleWall.start, mul(normal, -halfThickness)),
+  ];
+  const innerPolygon = [
+    add(start, mul(normal, insetHalfThickness)),
+    add(end, mul(normal, insetHalfThickness)),
+    add(end, mul(normal, -insetHalfThickness)),
+    add(start, mul(normal, -insetHalfThickness)),
+  ];
+
+  return (
+    <g>
+      <polygon
+        points={outerPolygon.map(toSvgPoint).join(" ")}
+        fill="#f1ede4"
+        stroke="#334155"
+        strokeWidth="2.25"
+        vectorEffect="non-scaling-stroke"
+      />
+      <polygon
+        points={innerPolygon.map(toSvgPoint).join(" ")}
+        fill="none"
+        stroke="#94a3b8"
+        strokeWidth="1.6"
+        vectorEffect="non-scaling-stroke"
+      />
+      <WallChain
+        points={[visibleWall.start, visibleWall.end]}
+        sourceWalls={[visibleWall]}
+        connectionMap={new Map()}
+        onMeasurementClick={onMeasurementClick}
+        editingMeasurement={editingMeasurement}
+        renderWallBody={false}
+      />
+    </g>
+  );
+}
+
+
+function PeninWallSelectionOverlay({
+  wall,
+  structuralWalls,
+  showDegree = false,
+  onRotateStart,
+  onResizeStart,
+}: {
+  wall: Wall;
+  structuralWalls: Wall[];
+  showDegree?: boolean;
+  onRotateStart: (event: React.PointerEvent<SVGPathElement>) => void;
+  onResizeStart: (event: React.PointerEvent<SVGCircleElement>, endpoint: "start" | "end") => void;
+}) {
+  const visibleSegment = getPeninWallVisibleSegment(wall, structuralWalls);
+  const visibleWall = { ...wall, start: visibleSegment.start, end: visibleSegment.end };
+  const length = distance(visibleWall.start, visibleWall.end);
+  if (length < 0.001) return null;
+
+  const direction = normalize(sub(visibleWall.end, visibleWall.start));
+  const normal = normalize(perp(direction));
+  const center = midpoint(visibleWall.start, visibleWall.end);
+  const rotation = getAngleDegrees(visibleWall.start, visibleWall.end);
+  const halfThickness = PENIN_WALL_THICKNESS / 2;
+  const selectedStroke = "#22bfd6";
+  const handleFill = "#22bfd6";
+  const startAttachment = isIslandWall(wall) ? null : getPeninWallEndpointAttachment(wall.start, structuralWalls);
+  const endAttachment = isIslandWall(wall) ? null : getPeninWallEndpointAttachment(wall.end, structuralWalls);
+  const canResizeStart = !startAttachment || Boolean(endAttachment);
+  const canResizeEnd = !endAttachment || Boolean(startAttachment);
+  const resizeStartPoint = startAttachment ? visibleWall.start : wall.start;
+  const resizeEndPoint = endAttachment ? visibleWall.end : wall.end;
+  const pseudoCabinet: CabinetElement = {
+    id: wall.id,
+    center,
+    width: length,
+    depth: PENIN_WALL_THICKNESS,
+    rotation,
+    category: "base",
+  };
+  const outlinePoints = [
+    add(visibleWall.start, mul(normal, halfThickness)),
+    add(visibleWall.end, mul(normal, halfThickness)),
+    add(visibleWall.end, mul(normal, -halfThickness)),
+    add(visibleWall.start, mul(normal, -halfThickness)),
+  ];
+
+  return (
+    <g>
+      <polygon
+        points={outlinePoints.map(toSvgPoint).join(" ")}
+        fill="none"
+        stroke={selectedStroke}
+        strokeWidth="2.6"
+        vectorEffect="non-scaling-stroke"
+        pointerEvents="none"
+      />
+      {canResizeStart && (
+        <circle
+          cx={resizeStartPoint.x}
+          cy={resizeStartPoint.y}
+          r="5"
+          fill={handleFill}
+          stroke="#ffffff"
+          strokeWidth="1.5"
+          vectorEffect="non-scaling-stroke"
+          onPointerDown={(event) => onResizeStart(event, "start")}
+          style={{ cursor: "ew-resize" }}
+        />
+      )}
+      {canResizeEnd && (
+        <circle
+          cx={resizeEndPoint.x}
+          cy={resizeEndPoint.y}
+          r="5"
+          fill={handleFill}
+          stroke="#ffffff"
+          strokeWidth="1.5"
+          vectorEffect="non-scaling-stroke"
+          onPointerDown={(event) => onResizeStart(event, "end")}
+          style={{ cursor: "ew-resize" }}
+        />
+      )}
+      <CabinetMoveRotateControl
+        cabinetItem={pseudoCabinet}
+        onRotateStart={onRotateStart}
+        showDegree={showDegree}
+      />
+    </g>
+  );
+}
+
 function WallChain({
   points,
   sourceWalls,
@@ -11700,11 +12882,15 @@ function SelectedWallOverlay({ wall, walls = [wall] }: { wall: Wall; walls?: Wal
 function WallSelectionHitAreas({
   walls,
   activeTool,
+  selectedWallId,
   onSelectWall,
+  onPeninWallDragStart,
 }: {
   walls: Wall[];
   activeTool: Tool;
+  selectedWallId?: string | null;
   onSelectWall: (id: string) => void;
+  onPeninWallDragStart?: (event: React.PointerEvent<SVGLineElement>, wall: Wall) => void;
 }) {
   if (isDrawingTool(activeTool) || activeTool === "place-window" || activeTool === "place-door" || activeTool === "place-cabinet") return null;
 
@@ -11722,9 +12908,14 @@ function WallSelectionHitAreas({
           strokeLinecap="round"
           pointerEvents="stroke"
           vectorEffect="non-scaling-stroke"
+          style={{ cursor: isDetachedPanelWall(wall) && selectedWallId === wall.id && onPeninWallDragStart ? "move" : "pointer" }}
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
+            if (isDetachedPanelWall(wall) && selectedWallId === wall.id && onPeninWallDragStart) {
+              onPeninWallDragStart(event, wall);
+              return;
+            }
             onSelectWall(wall.id);
           }}
         />
@@ -13185,6 +14376,16 @@ function ContextPanel({
           active={activeTool === "draw-thin-wall"}
           onClick={() => activateToolFromCard("draw-thin-wall")}
         />
+
+        <PeninWallToolCard
+          active={activeTool === "draw-penin-wall"}
+          onClick={() => activateToolFromCard("draw-penin-wall")}
+        />
+
+        <IslandWallToolCard
+          active={activeTool === "draw-island-wall"}
+          onClick={() => activateToolFromCard("draw-island-wall")}
+        />
       </div>
     </aside>
   );
@@ -13325,6 +14526,32 @@ function ThinWallToolCard({ active, onClick }: { active: boolean; onClick: () =>
 }
 function ThinWallLineShape() {
   return <svg viewBox="0 0 130 70" className="h-16 w-24"><path d="M20 36 H110" className="fill-none stroke-slate-500 stroke-[2]" strokeLinecap="round" /></svg>;
+}
+
+function PeninWallToolCard({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={cn("flex h-[135px] w-full flex-col items-center justify-center rounded-md border bg-white p-3 transition hover:border-pelican-teal", active ? "border-pelican-navy ring-1 ring-pelican-navy" : "border-slate-200")}>
+      <IslandWallLineShape />
+      <span className="mt-3 text-[12px] font-medium text-slate-900">Draw Peninsula</span>
+    </button>
+  );
+}
+
+function PeninWallLineShape() {
+  return <svg viewBox="0 0 130 70" className="h-16 w-24"><path d="M20 36 H110" className="fill-none stroke-slate-300 stroke-[8]" /><path d="M20 32 H110" className="stroke-slate-400 stroke-[2]" /><path d="M24 48 H106" className="stroke-pelican-teal stroke-[2]" strokeDasharray="6 5" /></svg>;
+}
+
+function IslandWallToolCard({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={cn("flex h-[135px] w-full flex-col items-center justify-center rounded-md border bg-white p-3 transition hover:border-pelican-teal", active ? "border-pelican-navy ring-1 ring-pelican-navy" : "border-slate-200")}>
+      <IslandWallLineShape />
+      <span className="mt-3 text-[12px] font-medium text-slate-900">Draw Island</span>
+    </button>
+  );
+}
+
+function IslandWallLineShape() {
+  return <svg viewBox="0 0 130 70" className="h-16 w-24"><rect x="20" y="27" width="90" height="18" rx="2" className="fill-[#f1ede4] stroke-slate-400 stroke-[2]" /><rect x="27" y="31" width="76" height="10" rx="1" className="fill-none stroke-slate-400 stroke-[1.5]" /></svg>;
 }
 
 function MainToolbar({
@@ -16738,6 +17965,78 @@ function cabinetIntersectsAnyWall(
   });
 }
 
+function polygonsIntersect(firstPolygon: Point[], secondPolygon: Point[]) {
+  const firstEdges = firstPolygon.map((point, index) => ({
+    start: point,
+    end: firstPolygon[(index + 1) % firstPolygon.length],
+  }));
+  const secondEdges = secondPolygon.map((point, index) => ({
+    start: point,
+    end: secondPolygon[(index + 1) % secondPolygon.length],
+  }));
+
+  return (
+    firstPolygon.some((point) => pointInPolygon(point, secondPolygon)) ||
+    secondPolygon.some((point) => pointInPolygon(point, firstPolygon)) ||
+    firstEdges.some((firstEdge) =>
+      secondEdges.some((secondEdge) =>
+        cabinetOpenSegmentsIntersect(firstEdge.start, firstEdge.end, secondEdge.start, secondEdge.end)
+      )
+    )
+  );
+}
+
+function getDetachedPanelWallCollisionCorners(wall: Wall, structuralWalls: Wall[] = []) {
+  const visibleSegment = getPeninWallVisibleSegment(wall, structuralWalls);
+  const panelLength = distance(visibleSegment.start, visibleSegment.end);
+  if (panelLength < 0.001) return null;
+
+  return getRotatedRectCorners(
+    midpoint(visibleSegment.start, visibleSegment.end),
+    Math.max(1, panelLength - 1),
+    Math.max(1, PENIN_WALL_THICKNESS - 1),
+    getAngleDegrees(visibleSegment.start, visibleSegment.end)
+  );
+}
+
+function detachedPanelWallIntersectsFloorCabinet(
+  wall: Wall,
+  cabinets: CabinetElement[],
+  structuralWalls: Wall[] = [],
+  allWalls: Wall[] = [],
+  excludedWallId?: string
+) {
+  const panelCorners = getDetachedPanelWallCollisionCorners(wall, structuralWalls);
+  if (!panelCorners) return false;
+
+  const overlapsFloorCabinet = cabinets.some((cabinetItem) => {
+    if (getCabinetElevationCategory(cabinetItem) === "wall") return false;
+
+    const cabinetCorners = getRotatedRectCorners(
+      cabinetItem.center,
+      Math.max(1, cabinetItem.width - 1),
+      Math.max(1, cabinetItem.depth - 1),
+      cabinetItem.rotation
+    );
+
+    return polygonsIntersect(panelCorners, cabinetCorners);
+  });
+
+  if (overlapsFloorCabinet) return true;
+
+  const otherDetachedPanels = allWalls.filter(
+    (otherWall) =>
+      otherWall.id !== excludedWallId &&
+      otherWall.id !== wall.id &&
+      isDetachedPanelWall(otherWall)
+  );
+
+  return otherDetachedPanels.some((otherWall) => {
+    const otherPanelCorners = getDetachedPanelWallCollisionCorners(otherWall, structuralWalls);
+    return Boolean(otherPanelCorners && polygonsIntersect(panelCorners, otherPanelCorners));
+  });
+}
+
 function detectCabinetAttachmentSides(
   cabinetItem: CabinetElement,
   walls: Wall[],
@@ -18181,9 +19480,12 @@ function areDoorsEqual(a: DoorElement[], b: DoorElement[]) {
   });
 }
 
+function isPeninWall(wall: Wall) { return wall.kind === "penin-wall"; }
+function isIslandWall(wall: Wall) { return wall.kind === "island-wall"; }
+function isDetachedPanelWall(wall: Wall) { return isPeninWall(wall) || isIslandWall(wall); }
 function isThinWall(wall: Wall) { return wall.kind === "thin-wall"; }
 function isThickWall(wall: Wall) { return wall.kind !== "thin-wall"; }
-function isDrawingTool(tool: Tool) { return tool === "draw-wall" || tool === "draw-thin-wall"; }
+function isDrawingTool(tool: Tool) { return tool === "draw-wall" || tool === "draw-thin-wall" || tool === "draw-penin-wall" || tool === "draw-island-wall"; }
 
 function canConvertThinWallSelection(selectedWalls: Wall[], allThinWalls: Wall[]) {
   if (selectedWalls.length === 0) return false;
@@ -19856,9 +21158,12 @@ function splitConnectedWallsAndAddWall(walls: Wall[], newWall: Wall): Wall[] {
   let nextWalls = walls;
 
   const wallKind: WallKind = newWall.kind ?? "wall";
+  const splitKinds: WallKind[] = wallKind === "penin-wall" || wallKind === "island-wall" ? [] : [wallKind];
 
-  nextWalls = splitWallsAtInteriorPoint(nextWalls, newWall.start, wallKind);
-  nextWalls = splitWallsAtInteriorPoint(nextWalls, newWall.end, wallKind);
+  for (const kind of splitKinds) {
+    nextWalls = splitWallsAtInteriorPoint(nextWalls, newWall.start, kind);
+    nextWalls = splitWallsAtInteriorPoint(nextWalls, newWall.end, kind);
+  }
 
   return [...nextWalls, newWall];
 }
