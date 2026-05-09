@@ -12,6 +12,8 @@ export type AiWall = {
   start: AiPoint;
   end: AiPoint;
   kind?: AiWallKind;
+  elevationViewSideOverride?: "left" | "right";
+  interiorSideOverride?: "left" | "right";
 };
 
 export type AiWindow = {

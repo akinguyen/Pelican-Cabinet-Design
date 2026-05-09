@@ -291,8 +291,7 @@ function getWallEndpoints(room: AiRoomInput) {
     .flatMap((wall) => [wall.start, wall.end]);
 }
 
-function buildWallChainsForMeasurement(room: AiRoomInput) {
-  const walls = room.walls.filter((wall) => wall.kind !== "thin-wall");
+function buildMeasurementChainsFromWalls(walls: AiRoomInput["walls"]) {
   if (walls.length === 0) return [] as Array<{ points: AiPoint[] }>;
 
   const pointToWalls = new Map<string, typeof walls>();
@@ -361,7 +360,7 @@ function buildWallChainsForMeasurement(room: AiRoomInput) {
   };
 
   const junctionOrOpenPoints = uniquePoints(
-    getWallEndpoints(room).filter((point) => !isPassThroughPoint(point))
+    walls.flatMap((wall) => [wall.start, wall.end]).filter((point) => !isPassThroughPoint(point))
   ).sort((a, b) => {
     const degreeA = pointToWalls.get(pointKey(a))?.length ?? 0;
     const degreeB = pointToWalls.get(pointKey(b))?.length ?? 0;
@@ -381,6 +380,54 @@ function buildWallChainsForMeasurement(room: AiRoomInput) {
   }
 
   return chains.filter((chain) => chain.points.length >= 2);
+}
+
+function buildWallChainsForMeasurement(room: AiRoomInput) {
+  return buildMeasurementChainsFromWalls(
+    room.walls.filter((wall) => wall.kind !== "thin-wall")
+  );
+}
+
+function getConnectedMeasurementWallComponents(room: AiRoomInput) {
+  const walls = room.walls.filter((wall) => wall.kind !== "thin-wall");
+  const remaining = new Map(walls.map((wall) => [wall.id, wall]));
+  const pointToWallIds = new Map<string, string[]>();
+
+  for (const wall of walls) {
+    for (const point of [wall.start, wall.end]) {
+      const key = pointKey(point);
+      pointToWallIds.set(key, [...(pointToWallIds.get(key) ?? []), wall.id]);
+    }
+  }
+
+  const components: typeof walls[] = [];
+
+  while (remaining.size > 0) {
+    const first = Array.from(remaining.values())[0];
+    const queue = [first];
+    const component: typeof walls = [];
+    remaining.delete(first.id);
+
+    while (queue.length > 0) {
+      const wall = queue.shift();
+      if (!wall) continue;
+
+      component.push(wall);
+
+      for (const point of [wall.start, wall.end]) {
+        for (const neighborId of pointToWallIds.get(pointKey(point)) ?? []) {
+          const neighbor = remaining.get(neighborId);
+          if (!neighbor) continue;
+          remaining.delete(neighborId);
+          queue.push(neighbor);
+        }
+      }
+    }
+
+    components.push(component);
+  }
+
+  return components;
 }
 
 function getExteriorMeasurementSide(
@@ -737,7 +784,162 @@ function getWallSideGuideRunLength(
   return distanceBetweenPoints(wall.start, wall.end);
 }
 
+function getInteriorMeasurementGuideSideFromWallSystem(
+  room: AiRoomInput,
+  wall: AiRoomInput["walls"][number]
+) {
+  const component = getConnectedMeasurementWallComponents(room).find((candidateWalls) =>
+    candidateWalls.some((candidateWall) => candidateWall.id === wall.id)
+  );
+
+  if (!component || component.length === 0) return null;
+  const chains = buildMeasurementChainsFromWalls(component);
+  const matchingChain = chains
+    .map((chain) => {
+      for (let index = 0; index < chain.points.length - 1; index += 1) {
+        const segmentStart = chain.points[index];
+        const segmentEnd = chain.points[index + 1];
+
+        if (samePoint(segmentStart, wall.start) && samePoint(segmentEnd, wall.end)) {
+          return { chain, segmentIndex: index, reversed: false };
+        }
+
+        if (samePoint(segmentStart, wall.end) && samePoint(segmentEnd, wall.start)) {
+          return { chain, segmentIndex: index, reversed: true };
+        }
+      }
+
+      return null;
+    })
+    .find((candidate): candidate is {
+      chain: { points: AiPoint[] };
+      segmentIndex: number;
+      reversed: boolean;
+    } => Boolean(candidate));
+
+  if (!matchingChain) return null;
+
+  const componentPoints = uniquePoints(
+    component.flatMap((componentWall) => [componentWall.start, componentWall.end])
+  );
+
+  if (componentPoints.length === 0) return null;
+
+  const centroid = componentPoints.reduce(
+    (sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }),
+    { x: 0, y: 0 }
+  );
+
+  centroid.x /= componentPoints.length;
+  centroid.y /= componentPoints.length;
+  const candidateStartSides: Array<"left" | "right"> = ["left", "right"];
+  let bestSolution: {
+    sides: Array<"left" | "right">;
+    continuityCost: number;
+    inwardScore: number;
+  } | null = null;
+
+  const getJointAnchorDistance = (
+    points: AiPoint[],
+    segmentIndex: number,
+    previousSide: "left" | "right",
+    nextSide: "left" | "right"
+  ) => {
+    const previousEndAnchor = getWallSideMeasurementAnchor(
+      room,
+      points[segmentIndex + 1],
+      points[segmentIndex],
+      previousSide
+    );
+    const nextStartAnchor = getWallSideMeasurementAnchor(
+      room,
+      points[segmentIndex + 1],
+      points[segmentIndex + 2],
+      nextSide
+    );
+
+    return distanceBetweenPoints(previousEndAnchor, nextStartAnchor);
+  };
+
+  const getInwardScore = (points: AiPoint[], sides: Array<"left" | "right">) =>
+    sides.reduce((score, side, index) => {
+      const segmentStart = points[index];
+      const segmentEnd = points[index + 1];
+      const direction = normalize(sub(segmentEnd, segmentStart));
+      if (!vectorLength(direction)) return score;
+      const baseNormal = normalize(perp(direction));
+      const normal = side === "left" ? baseNormal : mul(baseNormal, -1);
+      const inwardVector = sub(centroid, midpoint(segmentStart, segmentEnd));
+
+      return score + dot(normal, inwardVector);
+    }, 0);
+
+  for (const forcedStartSide of candidateStartSides) {
+    const points = matchingChain.chain.points;
+    const segmentCount = points.length - 1;
+    const dp = Array.from({ length: segmentCount }, () => ({ left: Infinity, right: Infinity }));
+    const parent = Array.from({ length: segmentCount }, () => ({
+      left: null as "left" | "right" | null,
+      right: null as "left" | "right" | null,
+    }));
+
+    dp[0][forcedStartSide] = 0;
+
+    for (let index = 1; index < segmentCount; index += 1) {
+      for (const side of candidateStartSides) {
+        for (const previousSide of candidateStartSides) {
+          const candidateCost =
+            dp[index - 1][previousSide] +
+            getJointAnchorDistance(points, index - 1, previousSide, side);
+
+          if (candidateCost < dp[index][side]) {
+            dp[index][side] = candidateCost;
+            parent[index][side] = previousSide;
+          }
+        }
+      }
+    }
+
+    const endSide = dp[segmentCount - 1].left <= dp[segmentCount - 1].right ? "left" : "right";
+    const continuityCost = dp[segmentCount - 1][endSide];
+    const sides = new Array<"left" | "right">(segmentCount).fill("left");
+    let currentSide: "left" | "right" = endSide;
+
+    for (let index = segmentCount - 1; index >= 0; index -= 1) {
+      sides[index] = currentSide;
+      currentSide = parent[index][currentSide] ?? forcedStartSide;
+    }
+
+    const inwardScore = getInwardScore(points, sides);
+    const isBetter =
+      !bestSolution ||
+      continuityCost < bestSolution.continuityCost - 0.001 ||
+      (
+        Math.abs(continuityCost - bestSolution.continuityCost) <= 0.001 &&
+        inwardScore > bestSolution.inwardScore
+      );
+
+    if (isBetter) {
+      bestSolution = {
+        sides,
+        continuityCost,
+        inwardScore,
+      };
+    }
+  }
+
+  if (!bestSolution) return null;
+
+  const chainSide = bestSolution.sides[matchingChain.segmentIndex];
+  return matchingChain.reversed
+    ? (chainSide === "left" ? "right" : "left")
+    : chainSide;
+}
+
 function getInteriorMeasurementGuideSide(room: AiRoomInput, wall: AiRoomInput["walls"][number]) {
+  const manualOverride = wall.elevationViewSideOverride ?? wall.interiorSideOverride;
+  if (manualOverride) return manualOverride;
+
   const direction = normalize(sub(wall.end, wall.start));
   if (!vectorLength(direction)) return "left" as const;
 
@@ -747,6 +949,9 @@ function getInteriorMeasurementGuideSide(room: AiRoomInput, wall: AiRoomInput["w
 
   if (leftLength + tolerance < rightLength) return "left" as const;
   if (rightLength + tolerance < leftLength) return "right" as const;
+
+  const componentSide = getInteriorMeasurementGuideSideFromWallSystem(room, wall);
+  if (componentSide) return componentSide;
 
   const baseNormal = normalize(perp(direction));
   const interiorNormal = mul(getPreferredNormal(wall.start, wall.end), -1);
@@ -758,22 +963,18 @@ function getElevationWallSpanInches(room: AiRoomInput, wall: AiRoomInput["walls"
   const rawLengthInches = getRawWallLengthInches(room, wall);
   const axis = getElevationWallAxis(wall);
   const interiorSide = getInteriorMeasurementGuideSide(room, wall);
-  const runEndpoints = getStructureGuideEndpointsFromMeasurementRun(room, wall, interiorSide);
-
-  const fallbackStartAnchor = getWallSideMeasurementAnchor(
+  const startAnchor = getWallSideMeasurementAnchor(
     room,
     wall.start,
     wall.end,
     interiorSide
   );
-  const fallbackEndAnchor = getWallSideMeasurementAnchor(
+  const endAnchor = getWallSideMeasurementAnchor(
     room,
     wall.end,
     wall.start,
     interiorSide
   );
-  const startAnchor = runEndpoints?.startAnchor ?? fallbackStartAnchor;
-  const endAnchor = runEndpoints?.endAnchor ?? fallbackEndAnchor;
   const startScalar = clamp(dot(sub(startAnchor, axis.start), axis.direction), 0, axis.length);
   const endScalar = clamp(dot(sub(endAnchor, axis.start), axis.direction), 0, axis.length);
   const spanStartPixels = Math.min(startScalar, endScalar);
