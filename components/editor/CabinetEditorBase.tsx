@@ -114,6 +114,7 @@ type CabinetCatalogItem = {
 };
 
 type PlanViewMode = "floor" | "elevation";
+type WallElevationViewMode = "interior" | "exterior" | "none";
 
 type SidebarItem = {
   id: Panel;
@@ -133,6 +134,8 @@ type Wall = {
   start: Point;
   end: Point;
   kind?: WallKind;
+  elevationViewMode?: WallElevationViewMode;
+  needCabinetPlacement?: boolean;
   sourceThinLength?: number;
   sourceThinMode?: ThickWallCreationMode;
 };
@@ -174,6 +177,7 @@ type CabinetElement = {
   // Wall that this cabinet is attached to. This keeps elevation projection
   // tied to the same wall as the floor-plan placement, like doors/windows.
   wallId?: string;
+  wallFace?: WallFaceSide;
 };
 
 
@@ -182,6 +186,9 @@ type WindowSelectionDetail = {
   widthInches: number;
   heightInches: number;
   distanceFromFloorInches: number;
+  distanceFromLeftInches?: number;
+  distanceFromRightInches?: number;
+  wallWidthInches?: number;
 };
 
 type DoorSelectionDetail = {
@@ -189,6 +196,16 @@ type DoorSelectionDetail = {
   widthInches: number;
   heightInches: number;
   distanceFromFloorInches: number;
+  distanceFromLeftInches?: number;
+  distanceFromRightInches?: number;
+  wallWidthInches?: number;
+};
+
+type WallSelectionDetail = {
+  id: string;
+  kind: WallKind;
+  elevationViewMode: WallElevationViewMode;
+  needCabinetPlacement: boolean;
 };
 
 type CabinetSelectionDetail = {
@@ -196,6 +213,10 @@ type CabinetSelectionDetail = {
   widthInches: number;
   depthInches: number;
   heightInches: number;
+  distanceFromFloorInches?: number;
+  distanceFromLeftInches?: number;
+  distanceFromRightInches?: number;
+  wallWidthInches?: number;
   category?: CabinetCategory;
   image?: CabinetImage;
   sinkFixture?: boolean;
@@ -239,6 +260,7 @@ type CabinetPlacementPreview = {
   image?: CabinetImage;
   wall?: Wall | null;
   wallId?: string;
+  wallFace?: WallFaceSide;
   isValid: boolean;
   invalidReason?: string;
 };
@@ -478,6 +500,7 @@ type GroupContextMenuState = {
 };
 
 type MeasurementSide = "left" | "right" | "length";
+type WallFaceSide = "left" | "right";
 
 type ThickWallCreationMode = "exterior" | "interior";
 
@@ -842,6 +865,248 @@ function resolveSelectedAiWallIds(
   return Array.from(new Set(resolvedIds));
 }
 
+type SmartElevationFixedObject = {
+  id: string;
+  type: "window" | "door" | "cabinet" | "product";
+  coordinateSpace: "elevationPlan";
+  leftInches: number;
+  rightInches: number;
+  bottomInches: number;
+  widthInches: number;
+  heightInches?: number | null;
+  depthInches?: number | null;
+  catalogId?: string | null;
+  title?: string;
+  category?: CabinetCategory;
+  image?: CabinetImage | null;
+  topOption?: "sink" | "surface-cooktop" | "front-control-cooktop" | null;
+};
+
+type AiRoomWallWithEditorElevationData = AiRoomInput["walls"][number] & {
+  needCabinetPlacement?: boolean;
+  elevationPlan?: {
+    widthInches?: number;
+    fixedObjects?: SmartElevationFixedObject[];
+    [key: string]: unknown;
+  };
+  elevationWidthInches?: number;
+};
+
+function roundSmartWallWidthInches(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
+function roundSmartObjectInches(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
+function getEditorElevationWallWidthInches(
+  wall: Wall,
+  editorWalls: Wall[],
+  editorCabinets: CabinetElement[]
+) {
+  if (!isThickWall(wall)) return null;
+
+  const structuralWalls = editorWalls.filter(
+    (candidateWall) => isThickWall(candidateWall) && !isDetachedPanelWall(candidateWall)
+  );
+
+  const widthPixels = isDetachedPanelWall(wall)
+    ? distance(
+        getPeninWallVisibleSegment(wall, structuralWalls).start,
+        getPeninWallVisibleSegment(wall, structuralWalls).end
+      )
+    : getElevationWallInteriorSpan(wall, structuralWalls, editorCabinets).length;
+  const widthInches = pixelsToInches(widthPixels);
+
+  return Number.isFinite(widthInches) && widthInches > 0
+    ? roundSmartWallWidthInches(widthInches)
+    : null;
+}
+
+function findEditorWallForAiWall(
+  aiWall: AiRoomInput["walls"][number],
+  editorWalls: Wall[]
+) {
+  const exactIdMatch = editorWalls.find(
+    (editorWall) => editorWall.id === aiWall.id && isThickWall(editorWall)
+  );
+
+  if (exactIdMatch) return exactIdMatch;
+
+  return editorWalls.find(
+    (editorWall) => isThickWall(editorWall) && wallsMatchForAiSelection(editorWall, aiWall)
+  ) ?? null;
+}
+
+function getEditorCabinetTopOption(cabinetItem: CabinetElement) {
+  if (cabinetItem.sinkFixture) return "sink" as const;
+  if (cabinetItem.cooktopFixture === "surface") return "surface-cooktop" as const;
+  if (cabinetItem.cooktopFixture === "front") return "front-control-cooktop" as const;
+  return null;
+}
+
+function getEditorCabinetCatalogItem(cabinetItem: CabinetElement) {
+  return cabinetItem.catalogId
+    ? CABINET_CATALOG.find((catalogItem) => catalogItem.id === cabinetItem.catalogId) ?? null
+    : cabinetItem.image
+      ? CABINET_CATALOG.find((catalogItem) => catalogItem.image === cabinetItem.image) ?? null
+      : null;
+}
+
+function getEditorElevationFixedObjectsForWall(
+  editorWall: Wall,
+  editorWalls: Wall[],
+  editorWindows: WindowElement[],
+  editorDoors: DoorElement[],
+  editorCabinets: CabinetElement[]
+): SmartElevationFixedObject[] {
+  const openingFixedObjects = [
+    ...editorWindows
+      .filter((windowItem) => windowItem.wallId === editorWall.id)
+      .map((windowItem): SmartElevationFixedObject | null => {
+        const metrics = getOpeningElevationDistanceMetrics(
+          windowItem,
+          editorWalls,
+          editorCabinets
+        );
+        if (!metrics) return null;
+
+        return {
+          id: windowItem.id,
+          type: "window",
+          coordinateSpace: "elevationPlan",
+          leftInches: roundSmartObjectInches(metrics.distanceFromLeftInches),
+          rightInches: roundSmartObjectInches(metrics.distanceFromRightInches),
+          bottomInches: roundSmartObjectInches(windowItem.distanceFromFloorInches),
+          widthInches: roundSmartObjectInches(pixelsToInches(windowItem.width)),
+          heightInches: roundSmartObjectInches(windowItem.heightInches),
+        };
+      }),
+    ...editorDoors
+      .filter((doorItem) => doorItem.wallId === editorWall.id)
+      .map((doorItem): SmartElevationFixedObject | null => {
+        const metrics = getOpeningElevationDistanceMetrics(
+          doorItem,
+          editorWalls,
+          editorCabinets
+        );
+        if (!metrics) return null;
+
+        return {
+          id: doorItem.id,
+          type: "door",
+          coordinateSpace: "elevationPlan",
+          leftInches: roundSmartObjectInches(metrics.distanceFromLeftInches),
+          rightInches: roundSmartObjectInches(metrics.distanceFromRightInches),
+          bottomInches: roundSmartObjectInches(doorItem.distanceFromFloorInches),
+          widthInches: roundSmartObjectInches(pixelsToInches(doorItem.width)),
+          heightInches: roundSmartObjectInches(doorItem.heightInches),
+        };
+      }),
+  ].filter((fixedObject): fixedObject is SmartElevationFixedObject => Boolean(fixedObject));
+
+  const cabinetFixedObjects = editorCabinets
+    .map((cabinetItem): SmartElevationFixedObject | null => {
+      const attachedWall = getCabinetDistanceWall(cabinetItem, editorWalls, editorCabinets);
+      if (!attachedWall || attachedWall.id !== editorWall.id) return null;
+
+      const metrics = getCabinetElevationDistanceMetrics(
+        cabinetItem,
+        editorWalls,
+        editorCabinets
+      );
+      if (!metrics) return null;
+
+      const catalogItem = getEditorCabinetCatalogItem(cabinetItem);
+      const category =
+        getCabinetElevationCategory(cabinetItem) ??
+        cabinetItem.category ??
+        catalogItem?.category ??
+        "base";
+      const isProduct = Boolean(
+        catalogItem?.isProduct || isProductCabinetImage(cabinetItem.image)
+      );
+      const bottomInches =
+        category === "wall"
+          ? cabinetItem.distanceFromFloorInches ??
+            catalogItem?.defaultDistanceFromFloorInches ??
+            0
+          : 0;
+
+      return {
+        id: cabinetItem.id,
+        type: isProduct ? "product" : "cabinet",
+        coordinateSpace: "elevationPlan",
+        catalogId: cabinetItem.catalogId ?? null,
+        title: catalogItem?.title ?? "Placed object",
+        category,
+        image: cabinetItem.image ?? catalogItem?.image ?? null,
+        topOption: getEditorCabinetTopOption(cabinetItem),
+        leftInches: roundSmartObjectInches(metrics.distanceFromLeftInches),
+        rightInches: roundSmartObjectInches(metrics.distanceFromRightInches),
+        bottomInches: roundSmartObjectInches(bottomInches),
+        widthInches: roundSmartObjectInches(pixelsToInches(cabinetItem.width)),
+        depthInches: roundSmartObjectInches(pixelsToInches(cabinetItem.depth)),
+        heightInches: roundSmartObjectInches(
+          cabinetItem.heightInches ??
+            catalogItem?.defaultHeightInches ??
+            (category === "wall" ? 30 : 36)
+        ),
+      };
+    })
+    .filter((fixedObject): fixedObject is SmartElevationFixedObject => Boolean(fixedObject));
+
+  return [...openingFixedObjects, ...cabinetFixedObjects];
+}
+
+function addEditorElevationWidthsToRoom(
+  room: AiRoomInput,
+  editorWalls: Wall[],
+  editorCabinets: CabinetElement[],
+  editorWindows: WindowElement[] = [],
+  editorDoors: DoorElement[] = []
+): AiRoomInput {
+  return {
+    ...room,
+    walls: room.walls.map((aiWall) => {
+      if (aiWall.kind === "thin-wall") return aiWall;
+
+      const editorWall = findEditorWallForAiWall(aiWall, editorWalls);
+      const widthInches = editorWall
+        ? getEditorElevationWallWidthInches(editorWall, editorWalls, editorCabinets)
+        : null;
+      const fixedObjects = editorWall
+        ? getEditorElevationFixedObjectsForWall(
+            editorWall,
+            editorWalls,
+            editorWindows,
+            editorDoors,
+            editorCabinets
+          )
+        : [];
+      const needCabinetPlacement = editorWall?.needCabinetPlacement ?? true;
+
+      if (widthInches === null && fixedObjects.length === 0 && needCabinetPlacement) {
+        return aiWall;
+      }
+
+      const wallWithElevation = aiWall as AiRoomWallWithEditorElevationData;
+
+      return {
+        ...wallWithElevation,
+        needCabinetPlacement,
+        elevationPlan: {
+          ...(wallWithElevation.elevationPlan ?? {}),
+          ...(widthInches === null ? {} : { widthInches }),
+          fixedObjects,
+        },
+        ...(widthInches === null ? {} : { elevationWidthInches: widthInches }),
+      };
+    }),
+  };
+}
+
 type CabinetEditorBaseMode = "default" | "ai-prototype" | "ai-viewer";
 
 const MeasurementDisplayUnitContext = createContext<MeasurementDisplayUnit>("feet-inches");
@@ -869,6 +1134,8 @@ export default function CabinetEditorBase({
     useState<WindowSelectionDetail | null>(null);
   const [selectedDoorDetail, setSelectedDoorDetail] =
     useState<DoorSelectionDetail | null>(null);
+  const [selectedWallDetail, setSelectedWallDetail] =
+    useState<WallSelectionDetail | null>(null);
   const [selectedCabinetDetail, setSelectedCabinetDetail] =
     useState<CabinetSelectionDetail | null>(null);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -891,6 +1158,28 @@ export default function CabinetEditorBase({
   );
   const selectedCabinetWidth = (selectedCabinetCatalogItem.widthInches / 12) * GRID_SIZE;
   const selectedCabinetDepth = (selectedCabinetCatalogItem.depthInches / 12) * GRID_SIZE;
+
+  useEffect(() => {
+    const handleWallSelectionChange = (event: Event) => {
+      const customEvent = event as CustomEvent<WallSelectionDetail | null>;
+      setSelectedWallDetail(customEvent.detail ?? null);
+      if (customEvent.detail) {
+        setActivePanel("walls");
+      }
+    };
+
+    window.addEventListener(
+      "pelican-wall-selection-change",
+      handleWallSelectionChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pelican-wall-selection-change",
+        handleWallSelectionChange
+      );
+    };
+  }, []);
 
   useEffect(() => {
     const handleWindowSelectionChange = (event: Event) => {
@@ -1244,6 +1533,7 @@ export default function CabinetEditorBase({
             activeTool={activeTool}
             setActiveTool={setActiveTool}
             setIsSelectionMode={setIsSelectionMode}
+            selectedWall={selectedWallDetail}
             selectedWindow={selectedWindowDetail}
             selectedDoor={selectedDoorDetail}
             selectedCabinet={selectedCabinetDetail}
@@ -1902,7 +2192,13 @@ function CanvasArea({
   const thinConnectionMap = useMemo(() => buildConnectionMap(thinWalls), [thinWalls]);
   const wallChains = useMemo(() => buildWallChains(structuralThickWalls), [structuralThickWalls]);
   const thinWallChains = useMemo(() => buildWallChains(thinWalls), [thinWalls]);
-  const elevationWalls = useMemo(() => [...structuralThickWalls, ...peninWalls], [structuralThickWalls, peninWalls]);
+  const elevationWalls = useMemo(
+    () =>
+      [...structuralThickWalls, ...peninWalls].filter(
+        (wall) => getWallElevationViewMode(wall) !== "none"
+      ),
+    [structuralThickWalls, peninWalls]
+  );
 
   useEffect(() => {
     setActiveElevationIndex((currentIndex) =>
@@ -2029,15 +2325,21 @@ function CanvasArea({
     if (!enableAiPrototype) return undefined;
 
     const handleDownloadSmartKitchenInputRequest = async () => {
-      const room = exportRoomInput({
-        walls: wallsRef.current as never,
-        windows: windowsRef.current as never,
-        doors: doorsRef.current as never,
-        cabinets: cabinetsRef.current as never,
-        catalog: CABINET_CATALOG as never,
-        gridSize: GRID_SIZE,
-        wallThickness: WALL_THICKNESS,
-      });
+      const room = addEditorElevationWidthsToRoom(
+        exportRoomInput({
+          walls: wallsRef.current as never,
+          windows: windowsRef.current as never,
+          doors: doorsRef.current as never,
+          cabinets: cabinetsRef.current as never,
+          catalog: CABINET_CATALOG as never,
+          gridSize: GRID_SIZE,
+          wallThickness: WALL_THICKNESS,
+        }),
+        wallsRef.current,
+        cabinetsRef.current,
+        windowsRef.current,
+        doorsRef.current
+      );
 
       if (room.walls.length === 0) {
         showEditorAlert(
@@ -2283,15 +2585,21 @@ function CanvasArea({
     if (!enableAiPrototype) return undefined;
 
     const handleGenerateSmartKitchenRequest = async () => {
-      const room = exportRoomInput({
-        walls: wallsRef.current as never,
-        windows: windowsRef.current as never,
-        doors: doorsRef.current as never,
-        cabinets: cabinetsRef.current as never,
-        catalog: CABINET_CATALOG as never,
-        gridSize: GRID_SIZE,
-        wallThickness: WALL_THICKNESS,
-      });
+      const room = addEditorElevationWidthsToRoom(
+        exportRoomInput({
+          walls: wallsRef.current as never,
+          windows: windowsRef.current as never,
+          doors: doorsRef.current as never,
+          cabinets: cabinetsRef.current as never,
+          catalog: CABINET_CATALOG as never,
+          gridSize: GRID_SIZE,
+          wallThickness: WALL_THICKNESS,
+        }),
+        wallsRef.current,
+        cabinetsRef.current,
+        windowsRef.current,
+        doorsRef.current
+      );
 
       if (room.walls.length === 0) {
         showEditorAlert(
@@ -2579,37 +2887,48 @@ function CanvasArea({
   }, [activeTool]);
 
   useEffect(() => {
+    const wallDistanceMetrics = selectedWindow
+      ? getOpeningElevationDistanceMetrics(selectedWindow, walls, cabinets)
+      : null;
     const detail = selectedWindow
       ? {
           id: selectedWindow.id,
           widthInches: pixelsToInches(selectedWindow.width),
           heightInches: selectedWindow.heightInches,
           distanceFromFloorInches: selectedWindow.distanceFromFloorInches,
+          ...(wallDistanceMetrics ?? {}),
         }
       : null;
 
     window.dispatchEvent(
       new CustomEvent("pelican-window-selection-change", { detail })
     );
-  }, [selectedWindow]);
+  }, [selectedWindow, walls, cabinets]);
 
   useEffect(() => {
+    const wallDistanceMetrics = selectedDoor
+      ? getOpeningElevationDistanceMetrics(selectedDoor, walls, cabinets)
+      : null;
     const detail = selectedDoor
       ? {
           id: selectedDoor.id,
           widthInches: pixelsToInches(selectedDoor.width),
           heightInches: selectedDoor.heightInches,
           distanceFromFloorInches: selectedDoor.distanceFromFloorInches,
+          ...(wallDistanceMetrics ?? {}),
         }
       : null;
 
     window.dispatchEvent(
       new CustomEvent("pelican-door-selection-change", { detail })
     );
-  }, [selectedDoor]);
+  }, [selectedDoor, walls, cabinets]);
 
   useEffect(() => {
     const category = selectedCabinet ? getCabinetElevationCategory(selectedCabinet) : null;
+    const wallDistanceMetrics = selectedCabinet
+      ? getCabinetElevationDistanceMetrics(selectedCabinet, walls, cabinets)
+      : null;
     const detail = selectedCabinet
       ? {
           id: selectedCabinet.id,
@@ -2618,6 +2937,10 @@ function CanvasArea({
           heightInches:
             selectedCabinet.heightInches ??
             (category === "wall" ? 30 : 36),
+          distanceFromFloorInches:
+            selectedCabinet.distanceFromFloorInches ??
+            (category === "wall" ? 54 : 0),
+          ...(wallDistanceMetrics ?? {}),
           category: category ?? undefined,
           image: selectedCabinet.image,
           sinkFixture: selectedCabinet.sinkFixture,
@@ -2629,13 +2952,28 @@ function CanvasArea({
     window.dispatchEvent(
       new CustomEvent("pelican-cabinet-selection-change", { detail })
     );
-  }, [selectedCabinet]);
+  }, [selectedCabinet, walls, cabinets]);
+
+  useEffect(() => {
+    const detail = selectedWall
+      ? {
+          id: selectedWall.id,
+          kind: selectedWall.kind ?? "wall",
+          elevationViewMode: getWallElevationViewMode(selectedWall),
+          needCabinetPlacement: selectedWall.needCabinetPlacement ?? true,
+        }
+      : null;
+
+    window.dispatchEvent(
+      new CustomEvent("pelican-wall-selection-change", { detail })
+    );
+  }, [selectedWall]);
 
   useEffect(() => {
     const handleWindowAttributeChange = (event: Event) => {
       const customEvent = event as CustomEvent<{
         id: string;
-        field: "widthInches" | "heightInches" | "distanceFromFloorInches";
+        field: "widthInches" | "heightInches" | "distanceFromFloorInches" | "distanceFromLeftInches" | "distanceFromRightInches";
         value: number;
       }>;
 
@@ -2653,6 +2991,31 @@ function CanvasArea({
 
           if (field === "heightInches") {
             return { ...windowItem, heightInches: Math.max(1, value) };
+          }
+
+          if (field === "distanceFromLeftInches" || field === "distanceFromRightInches") {
+            const metrics = getOpeningElevationDistanceMetrics(
+              windowItem,
+              wallsRef.current,
+              cabinetsRef.current
+            );
+            if (!metrics) return windowItem;
+
+            const objectWidthInches = Math.max(
+              0,
+              metrics.wallWidthInches - metrics.distanceFromLeftInches - metrics.distanceFromRightInches
+            );
+            const displayStartInches = field === "distanceFromLeftInches"
+              ? value
+              : metrics.wallWidthInches - objectWidthInches - value;
+            const nextT = getOpeningTFromElevationDistance(
+              windowItem,
+              wallsRef.current,
+              displayStartInches,
+              cabinetsRef.current
+            );
+
+            return nextT === null ? windowItem : { ...windowItem, t: nextT };
           }
 
           return { ...windowItem, distanceFromFloorInches: Math.max(0, value) };
@@ -2675,10 +3038,71 @@ function CanvasArea({
   }, [commitWindowsChange]);
 
   useEffect(() => {
+    const handleWallElevationViewChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        id: string;
+        value: WallElevationViewMode;
+      }>;
+
+      const { id, value } = customEvent.detail ?? {};
+      if (!id || !value) return;
+
+      commitWallsChange((currentWalls) =>
+        currentWalls.map((wall) =>
+          wall.id === id ? { ...wall, elevationViewMode: value } : wall
+        )
+      );
+    };
+
+    const handleWallNeedCabinetPlacementChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        id: string;
+        value: boolean;
+      }>;
+
+      const { id, value } = customEvent.detail ?? {};
+      if (!id || typeof value !== "boolean") return;
+
+      commitWallsChange((currentWalls) =>
+        currentWalls.map((wall) =>
+          wall.id === id ? { ...wall, needCabinetPlacement: value } : wall
+        )
+      );
+    };
+
+    const handleWallDeselect = () => {
+      setSelectedWallId(null);
+      setMenuPosition(null);
+    };
+
+    window.addEventListener(
+      "pelican-wall-elevation-view-change",
+      handleWallElevationViewChange
+    );
+    window.addEventListener(
+      "pelican-wall-need-cabinet-placement-change",
+      handleWallNeedCabinetPlacementChange
+    );
+    window.addEventListener("pelican-deselect-wall", handleWallDeselect);
+
+    return () => {
+      window.removeEventListener(
+        "pelican-wall-elevation-view-change",
+        handleWallElevationViewChange
+      );
+      window.removeEventListener(
+        "pelican-wall-need-cabinet-placement-change",
+        handleWallNeedCabinetPlacementChange
+      );
+      window.removeEventListener("pelican-deselect-wall", handleWallDeselect);
+    };
+  }, [commitWallsChange]);
+
+  useEffect(() => {
     const handleDoorAttributeChange = (event: Event) => {
       const customEvent = event as CustomEvent<{
         id: string;
-        field: "widthInches" | "heightInches" | "distanceFromFloorInches";
+        field: "widthInches" | "heightInches" | "distanceFromFloorInches" | "distanceFromLeftInches" | "distanceFromRightInches";
         value: number;
       }>;
 
@@ -2696,6 +3120,31 @@ function CanvasArea({
 
           if (field === "heightInches") {
             return { ...doorItem, heightInches: Math.max(1, value) };
+          }
+
+          if (field === "distanceFromLeftInches" || field === "distanceFromRightInches") {
+            const metrics = getOpeningElevationDistanceMetrics(
+              doorItem,
+              wallsRef.current,
+              cabinetsRef.current
+            );
+            if (!metrics) return doorItem;
+
+            const objectWidthInches = Math.max(
+              0,
+              metrics.wallWidthInches - metrics.distanceFromLeftInches - metrics.distanceFromRightInches
+            );
+            const displayStartInches = field === "distanceFromLeftInches"
+              ? value
+              : metrics.wallWidthInches - objectWidthInches - value;
+            const nextT = getOpeningTFromElevationDistance(
+              doorItem,
+              wallsRef.current,
+              displayStartInches,
+              cabinetsRef.current
+            );
+
+            return nextT === null ? doorItem : { ...doorItem, t: nextT };
           }
 
           return { ...doorItem, distanceFromFloorInches: Math.max(0, value) };
@@ -2721,7 +3170,7 @@ function CanvasArea({
     const handleCabinetAttributeChange = (event: Event) => {
       const customEvent = event as CustomEvent<{
         id: string;
-        field: "widthInches" | "depthInches" | "heightInches" | "sinkFixture" | "cooktopFixture" | "cooktopFrontHeightInches" | "topFixture";
+        field: "widthInches" | "depthInches" | "heightInches" | "distanceFromFloorInches" | "distanceFromLeftInches" | "distanceFromRightInches" | "sinkFixture" | "cooktopFixture" | "cooktopFrontHeightInches" | "topFixture";
         value: number | boolean | "surface" | "front" | "sink" | "none" | null;
       }>;
 
@@ -2733,6 +3182,9 @@ function CanvasArea({
         field === "widthInches" ||
         field === "depthInches" ||
         field === "heightInches" ||
+        field === "distanceFromFloorInches" ||
+        field === "distanceFromLeftInches" ||
+        field === "distanceFromRightInches" ||
         field === "cooktopFrontHeightInches";
 
       if (isNumericCabinetField && !Number.isFinite(Number(value))) return;
@@ -2787,6 +3239,51 @@ function CanvasArea({
               ...cabinetItem,
               cooktopFrontHeightInches: Math.max(1, Number(value) || 1),
             };
+          }
+
+          if (field === "distanceFromLeftInches" || field === "distanceFromRightInches") {
+            const metrics = getCabinetElevationDistanceMetrics(
+              cabinetItem,
+              wallsRef.current,
+              currentCabinets
+            );
+            if (!metrics) return cabinetItem;
+
+            const objectWidthInches = Math.max(
+              0,
+              metrics.wallWidthInches - metrics.distanceFromLeftInches - metrics.distanceFromRightInches
+            );
+            const displayStartInches = field === "distanceFromLeftInches"
+              ? Number(value)
+              : metrics.wallWidthInches - objectWidthInches - Number(value);
+            const nextCenter = getCabinetCenterFromElevationDistance(
+              cabinetItem,
+              wallsRef.current,
+              currentCabinets,
+              displayStartInches
+            );
+
+            return nextCenter ? { ...cabinetItem, center: nextCenter } : cabinetItem;
+          }
+
+          if (field === "distanceFromFloorInches") {
+            const nextCabinet = {
+              ...cabinetItem,
+              distanceFromFloorInches: Math.max(0, Number(value)),
+            };
+
+            if (getCabinetElevationCategory(nextCabinet) === "wall") {
+              const candidateCabinets = currentCabinets.map((candidate) =>
+                candidate.id === id ? nextCabinet : candidate
+              );
+              const stackMessage = getWallCabinetStackOverflowMessage(candidateCabinets, wallsRef.current, id);
+              if (stackMessage) {
+                showEditorAlert(stackMessage);
+                return cabinetItem;
+              }
+            }
+
+            return nextCabinet;
           }
 
           if (field === "widthInches") {
@@ -3801,6 +4298,7 @@ useEffect(() => {
         center: preview.center,
         rotation: preview.rotation,
         wallId: preview.wallId ?? currentCabinet.wallId,
+        wallFace: preview.wallFace ?? currentCabinet.wallFace,
       };
       const movingCandidateForWallCheck = initialMovingCandidate;
       const resolvedPreview = preview;
@@ -3840,6 +4338,7 @@ useEffect(() => {
         center: wallResolvedPreview.center,
         rotation: wallResolvedPreview.rotation,
         wallId: wallResolvedPreview.wallId ?? currentCabinet.wallId,
+        wallFace: wallResolvedPreview.wallFace ?? currentCabinet.wallFace,
       };
       const supportedByLowerCabinet = getCabinetElevationCategory(movingCandidateForSupportCheck) === "wall" && Boolean(
         getWallCabinetSupportedWall(
@@ -3884,6 +4383,7 @@ useEffect(() => {
         center: wallResolvedPreview.center,
         rotation: wallResolvedPreview.rotation,
         wallId: wallResolvedPreview.wallId ?? currentCabinet.wallId,
+        wallFace: wallResolvedPreview.wallFace ?? currentCabinet.wallFace,
       };
       const candidateCabinetsForElevationCheck = cabinetsRef.current.map((cabinetItem) =>
         cabinetItem.id === cabinetDragState.id ? movingCabinetForElevationCheck : cabinetItem
@@ -4192,6 +4692,7 @@ useEffect(() => {
       heightInches: selectedCabinetCatalogItem.defaultHeightInches ?? (selectedCabinetCategory === "wall" ? 30 : 36),
       distanceFromFloorInches: selectedCabinetCatalogItem.defaultDistanceFromFloorInches ?? (selectedCabinetCategory === "wall" ? 54 : 0),
       wallId: placement.wallId,
+      wallFace: placement.wallFace,
     };
 
     const candidateCabinets = [...cabinetsRef.current, newCabinet];
@@ -5792,6 +6293,400 @@ function getInteriorMeasurementGuideSide(
   return dot(interiorNormal, baseNormal) >= 0 ? "left" : "right";
 }
 
+function getWallElevationViewMode(wall: Wall): WallElevationViewMode {
+  return wall.elevationViewMode ?? "interior";
+}
+
+function getWallElevationGuideSide(
+  wall: Wall,
+  walls: Wall[]
+): Exclude<MeasurementSide, "length"> {
+  const interiorSide = getInteriorMeasurementGuideSide(wall, walls);
+  const mode = getWallElevationViewMode(wall);
+
+  if (mode === "exterior") {
+    return interiorSide === "left" ? "right" : "left";
+  }
+
+  return interiorSide;
+}
+
+function getWallElevationDebugGuideSide(
+  wall: Wall,
+  walls: Wall[]
+): Exclude<MeasurementSide, "length"> | null {
+  const mode = getWallElevationViewMode(wall);
+
+  if (mode === "none") return null;
+
+  return getWallElevationGuideSide(wall, walls);
+}
+
+function measurementSideToWallFaceSide(
+  wall: Wall,
+  side: Exclude<MeasurementSide, "length">
+): WallFaceSide {
+  const wallDirection = normalize(sub(wall.end, wall.start));
+  const axisDirection = getElevationWallAxis(wall).direction;
+
+  if (!vectorLength(wallDirection) || !vectorLength(axisDirection)) {
+    return side;
+  }
+
+  // Cabinet wall-face attachments are stored in the elevation-axis left/right
+  // system. When the elevation axis flips a wall for reading order, the raw
+  // floor-plan left/right side must be mirrored to stay on the same physical
+  // wall face.
+  if (dot(wallDirection, axisDirection) < 0) {
+    return side === "left" ? "right" : "left";
+  }
+
+  return side;
+}
+
+function getWallProjectedFaceForElevation(
+  wall: Wall,
+  walls: Wall[]
+): WallFaceSide | null {
+  const mode = getWallElevationViewMode(wall);
+  if (mode === "none") return null;
+
+  return measurementSideToWallFaceSide(
+    wall,
+    getWallElevationGuideSide(wall, walls)
+  );
+}
+
+function getElevationViewRightDirection(
+  wall: Wall,
+  walls: Wall[]
+): Point | null {
+  const axis = getElevationWallAxis(wall);
+  if (axis.length < 0.001) return null;
+
+  const projectedFace = getWallProjectedFaceForElevation(
+    wall,
+    walls.length ? walls : [wall]
+  );
+  if (!projectedFace) return null;
+
+  // The projected face is the red/visible face of the wall. In elevation we are
+  // standing on that face and looking straight back toward the wall. The screen
+  // x-axis must therefore follow the viewer's right-hand direction, not a fixed
+  // floor-plan reading order. Without this, cabinets on a north/east-facing
+  // wall are mirrored to the wrong side of the wall elevation.
+  const faceNormal =
+    projectedFace === "left" ? axis.normal : mul(axis.normal, -1);
+  const viewDirection = mul(faceNormal, -1);
+  const viewerRight = perp(viewDirection);
+
+  return vectorLength(viewerRight) ? normalize(viewerRight) : axis.direction;
+}
+
+function shouldMirrorElevationDisplay(wall: Wall, walls: Wall[] = []) {
+  const axis = getElevationWallAxis(wall);
+  if (axis.length < 0.001) return false;
+
+  if (!walls.length) {
+    return getWallElevationViewMode(wall) === "exterior";
+  }
+
+  const viewerRight = getElevationViewRightDirection(wall, walls);
+  if (!viewerRight) return false;
+
+  return dot(axis.direction, viewerRight) < 0;
+}
+
+function getElevationDisplayStartInches(
+  wall: Wall,
+  wallLengthInches: number,
+  startInches: number,
+  widthInches: number,
+  walls: Wall[] = []
+) {
+  if (!shouldMirrorElevationDisplay(wall, walls)) return startInches;
+  return Math.max(0, wallLengthInches - (startInches + widthInches));
+}
+
+function getElevationActualStartInches(
+  wall: Wall,
+  wallLengthInches: number,
+  displayStartInches: number,
+  widthInches: number,
+  walls: Wall[] = []
+) {
+  if (!shouldMirrorElevationDisplay(wall, walls)) return displayStartInches;
+  return Math.max(0, wallLengthInches - (displayStartInches + widthInches));
+}
+
+type ElevationWallDistanceContext = {
+  wall: Wall;
+  axis: ElevationWallAxis;
+  displayWalls: Wall[];
+  wallStartOffsetInches: number;
+  wallWidthInches: number;
+};
+
+type ElevationObjectDistanceMetrics = {
+  distanceFromLeftInches: number;
+  distanceFromRightInches: number;
+  wallWidthInches: number;
+};
+
+function getElevationWallDistanceContext(
+  wall: Wall,
+  walls: Wall[],
+  cabinets: CabinetElement[] = []
+): ElevationWallDistanceContext | null {
+  const structuralWalls = walls.filter(
+    (candidateWall) => isThickWall(candidateWall) && !isDetachedPanelWall(candidateWall)
+  );
+  const displayWalls = structuralWalls.length ? structuralWalls : walls.filter(isThickWall);
+  const isPeninElevationWall = isDetachedPanelWall(wall);
+  const peninElevationSegment = isPeninElevationWall
+    ? getPeninWallVisibleSegment(wall, structuralWalls)
+    : null;
+  const elevationWallForMeasurement = peninElevationSegment
+    ? { ...wall, start: peninElevationSegment.start, end: peninElevationSegment.end }
+    : wall;
+  const axis = getElevationWallAxis(elevationWallForMeasurement);
+
+  if (axis.length < 0.001) return null;
+
+  const span = isPeninElevationWall
+    ? {
+        startScalar: 0,
+        endScalar: axis.length,
+        length: axis.length,
+        startAnchor: axis.start,
+        endAnchor: axis.end,
+      }
+    : getElevationWallInteriorSpan(wall, displayWalls.length ? displayWalls : [wall], cabinets);
+
+  const wallWidthInches = pixelsToInches(span.length);
+  if (wallWidthInches <= 0.001) return null;
+
+  return {
+    wall,
+    axis: getElevationWallAxis(wall),
+    displayWalls,
+    wallStartOffsetInches: pixelsToInches(span.startScalar),
+    wallWidthInches,
+  };
+}
+
+function getElevationObjectDistanceMetricsFromStart(
+  wall: Wall,
+  wallWidthInches: number,
+  actualStartInches: number,
+  widthInches: number,
+  displayWalls: Wall[]
+): ElevationObjectDistanceMetrics {
+  const boundedWidthInches = Math.max(0, widthInches);
+  const maxStartInches = Math.max(0, wallWidthInches - boundedWidthInches);
+  const boundedActualStartInches = clamp(actualStartInches, 0, maxStartInches);
+  const displayStartInches = clamp(
+    getElevationDisplayStartInches(
+      wall,
+      wallWidthInches,
+      boundedActualStartInches,
+      boundedWidthInches,
+      displayWalls
+    ),
+    0,
+    maxStartInches
+  );
+
+  return {
+    distanceFromLeftInches: displayStartInches,
+    distanceFromRightInches: Math.max(0, wallWidthInches - (displayStartInches + boundedWidthInches)),
+    wallWidthInches,
+  };
+}
+
+function getOpeningElevationDistanceMetrics(
+  opening: Pick<WindowElement | DoorElement, "wallId" | "t" | "width">,
+  walls: Wall[],
+  cabinets: CabinetElement[] = []
+): ElevationObjectDistanceMetrics | null {
+  const wall = walls.find((candidateWall) => candidateWall.id === opening.wallId);
+  if (!wall) return null;
+
+  const context = getElevationWallDistanceContext(wall, walls, cabinets);
+  if (!context) return null;
+
+  const actualLayout = getElevationOpeningLayoutFromCenter(
+    context.wallWidthInches,
+    opening.width,
+    getElevationWallElementCenterInches(wall, opening.t) - context.wallStartOffsetInches
+  );
+
+  return getElevationObjectDistanceMetricsFromStart(
+    wall,
+    context.wallWidthInches,
+    actualLayout.startInches,
+    actualLayout.widthInches,
+    context.displayWalls
+  );
+}
+
+function getWallTFromElevationAxisScalarInches(
+  wall: Wall,
+  axisScalarInches: number
+) {
+  const wallLength = distance(wall.start, wall.end);
+  if (wallLength < 0.001) return 0;
+
+  const axis = getElevationWallAxis(wall);
+  const wallDirection = normalize(sub(wall.end, wall.start));
+  const targetPoint = add(axis.start, mul(axis.direction, inchesToPixels(axisScalarInches)));
+  return clamp(dot(sub(targetPoint, wall.start), wallDirection) / wallLength, 0, 1);
+}
+
+function getOpeningTFromElevationDistance(
+  opening: Pick<WindowElement | DoorElement, "wallId" | "width">,
+  walls: Wall[],
+  displayStartInches: number,
+  cabinets: CabinetElement[] = []
+): number | null {
+  const wall = walls.find((candidateWall) => candidateWall.id === opening.wallId);
+  if (!wall) return null;
+
+  const context = getElevationWallDistanceContext(wall, walls, cabinets);
+  if (!context) return null;
+
+  const widthInches = pixelsToInches(opening.width);
+  const maxStartInches = Math.max(0, context.wallWidthInches - widthInches);
+  const boundedDisplayStartInches = clamp(displayStartInches, 0, maxStartInches);
+  const actualStartInches = getElevationActualStartInches(
+    wall,
+    context.wallWidthInches,
+    boundedDisplayStartInches,
+    widthInches,
+    context.displayWalls
+  );
+  const centerAxisScalarInches =
+    context.wallStartOffsetInches + actualStartInches + widthInches / 2;
+
+  return getWallTFromElevationAxisScalarInches(wall, centerAxisScalarInches);
+}
+
+function getCabinetDistanceWall(
+  cabinetItem: CabinetElement,
+  walls: Wall[],
+  cabinets: CabinetElement[] = []
+): Wall | null {
+  const thickWalls = walls.filter(isThickWall);
+  if (cabinetItem.wallId) {
+    const persistedWall = thickWalls.find((wall) => wall.id === cabinetItem.wallId);
+    if (persistedWall) return persistedWall;
+  }
+
+  const bestAttachment = getBestCabinetWallAttachment(
+    cabinetItem,
+    thickWalls,
+    Math.max(WALL_ATTACH_THRESHOLD, WALL_THICKNESS / 2 + 8)
+  );
+  if (bestAttachment) return bestAttachment.wall;
+
+  const supportedWall = getWallCabinetSupportedWall(
+    cabinetItem,
+    cabinets,
+    thickWalls,
+    cabinetItem.id
+  );
+  return supportedWall;
+}
+
+function getCabinetElevationDistanceMetrics(
+  cabinetItem: CabinetElement,
+  walls: Wall[],
+  cabinets: CabinetElement[]
+): ElevationObjectDistanceMetrics | null {
+  const wall = getCabinetDistanceWall(cabinetItem, walls, cabinets);
+  if (!wall) return null;
+
+  const context = getElevationWallDistanceContext(wall, walls, cabinets);
+  if (!context) return null;
+
+  const placement = getCabinetElevationPlacementsForWall(
+    wall,
+    cabinets,
+    context.displayWalls
+  ).find((candidatePlacement) => candidatePlacement.cabinet.id === cabinetItem.id);
+
+  if (!placement) return null;
+
+  const relativeStartInches = clamp(
+    placement.startInches - context.wallStartOffsetInches,
+    0,
+    Math.max(0, context.wallWidthInches - placement.widthInches)
+  );
+
+  return getElevationObjectDistanceMetricsFromStart(
+    wall,
+    context.wallWidthInches,
+    relativeStartInches,
+    placement.widthInches,
+    context.displayWalls
+  );
+}
+
+function getCabinetCenterFromElevationDistance(
+  cabinetItem: CabinetElement,
+  walls: Wall[],
+  cabinets: CabinetElement[],
+  displayStartInches: number
+): Point | null {
+  const wall = getCabinetDistanceWall(cabinetItem, walls, cabinets);
+  if (!wall) return null;
+
+  const context = getElevationWallDistanceContext(wall, walls, cabinets);
+  if (!context) return null;
+
+  const placement = getCabinetElevationPlacementsForWall(
+    wall,
+    cabinets,
+    context.displayWalls
+  ).find((candidatePlacement) => candidatePlacement.cabinet.id === cabinetItem.id);
+
+  if (!placement) return null;
+
+  const maxStartInches = Math.max(0, context.wallWidthInches - placement.widthInches);
+  const boundedDisplayStartInches = clamp(displayStartInches, 0, maxStartInches);
+  const actualRelativeStartInches = getElevationActualStartInches(
+    wall,
+    context.wallWidthInches,
+    boundedDisplayStartInches,
+    placement.widthInches,
+    context.displayWalls
+  );
+  const nextAbsoluteStartInches = context.wallStartOffsetInches + actualRelativeStartInches;
+  const deltaInches = nextAbsoluteStartInches - placement.startInches;
+
+  if (Math.abs(deltaInches) < 0.001) return cabinetItem.center;
+
+  return add(cabinetItem.center, mul(context.axis.direction, inchesToPixels(deltaInches)));
+}
+
+function getCabinetWallFaceOnWall(
+  cabinetItem: Pick<CabinetElement, "center" | "width" | "depth" | "rotation"> &
+    Partial<Pick<CabinetElement, "wallId" | "wallFace">>,
+  wall: Wall,
+  walls: Wall[]
+): WallFaceSide | null {
+  if (cabinetItem.wallId && cabinetItem.wallId !== wall.id) return null;
+  if (cabinetItem.wallId === wall.id && cabinetItem.wallFace) {
+    return cabinetItem.wallFace;
+  }
+
+  const attachment = getCabinetWallAttachments(cabinetItem, walls).find(
+    (candidate) => candidate.wall.id === wall.id
+  );
+
+  return attachment?.wallFace ?? null;
+}
+
 function getWallSideGuideRunLength(
   wall: Wall,
   walls: Wall[],
@@ -5880,8 +6775,11 @@ function getElevationWallInteriorSpan(
   if (axis.length < 0.001) return fallback;
 
   const thickWalls = walls.filter(isThickWall);
-  const guideSide = getCabinetFacingMeasurementGuideSide(wall, cabinets, thickWalls)
-    ?? getInteriorMeasurementGuideSide(wall, walls);
+  const guideSide =
+    getWallElevationViewMode(wall) === "none"
+      ? getCabinetFacingMeasurementGuideSide(wall, cabinets, thickWalls) ??
+        getWallElevationGuideSide(wall, walls)
+      : getWallElevationGuideSide(wall, walls);
   const runEndpoints = getStructureGuideEndpointsFromMeasurementRun(
     wall,
     thickWalls,
@@ -7408,6 +8306,7 @@ function ElevationBaseCabinetDetails({
 
 type CabinetWallAttachment = {
   wall: Wall;
+  wallFace: WallFaceSide;
   startProjection: number;
   endProjection: number;
   depthFromWallFace: number;
@@ -7437,6 +8336,11 @@ function getCabinetWallAttachments(
   for (const wall of walls.filter(isThickWall)) {
     const axis = getElevationWallAxis(wall);
     if (axis.length < 0.001) continue;
+    const segmentGeometry = getWallSegmentBlackDotGeometry(
+      wall.start,
+      wall.end,
+      walls.filter(isThickWall)
+    );
 
     for (const edge of widthEdges) {
       const edgeLength = distance(edge.start, edge.end);
@@ -7464,28 +8368,53 @@ function getCabinetWallAttachments(
         const faceDistance = faceSign * wallFaceOffset;
         const gap = sideDistance - faceDistance;
         if (Math.abs(gap) > tolerance) continue;
+        const wallFace: WallFaceSide = faceSign === 1 ? "left" : "right";
+        const faceStartAnchor =
+          wallFace === "left"
+            ? segmentGeometry.startLeft
+            : segmentGeometry.startRight;
+        const faceEndAnchor =
+          wallFace === "left"
+            ? segmentGeometry.endLeft
+            : segmentGeometry.endRight;
+        const faceStartScalar = dot(
+          sub(faceStartAnchor, axis.start),
+          axis.direction
+        );
+        const faceEndScalar = dot(sub(faceEndAnchor, axis.start), axis.direction);
+        const faceIntervalStart = Math.min(faceStartScalar, faceEndScalar);
+        const faceIntervalEnd = Math.max(faceStartScalar, faceEndScalar);
+        const faceIntervalLength = faceIntervalEnd - faceIntervalStart;
+        if (faceIntervalLength <= 0.5) continue;
 
-        const displayWidthPixels = Math.min(rawEndProjection - rawStartProjection, axis.length);
+        const displayWidthPixels = Math.min(
+          rawEndProjection - rawStartProjection,
+          faceIntervalLength
+        );
         if (displayWidthPixels <= 0.5) continue;
 
         let startProjection = rawStartProjection;
         let endProjection = rawEndProjection;
 
-        if (displayWidthPixels >= axis.length) {
-          startProjection = 0;
-          endProjection = axis.length;
+        if (displayWidthPixels >= faceIntervalLength) {
+          startProjection = faceIntervalStart;
+          endProjection = faceIntervalEnd;
         } else {
-          if (startProjection < 0) {
-            endProjection -= startProjection;
-            startProjection = 0;
+          if (startProjection < faceIntervalStart) {
+            endProjection += faceIntervalStart - startProjection;
+            startProjection = faceIntervalStart;
           }
 
-          if (endProjection > axis.length) {
-            startProjection -= endProjection - axis.length;
-            endProjection = axis.length;
+          if (endProjection > faceIntervalEnd) {
+            startProjection -= endProjection - faceIntervalEnd;
+            endProjection = faceIntervalEnd;
           }
 
-          startProjection = clamp(startProjection, 0, axis.length - displayWidthPixels);
+          startProjection = clamp(
+            startProjection,
+            faceIntervalStart,
+            faceIntervalEnd - displayWidthPixels
+          );
           endProjection = startProjection + displayWidthPixels;
         }
 
@@ -7495,12 +8424,18 @@ function getCabinetWallAttachments(
         // jump to the rectangle edge even when the user wanted to leave a small
         // reveal/gap near the left or right side of the elevation wall.
         const wallEndBindThreshold = inchesToPixels(0.35);
-        if (startProjection <= wallEndBindThreshold) {
-          startProjection = 0;
-          endProjection = Math.min(displayWidthPixels, axis.length);
-        } else if (axis.length - endProjection <= wallEndBindThreshold) {
-          endProjection = axis.length;
-          startProjection = Math.max(0, axis.length - displayWidthPixels);
+        if (startProjection - faceIntervalStart <= wallEndBindThreshold) {
+          startProjection = faceIntervalStart;
+          endProjection = Math.min(
+            faceIntervalStart + displayWidthPixels,
+            faceIntervalEnd
+          );
+        } else if (faceIntervalEnd - endProjection <= wallEndBindThreshold) {
+          endProjection = faceIntervalEnd;
+          startProjection = Math.max(
+            faceIntervalStart,
+            faceIntervalEnd - displayWidthPixels
+          );
         }
 
         const centerSideDistance = dot(sub(cabinetItem.center, axis.start), axis.normal);
@@ -7511,6 +8446,7 @@ function getCabinetWallAttachments(
 
         attachments.push({
           wall,
+          wallFace,
           startProjection,
           endProjection,
           depthFromWallFace,
@@ -7549,6 +8485,8 @@ function getCabinetElevationPlacementsForWall(
   if (wallLength < 0.001) return [];
 
   const allWalls = walls.length ? walls.filter(isThickWall) : [wall];
+  const projectedFace = getWallProjectedFaceForElevation(wall, allWalls);
+  if (!projectedFace) return [];
   const attachmentTolerance = Math.max(WALL_ATTACH_THRESHOLD, WALL_THICKNESS / 2 + 8);
 
   const placements = cabinets
@@ -7562,7 +8500,12 @@ function getCabinetElevationPlacementsForWall(
 
       const category = getCabinetElevationCategory(cabinetItem);
       const attachments = getCabinetWallAttachments(cabinetItem, allWalls, attachmentTolerance);
-      const attachment = attachments.find((candidate) => candidate.wall.id === wall.id) ?? null;
+      const cabinetWallFace = getCabinetWallFaceOnWall(cabinetItem, wall, allWalls);
+      if (cabinetWallFace && cabinetWallFace !== projectedFace) return null;
+      const attachment = attachments.find(
+        (candidate) =>
+          candidate.wall.id === wall.id && candidate.wallFace === projectedFace
+      ) ?? null;
       const supportedWall = category === "wall"
         ? getWallCabinetSupportedWall(cabinetItem, cabinets, allWalls, cabinetItem.id)
         : null;
@@ -7571,7 +8514,13 @@ function getCabinetElevationPlacementsForWall(
       if (!attachment && !supportedWall) return null;
       if (!cabinetItem.wallId && attachment) {
         const bestAttachment = attachments[0] ?? null;
-        if (!bestAttachment || bestAttachment.wall.id !== wall.id) return null;
+        if (
+          !bestAttachment ||
+          bestAttachment.wall.id !== wall.id ||
+          bestAttachment.wallFace !== projectedFace
+        ) {
+          return null;
+        }
       }
 
       const projection = attachment
@@ -8830,7 +9779,38 @@ function getElevationCornerReservationsForWall(
     .filter((reservation): reservation is ElevationCornerReservation => Boolean(reservation));
 
   return dedupeElevationCornerReservationsByClosestCabinet(
-    [...perpendicularReservations, ...sameWallCoveredCornerReservations],
+    [...perpendicularReservations, ...sameWallCoveredCornerReservations].map(
+      (reservation) => {
+        const displayStartInches = getElevationDisplayStartInches(
+          wall,
+          wallLengthInches,
+          reservation.startInches,
+          reservation.widthInches,
+          thickWalls
+        );
+        const boundary = getReservationBoundaryForWall(
+          {
+            startInches: displayStartInches,
+            widthInches: reservation.widthInches,
+          },
+          wallLengthInches
+        );
+
+        return {
+          ...reservation,
+          startInches: displayStartInches,
+          boundary,
+          boundaryDistanceInches:
+            boundary === "start"
+              ? displayStartInches
+              : Math.max(
+                  0,
+                  wallLengthInches -
+                    (displayStartInches + reservation.widthInches)
+                ),
+        };
+      }
+    ),
     wallLengthInches
   ).sort((left, right) => left.startInches - right.startInches);
 }
@@ -8981,6 +9961,35 @@ function ElevationPlanView({
   const wallRight = wallLeft + wallRenderWidth;
   const wallTop = 190;
   const wallBottom = wallTop + wallRenderHeight;
+  const toElevationDisplayStartInches = (startInches: number, widthInches: number) =>
+    getElevationDisplayStartInches(
+      wall,
+      wallLengthInches,
+      startInches,
+      widthInches,
+      elevationStructureWalls
+    );
+  const toCabinetDisplayStartInches = toElevationDisplayStartInches;
+  const toCabinetActualStartInches = (
+    displayStartInches: number,
+    widthInches: number
+  ) =>
+    getElevationActualStartInches(
+      wall,
+      wallLengthInches,
+      displayStartInches,
+      widthInches,
+      elevationStructureWalls
+    );
+  const toElevationActualCenterInches = (
+    displayCenterInches: number,
+    widthInches: number
+  ) =>
+    toCabinetActualStartInches(
+      displayCenterInches - widthInches / 2,
+      widthInches
+    ) +
+    widthInches / 2;
   const overallLengthLabel = formatMeasurementFromInches(wallLengthInches, measurementDisplayUnit);
   const overallHeightLabel = formatMeasurementFromInches(wallHeightInches, measurementDisplayUnit);
 
@@ -8998,7 +10007,10 @@ function ElevationPlanView({
     // floor plan look separated in elevation and misaligns their width guides.
     const depthVisualOffsetInches = 0;
     const depthShiftXInches = 0;
-    const displayStartInches = relativeStartInches;
+    const displayStartInches = toCabinetDisplayStartInches(
+      relativeStartInches,
+      cabinetPlacement.widthInches
+    );
     const boundedDistanceFromFloorInches = clamp(
       cabinetPlacement.distanceFromFloorInches,
       0,
@@ -9045,9 +10057,13 @@ function ElevationPlanView({
       0,
       Math.max(0, wallLengthInches - placement.widthInches)
     );
+    const displayStartInches = toElevationDisplayStartInches(
+      relativeStartInches,
+      placement.widthInches
+    );
     const width = placement.widthInches * renderScale;
     const height = placement.heightInches * renderScale;
-    const left = wallLeft + relativeStartInches * renderScale;
+    const left = wallLeft + displayStartInches * renderScale;
     const bottom = wallBottom - placement.distanceFromFloorInches * renderScale;
     const top = bottom - height;
 
@@ -9114,11 +10130,20 @@ function ElevationPlanView({
   });
 
   const windowRenderItems = wallWindows.map((windowItem) => {
-    const layout = getElevationOpeningLayoutFromCenter(
+    const actualLayout = getElevationOpeningLayoutFromCenter(
       wallLengthInches,
       windowItem.width,
       getElevationWallElementCenterInches(wall, windowItem.t) - wallStartOffsetInches
     );
+    const displayStartInches = toElevationDisplayStartInches(
+      actualLayout.startInches,
+      actualLayout.widthInches
+    );
+    const layout = {
+      ...actualLayout,
+      startInches: displayStartInches,
+      centerInches: displayStartInches + actualLayout.widthInches / 2,
+    };
     const width = layout.widthInches * renderScale;
     const height = windowItem.heightInches * renderScale;
     const left = wallLeft + layout.startInches * renderScale;
@@ -9140,11 +10165,20 @@ function ElevationPlanView({
   });
 
   const doorRenderItems = wallDoors.map((doorItem) => {
-    const layout = getElevationOpeningLayoutFromCenter(
+    const actualLayout = getElevationOpeningLayoutFromCenter(
       wallLengthInches,
       doorItem.width,
       getElevationWallElementCenterInches(wall, doorItem.t) - wallStartOffsetInches
     );
+    const displayStartInches = toElevationDisplayStartInches(
+      actualLayout.startInches,
+      actualLayout.widthInches
+    );
+    const layout = {
+      ...actualLayout,
+      startInches: displayStartInches,
+      centerInches: displayStartInches + actualLayout.widthInches / 2,
+    };
     const width = layout.widthInches * renderScale;
     const height = doorItem.heightInches * renderScale;
     const left = wallLeft + layout.startInches * renderScale;
@@ -9683,7 +10717,13 @@ function ElevationPlanView({
 
     const buildCandidateCabinet = (candidateStart: number): CabinetElement | null => {
       if (!movingCabinet || !movingRenderItem) return null;
-      const deltaPixels = inchesToPixels(candidateStart - movingRenderItem.displayStartInches);
+      const candidateActualStart = toCabinetActualStartInches(
+        candidateStart,
+        widthInches
+      );
+      const deltaPixels = inchesToPixels(
+        candidateActualStart - movingRenderItem.relativeStartInches
+      );
       return {
         ...movingCabinet,
         center: add(movingCabinet.center, mul(elevationWallAxis.direction, deltaPixels)),
@@ -9887,7 +10927,9 @@ function ElevationPlanView({
     const snapThresholdPx = 9;
     const maxStartInches = Math.max(0, wallLengthInches - widthInches);
     const maxDistanceFromFloorInches = Math.max(0, wallHeightInches - heightInches);
-    const displayStartInches = startInches + depthVisualOffsetInches;
+    const displayStartInches =
+      toCabinetDisplayStartInches(startInches, widthInches) +
+      depthVisualOffsetInches;
     const left = wallLeft + displayStartInches * renderScale;
     const right = left + widthInches * renderScale;
     const centerX = left + (widthInches * renderScale) / 2;
@@ -9913,17 +10955,31 @@ function ElevationPlanView({
     const xCandidates = [
       {
         value: left,
-        toStartInches: (target: number) => (target - wallLeft) / renderScale - depthVisualOffsetInches,
+        toStartInches: (target: number) =>
+          toCabinetActualStartInches(
+            (target - wallLeft) / renderScale - depthVisualOffsetInches,
+            widthInches
+          ),
       },
       {
         value: centerX,
         toStartInches: (target: number) =>
-          (target - wallLeft) / renderScale - widthInches / 2 - depthVisualOffsetInches,
+          toCabinetActualStartInches(
+            (target - wallLeft) / renderScale -
+              widthInches / 2 -
+              depthVisualOffsetInches,
+            widthInches
+          ),
       },
       {
         value: right,
         toStartInches: (target: number) =>
-          (target - wallLeft) / renderScale - widthInches - depthVisualOffsetInches,
+          toCabinetActualStartInches(
+            (target - wallLeft) / renderScale -
+              widthInches -
+              depthVisualOffsetInches,
+            widthInches
+          ),
       },
     ];
 
@@ -10040,8 +11096,13 @@ function ElevationPlanView({
         centerY: (nextWindowTop + nextWindowBottom) / 2,
       }, dragState.id));
 
+      const nextActualCenterInches = toElevationActualCenterInches(
+        nextCenterInches,
+        dragState.widthInches
+      );
+
       onUpdateWindow(dragState.id, {
-        t: getWallTFromElevationRelativeCenterInches(nextCenterInches),
+        t: getWallTFromElevationRelativeCenterInches(nextActualCenterInches),
         distanceFromFloorInches: nextDistanceFromFloor,
       });
       elevationDragRef.current = dragState;
@@ -10080,8 +11141,13 @@ function ElevationPlanView({
         centerY: (nextDoorTop + nextDoorBottom) / 2,
       }, dragState.id));
 
+      const nextActualCenterInches = toElevationActualCenterInches(
+        nextCenterInches,
+        dragState.widthInches
+      );
+
       onUpdateDoor(dragState.id, {
-        t: getWallTFromElevationRelativeCenterInches(nextCenterInches),
+        t: getWallTFromElevationRelativeCenterInches(nextActualCenterInches),
         distanceFromFloorInches: nextDistanceFromFloor,
       });
       elevationDragRef.current = dragState;
@@ -10097,12 +11163,16 @@ function ElevationPlanView({
         halfWidth,
         Math.max(halfWidth, wallLengthInches - halfWidth)
       );
+      const nextActualCenterInches = toElevationActualCenterInches(
+        nextCenterInches,
+        dragState.widthInches
+      );
       const movedPeninWall = getPeninWallMoveAlongCurrentElevationWall(
         dragState.startWall,
         dragState.anchorEndpoint,
         dragState.normalSign,
         dragState.length,
-        nextCenterInches
+        nextActualCenterInches
       );
       if (
         detachedPanelWallIntersectsFloorCabinet(
@@ -10145,7 +11215,10 @@ function ElevationPlanView({
     // snapping would otherwise change that grab offset and make the cabinet
     // visibly drift away from the cursor.
     const desiredDisplayStartInches = (point.x - wallLeft) / renderScale - dragState.grabOffsetXInches;
-    const desiredStartInches = desiredDisplayStartInches - dragState.depthVisualOffsetInches;
+    const desiredStartInches = toCabinetActualStartInches(
+      desiredDisplayStartInches - dragState.depthVisualOffsetInches,
+      dragState.widthInches
+    );
     const desiredDistanceFromFloor = dragState.category === "wall"
       ? (wallBottom - point.y) / renderScale - dragState.grabOffsetBottomYInches
       : 0;
@@ -10182,7 +11255,10 @@ function ElevationPlanView({
     const resolvedStartInches = finalCabinetDrag.startInches;
     const nextDistanceFromFloor = finalCabinetDrag.distanceFromFloorInches;
     const resolvedDisplayStartInches = clamp(
-      resolvedStartInches + dragState.depthVisualOffsetInches,
+      toCabinetDisplayStartInches(
+        resolvedStartInches,
+        dragState.widthInches
+      ) + dragState.depthVisualOffsetInches,
       0,
       Math.max(0, wallLengthInches - dragState.widthInches)
     );
@@ -12011,7 +13087,8 @@ function WallChain({
   const elevationViewDebugLines = renderElevationViewDebugLine
     ? chainWalls
         .map((wall) => {
-          const guideSide = getInteriorMeasurementGuideSide(wall, sourceWalls);
+          const guideSide = getWallElevationDebugGuideSide(wall, sourceWalls);
+          if (!guideSide) return null;
           const runEndpoints = getStructureGuideEndpointsFromMeasurementRun(
             wall,
             sourceWalls,
@@ -12042,6 +13119,7 @@ function WallChain({
             ),
           };
         })
+        .filter((line): line is { key: string; start: Point; end: Point } => Boolean(line))
         .filter((line) => distance(line.start, line.end) > 0.001)
     : [];
 
@@ -13385,7 +14463,7 @@ function DoorPropertiesPanel({
   onBack: () => void;
 }) {
   const updateDoorNumber = (
-    field: "widthInches" | "heightInches" | "distanceFromFloorInches",
+    field: "widthInches" | "heightInches" | "distanceFromFloorInches" | "distanceFromLeftInches" | "distanceFromRightInches",
     value: string
   ) => {
     const nextValue = Number(value);
@@ -13442,14 +14520,45 @@ function DoorPropertiesPanel({
           unit="in"
           onChange={(value) => updateDoorNumber("heightInches", value)}
         />
-        <WindowPropertyInput
-          label="Distance from floor"
-          value={roundToQuarter(selectedDoor.distanceFromFloorInches)}
-          unit="in"
-          onChange={(value) =>
-            updateDoorNumber("distanceFromFloorInches", value)
-          }
-        />
+        <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div className="text-[11px] font-bold uppercase text-pelican-navy">
+            Position on wall
+          </div>
+
+          {selectedDoor.distanceFromLeftInches !== undefined &&
+            selectedDoor.distanceFromRightInches !== undefined &&
+            selectedDoor.wallWidthInches !== undefined && (
+              <>
+                <WindowPropertyInput
+                  label="Distance from left"
+                  value={roundToQuarter(selectedDoor.distanceFromLeftInches)}
+                  unit="in"
+                  max={Math.max(0, selectedDoor.wallWidthInches - selectedDoor.widthInches)}
+                  onChange={(value) =>
+                    updateDoorNumber("distanceFromLeftInches", value)
+                  }
+                />
+                <WindowPropertyInput
+                  label="Distance from right"
+                  value={roundToQuarter(selectedDoor.distanceFromRightInches)}
+                  unit="in"
+                  max={Math.max(0, selectedDoor.wallWidthInches - selectedDoor.widthInches)}
+                  onChange={(value) =>
+                    updateDoorNumber("distanceFromRightInches", value)
+                  }
+                />
+              </>
+            )}
+
+          <WindowPropertyInput
+            label="Distance from bottom"
+            value={roundToQuarter(selectedDoor.distanceFromFloorInches)}
+            unit="in"
+            onChange={(value) =>
+              updateDoorNumber("distanceFromFloorInches", value)
+            }
+          />
+        </div>
 
         <div className="space-y-3">
           <div className="text-[11px] font-bold uppercase text-pelican-navy">
@@ -13474,7 +14583,7 @@ function WindowPropertiesPanel({
   onBack: () => void;
 }) {
   const updateWindowNumber = (
-    field: "widthInches" | "heightInches" | "distanceFromFloorInches",
+    field: "widthInches" | "heightInches" | "distanceFromFloorInches" | "distanceFromLeftInches" | "distanceFromRightInches",
     value: string
   ) => {
     const nextValue = Number(value);
@@ -13530,14 +14639,45 @@ function WindowPropertiesPanel({
           unit="in"
           onChange={(value) => updateWindowNumber("heightInches", value)}
         />
-        <WindowPropertyInput
-          label="Distance from floor"
-          value={roundToQuarter(selectedWindow.distanceFromFloorInches)}
-          unit="in"
-          onChange={(value) =>
-            updateWindowNumber("distanceFromFloorInches", value)
-          }
-        />
+        <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div className="text-[11px] font-bold uppercase text-pelican-navy">
+            Position on wall
+          </div>
+
+          {selectedWindow.distanceFromLeftInches !== undefined &&
+            selectedWindow.distanceFromRightInches !== undefined &&
+            selectedWindow.wallWidthInches !== undefined && (
+              <>
+                <WindowPropertyInput
+                  label="Distance from left"
+                  value={roundToQuarter(selectedWindow.distanceFromLeftInches)}
+                  unit="in"
+                  max={Math.max(0, selectedWindow.wallWidthInches - selectedWindow.widthInches)}
+                  onChange={(value) =>
+                    updateWindowNumber("distanceFromLeftInches", value)
+                  }
+                />
+                <WindowPropertyInput
+                  label="Distance from right"
+                  value={roundToQuarter(selectedWindow.distanceFromRightInches)}
+                  unit="in"
+                  max={Math.max(0, selectedWindow.wallWidthInches - selectedWindow.widthInches)}
+                  onChange={(value) =>
+                    updateWindowNumber("distanceFromRightInches", value)
+                  }
+                />
+              </>
+            )}
+
+          <WindowPropertyInput
+            label="Distance from bottom"
+            value={roundToQuarter(selectedWindow.distanceFromFloorInches)}
+            unit="in"
+            onChange={(value) =>
+              updateWindowNumber("distanceFromFloorInches", value)
+            }
+          />
+        </div>
 
         <div className="space-y-2">
           <div className="text-[11px] font-bold uppercase text-pelican-navy">
@@ -13571,6 +14711,114 @@ function WindowPropertiesPanel({
   );
 }
 
+function WallPropertiesPanel({
+  selectedWall,
+  onBack,
+}: {
+  selectedWall: WallSelectionDetail;
+  onBack: () => void;
+}) {
+  const isThickWallSelection = selectedWall.kind !== "thin-wall";
+
+  return (
+    <aside className="h-full w-[280px] overflow-y-auto border-r border-slate-200 bg-white">
+      <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-pelican-navy hover:text-pelican-teal"
+        >
+          <ChevronLeft className="h-5 w-5" />
+          Back
+        </button>
+      </div>
+
+      <div className="space-y-6 px-4 py-5">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-md bg-slate-100 text-pelican-navy">
+            <BrickWall className="h-6 w-6" />
+          </div>
+          <div>
+            <div className="text-[11px] font-bold uppercase text-slate-400">
+              Walls
+            </div>
+            <div className="text-sm font-bold text-slate-700">
+              {selectedWall.kind === "thin-wall"
+                ? "Thin Wall"
+                : selectedWall.kind === "penin-wall"
+                  ? "Peninsula Wall"
+                  : selectedWall.kind === "island-wall"
+                    ? "Island Wall"
+                    : "Wall"}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label
+            htmlFor="wall-elevation-view-mode"
+            className="text-[11px] font-bold uppercase text-pelican-navy"
+          >
+            Elevation view
+          </label>
+          <select
+            id="wall-elevation-view-mode"
+            value={selectedWall.elevationViewMode}
+            onChange={(event) => {
+              window.dispatchEvent(
+                new CustomEvent("pelican-wall-elevation-view-change", {
+                  detail: {
+                    id: selectedWall.id,
+                    value: event.target.value as WallElevationViewMode,
+                  },
+                })
+              );
+            }}
+            disabled={!isThickWallSelection}
+            className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-pelican-teal"
+          >
+            <option value="interior">Interior side</option>
+            <option value="exterior">Exterior side</option>
+            <option value="none">None</option>
+          </select>
+          <p className="text-xs leading-5 text-slate-500">
+            {isThickWallSelection
+              ? "Choose which wall face is highlighted in floor plan and used for the elevation view."
+              : "Thin walls are not projected as elevation wall faces, so this option is disabled."}
+          </p>
+        </div>
+
+        <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-700">
+          <input
+            type="checkbox"
+            checked={selectedWall.needCabinetPlacement ?? true}
+            disabled={!isThickWallSelection}
+            onChange={(event) => {
+              window.dispatchEvent(
+                new CustomEvent("pelican-wall-need-cabinet-placement-change", {
+                  detail: {
+                    id: selectedWall.id,
+                    value: event.target.checked,
+                  },
+                })
+              );
+            }}
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-pelican-teal focus:ring-pelican-teal"
+          />
+          <span>
+            <span className="block text-[11px] font-bold uppercase text-pelican-navy">
+              Need Cabinet Placement
+            </span>
+            <span className="mt-1 block text-xs font-medium leading-5 text-slate-500">
+              Include this wall as available for smart cabinet placement.
+            </span>
+          </span>
+        </label>
+      </div>
+    </aside>
+  );
+}
+
 function CabinetPropertiesPanel({
   selectedCabinet,
   onBack,
@@ -13579,7 +14827,7 @@ function CabinetPropertiesPanel({
   onBack: () => void;
 }) {
   const updateCabinetNumber = (
-    field: "widthInches" | "depthInches" | "heightInches",
+    field: "widthInches" | "depthInches" | "heightInches" | "distanceFromFloorInches" | "distanceFromLeftInches" | "distanceFromRightInches",
     value: string
   ) => {
     const nextValue = Number(value);
@@ -13614,6 +14862,7 @@ function CabinetPropertiesPanel({
 
   const canAddCabinetTopFixtures =
     selectedCabinet.category === "base" && !isProductCabinetImage(selectedCabinet.image);
+  const canEditCabinetBottomDistance = selectedCabinet.category === "wall";
 
   return (
     <aside className="h-full w-[280px] overflow-y-auto border-r border-slate-200 bg-white">
@@ -13659,6 +14908,50 @@ function CabinetPropertiesPanel({
           unit="in"
           onChange={(value) => updateCabinetNumber("heightInches", value)}
         />
+
+        {(selectedCabinet.distanceFromLeftInches !== undefined || canEditCabinetBottomDistance) && (
+          <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="text-[11px] font-bold uppercase text-pelican-navy">
+              Position on wall
+            </div>
+
+            {selectedCabinet.distanceFromLeftInches !== undefined &&
+              selectedCabinet.distanceFromRightInches !== undefined &&
+              selectedCabinet.wallWidthInches !== undefined && (
+                <>
+                  <WindowPropertyInput
+                    label="Distance from left"
+                    value={roundToQuarter(selectedCabinet.distanceFromLeftInches)}
+                    unit="in"
+                    max={Math.max(0, selectedCabinet.wallWidthInches - selectedCabinet.widthInches)}
+                    onChange={(value) =>
+                      updateCabinetNumber("distanceFromLeftInches", value)
+                    }
+                  />
+                  <WindowPropertyInput
+                    label="Distance from right"
+                    value={roundToQuarter(selectedCabinet.distanceFromRightInches)}
+                    unit="in"
+                    max={Math.max(0, selectedCabinet.wallWidthInches - selectedCabinet.widthInches)}
+                    onChange={(value) =>
+                      updateCabinetNumber("distanceFromRightInches", value)
+                    }
+                  />
+                </>
+              )}
+
+            {canEditCabinetBottomDistance && (
+              <WindowPropertyInput
+                label="Distance from bottom"
+                value={roundToQuarter(selectedCabinet.distanceFromFloorInches ?? 54)}
+                unit="in"
+                onChange={(value) =>
+                  updateCabinetNumber("distanceFromFloorInches", value)
+                }
+              />
+            )}
+          </div>
+        )}
 
         {canAddCabinetTopFixtures && (
           <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -13722,12 +15015,21 @@ function WindowPropertyInput({
   value,
   unit,
   onChange,
+  min,
+  max,
 }: {
   label: string;
   value: number;
   unit: string;
   onChange: (value: string) => void;
+  min?: number;
+  max?: number;
 }) {
+  const defaultMin = label === "Width" ? 12 : 0;
+  const defaultMax = label === "Width" ? 120 : 144;
+  const sliderMin = min ?? defaultMin;
+  const sliderMax = Math.max(sliderMin, max ?? defaultMax, value);
+
   return (
     <label className="block space-y-2">
       <span className="text-[11px] font-bold uppercase text-pelican-navy">
@@ -13736,8 +15038,8 @@ function WindowPropertyInput({
       <div className="flex items-center gap-4">
         <input
           type="range"
-          min={label === "Width" ? 12 : 0}
-          max={label === "Width" ? 120 : 144}
+          min={sliderMin}
+          max={sliderMax}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           className="min-w-0 flex-1 accent-pelican-teal"
@@ -13778,6 +15080,7 @@ function ContextPanel({
   activeTool,
   setActiveTool,
   setIsSelectionMode,
+  selectedWall,
   selectedWindow,
   selectedDoor,
   selectedCabinet,
@@ -13790,6 +15093,7 @@ function ContextPanel({
   activeTool: Tool;
   setActiveTool: React.Dispatch<React.SetStateAction<Tool>>;
   setIsSelectionMode: React.Dispatch<React.SetStateAction<boolean>>;
+  selectedWall: WallSelectionDetail | null;
   selectedWindow: WindowSelectionDetail | null;
   selectedDoor: DoorSelectionDetail | null;
   selectedCabinet: CabinetSelectionDetail | null;
@@ -13820,6 +15124,15 @@ function ContextPanel({
       <CabinetPropertiesPanel
         selectedCabinet={selectedCabinet}
         onBack={() => window.dispatchEvent(new Event("pelican-deselect-cabinet"))}
+      />
+    );
+  }
+
+  if (activePanel === "walls" && selectedWall) {
+    return (
+      <WallPropertiesPanel
+        selectedWall={selectedWall}
+        onBack={() => window.dispatchEvent(new Event("pelican-deselect-wall"))}
       />
     );
   }
@@ -14899,6 +16212,7 @@ function CabinetPreview({ preview, walls }: { preview: CabinetPlacementPreview; 
     category: preview.category,
     image: preview.image,
     wallId: preview.wallId,
+    wallFace: preview.wallFace,
   };
   const metrics = getCabinetWallDistanceMetrics(previewCabinet, walls);
   const showDistanceGuides = isCabinetAttachedToWallFace(previewCabinet, walls);
@@ -15458,6 +16772,7 @@ function getCabinetPlacementPreview(
     heightInches: cabinetCategory === "wall" ? 30 : 36,
     distanceFromFloorInches: cabinetCategory === "wall" ? 54 : 0,
     wallId: attachment?.wall.id,
+    wallFace: attachment?.wallFace,
   };
   const attachedWall = attachment?.wall ?? null;
   const preview = {
@@ -15468,6 +16783,7 @@ function getCabinetPlacementPreview(
     category: cabinetCategory,
     wall: attachedWall,
     wallId: attachedWall?.id,
+    wallFace: attachment?.wallFace,
     isValid: true,
   };
 
@@ -15894,6 +17210,7 @@ type CabinetWallFacingResolution = {
   center: Point;
   rotation: number;
   wallId?: string;
+  wallFace?: WallFaceSide;
 };
 
 function resolveCabinetPlacementWithHandlesFacingOut({
@@ -15985,6 +17302,7 @@ function resolveCabinetPlacementWithHandlesFacingOut({
       Math.max(WALL_ATTACH_THRESHOLD, WALL_THICKNESS / 2 + 8)
     );
     const wallId = candidateWallId ?? attachment?.wall.id;
+    const wallFace = attachment?.wallFace;
     const score =
       baseScore +
       distance(rawPoint, stoppedCenter) +
@@ -15998,6 +17316,7 @@ function resolveCabinetPlacementWithHandlesFacingOut({
       center: stoppedCenter,
       rotation: candidateRotation,
       wallId,
+      wallFace,
       score,
       bodyBlocked,
       handleBlocked,
@@ -16068,6 +17387,7 @@ function resolveCabinetPlacementWithHandlesFacingOut({
         center: bestCandidate.center,
         rotation: bestCandidate.rotation,
         wallId: bestCandidate.wallId,
+        wallFace: bestCandidate.wallFace,
       }
     : { center: currentCenter, rotation: normalizedRotation, wallId: preferredWallId };
 }
@@ -16763,6 +18083,9 @@ function getDisallowedCabinetBodyOverlap(
     // overlap in the floor plan, they collide physically even when they are
     // attached to different connected wall runs such as an L-shaped corner.
     if (isFloorStandingCabinetCategory(category) && isFloorStandingCabinetCategory(otherCategory)) {
+      if (cabinetsShareWallButDifferentFaces(cabinetItem, otherCabinet)) {
+        return false;
+      }
       return true;
     }
 
@@ -16803,13 +18126,30 @@ function getDisallowedCabinetBodyOverlap(
 }
 
 function cabinetsBelongToSameWall(
-  cabinetItem: Pick<CabinetElement, "wallId">,
-  otherCabinet: Pick<CabinetElement, "wallId">
+  cabinetItem: Pick<CabinetElement, "wallId" | "wallFace">,
+  otherCabinet: Pick<CabinetElement, "wallId" | "wallFace">
 ) {
   return Boolean(
     cabinetItem.wallId &&
       otherCabinet.wallId &&
-      cabinetItem.wallId === otherCabinet.wallId
+      cabinetItem.wallId === otherCabinet.wallId &&
+      (cabinetItem.wallFace === otherCabinet.wallFace ||
+        !cabinetItem.wallFace ||
+        !otherCabinet.wallFace)
+  );
+}
+
+function cabinetsShareWallButDifferentFaces(
+  cabinetItem: Pick<CabinetElement, "wallId" | "wallFace">,
+  otherCabinet: Pick<CabinetElement, "wallId" | "wallFace">
+) {
+  return Boolean(
+    cabinetItem.wallId &&
+      otherCabinet.wallId &&
+      cabinetItem.wallId === otherCabinet.wallId &&
+      cabinetItem.wallFace &&
+      otherCabinet.wallFace &&
+      cabinetItem.wallFace !== otherCabinet.wallFace
   );
 }
 
@@ -16890,7 +18230,7 @@ function isCabinetAttachedToWallFace(
 }
 
 function getWallCabinetSupportedWall(
-  cabinetItem: Pick<CabinetElement, "center" | "width" | "depth" | "rotation"> & Partial<Pick<CabinetElement, "id" | "category" | "wallId">>,
+  cabinetItem: Pick<CabinetElement, "center" | "width" | "depth" | "rotation"> & Partial<Pick<CabinetElement, "id" | "category" | "wallId" | "wallFace">>,
   cabinets: CabinetElement[],
   walls: Wall[],
   excludedCabinetId?: string
@@ -16916,6 +18256,7 @@ function getWallCabinetSupportedWall(
 
   for (const otherCabinet of cabinets) {
     if (otherCabinet.id === excludedCabinetId || otherCabinet.id === cabinetItem.id) continue;
+    if (cabinetsShareWallButDifferentFaces(cabinetItem, otherCabinet)) continue;
 
     const otherBounds = getRotatedRectBounds(
       otherCabinet.center,
@@ -17460,7 +18801,8 @@ function areCabinetsEqual(left: CabinetElement[], right: CabinetElement[]) {
       (cabinetItem.image ?? null) === (otherCabinet.image ?? null) &&
       Boolean(cabinetItem.sinkFixture) === Boolean(otherCabinet.sinkFixture) &&
       (cabinetItem.cooktopFixture ?? null) === (otherCabinet.cooktopFixture ?? null) &&
-      (cabinetItem.wallId ?? null) === (otherCabinet.wallId ?? null)
+      (cabinetItem.wallId ?? null) === (otherCabinet.wallId ?? null) &&
+      (cabinetItem.wallFace ?? null) === (otherCabinet.wallFace ?? null)
     );
   });
 }
@@ -19957,6 +21299,8 @@ function areWallsEqual(a: Wall[], b: Wall[]) {
       other &&
       wall.id === other.id &&
       (wall.kind ?? "wall") === (other.kind ?? "wall") &&
+      getWallElevationViewMode(wall) === getWallElevationViewMode(other) &&
+      (wall.needCabinetPlacement ?? true) === (other.needCabinetPlacement ?? true) &&
       samePoint(wall.start, other.start) &&
       samePoint(wall.end, other.end)
     );

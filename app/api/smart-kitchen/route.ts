@@ -936,8 +936,113 @@ function getInteriorMeasurementGuideSideFromWallSystem(
     : chainSide;
 }
 
+type WallElevationViewMode = "interior" | "exterior" | "none";
+
+type ElevationFixedObjectSummary = Record<string, unknown> & {
+  id: string;
+  type: string;
+  coordinateSpace: "elevationPlan";
+  leftInches: number;
+  rightInches: number;
+  bottomInches: number;
+};
+
+type WallWithElevationMetadata = AiRoomInput["walls"][number] & {
+  elevationViewMode?: WallElevationViewMode;
+  needCabinetPlacement?: boolean;
+  needsPlacement?: boolean;
+  elevationViewSideOverride?: "left" | "right";
+  interiorSideOverride?: "left" | "right";
+  elevationPlan?: {
+    widthInches?: number;
+    fixedObjects?: unknown;
+    [key: string]: unknown;
+  };
+  elevationWidthInches?: number;
+};
+
+function getClientElevationWidthInches(wall: AiRoomInput["walls"][number]) {
+  const wallWithMetadata = wall as WallWithElevationMetadata;
+  const candidate = wallWithMetadata.elevationPlan?.widthInches ?? wallWithMetadata.elevationWidthInches;
+
+  return typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0
+    ? candidate
+    : null;
+}
+
+function getClientNeedCabinetPlacement(wall: AiRoomInput["walls"][number]) {
+  const wallWithMetadata = wall as WallWithElevationMetadata;
+
+  if (typeof wallWithMetadata.needCabinetPlacement === "boolean") {
+    return wallWithMetadata.needCabinetPlacement;
+  }
+
+  if (typeof wallWithMetadata.needsPlacement === "boolean") {
+    return wallWithMetadata.needsPlacement;
+  }
+
+  return true;
+}
+
+function roundElevationPlanInches(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
+function normalizeClientElevationFixedObject(value: unknown): ElevationFixedObjectSummary | null {
+  if (!value || typeof value !== "object") return null;
+
+  const candidate = value as Record<string, unknown>;
+  const id = typeof candidate.id === "string" ? candidate.id : null;
+  const type = typeof candidate.type === "string" ? candidate.type : null;
+  const leftInches = toNullableNumber(candidate.leftInches);
+  const rightInches = toNullableNumber(candidate.rightInches);
+  const bottomInches = toNullableNumber(candidate.bottomInches);
+
+  if (!id || !type || leftInches === null || rightInches === null || bottomInches === null) {
+    return null;
+  }
+
+  const normalized: ElevationFixedObjectSummary = {
+    ...candidate,
+    id,
+    type,
+    coordinateSpace: "elevationPlan",
+    leftInches: roundElevationPlanInches(leftInches),
+    rightInches: roundElevationPlanInches(rightInches),
+    bottomInches: roundElevationPlanInches(bottomInches),
+  };
+
+  (["widthInches", "heightInches", "depthInches"] as const).forEach((field) => {
+    const fieldValue = toNullableNumber(candidate[field]);
+    if (fieldValue !== null) {
+      normalized[field] = roundElevationPlanInches(fieldValue);
+    }
+  });
+
+  return normalized;
+}
+
+function getClientElevationFixedObjects(wall: AiRoomInput["walls"][number]) {
+  const fixedObjects = (wall as WallWithElevationMetadata).elevationPlan?.fixedObjects;
+
+  if (!Array.isArray(fixedObjects)) return null;
+
+  return fixedObjects
+    .map((fixedObject) => normalizeClientElevationFixedObject(fixedObject))
+    .filter(
+      (fixedObject): fixedObject is ElevationFixedObjectSummary => Boolean(fixedObject)
+    );
+}
+
+function getWallElevationViewMode(wall: AiRoomInput["walls"][number]): WallElevationViewMode {
+  const mode = (wall as WallWithElevationMetadata).elevationViewMode;
+
+  return mode === "exterior" || mode === "none" ? mode : "interior";
+}
+
 function getInteriorMeasurementGuideSide(room: AiRoomInput, wall: AiRoomInput["walls"][number]) {
-  const manualOverride = wall.elevationViewSideOverride ?? wall.interiorSideOverride;
+  const wallWithMetadata = wall as WallWithElevationMetadata;
+  const manualOverride = wallWithMetadata.elevationViewSideOverride ?? wallWithMetadata.interiorSideOverride;
   if (manualOverride) return manualOverride;
 
   const direction = normalize(sub(wall.end, wall.start));
@@ -959,21 +1064,35 @@ function getInteriorMeasurementGuideSide(room: AiRoomInput, wall: AiRoomInput["w
   return dot(interiorNormal, baseNormal) >= 0 ? "left" as const : "right" as const;
 }
 
-function getElevationWallSpanInches(room: AiRoomInput, wall: AiRoomInput["walls"][number]) {
+function getWallElevationGuideSide(room: AiRoomInput, wall: AiRoomInput["walls"][number]) {
+  const interiorSide = getInteriorMeasurementGuideSide(room, wall);
+  const mode = getWallElevationViewMode(wall);
+
+  if (mode === "exterior") {
+    return interiorSide === "left" ? "right" as const : "left" as const;
+  }
+
+  return interiorSide;
+}
+
+function getElevationWallSpanInches(
+  room: AiRoomInput,
+  wall: AiRoomInput["walls"][number],
+  guideSide = getWallElevationGuideSide(room, wall)
+) {
   const rawLengthInches = getRawWallLengthInches(room, wall);
   const axis = getElevationWallAxis(wall);
-  const interiorSide = getInteriorMeasurementGuideSide(room, wall);
   const startAnchor = getWallSideMeasurementAnchor(
     room,
     wall.start,
     wall.end,
-    interiorSide
+    guideSide
   );
   const endAnchor = getWallSideMeasurementAnchor(
     room,
     wall.end,
     wall.start,
-    interiorSide
+    guideSide
   );
   const startScalar = clamp(dot(sub(startAnchor, axis.start), axis.direction), 0, axis.length);
   const endScalar = clamp(dot(sub(endAnchor, axis.start), axis.direction), 0, axis.length);
@@ -1171,7 +1290,7 @@ function normalizeWallPlan(
   return {
     wallId,
     wallLabel: wallLabelLookup.get(wallId) ?? wallId,
-    needsPlacement: toBoolean(candidate.needsPlacement),
+    needsPlacement: toBoolean(candidate.needCabinetPlacement ?? candidate.needsPlacement),
     placements: (Array.isArray(candidate.placements) ? candidate.placements : [])
       .map((placement) => normalizePlacement(placement))
       .filter((placement): placement is SmartKitchenPlacement => Boolean(placement)),
@@ -1269,15 +1388,105 @@ function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
       const dy = Math.abs(wall.end.y - wall.start.y);
       const wallSpan = getElevationWallSpanInches(room, wall);
       const lengthInches = wallSpan.lengthInches;
+      const elevationWidthInches = getClientElevationWidthInches(wall) ?? lengthInches;
       const wallHeightInches = getWallHeightInches();
       const matchingCorners = corners.filter((corner) =>
         corner.walls.some((cornerWall) => cornerWall.wallId === wall.id)
       );
+      const fallbackElevationFixedObjects: ElevationFixedObjectSummary[] = [
+        ...room.windows
+          .filter((windowItem) => windowItem.wallId === wall.id)
+          .map((windowItem) => {
+            const widthInches =
+              Math.round((windowItem.width / room.meta.gridSize) * 12 * 10) / 10;
+            const centerOffsetInches = windowItem.t * lengthInches;
+            const leftInches = lengthInches / 2 + centerOffsetInches - widthInches / 2;
+            const rightInches = lengthInches - leftInches - widthInches;
+
+            return {
+              id: windowItem.id,
+              type: "window",
+              coordinateSpace: "elevationPlan" as const,
+              leftInches: Math.round(leftInches * 10) / 10,
+              rightInches: Math.round(rightInches * 10) / 10,
+              bottomInches: Math.round(windowItem.distanceFromFloorInches * 10) / 10,
+              widthInches,
+              heightInches: Math.round(windowItem.heightInches * 10) / 10,
+            };
+          }),
+        ...room.doors
+          .filter((doorItem) => doorItem.wallId === wall.id)
+          .map((doorItem) => {
+            const widthInches =
+              Math.round((doorItem.width / room.meta.gridSize) * 12 * 10) / 10;
+            const centerOffsetInches = doorItem.t * lengthInches;
+            const leftInches = lengthInches / 2 + centerOffsetInches - widthInches / 2;
+            const rightInches = lengthInches - leftInches - widthInches;
+
+            return {
+              id: doorItem.id,
+              type: "door",
+              coordinateSpace: "elevationPlan" as const,
+              leftInches: Math.round(leftInches * 10) / 10,
+              rightInches: Math.round(rightInches * 10) / 10,
+              bottomInches: Math.round(doorItem.distanceFromFloorInches * 10) / 10,
+              widthInches,
+              heightInches: Math.round(doorItem.heightInches * 10) / 10,
+            };
+          }),
+        ...room.cabinets
+          .filter((cabinetItem) => cabinetItem.wallId === wall.id)
+          .map((cabinetItem) => {
+            const catalogItem =
+              room.catalog.find((item) => item.id === cabinetItem.catalogId) ?? null;
+            const widthInches =
+              Math.round(((cabinetItem.width / room.meta.gridSize) * 12) * 10) / 10;
+            const category = cabinetItem.category ?? catalogItem?.category ?? "base";
+            const heightInches =
+              cabinetItem.heightInches ?? catalogItem?.defaultHeightInches ?? null;
+            const distanceFromFloorInches =
+              category === "wall"
+                ? cabinetItem.distanceFromFloorInches ??
+                  catalogItem?.defaultDistanceFromFloorInches ??
+                  0
+                : 0;
+            const elevationOffsets = getElevationOffsets({
+              room,
+              wall,
+              center: cabinetItem.center,
+              widthInches,
+              bottomInches: distanceFromFloorInches,
+            });
+
+            return {
+              id: cabinetItem.id,
+              type:
+                cabinetItem.isProduct ?? catalogItem?.isProduct ? "product" : "cabinet",
+              coordinateSpace: "elevationPlan" as const,
+              catalogId: cabinetItem.catalogId ?? null,
+              title: catalogItem?.title ?? "Placed object",
+              category,
+              image: cabinetItem.image ?? catalogItem?.image ?? null,
+              topOption: getTopOption(cabinetItem),
+              widthInches,
+              depthInches:
+                Math.round(((cabinetItem.depth / room.meta.gridSize) * 12) * 10) / 10,
+              heightInches,
+              leftInches: elevationOffsets.leftInches,
+              rightInches: elevationOffsets.rightInches,
+              bottomInches: elevationOffsets.bottomInches,
+            };
+          }),
+      ];
+      const elevationFixedObjects =
+        getClientElevationFixedObjects(wall) ?? fallbackElevationFixedObjects;
 
       return {
         wallId: wall.id,
         wallLabel: wallLabelLookup.get(wall.id) ?? wall.id,
-        needsPlacement: selectedWallSet ? selectedWallSet.has(wall.id) : true,
+        needCabinetPlacement:
+          (selectedWallSet ? selectedWallSet.has(wall.id) : true) &&
+          getClientNeedCabinetPlacement(wall),
         floorPlan: {
           orientation: dx >= dy ? "horizontal" : "vertical",
           start: {
@@ -1292,8 +1501,9 @@ function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
           connectedCornerIds: matchingCorners.map((corner) => corner.cornerId),
         },
         elevationPlan: {
-          widthInches: Math.round(lengthInches * 10) / 10,
+          widthInches: Math.round(elevationWidthInches * 10) / 10,
           heightInches: wallHeightInches,
+          coordinateSpace: "elevationPlan",
           leftCornerId:
             matchingCorners.find((corner) =>
               corner.walls.some(
@@ -1306,88 +1516,8 @@ function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
                 (cornerWall) => cornerWall.wallId === wall.id && cornerWall.side === "end"
               )
             )?.cornerId ?? null,
+          fixedObjects: elevationFixedObjects,
         },
-        fixedObjects: [
-          ...room.windows
-            .filter((windowItem) => windowItem.wallId === wall.id)
-            .map((windowItem) => {
-              const widthInches =
-                Math.round((windowItem.width / room.meta.gridSize) * 12 * 10) / 10;
-              const centerOffsetInches =
-                windowItem.t * lengthInches;
-              const leftInches = lengthInches / 2 + centerOffsetInches - widthInches / 2;
-              const rightInches = lengthInches - leftInches - widthInches;
-
-              return {
-                id: windowItem.id,
-                type: "window",
-                leftInches: Math.round(leftInches * 10) / 10,
-                rightInches: Math.round(rightInches * 10) / 10,
-                bottomInches: Math.round(windowItem.distanceFromFloorInches * 10) / 10,
-                widthInches,
-                heightInches: Math.round(windowItem.heightInches * 10) / 10,
-              };
-            }),
-          ...room.doors
-            .filter((doorItem) => doorItem.wallId === wall.id)
-            .map((doorItem) => {
-              const widthInches =
-                Math.round((doorItem.width / room.meta.gridSize) * 12 * 10) / 10;
-              const centerOffsetInches =
-                doorItem.t * lengthInches;
-              const leftInches = lengthInches / 2 + centerOffsetInches - widthInches / 2;
-              const rightInches = lengthInches - leftInches - widthInches;
-
-              return {
-                id: doorItem.id,
-                type: "door",
-                leftInches: Math.round(leftInches * 10) / 10,
-                rightInches: Math.round(rightInches * 10) / 10,
-                bottomInches: Math.round(doorItem.distanceFromFloorInches * 10) / 10,
-                widthInches,
-                heightInches: Math.round(doorItem.heightInches * 10) / 10,
-              };
-            }),
-          ...room.cabinets
-          .filter((cabinetItem) => cabinetItem.wallId === wall.id)
-          .map((cabinetItem) => {
-            const catalogItem =
-              room.catalog.find((item) => item.id === cabinetItem.catalogId) ?? null;
-            const widthInches =
-              Math.round(((cabinetItem.width / room.meta.gridSize) * 12) * 10) / 10;
-            const heightInches =
-              cabinetItem.heightInches ?? catalogItem?.defaultHeightInches ?? null;
-            const distanceFromFloorInches =
-              cabinetItem.distanceFromFloorInches ??
-              catalogItem?.defaultDistanceFromFloorInches ??
-              0;
-            const elevationOffsets = getElevationOffsets({
-              room,
-              wall,
-              center: cabinetItem.center,
-              widthInches,
-              bottomInches: distanceFromFloorInches,
-            });
-
-            return {
-              id: cabinetItem.id,
-              type:
-                cabinetItem.isProduct ?? catalogItem?.isProduct ? "product" : "cabinet",
-              catalogId: cabinetItem.catalogId ?? null,
-              title: catalogItem?.title ?? "Placed object",
-              category: cabinetItem.category ?? catalogItem?.category ?? "base",
-              image: cabinetItem.image ?? catalogItem?.image ?? null,
-              topOption: getTopOption(cabinetItem),
-              widthInches,
-              depthInches:
-                Math.round(((cabinetItem.depth / room.meta.gridSize) * 12) * 10) / 10,
-              heightInches,
-              leftInches: elevationOffsets.leftInches,
-              rightInches: elevationOffsets.rightInches,
-              bottomInches: elevationOffsets.bottomInches,
-            };
-          }),
-        ],
       };
     });
 }
@@ -1497,8 +1627,8 @@ export async function POST(request: Request) {
     "Return JSON only.",
     "Keep the JSON compact and complete.",
     "Use the provided cabinet catalog IDs exactly when selecting cabinets.",
-    "The input walls describe the room in both floor plan and elevation plan. Use all walls to understand the room shape, but only place new objects on walls where needsPlacement is true.",
-    "Treat fixedObjects as fixed. Do not move, replace, or overlap them.",
+    "The input walls describe the room in both floor plan and elevation plan. Use all walls to understand the room shape, but only place new objects on walls where needCabinetPlacement is true.",
+    "Treat each wall elevationPlan.fixedObjects array as fixed elevation-view objects. Do not move, replace, or overlap them.",
     "Respect door and window openings. Do not block doors. Avoid placing uppers across windows unless that wall should stay visually open.",
     "Design for both top view and especially the customer-facing elevation view.",
     "Use the corner connections and wall order to understand which walls form corners.",
@@ -1540,7 +1670,7 @@ export async function POST(request: Request) {
             type: "input_text",
             text: JSON.stringify({
               task:
-                "Plan a smart kitchen using the room walls, fixed objects, and the available cabinet/product catalog.",
+                "Plan a smart kitchen using the room walls, elevationPlan.fixedObjects, and the available cabinet/product catalog.",
               outputShape: {
                 layoutType: "single-wall | galley | l-shape",
                 wallOrder: ["wall-id-1", "wall-id-2"],
@@ -1549,7 +1679,7 @@ export async function POST(request: Request) {
                   {
                     wallId: "wall id",
                     wallLabel: "Wall 2",
-                    needsPlacement: true,
+                    needCabinetPlacement: true,
                     placements: [
                       {
                         catalogId: "catalog id",
@@ -1565,11 +1695,11 @@ export async function POST(request: Request) {
                 ],
               },
               importantRules: [
-                "Only include wall objects for walls where needsPlacement is true.",
+                "Only include wall objects for walls where needCabinetPlacement is true.",
                 "If a selected wall should stay empty, return that wall with placements: [].",
                 "For floor-standing cabinets/products, bottomInches should be 0.",
                 "For wall-mounted cabinets/products, choose bottomInches to make the elevation look good.",
-                "Do not overlap any fixedObjects or new placements on the same wall.",
+                "Do not overlap any elevationPlan.fixedObjects or new placements on the same wall.",
                 "Use the provided wallLabel values such as Wall 1 and Wall 2 to understand designer feedback.",
                 "Return wallId when possible. wallLabel is also accepted if needed.",
                 "Keep the response compact so the JSON finishes completely.",
