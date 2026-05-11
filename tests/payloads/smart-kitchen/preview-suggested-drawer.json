@@ -1,0 +1,129 @@
+{
+  "room": {
+    "walls": [
+      {
+        "id": "wall-1",
+        "start": { "x": 100, "y": 100 },
+        "end": { "x": 436, "y": 100 }
+      },
+      {
+        "id": "wall-2",
+        "start": { "x": 436, "y": 100 },
+        "end": { "x": 436, "y": 380 }
+      }
+    ],
+    "windows": [],
+    "doors": [],
+    "cabinets": [
+      {
+        "id": "suggested-drawer",
+        "catalogId": "base-drawer-cabinet",
+        "category": "base",
+        "wallId": "wall-1",
+        "wallFace": "left",
+        "lockMode": "suggested",
+        "width": 70,
+        "depth": 56,
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "center": { "x": 240, "y": 121 },
+        "rotation": 0
+      }
+    ],
+    "catalog": [
+      {
+        "id": "product-refrigerator",
+        "category": "base",
+        "title": "Refrigerator",
+        "subtitle": "36\" W x 30\" D",
+        "widthInches": 36,
+        "depthInches": 30,
+        "image": "base-appliance",
+        "isProduct": true,
+        "productCategory": "base",
+        "defaultHeightInches": 84
+      },
+      {
+        "id": "product-range",
+        "category": "base",
+        "title": "Range",
+        "subtitle": "30\" W x 24\" D",
+        "widthInches": 30,
+        "depthInches": 24,
+        "image": "base-appliance",
+        "isProduct": true,
+        "productCategory": "base",
+        "defaultHeightInches": 36
+      },
+      {
+        "id": "base-sink-cabinet",
+        "category": "base",
+        "title": "2 Doors Sink Cabinet",
+        "subtitle": "36\" W x 24\" D",
+        "widthInches": 36,
+        "depthInches": 24,
+        "image": "base-sink"
+      },
+      {
+        "id": "base-drawer-cabinet",
+        "category": "base",
+        "title": "3 Drawers Cabinet",
+        "subtitle": "30\" W x 24\" D",
+        "widthInches": 30,
+        "depthInches": 24,
+        "image": "base-drawer"
+      },
+      {
+        "id": "base-two-door-cabinet",
+        "category": "base",
+        "title": "2 Door Cabinet",
+        "subtitle": "36\" W x 24\" D",
+        "widthInches": 36,
+        "depthInches": 24,
+        "image": "base"
+      },
+      {
+        "id": "wall-cabinet",
+        "category": "wall",
+        "title": "2 Door Wall Cabinet",
+        "subtitle": "24\" W x 12\" D",
+        "widthInches": 24,
+        "depthInches": 12,
+        "image": "wall"
+      },
+      {
+        "id": "product-wall-hood",
+        "category": "wall",
+        "title": "Hood",
+        "subtitle": "30\" W x 12\" D",
+        "widthInches": 30,
+        "depthInches": 12,
+        "image": "wall-hood-one-door",
+        "isProduct": true,
+        "productCategory": "wall",
+        "defaultHeightInches": 24,
+        "defaultDistanceFromFloorInches": 60
+      }
+    ],
+    "wallChains": [
+      {
+        "id": "chain-1",
+        "wallIds": ["wall-1", "wall-2"]
+      }
+    ],
+    "meta": {
+      "source": "smart-kitchen-local-test",
+      "unit": "inches",
+      "coordinateUnit": "pixels",
+      "measurementUnit": "inches",
+      "gridSize": 28,
+      "gridSizePixelsPerFoot": 28,
+      "wallThickness": 16,
+      "wallThicknessPixels": 16,
+      "generatedAt": "2026-05-11T00:00:00.000Z"
+    }
+  },
+  "selectedWallIds": ["wall-1", "wall-2"],
+  "designerFeedback": "The drawer cabinet is only a suggestion. Improve or omit it if needed.",
+  "previewOnly": true
+}
