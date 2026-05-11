@@ -178,6 +178,7 @@ type CabinetElement = {
   // tied to the same wall as the floor-plan placement, like doors/windows.
   wallId?: string;
   wallFace?: WallFaceSide;
+  lockMode?: "locked" | "required" | "suggested";
 };
 
 
@@ -880,6 +881,7 @@ type SmartElevationFixedObject = {
   category?: CabinetCategory;
   image?: CabinetImage | null;
   topOption?: "sink" | "surface-cooktop" | "front-control-cooktop" | null;
+  lockMode?: "locked" | "required" | "suggested";
 };
 
 type AiRoomWallWithEditorElevationData = AiRoomInput["walls"][number] & {
@@ -1053,6 +1055,7 @@ function getEditorElevationFixedObjectsForWall(
             catalogItem?.defaultHeightInches ??
             (category === "wall" ? 30 : 36)
         ),
+        lockMode: cabinetItem.lockMode ?? "locked",
       };
     })
     .filter((fixedObject): fixedObject is SmartElevationFixedObject => Boolean(fixedObject));

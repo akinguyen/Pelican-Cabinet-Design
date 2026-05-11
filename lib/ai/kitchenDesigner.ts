@@ -95,6 +95,16 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function getCabinetLockMode(cabinet: AiCabinet) {
+  return cabinet.lockMode === "required" || cabinet.lockMode === "suggested"
+    ? cabinet.lockMode
+    : "locked";
+}
+
+function isLockedCabinet(cabinet: AiCabinet) {
+  return getCabinetLockMode(cabinet) === "locked";
+}
+
 
 function getRotatedRectCorners(
   center: AiPoint,
@@ -645,7 +655,9 @@ function reserveExistingWallObjects(
       });
 
     room.cabinets
-      .filter((cabinetItem) => cabinetItem.wallId === wallEntry.wall.id)
+      .filter(
+        (cabinetItem) => cabinetItem.wallId === wallEntry.wall.id && isLockedCabinet(cabinetItem)
+      )
       .forEach((cabinetItem) => {
         const category = getCabinetElevationCategory(cabinetItem);
         const centerOffset = getCabinetCenterOffsetInches(
@@ -679,14 +691,14 @@ function reserveExistingWallObjects(
       });
 
     const preservedCount = room.cabinets.filter(
-      (cabinetItem) => cabinetItem.wallId === wallEntry.wall.id
+      (cabinetItem) => cabinetItem.wallId === wallEntry.wall.id && isLockedCabinet(cabinetItem)
     ).length;
     const doorCount = room.doors.filter((doorItem) => doorItem.wallId === wallEntry.wall.id).length;
     const windowCount = room.windows.filter((windowItem) => windowItem.wallId === wallEntry.wall.id).length;
 
     if (preservedCount > 0 || doorCount > 0 || windowCount > 0) {
       notes.push(
-        `Wall ${wallIndex + 1} includes ${preservedCount} pre-placed object(s), ${doorCount} door opening(s), and ${windowCount} window opening(s), so those spans were reserved before new cabinet placement.`
+        `Wall ${wallIndex + 1} includes ${preservedCount} locked object(s), ${doorCount} door opening(s), and ${windowCount} window opening(s), so those spans were reserved before new cabinet placement.`
       );
     }
   });
@@ -1051,7 +1063,12 @@ export function filterRoomForKitchenGeneration(
   room: AiRoomInput,
   selectedWallIds?: string[]
 ): AiRoomInput {
-  if (!selectedWallIds?.length) return room;
+  if (!selectedWallIds?.length) {
+    return {
+      ...room,
+      cabinets: room.cabinets.filter((cabinetItem) => isLockedCabinet(cabinetItem)),
+    };
+  }
 
   const selectedWallSet = new Set(selectedWallIds);
 
@@ -1063,7 +1080,12 @@ export function filterRoomForKitchenGeneration(
     windows: room.windows.filter((windowItem) => selectedWallSet.has(windowItem.wallId)),
     doors: room.doors.filter((doorItem) => selectedWallSet.has(doorItem.wallId)),
     cabinets: room.cabinets.filter(
-      (cabinetItem) => Boolean(cabinetItem.wallId && selectedWallSet.has(cabinetItem.wallId))
+      (cabinetItem) =>
+        Boolean(
+          cabinetItem.wallId &&
+            selectedWallSet.has(cabinetItem.wallId) &&
+            isLockedCabinet(cabinetItem)
+        )
     ),
     wallChains: room.wallChains
       .map((chain) => ({
@@ -1100,7 +1122,8 @@ export function generateKitchenLayout(
     .sort((left, right) => right.axis.lengthInches - left.axis.lengthInches);
 
   const primary = selectedWalls[0] ?? null;
-  const cabinets: AiCabinet[] = [...room.cabinets];
+  const lockedCabinets = room.cabinets.filter((cabinet) => isLockedCabinet(cabinet));
+  const cabinets: AiCabinet[] = [...lockedCabinets];
   const notes: string[] = [];
   const baseReservations = new Map<string, WallReservation[]>();
   const upperReservations = new Map<string, WallReservation[]>();
@@ -1153,9 +1176,9 @@ export function generateKitchenLayout(
       ? `Using ${selectedWalls.length} selected wall side(s) for kitchen generation.`
       : `No wall sides were selected, so the designer used all ${selectedWalls.length} thick wall side(s).`
   );
-  if (room.cabinets.length > 0) {
+  if (lockedCabinets.length > 0) {
     notes.push(
-      `Preserved ${room.cabinets.length} pre-placed cabinet/product object(s) on the selected walls before filling new runs.`
+      `Preserved ${lockedCabinets.length} locked cabinet/product object(s) on the selected walls before filling new runs.`
     );
   }
   reserveExistingWallObjects(room, selectedWalls, baseReservations, upperReservations, notes);
@@ -1652,10 +1675,12 @@ export function generateSmartKitchenLayout(
   );
   const wallPlans = getNormalizedWallPlans(filteredRoom, plan, targetWalls);
   const primary = selectedWalls[0] ?? null;
-  const cabinets: AiCabinet[] = [...filteredRoom.cabinets];
+  const lockedCabinets = filteredRoom.cabinets.filter((cabinet) => isLockedCabinet(cabinet));
+  const cabinets: AiCabinet[] = [...lockedCabinets];
   const notes = [
     `Smart planner selected ${selectedWalls.length} wall side(s) for a ${plan.layoutType} kitchen.`,
     ...plan.notes,
+    ...(plan.warnings ?? []).map((warning) => `Planner warning: ${warning.message}`),
   ];
   const baseReservations = new Map<string, WallReservation[]>();
   const upperReservations = new Map<string, WallReservation[]>();
@@ -1689,9 +1714,9 @@ export function generateSmartKitchenLayout(
   ]);
   const corners = findCornerPairs(selectedWalls);
 
-  if (filteredRoom.cabinets.length > 0) {
+  if (lockedCabinets.length > 0) {
     notes.push(
-      `Preserved ${filteredRoom.cabinets.length} pre-placed cabinet/product object(s) from the selected walls and designed around them.`
+      `Preserved ${lockedCabinets.length} locked cabinet/product object(s) from the selected walls and designed around them.`
     );
   }
   reserveExistingWallObjects(

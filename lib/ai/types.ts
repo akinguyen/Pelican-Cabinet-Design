@@ -35,6 +35,7 @@ export type AiDoor = {
 };
 
 export type AiCabinetCategory = "base" | "tall" | "wall";
+export type AiObjectLockMode = "locked" | "required" | "suggested";
 
 export type AiCabinetImage =
   | "base"
@@ -89,6 +90,7 @@ export type AiCabinet = {
   cooktopFixture?: "surface" | "front";
   cooktopFrontHeightInches?: number;
   isProduct?: boolean;
+  lockMode?: AiObjectLockMode;
 };
 
 export type AiWallChain = {
@@ -105,9 +107,13 @@ export type AiRoomInput = {
   wallChains: AiWallChain[];
   meta: {
     source: string;
-    unit: "inches";
+    unit?: "inches";
+    coordinateUnit?: "pixels";
+    measurementUnit?: "inches";
     gridSize: number;
+    gridSizePixelsPerFoot?: number;
     wallThickness: number;
+    wallThicknessPixels?: number;
     generatedAt: string;
   };
 };
@@ -150,6 +156,11 @@ export type SmartKitchenPlacement = {
   notes?: string[];
 };
 
+export type SmartKitchenWarning = {
+  type: "constraint-warning";
+  message: string;
+};
+
 export type SmartKitchenWallPlan = {
   wallId: string;
   wallLabel?: string | null;
@@ -176,5 +187,6 @@ export type SmartKitchenPlan = {
   wallOrder: string[];
   wallPlans: SmartKitchenWallPlan[];
   notes: string[];
+  warnings?: SmartKitchenWarning[];
   plannerModel?: string;
 };

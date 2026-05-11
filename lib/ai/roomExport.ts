@@ -81,8 +81,12 @@ export function exportRoomInput(params: {
     meta: {
       source: "CabinetEditorAiPrototype",
       unit: "inches",
+      coordinateUnit: "pixels",
+      measurementUnit: "inches",
       gridSize: params.gridSize,
+      gridSizePixelsPerFoot: params.gridSize,
       wallThickness: params.wallThickness,
+      wallThicknessPixels: params.wallThickness,
       generatedAt: new Date().toISOString(),
     },
   };
