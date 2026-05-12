@@ -75,7 +75,6 @@ type CabinetImage =
   | "base"
   | "base-corner"
   | "base-one-door"
-  | "base-sink"
   | "base-drawer"
   | "base-appliance"
   | "base-dishwasher"
@@ -618,15 +617,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     widthInches: 18,
     depthInches: 24,
     image: "base-one-door",
-  },
-  {
-    id: "base-sink-cabinet",
-    category: "base",
-    title: "2 Doors Sink Cabinet",
-    subtitle: '36" W x 24" D',
-    widthInches: 36,
-    depthInches: 24,
-    image: "base-sink",
   },
   {
     id: "base-drawer-cabinet",
@@ -7111,7 +7101,6 @@ function ElevationCabinetOnWall({
   image,
   selected = false,
   invalid = false,
-  sinkFixtureScale = 1,
   cabinet,
 }: {
   x: number;
@@ -7122,7 +7111,6 @@ function ElevationCabinetOnWall({
   image?: CabinetImage;
   selected?: boolean;
   invalid?: boolean;
-  sinkFixtureScale?: number;
   cabinet?: CabinetElement;
 }) {
   const outerStroke = invalid ? "#ef4444" : selected ? "#22bfd6" : "#111827";
@@ -7196,7 +7184,6 @@ function ElevationCabinetOnWall({
           handleTop={handleTop}
           handleHeight={handleHeight}
           singleHandleX={singleHandleX}
-          sinkFixtureScale={sinkFixtureScale}
         />
       ) : (
         <ElevationWallCabinetDetails
@@ -7793,7 +7780,6 @@ function ElevationBaseCabinetDetails({
   handleTop,
   handleHeight,
   singleHandleX,
-  sinkFixtureScale = 1,
 }: {
   image: CabinetImage;
   x: number;
@@ -7810,7 +7796,6 @@ function ElevationBaseCabinetDetails({
   handleTop: number;
   handleHeight: number;
   singleHandleX: number;
-  sinkFixtureScale?: number;
 }) {
   const doorDividerX = x + width / 2;
   const handleOffsetFromCenter = Math.max(6, Math.min(16, width * 0.08));
@@ -8287,13 +8272,12 @@ function ElevationBaseCabinetDetails({
     );
   }
 
-  if (image === "base-sink" || image === "base") {
+  if (image === "base") {
     return (
       <g>
         <line x1={doorDividerX} y1={innerY} x2={doorDividerX} y2={innerY + innerHeight} stroke={innerStroke} strokeWidth="1.4" vectorEffect="non-scaling-stroke" />
         <line x1={leftHandleX} y1={handleTop} x2={leftHandleX} y2={handleTop + handleHeight} stroke={handleStroke} strokeWidth="1.6" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
         <line x1={rightHandleX} y1={handleTop} x2={rightHandleX} y2={handleTop + handleHeight} stroke={handleStroke} strokeWidth="1.6" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-{image === "base-sink" && <ElevationSinkFixture x={x} y={y} width={width} height={height} innerStroke={innerStroke} fixtureScale={sinkFixtureScale} />}
       </g>
     );
   }
@@ -15138,10 +15122,8 @@ function ContextPanel({
   }
 
   if (activePanel === "cabinets") {
-    const visibleCabinets = CABINET_CATALOG.filter((item) =>
-      item.category === cabinetCategoryTab &&
-      !item.isProduct &&
-      !item.image.startsWith("base-sink")
+    const visibleCabinets = CABINET_CATALOG.filter(
+      (item) => item.category === cabinetCategoryTab && !item.isProduct
     );
 
     return (
@@ -15793,8 +15775,6 @@ const L_SHAPED_CORNER_CABINET_DISPLAY_IMAGE = "data:image/webp;base64,UklGRsoMAA
 
 function CabinetCatalogImage({ image }: { image: CabinetImage }) {
   const frame = getCabinetCatalogPreviewFrame(image);
-  const isSinkCabinet =
-    image === "base-sink";
 
   if (image === "base-corner") {
     return <SimpleCornerBaseCabinetImage />;
@@ -15809,7 +15789,6 @@ function CabinetCatalogImage({ image }: { image: CabinetImage }) {
         height={frame.height}
         category={frame.category}
         image={image}
-        sinkFixtureScale={isSinkCabinet ? 0.68 : 1}
       />
     </svg>
   );
@@ -19750,61 +19729,6 @@ function CabinetPlanVariantDetails({
           vectorEffect="non-scaling-stroke"
         />
         <line x1={-width / 2 + inset * 2} y1={-depth / 2 + inset * 1.1} x2={width / 2 - inset * 2} y2={-depth / 2 + inset * 1.1} stroke={stroke} strokeWidth="1.1" vectorEffect="non-scaling-stroke" />
-      </g>
-    );
-  }
-
-  if (image === "base-sink") {
-    const sinkWidth = Math.max(width * 0.42, width - inset * 3.8);
-    const sinkDepth = Math.max(depth * 0.24, depth - inset * 4.7);
-    const sinkX = -sinkWidth / 2;
-    const sinkY = -depth / 2 + inset * 1.65;
-    const faucetBaseY = sinkY - Math.max(2.5, inset * 0.45);
-    const faucetReach = Math.max(5, Math.min(10, depth * 0.18));
-    const faucetHeight = Math.max(5, Math.min(11, depth * 0.28));
-
-    return (
-      <g opacity={detailOpacity}>
-        {topLine}
-        <rect
-          x={sinkX}
-          y={sinkY}
-          width={sinkWidth}
-          height={sinkDepth}
-          rx={Math.min(6, sinkDepth * 0.28)}
-          fill="none"
-          stroke={stroke}
-          strokeWidth="1.1"
-          vectorEffect="non-scaling-stroke"
-        />
-        <ellipse
-          cx={0}
-          cy={sinkY + sinkDepth / 2}
-          rx={Math.max(5, sinkWidth * 0.18)}
-          ry={Math.max(2.2, sinkDepth * 0.2)}
-          fill="none"
-          stroke={stroke}
-          strokeWidth="0.95"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          d={`M ${-faucetReach * 0.38} ${faucetBaseY} C ${-faucetReach * 0.18} ${faucetBaseY - faucetHeight * 0.78}, ${faucetReach * 0.42} ${faucetBaseY - faucetHeight * 0.78}, ${faucetReach * 0.42} ${faucetBaseY + faucetReach * 0.22}`}
-          fill="none"
-          stroke={stroke}
-          strokeWidth="1.15"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
-        <line
-          x1={-faucetReach * 0.46}
-          y1={faucetBaseY + 0.5}
-          x2={-faucetReach * 0.08}
-          y2={faucetBaseY + 0.5}
-          stroke={stroke}
-          strokeWidth="1.15"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
       </g>
     );
   }
