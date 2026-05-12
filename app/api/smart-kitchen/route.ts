@@ -10,7 +10,6 @@ import type {
   AiRoomInput,
   SmartKitchenPlacement,
   SmartKitchenPlan,
-  SmartKitchenWarning,
   SmartKitchenWallPlan,
 } from "@/lib/ai/types";
 
@@ -19,19 +18,6 @@ type SmartKitchenRequestBody = {
   selectedWallIds?: string[];
   designerFeedback?: string;
   previewOnly?: boolean;
-  customerRequirements?: {
-    layoutPreference?: string | null;
-    stylePreference?: string | null;
-    mustInclude?: unknown[];
-    mustAvoid?: unknown[];
-    notes?: string[];
-  };
-  designZones?: {
-    plumbingWallIds?: string[];
-    rangeWallIds?: string[];
-    refrigeratorWallIds?: string[];
-    preferredSinkWallIds?: string[];
-  };
 };
 
 type OpenAIResponsesOutputMessage = {
@@ -138,28 +124,6 @@ function toBoolean(value: unknown) {
 
 function toNullableNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function toNullableTrimmedString(value: unknown) {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-}
-
-function toUnknownArray(value: unknown) {
-  return Array.isArray(value) ? value : [];
-}
-
-function getCabinetLockMode(cabinetItem: AiRoomInput["cabinets"][number]) {
-  return cabinetItem.lockMode === "required" || cabinetItem.lockMode === "suggested"
-    ? cabinetItem.lockMode
-    : "locked";
-}
-
-function getRoomGridSizePixelsPerFoot(room: AiRoomInput) {
-  return room.meta.gridSizePixelsPerFoot ?? room.meta.gridSize;
-}
-
-function getRoomWallThicknessPixels(room: AiRoomInput) {
-  return room.meta.wallThicknessPixels ?? room.meta.wallThickness;
 }
 
 function add(a: AiPoint, b: AiPoint): AiPoint {
@@ -981,7 +945,6 @@ type ElevationFixedObjectSummary = Record<string, unknown> & {
   leftInches: number;
   rightInches: number;
   bottomInches: number;
-  lockMode?: "locked" | "required" | "suggested";
 };
 
 type WallWithElevationMetadata = AiRoomInput["walls"][number] & {
@@ -1047,11 +1010,6 @@ function normalizeClientElevationFixedObject(value: unknown): ElevationFixedObje
     leftInches: roundElevationPlanInches(leftInches),
     rightInches: roundElevationPlanInches(rightInches),
     bottomInches: roundElevationPlanInches(bottomInches),
-    ...(candidate.lockMode === "required" || candidate.lockMode === "suggested"
-      ? { lockMode: candidate.lockMode }
-      : candidate.lockMode === "locked"
-        ? { lockMode: "locked" as const }
-        : {}),
   };
 
   (["widthInches", "heightInches", "depthInches"] as const).forEach((field) => {
@@ -1074,20 +1032,6 @@ function getClientElevationFixedObjects(wall: AiRoomInput["walls"][number]) {
     .filter(
       (fixedObject): fixedObject is ElevationFixedObjectSummary => Boolean(fixedObject)
     );
-}
-
-function getLockedClientElevationFixedObjects(wall: AiRoomInput["walls"][number]) {
-  const fixedObjects = getClientElevationFixedObjects(wall);
-
-  if (!fixedObjects) return null;
-
-  return fixedObjects.filter((fixedObject) => {
-    if (fixedObject.type !== "cabinet" && fixedObject.type !== "product") {
-      return true;
-    }
-
-    return (fixedObject.lockMode ?? "locked") === "locked";
-  });
 }
 
 function getWallElevationViewMode(wall: AiRoomInput["walls"][number]): WallElevationViewMode {
@@ -1306,20 +1250,6 @@ function normalizePlacement(value: unknown): SmartKitchenPlacement | null {
   };
 }
 
-function normalizeWarning(value: unknown): SmartKitchenWarning | null {
-  if (!value || typeof value !== "object") return null;
-
-  const candidate = value as Record<string, unknown>;
-  const message = toNullableTrimmedString(candidate.message);
-
-  if (!message) return null;
-
-  return {
-    type: "constraint-warning",
-    message,
-  };
-}
-
 function normalizeWallPlan(
   room: AiRoomInput,
   value: unknown
@@ -1442,9 +1372,6 @@ function normalizeSmartKitchenPlan(
     wallOrder,
     wallPlans: normalizedWallPlans,
     notes: toStringArray(candidate.notes),
-    warnings: (Array.isArray(candidate.warnings) ? candidate.warnings : [])
-      .map((warning) => normalizeWarning(warning))
-      .filter((warning): warning is SmartKitchenWarning => Boolean(warning)),
     plannerModel,
   };
 }
@@ -1508,10 +1435,7 @@ function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
             };
           }),
         ...room.cabinets
-          .filter(
-            (cabinetItem) =>
-              cabinetItem.wallId === wall.id && getCabinetLockMode(cabinetItem) === "locked"
-          )
+          .filter((cabinetItem) => cabinetItem.wallId === wall.id)
           .map((cabinetItem) => {
             const catalogItem =
               room.catalog.find((item) => item.id === cabinetItem.catalogId) ?? null;
@@ -1544,7 +1468,6 @@ function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
               category,
               image: cabinetItem.image ?? catalogItem?.image ?? null,
               topOption: getTopOption(cabinetItem),
-              lockMode: "locked" as const,
               widthInches,
               depthInches:
                 Math.round(((cabinetItem.depth / room.meta.gridSize) * 12) * 10) / 10,
@@ -1556,7 +1479,7 @@ function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
           }),
       ];
       const elevationFixedObjects =
-        getLockedClientElevationFixedObjects(wall) ?? fallbackElevationFixedObjects;
+        getClientElevationFixedObjects(wall) ?? fallbackElevationFixedObjects;
 
       return {
         wallId: wall.id,
@@ -1597,79 +1520,6 @@ function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
         },
       };
     });
-}
-
-function summarizeExistingObjects(room: AiRoomInput) {
-  const wallLabelLookup = getWallLabelLookup(room);
-
-  const groupedObjects = room.cabinets.reduce(
-    (result, cabinetItem) => {
-      const wallId = cabinetItem.wallId ?? null;
-      const wall =
-        wallId && room.walls.some((candidateWall) => candidateWall.id === wallId)
-          ? room.walls.find((candidateWall) => candidateWall.id === wallId) ?? null
-          : null;
-
-      if (!wallId || !wall || wall.kind === "thin-wall") {
-        return result;
-      }
-
-      const catalogItem = room.catalog.find((item) => item.id === cabinetItem.catalogId) ?? null;
-      const category = cabinetItem.category ?? catalogItem?.category ?? "base";
-      const heightInches =
-        cabinetItem.heightInches ??
-        catalogItem?.defaultHeightInches ??
-        (category === "wall" ? 30 : category === "tall" ? 84 : 34.5);
-      const bottomInches =
-        category === "wall"
-          ? cabinetItem.distanceFromFloorInches ??
-            catalogItem?.defaultDistanceFromFloorInches ??
-            0
-          : 0;
-      const widthInches = Math.round(((cabinetItem.width / room.meta.gridSize) * 12) * 10) / 10;
-      const depthInches = Math.round(((cabinetItem.depth / room.meta.gridSize) * 12) * 10) / 10;
-      const elevationOffsets = getElevationOffsets({
-        room,
-        wall,
-        center: cabinetItem.center,
-        widthInches,
-        bottomInches,
-      });
-      const lockMode = getCabinetLockMode(cabinetItem);
-      const summarizedObject = {
-        id: cabinetItem.id,
-        lockMode,
-        type:
-          cabinetItem.isProduct ?? catalogItem?.isProduct ? "product" : "cabinet",
-        wallId,
-        wallLabel: wallLabelLookup.get(wallId) ?? wallId,
-        catalogId: cabinetItem.catalogId ?? null,
-        title: catalogItem?.title ?? "Placed object",
-        category,
-        image: cabinetItem.image ?? catalogItem?.image ?? null,
-        topOption: getTopOption(cabinetItem),
-        placement: {
-          coordinateSpace: "elevationPlan" as const,
-          leftInches: elevationOffsets.leftInches,
-          rightInches: elevationOffsets.rightInches,
-          bottomInches: elevationOffsets.bottomInches,
-          widthInches,
-          depthInches,
-          heightInches: Math.round(heightInches * 10) / 10,
-        },
-      };
-
-      result[lockMode].push(summarizedObject);
-      return result;
-    },
-    {
-      locked: [] as Array<Record<string, unknown>>,
-      required: [] as Array<Record<string, unknown>>,
-      suggested: [] as Array<Record<string, unknown>>,
-    }
-  );
-
-  return groupedObjects;
 }
 
 function summarizeCatalog(room: AiRoomInput) {
@@ -1760,107 +1610,44 @@ export async function POST(request: Request) {
   const summarizedWalls = summarizeWalls(fullRoom, selectedWallIds);
   const summarizedCatalog = summarizeCatalog(fullRoom);
   const summarizedCorners = summarizeCorners(fullRoom);
-  const summarizedExistingObjects = summarizeExistingObjects(fullRoom);
-  const wallsAllowedForCabinets =
-    selectedWallIds ??
-    fullRoom.walls.filter((wall) => wall.kind !== "thin-wall").map((wall) => wall.id);
-  const customerRequirements = {
-    designerFeedback: designerFeedback || null,
-    layoutPreference: toNullableTrimmedString(body.customerRequirements?.layoutPreference),
-    stylePreference: toNullableTrimmedString(body.customerRequirements?.stylePreference),
-    mustInclude: toUnknownArray(body.customerRequirements?.mustInclude),
-    mustAvoid: toUnknownArray(body.customerRequirements?.mustAvoid),
-    notes: toStringArray(body.customerRequirements?.notes),
-  };
-  const designZones = {
-    wallsAllowedForCabinets,
-    plumbingWallIds: toStringArray(body.designZones?.plumbingWallIds),
-    rangeWallIds: toStringArray(body.designZones?.rangeWallIds),
-    refrigeratorWallIds: toStringArray(body.designZones?.refrigeratorWallIds),
-    preferredSinkWallIds: toStringArray(body.designZones?.preferredSinkWallIds),
-  };
   const plannerInput = {
-    project: {
-      unit: "inches" as const,
-      designMode: "sales-home-measurement" as const,
-      goal:
-        "Create a realistic kitchen cabinet layout from measured walls and salesperson/customer requirements.",
-    },
-    meta: {
-      coordinateUnit: fullRoom.meta.coordinateUnit ?? "pixels",
-      measurementUnit: fullRoom.meta.measurementUnit ?? fullRoom.meta.unit ?? "inches",
-      gridSizePixelsPerFoot: getRoomGridSizePixelsPerFoot(fullRoom),
-      wallThicknessPixels: getRoomWallThicknessPixels(fullRoom),
-      source: fullRoom.meta.source,
-      generatedAt: fullRoom.meta.generatedAt,
-    },
-    customerRequirements,
-    walls: summarizedWalls,
+    selectedWallIds: selectedWallIds ?? fullRoom.walls
+      .filter((wall) => wall.kind !== "thin-wall")
+      .map((wall) => wall.id),
+    selectedWallLabels: summarizedWalls.map((wall) => wall.wallLabel),
     corners: summarizedCorners,
-    existingObjects: summarizedExistingObjects,
-    designZones,
+    walls: summarizedWalls,
     catalog: summarizedCatalog,
-    outputRules: {
-      coordinateSpace: "elevationPlan" as const,
-      requireExplicitPlacements: true,
-      allowEmptySelectedWalls: true,
-    },
+    catalogVersion: `${summarizedCatalog.length}-items`,
+    designerFeedback: designerFeedback || null,
   };
-
-  if (process.env.DEBUG_SMART_KITCHEN === "true") {
-    console.log("plannerInput", JSON.stringify(plannerInput, null, 2));
-  }
 
   const plannerInstructions = `
-You are an expert kitchen designer planning real-life cabinet layouts from room geometry, wall elevations, existing objects, and a cabinet/product catalog.
+You are an expert kitchen designer planning real-life cabinet layouts from measured room geometry, wall elevations, fixed objects, and a cabinet/product catalog.
 
 ## Goal
 
-Create a realistic, visually balanced kitchen layout using only the provided catalog items.
+Create a practical, sales-ready kitchen layout using only the provided catalog items.
 
-Design primarily for the customer-facing elevation view, while still respecting the floor-plan wall relationships, corners, openings, and selected placement walls.
-
-## Sales Measurement Workflow
-
-The room data may come from a salesperson measuring the customer's kitchen at home.
-
-Some placed objects may be locked, required, or suggested:
-
-- locked: must stay exactly where provided
-- required: must appear in the final design, but may be repositioned within allowed constraints
-- suggested: optional design hint; may be moved, replaced, or omitted
-
-When designerFeedback conflicts with geometry, catalog availability, openings, or locked objects, obey the physical constraints first.
-
-Prefer a practical sales-ready layout over a fully custom architectural design.
-Use common cabinet sizes from the catalog and avoid unusual gaps unless needed for clearance.
+Design for a realistic customer-facing kitchen, not a maximum cabinet-count layout. Use the floor plan, wall elevations, corner relationships, selected walls, fixed objects, and designer feedback to decide where cabinets should actually go.
 
 ## Input Meaning
 
-The user message contains:
-- project and unit metadata
-- measured room walls with floor-plan geometry in pixel/grid coordinates
-- wall elevation plans with locked fixed objects such as doors, windows, and locked cabinets/products
-- corner relationships between walls
-- existingObjects grouped as locked, required, and suggested
-- available cabinet and product catalog items
-- customer requirements and optional design zones
+The user message contains measured room walls, elevation plans, fixed elevation objects, corner relationships, available catalog items, optional designer feedback, and selected wall IDs.
 
-Use all walls to understand the room shape, but only place new objects on walls where needCabinetPlacement is true and where designZones.wallsAllowedForCabinets allows cabinet placement.
+Use all walls to understand the room shape, but only place new objects on walls where needCabinetPlacement is true.
+
+Treat each wall elevationPlan.fixedObjects array as fixed elevation-view objects. Do not move, replace, or overlap them.
 
 ## Hard Rules
 
 Return JSON only.
 
-Use the provided catalog IDs exactly.
+Use the provided cabinet catalog IDs exactly.
 
 Do not invent cabinet IDs, product IDs, dimensions, wall IDs, or wall labels.
 
-Do not move, replace, or overlap existingObjects.locked or wall.elevationPlan.fixedObjects.
-
-Every object in existingObjects.required must appear in the final design, but it may be repositioned if needed.
-
-Objects in existingObjects.suggested are optional hints and may be moved, replaced, or omitted.
+Do not move, replace, or overlap elevationPlan.fixedObjects.
 
 Do not block doors or windows.
 
@@ -1874,83 +1661,72 @@ Return explicit placements with leftInches and bottomInches.
 
 Do not return cabinet patterns.
 
+## Sales Measurement Workflow
+
+The room data may come from a salesperson measuring the customer's kitchen at home.
+
+Some placed objects may be locked, required, or suggested:
+
+- locked: must stay exactly where provided
+- required: must appear in the final design, but may be repositioned within allowed constraints
+- suggested: optional design hint; may be moved, replaced, or omitted
+
+When designer feedback conflicts with geometry, catalog availability, openings, or locked objects, obey the physical constraints first.
+
+Prefer a practical sales-ready layout over a fully custom architectural design. Use common cabinet sizes from the catalog and avoid unusual gaps unless needed for clearance.
+
 ## Design Rules
 
 Design like a real kitchen, not just a fill-the-wall algorithm.
 
-Prefer realistic kitchen zones:
-- sink and cleanup zone
-- range/cooktop and hood relationship
-- refrigerator or tall product framing where appropriate
-- balanced upper cabinets
-- practical negative space
-- visually centered or intentionally aligned runs
+Prefer realistic kitchen zones: sink and cleanup zone, range/cooktop and hood relationship, refrigerator or tall product framing where appropriate, balanced upper cabinets, practical negative space, and visually intentional alignment.
 
-Tall pantry or tall storage is optional. Use it only when it improves the layout.
+Use corner connections and wall order to understand L-shape, galley, single-wall, and return-wall relationships.
+
+Tall pantry or tall storage is optional, not required. Only use it when it improves the design.
 
 Wall cabinets and wall products may use different bottom heights when that improves the elevation composition.
 
-Avoid placing upper cabinets across windows unless the wall should intentionally remain visually open.
+Avoid placing upper cabinets across windows unless that wall should intentionally remain visually open.
 
-Use corner connections and wall order to understand L-shape, galley, and single-wall relationships.
+## Anti-Overfill Rules
+
+Do not fill every available wall with cabinets.
+
+A smart kitchen is not the same as maximum cabinet count.
+
+Prefer 1 or 2 primary cabinet runs for small and medium kitchens.
+
+Use a third wall only when it clearly improves the design.
+
+Leave intentional negative space for walking, seating, visual balance, and real-life usability.
+
+Avoid repeating many small cabinets across long walls.
+
+Prefer fewer, larger, realistic cabinets over many small repeated cabinets.
+
+Do not place cabinets on every wall unless the designer explicitly requests a full perimeter kitchen.
+
+A typical generated kitchen should usually contain 10 to 25 total cabinet/product placements, not dozens of repeated units.
+
+If the room has many available walls, choose the best walls for the work triangle and leave the rest empty or lightly used.
 
 ## Designer Feedback
 
-If customerRequirements.designerFeedback is provided, treat it as high-priority guidance.
-
-Follow the requirements unless they would:
-- create a collision
-- block a door or window
-- require an unavailable catalog item
-- place items on a wall that does not need cabinet placement
-- violate a locked object or a hard physical constraint
+If the user provided designer feedback, treat it as high-priority guidance unless it would cause collisions, block an opening, require an unavailable catalog item, or place items on a wall that does not need cabinet placement.
 
 ## Output Requirements
 
 Keep the JSON compact and complete.
 
-Use this output shape:
-
-{
-  "layoutType": "single-wall | galley | l-shape",
-  "wallOrder": ["wall-id-1", "wall-id-2"],
-  "notes": ["overall design note"],
-  "warnings": [
-    {
-      "type": "constraint-warning",
-      "message": "Requested refrigerator position was adjusted to avoid overlap."
-    }
-  ],
-  "walls": [
-    {
-      "wallId": "wall id",
-      "wallLabel": "Wall 2",
-      "needCabinetPlacement": true,
-      "placements": [
-        {
-          "catalogId": "catalog id",
-          "leftInches": 12,
-          "bottomInches": 0,
-          "topOption": null,
-          "notes": ["optional short placement note"]
-        }
-      ],
-      "notes": ["short wall-specific note"]
-    }
-  ]
-}
-
 Only include wall objects for walls where needCabinetPlacement is true.
 
 If a selected wall should stay empty, return that wall with placements: [].
 
-Use warnings only when you had to adjust a required or requested design decision because of a real constraint.
+Keep notes very short: at most 2 overall notes and at most 2 notes per wall.
 
-Keep notes very short:
-- at most 2 overall notes
-- at most 2 notes per wall
-- at most 1 short note per placement
-`.trim();
+Keep notes concise and practical.
+`;
 
   const aiPlannerRequestPayload = {
     model: plannerModel,
@@ -1980,7 +1756,40 @@ Keep notes very short:
             type: "input_text",
             text: JSON.stringify({
               task:
-                "Plan a smart kitchen using the measured room geometry, the grouped existing objects, and the available cabinet/product catalog.",
+                "Plan a smart kitchen using the room walls, elevationPlan.fixedObjects, and the available cabinet/product catalog.",
+              outputShape: {
+                layoutType: "single-wall | galley | l-shape",
+                wallOrder: ["wall-id-1", "wall-id-2"],
+                notes: ["overall design note"],
+                walls: [
+                  {
+                    wallId: "wall id",
+                    wallLabel: "Wall 2",
+                    needCabinetPlacement: true,
+                    placements: [
+                      {
+                        catalogId: "catalog id",
+                        leftInches: 12,
+                        bottomInches: 0,
+                        topOption:
+                          "null | sink | surface-cooktop | front-control-cooktop",
+                        notes: ["optional short placement note"],
+                      },
+                    ],
+                    notes: ["short wall-specific note"],
+                  },
+                ],
+              },
+              importantRules: [
+                "Only include wall objects for walls where needCabinetPlacement is true.",
+                "If a selected wall should stay empty, return that wall with placements: [].",
+                "For floor-standing cabinets/products, bottomInches should be 0.",
+                "For wall-mounted cabinets/products, choose bottomInches to make the elevation look good.",
+                "Do not overlap any elevationPlan.fixedObjects or new placements on the same wall.",
+                "Use the provided wallLabel values such as Wall 1 and Wall 2 to understand designer feedback.",
+                "Return wallId when possible. wallLabel is also accepted if needed.",
+                "Keep the response compact so the JSON finishes completely.",
+              ],
               plannerInput,
             }),
           },
@@ -2058,20 +1867,9 @@ Keep notes very short:
   }
 
   const plan = normalizeSmartKitchenPlan(fullRoom, rawPlan, plannerModel);
-  if (process.env.DEBUG_SMART_KITCHEN === "true") {
-    console.log("raw AI plan", plannerText);
-    console.log("normalized plan", JSON.stringify(plan, null, 2));
-  }
   const smartLayout = generateSmartKitchenLayout(fullRoom, plan, {
     selectedWallIds,
   });
-
-  if (process.env.DEBUG_SMART_KITCHEN === "true") {
-    console.log(
-      "smart layout summary",
-      JSON.stringify(smartLayout?.summary ?? smartLayout, null, 2)
-    );
-  }
 
   if (smartLayout.cabinets.length > 0) {
     return NextResponse.json({
