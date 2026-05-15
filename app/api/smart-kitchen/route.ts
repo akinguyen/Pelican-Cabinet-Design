@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 import {
   filterRoomForKitchenGeneration,
@@ -9,13 +11,13 @@ import type {
   AiPoint,
   AiRoomInput,
   SmartKitchenPlacement,
+  SmartKitchenPlacementWallFace,
   SmartKitchenPlan,
   SmartKitchenWallPlan,
 } from "@/lib/ai/types";
 
 type SmartKitchenRequestBody = {
   room?: AiRoomInput;
-  selectedWallIds?: string[];
   designerFeedback?: string;
   previewOnly?: boolean;
 };
@@ -31,6 +33,17 @@ type OpenAIResponsesOutputMessage = {
 type OpenAIResponsesPayload = {
   output?: OpenAIResponsesOutputMessage[];
 };
+
+const SMART_KITCHEN_PROMPT_PATH = path.join(
+  process.cwd(),
+  "prompts",
+  "prompt.txt"
+);
+const SMART_KITCHEN_OUTPUT_SHAPE_PATH = path.join(
+  process.cwd(),
+  "prompts",
+  "output-shape.txt"
+);
 
 function getResponseText(payload: OpenAIResponsesPayload) {
   for (const item of payload.output ?? []) {
@@ -106,6 +119,16 @@ function parsePlannerJson(value: string) {
   try {
     return JSON.parse(directValue);
   } catch {
+    const trimmed = directValue.trim();
+
+    if (/^"outputShape"\s*:/.test(trimmed)) {
+      try {
+        return JSON.parse(`{${trimmed}}`);
+      } catch {
+        // Fall through to balanced-snippet recovery below.
+      }
+    }
+
     const extracted = extractBalancedJsonSnippet(directValue);
     if (!extracted) throw new Error("No balanced JSON object found in planner output.");
     return JSON.parse(extracted);
@@ -124,6 +147,15 @@ function toBoolean(value: unknown) {
 
 function toNullableNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+async function readRequiredTextFile(filePath: string, label: string) {
+  try {
+    return await readFile(filePath, "utf8");
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "Unknown file read error.";
+    throw new Error(`Unable to read ${label} at ${filePath}. ${reason}`);
+  }
 }
 
 function add(a: AiPoint, b: AiPoint): AiPoint {
@@ -936,7 +968,8 @@ function getInteriorMeasurementGuideSideFromWallSystem(
     : chainSide;
 }
 
-type WallElevationViewMode = "interior" | "exterior" | "none";
+type WallElevationViewMode = "interior" | "exterior";
+type WallCabinetPlacementMode = "none" | "both" | "interior" | "exterior";
 
 type ElevationFixedObjectSummary = Record<string, unknown> & {
   id: string;
@@ -951,8 +984,19 @@ type WallWithElevationMetadata = AiRoomInput["walls"][number] & {
   elevationViewMode?: WallElevationViewMode;
   needCabinetPlacement?: boolean;
   needsPlacement?: boolean;
+  cabinetPlacementMode?: WallCabinetPlacementMode;
   elevationViewSideOverride?: "left" | "right";
   interiorSideOverride?: "left" | "right";
+  debugDots?: {
+    left?: {
+      start?: AiPoint;
+      end?: AiPoint;
+    };
+    right?: {
+      start?: AiPoint;
+      end?: AiPoint;
+    };
+  };
   elevationPlan?: {
     widthInches?: number;
     fixedObjects?: unknown;
@@ -982,6 +1026,15 @@ function getClientNeedCabinetPlacement(wall: AiRoomInput["walls"][number]) {
   }
 
   return true;
+}
+
+function getClientCabinetPlacementMode(
+  wall: AiRoomInput["walls"][number]
+): WallCabinetPlacementMode {
+  const mode = (wall as WallWithElevationMetadata).cabinetPlacementMode;
+  return mode === "none" || mode === "both" || mode === "exterior"
+    ? mode
+    : "interior";
 }
 
 function roundElevationPlanInches(value: number) {
@@ -1037,7 +1090,7 @@ function getClientElevationFixedObjects(wall: AiRoomInput["walls"][number]) {
 function getWallElevationViewMode(wall: AiRoomInput["walls"][number]): WallElevationViewMode {
   const mode = (wall as WallWithElevationMetadata).elevationViewMode;
 
-  return mode === "exterior" || mode === "none" ? mode : "interior";
+  return mode === "exterior" ? "exterior" : "interior";
 }
 
 function getInteriorMeasurementGuideSide(room: AiRoomInput, wall: AiRoomInput["walls"][number]) {
@@ -1073,6 +1126,42 @@ function getWallElevationGuideSide(room: AiRoomInput, wall: AiRoomInput["walls"]
   }
 
   return interiorSide;
+}
+
+function measurementSideToWallFaceSide(
+  wall: AiRoomInput["walls"][number],
+  side: "left" | "right"
+) {
+  const wallDirection = normalize(sub(wall.end, wall.start));
+  const axisDirection = getElevationWallAxis(wall).direction;
+
+  if (!vectorLength(wallDirection) || !vectorLength(axisDirection)) {
+    return side;
+  }
+
+  return dot(wallDirection, axisDirection) < 0
+    ? side === "left"
+      ? "right"
+      : "left"
+    : side;
+}
+
+function resolvePlacementWallFace(
+  room: AiRoomInput,
+  wall: AiRoomInput["walls"][number],
+  wallFace: SmartKitchenPlacementWallFace | null
+) {
+  if (!wallFace) return null;
+
+  const interiorGuideSide = getInteriorMeasurementGuideSide(room, wall);
+  const targetGuideSide =
+    wallFace === "exterior"
+      ? interiorGuideSide === "left"
+        ? "right"
+        : "left"
+      : interiorGuideSide;
+
+  return measurementSideToWallFaceSide(wall, targetGuideSide);
 }
 
 function getElevationWallSpanInches(
@@ -1119,6 +1208,119 @@ function getElevationWallSpanInches(
   };
 }
 
+function getWallCornerDots(room: AiRoomInput, wall: AiRoomInput["walls"][number]) {
+  const debugDots = (wall as WallWithElevationMetadata).debugDots;
+
+  if (
+    debugDots?.left?.start &&
+    debugDots.left.end &&
+    debugDots.right?.end &&
+    debugDots.right.start
+  ) {
+    return {
+      startLeft: debugDots.left.start,
+      endLeft: debugDots.left.end,
+      endRight: debugDots.right.end,
+      startRight: debugDots.right.start,
+    };
+  }
+
+  const axis = getElevationWallAxis(wall);
+  const halfThickness = room.meta.wallThickness / 2;
+  const leftOffset = mul(axis.normal, halfThickness);
+  const rightOffset = mul(axis.normal, -halfThickness);
+
+  return {
+    startLeft: add(wall.start, leftOffset),
+    endLeft: add(wall.end, leftOffset),
+    endRight: add(wall.end, rightOffset),
+    startRight: add(wall.start, rightOffset),
+  };
+}
+
+function summarizeWallFaceDots(
+  room: AiRoomInput,
+  wall: AiRoomInput["walls"][number]
+) {
+  const elevationViewMode = getWallElevationViewMode(wall);
+  const cornerDots = getWallCornerDots(room, wall);
+  const interiorPair = {
+    start: cornerDots.startLeft,
+    end: cornerDots.endLeft,
+  };
+  const exteriorPair = {
+    start: cornerDots.startRight,
+    end: cornerDots.endRight,
+  };
+
+  return {
+    elevationViewMode,
+    elevationViewSide: elevationViewMode,
+    dots: [
+      {
+        dotId: "left-start",
+        x: cornerDots.startLeft.x,
+        y: cornerDots.startLeft.y,
+      },
+      {
+        dotId: "left-end",
+        x: cornerDots.endLeft.x,
+        y: cornerDots.endLeft.y,
+      },
+      {
+        dotId: "right-end",
+        x: cornerDots.endRight.x,
+        y: cornerDots.endRight.y,
+      },
+      {
+        dotId: "right-start",
+        x: cornerDots.startRight.x,
+        y: cornerDots.startRight.y,
+      },
+    ],
+    wallShapeDotPairs: [
+      ["left-start", "left-end"],
+      ["left-end", "right-end"],
+      ["right-end", "right-start"],
+      ["right-start", "left-start"],
+    ],
+    interiorSide: {
+      dotPair: ["left-start", "left-end"],
+      start: {
+        x: interiorPair.start.x,
+        y: interiorPair.start.y,
+      },
+      end: {
+        x: interiorPair.end.x,
+        y: interiorPair.end.y,
+      },
+      lengthInches: roundElevationPlanInches(
+        pixelsToInches(
+          distanceBetweenPoints(interiorPair.start, interiorPair.end),
+          room.meta.gridSize
+        )
+      ),
+    },
+    exteriorSide: {
+      dotPair: ["right-start", "right-end"],
+      start: {
+        x: exteriorPair.start.x,
+        y: exteriorPair.start.y,
+      },
+      end: {
+        x: exteriorPair.end.x,
+        y: exteriorPair.end.y,
+      },
+      lengthInches: roundElevationPlanInches(
+        pixelsToInches(
+          distanceBetweenPoints(exteriorPair.start, exteriorPair.end),
+          room.meta.gridSize
+        )
+      ),
+    },
+  };
+}
+
 function getCenterOffsetInchesForWall(
   room: AiRoomInput,
   wall: AiRoomInput["walls"][number],
@@ -1162,69 +1364,6 @@ function getTopOption(cabinetItem: AiRoomInput["cabinets"][number]) {
   return null;
 }
 
-function summarizeCorners(room: AiRoomInput) {
-  const thickWalls = room.walls.filter((wall) => wall.kind !== "thin-wall");
-  const wallLabelLookup = getWallLabelLookup(room);
-  const corners: Array<{
-    cornerId: string;
-    point: AiPoint;
-    walls: Array<{
-      wallId: string;
-      wallLabel: string;
-      side: "start" | "end";
-    }>;
-  }> = [];
-
-  for (let index = 0; index < thickWalls.length; index += 1) {
-    for (let nextIndex = index + 1; nextIndex < thickWalls.length; nextIndex += 1) {
-      const first = thickWalls[index];
-      const second = thickWalls[nextIndex];
-      const matches: Array<{
-        point: AiPoint;
-        firstSide: "start" | "end";
-        secondSide: "start" | "end";
-      }> = [];
-
-      if (pointsMatch(first.start, second.start)) {
-        matches.push({ point: first.start, firstSide: "start", secondSide: "start" });
-      }
-      if (pointsMatch(first.start, second.end)) {
-        matches.push({ point: first.start, firstSide: "start", secondSide: "end" });
-      }
-      if (pointsMatch(first.end, second.start)) {
-        matches.push({ point: first.end, firstSide: "end", secondSide: "start" });
-      }
-      if (pointsMatch(first.end, second.end)) {
-        matches.push({ point: first.end, firstSide: "end", secondSide: "end" });
-      }
-
-      matches.forEach((match) => {
-        corners.push({
-          cornerId: `corner-${corners.length + 1}`,
-          point: {
-            x: Math.round(match.point.x * 10) / 10,
-            y: Math.round(match.point.y * 10) / 10,
-          },
-          walls: [
-            {
-              wallId: first.id,
-              wallLabel: wallLabelLookup.get(first.id) ?? first.id,
-              side: match.firstSide,
-            },
-            {
-              wallId: second.id,
-              wallLabel: wallLabelLookup.get(second.id) ?? second.id,
-              side: match.secondSide,
-            },
-          ],
-        });
-      });
-    }
-  }
-
-  return corners;
-}
-
 function normalizePlacement(value: unknown): SmartKitchenPlacement | null {
   if (!value || typeof value !== "object") return null;
 
@@ -1232,6 +1371,10 @@ function normalizePlacement(value: unknown): SmartKitchenPlacement | null {
   const catalogId = typeof candidate.catalogId === "string" ? candidate.catalogId : null;
   const leftInches = toNullableNumber(candidate.leftInches);
   const bottomInches = toNullableNumber(candidate.bottomInches);
+  const wallFace =
+    candidate.wallFace === "interior" || candidate.wallFace === "exterior"
+      ? candidate.wallFace
+      : null;
   const topOption =
     candidate.topOption === "sink" ||
     candidate.topOption === "surface-cooktop" ||
@@ -1245,6 +1388,14 @@ function normalizePlacement(value: unknown): SmartKitchenPlacement | null {
     catalogId,
     leftInches,
     bottomInches,
+    wallFace,
+    widthInches: toNullableNumber(candidate.widthInches),
+    depthInches: toNullableNumber(candidate.depthInches),
+    thicknessInches: toNullableNumber(candidate.thicknessInches),
+    heightInches: toNullableNumber(candidate.heightInches),
+    builtInFillerThicknessInches: toNullableNumber(
+      candidate.builtInFillerThicknessInches
+    ),
     topOption,
     notes: toStringArray(candidate.notes),
   };
@@ -1279,6 +1430,12 @@ function normalizeWallPlan(
     return null;
   }
 
+  const resolvedWall = room.walls.find(
+    (wall) => wall.id === wallId && wall.kind !== "thin-wall"
+  );
+
+  if (!resolvedWall) return null;
+
   const role =
     candidate.role === "primary" ||
     candidate.role === "secondary" ||
@@ -1287,13 +1444,27 @@ function normalizeWallPlan(
       ? candidate.role
       : "secondary";
 
+  const normalizedPlacements: SmartKitchenPlacement[] = [];
+
+  for (const rawPlacement of Array.isArray(candidate.placements) ? candidate.placements : []) {
+    const placement = normalizePlacement(rawPlacement);
+    if (!placement) continue;
+
+    normalizedPlacements.push({
+      ...placement,
+      resolvedWallFace: resolvePlacementWallFace(
+        room,
+        resolvedWall,
+        placement.wallFace ?? null
+      ),
+    });
+  }
+
   return {
     wallId,
     wallLabel: wallLabelLookup.get(wallId) ?? wallId,
     needsPlacement: toBoolean(candidate.needCabinetPlacement ?? candidate.needsPlacement),
-    placements: (Array.isArray(candidate.placements) ? candidate.placements : [])
-      .map((placement) => normalizePlacement(placement))
-      .filter((placement): placement is SmartKitchenPlacement => Boolean(placement)),
+    placements: normalizedPlacements,
     role,
     placeSink: toBoolean(candidate.placeSink),
     sinkCatalogId:
@@ -1359,7 +1530,9 @@ function normalizeSmartKitchenPlan(
   const layoutType =
     candidate.layoutType === "single-wall" ||
     candidate.layoutType === "galley" ||
-    candidate.layoutType === "l-shape"
+    candidate.layoutType === "l-shape" ||
+    candidate.layoutType === "u-shape" ||
+    candidate.layoutType === "connected-wall-return"
       ? candidate.layoutType
       : wallOrder.length <= 1
         ? "single-wall"
@@ -1376,10 +1549,8 @@ function normalizeSmartKitchenPlan(
   };
 }
 
-function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
+function summarizeWalls(room: AiRoomInput) {
   const wallLabelLookup = getWallLabelLookup(room);
-  const selectedWallSet = selectedWallIds?.length ? new Set(selectedWallIds) : null;
-  const corners = summarizeCorners(room);
 
   return room.walls
     .filter((wall) => wall.kind !== "thin-wall")
@@ -1390,18 +1561,16 @@ function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
       const lengthInches = wallSpan.lengthInches;
       const elevationWidthInches = getClientElevationWidthInches(wall) ?? lengthInches;
       const wallHeightInches = getWallHeightInches();
-      const matchingCorners = corners.filter((corner) =>
-        corner.walls.some((cornerWall) => cornerWall.wallId === wall.id)
-      );
+      const wallFaceDots = summarizeWallFaceDots(room, wall);
       const fallbackElevationFixedObjects: ElevationFixedObjectSummary[] = [
         ...room.windows
           .filter((windowItem) => windowItem.wallId === wall.id)
           .map((windowItem) => {
             const widthInches =
               Math.round((windowItem.width / room.meta.gridSize) * 12 * 10) / 10;
-            const centerOffsetInches = windowItem.t * lengthInches;
-            const leftInches = lengthInches / 2 + centerOffsetInches - widthInches / 2;
-            const rightInches = lengthInches - leftInches - widthInches;
+            const centerOffsetInches = windowItem.t * elevationWidthInches;
+            const leftInches = elevationWidthInches / 2 + centerOffsetInches - widthInches / 2;
+            const rightInches = elevationWidthInches - leftInches - widthInches;
 
             return {
               id: windowItem.id,
@@ -1419,9 +1588,9 @@ function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
           .map((doorItem) => {
             const widthInches =
               Math.round((doorItem.width / room.meta.gridSize) * 12 * 10) / 10;
-            const centerOffsetInches = doorItem.t * lengthInches;
-            const leftInches = lengthInches / 2 + centerOffsetInches - widthInches / 2;
-            const rightInches = lengthInches - leftInches - widthInches;
+            const centerOffsetInches = doorItem.t * elevationWidthInches;
+            const leftInches = elevationWidthInches / 2 + centerOffsetInches - widthInches / 2;
+            const rightInches = elevationWidthInches - leftInches - widthInches;
 
             return {
               id: doorItem.id,
@@ -1442,8 +1611,9 @@ function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
             const widthInches =
               Math.round(((cabinetItem.width / room.meta.gridSize) * 12) * 10) / 10;
             const category = cabinetItem.category ?? catalogItem?.category ?? "base";
+            const catalogItemWithHeight = catalogItem as (typeof catalogItem & { heightInches?: number });
             const heightInches =
-              cabinetItem.heightInches ?? catalogItem?.defaultHeightInches ?? null;
+              cabinetItem.heightInches ?? catalogItemWithHeight?.heightInches ?? null;
             const distanceFromFloorInches =
               category === "wall"
                 ? cabinetItem.distanceFromFloorInches ??
@@ -1458,16 +1628,25 @@ function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
               bottomInches: distanceFromFloorInches,
             });
 
+            const isAccessory = Boolean(
+              (cabinetItem as typeof cabinetItem & { accessoryKind?: string }).accessoryKind ||
+              (catalogItem as typeof catalogItem & { isAccessory?: boolean } | null)?.isAccessory
+            );
+            const isProduct = Boolean(cabinetItem.isProduct ?? catalogItem?.isProduct);
+
             return {
               id: cabinetItem.id,
-              type:
-                cabinetItem.isProduct ?? catalogItem?.isProduct ? "product" : "cabinet",
+              type: isAccessory ? "accessory" : isProduct ? "product" : "cabinet",
               coordinateSpace: "elevationPlan" as const,
               catalogId: cabinetItem.catalogId ?? null,
               title: catalogItem?.title ?? "Placed object",
               category,
               image: cabinetItem.image ?? catalogItem?.image ?? null,
               topOption: getTopOption(cabinetItem),
+              accessoryKind:
+                (cabinetItem as typeof cabinetItem & { accessoryKind?: string }).accessoryKind ??
+                (catalogItem as typeof catalogItem & { accessoryKind?: string } | null)?.accessoryKind ??
+                null,
               widthInches,
               depthInches:
                 Math.round(((cabinetItem.depth / room.meta.gridSize) * 12) * 10) / 10,
@@ -1484,70 +1663,71 @@ function summarizeWalls(room: AiRoomInput, selectedWallIds?: string[]) {
       return {
         wallId: wall.id,
         wallLabel: wallLabelLookup.get(wall.id) ?? wall.id,
-        needCabinetPlacement:
-          (selectedWallSet ? selectedWallSet.has(wall.id) : true) &&
-          getClientNeedCabinetPlacement(wall),
-        floorPlan: {
-          orientation: dx >= dy ? "horizontal" : "vertical",
-          start: {
-            x: Math.round(wall.start.x * 10) / 10,
-            y: Math.round(wall.start.y * 10) / 10,
-          },
-          end: {
-            x: Math.round(wall.end.x * 10) / 10,
-            y: Math.round(wall.end.y * 10) / 10,
-          },
-          lengthInches: Math.round(lengthInches * 10) / 10,
-          connectedCornerIds: matchingCorners.map((corner) => corner.cornerId),
-        },
-        elevationPlan: {
-          widthInches: Math.round(elevationWidthInches * 10) / 10,
-          heightInches: wallHeightInches,
-          coordinateSpace: "elevationPlan",
-          leftCornerId:
-            matchingCorners.find((corner) =>
-              corner.walls.some(
-                (cornerWall) => cornerWall.wallId === wall.id && cornerWall.side === "start"
-              )
-            )?.cornerId ?? null,
-          rightCornerId:
-            matchingCorners.find((corner) =>
-              corner.walls.some(
-                (cornerWall) => cornerWall.wallId === wall.id && cornerWall.side === "end"
-              )
-            )?.cornerId ?? null,
-          fixedObjects: elevationFixedObjects,
-        },
+        cabinetPlacementMode: getClientCabinetPlacementMode(wall),
+        wallDots: wallFaceDots.dots,
+        wallShapeDotPairs: wallFaceDots.wallShapeDotPairs,
+        interiorSide: wallFaceDots.interiorSide,
+        exteriorSide: wallFaceDots.exteriorSide,
+        fixedObjects: elevationFixedObjects,
       };
     });
 }
 
 function summarizeCatalog(room: AiRoomInput) {
-  return room.catalog.map((item) => ({
-    id: item.id,
-    category: item.category,
-    title: item.title,
-    image: item.image,
-    widthInches: item.widthInches,
-    heightInches: item.defaultHeightInches ?? null,
-    depthInches: item.depthInches,
-    bottomInches: item.defaultDistanceFromFloorInches ?? null,
-    isProduct: item.isProduct ?? false,
-    productCategory: item.productCategory ?? null,
-  }));
+  return room.catalog.map((item) => {
+    const catalogItem = item as typeof item & {
+      heightInches?: number;
+      isAccessory?: boolean;
+      accessoryKind?: string;
+      isProduct?: boolean;
+      standardWidthOptions?: number[];
+      standardHeightOptions?: number[];
+      standardDepthOptions?: number[];
+    };
+    const type = catalogItem.isAccessory
+      ? "accessory"
+      : catalogItem.isProduct
+        ? "product"
+        : "cabinet";
+    const isBlindCabinet =
+      type === "cabinet" &&
+      (item.id === "base-blind-left-cabinet" ||
+        item.id === "base-blind-right-cabinet" ||
+        item.id === "wall-blind-left-cabinet" ||
+        item.id === "wall-blind-right-cabinet");
+
+    return {
+      id: item.id,
+      category: item.category,
+      type,
+      title: item.title,
+      standardWidthOptions: type === "accessory"
+        ? []
+        : catalogItem.standardWidthOptions ?? [item.widthInches],
+      standardHeightOptions:
+        type === "accessory"
+          ? []
+          : catalogItem.standardHeightOptions ??
+            (typeof catalogItem.heightInches === "number"
+              ? [catalogItem.heightInches]
+              : []),
+      standardDepthOptions:
+        type === "accessory"
+          ? []
+          : catalogItem.standardDepthOptions ?? [item.depthInches],
+      builtInFillerThickness: isBlindCabinet ? 3 : null,
+    };
+  });
 }
 
 function buildFallbackSmartLayout(params: {
   room: AiRoomInput;
-  selectedWallIds?: string[];
   plannerModel: string;
   planNotes?: string[];
   designerFeedback?: string;
   plannerFailureReason: string;
 }) {
-  const fallbackLayout = generateKitchenLayout(params.room, {
-    selectedWallIds: params.selectedWallIds,
-  });
+  const fallbackLayout = generateKitchenLayout(params.room);
 
   return {
     ...fallbackLayout,
@@ -1593,9 +1773,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing room input." }, { status: 400 });
   }
 
-  const selectedWallIds = body.selectedWallIds?.length ? body.selectedWallIds : undefined;
   const fullRoom = body.room;
-  const roomForGeneration = filterRoomForKitchenGeneration(fullRoom, selectedWallIds);
+  const roomForGeneration = filterRoomForKitchenGeneration(fullRoom);
   const designerFeedback =
     typeof body.designerFeedback === "string" ? body.designerFeedback.trim() : "";
 
@@ -1607,47 +1786,30 @@ export async function POST(request: Request) {
   }
 
   const plannerModel = process.env.OPENAI_SMART_KITCHEN_MODEL ?? "gpt-5.5";
-  const summarizedWalls = summarizeWalls(fullRoom, selectedWallIds);
+  const summarizedWalls = summarizeWalls(fullRoom);
   const summarizedCatalog = summarizeCatalog(fullRoom);
-  const summarizedCorners = summarizeCorners(fullRoom);
   const plannerInput = {
-    selectedWallIds: selectedWallIds ?? fullRoom.walls
-      .filter((wall) => wall.kind !== "thin-wall")
-      .map((wall) => wall.id),
-    selectedWallLabels: summarizedWalls.map((wall) => wall.wallLabel),
-    corners: summarizedCorners,
     walls: summarizedWalls,
     catalog: summarizedCatalog,
     catalogVersion: `${summarizedCatalog.length}-items`,
     designerFeedback: designerFeedback || null,
   };
-
-  const plannerInstructions = [
-    "You are a kitchen designer planning a real-life kitchen layout.",
-    "Return JSON only.",
-    "Keep the JSON compact and complete.",
-    "Use the provided cabinet catalog IDs exactly when selecting cabinets.",
-    "The input walls describe the room in both floor plan and elevation plan. Use all walls to understand the room shape, but only place new objects on walls where needCabinetPlacement is true.",
-    "Treat each wall elevationPlan.fixedObjects array as fixed elevation-view objects. Do not move, replace, or overlap them.",
-    "Respect door and window openings. Do not block doors. Avoid placing uppers across windows unless that wall should stay visually open.",
-    "Design for both top view and especially the customer-facing elevation view.",
-    "Use the corner connections and wall order to understand which walls form corners.",
-    "Place cabinets and products creatively using the catalog, with realistic kitchen composition such as sink and cleanup zones, range-plus-hood relationships, refrigerator framing, balanced uppers, and intentional negative space.",
-    "Tall pantry or other tall storage is optional, not required. Only use it when it improves the design.",
-    "Wall cabinets and wall products may use different bottom heights when that improves the elevation composition.",
-    "If the user provided designer feedback, treat it as high-priority guidance unless it would cause collisions or block an opening.",
-    "Keep notes very short: at most 2 overall notes and at most 2 notes per wall.",
-    "Return explicit placements using leftInches and bottomInches. Do not return cabinet patterns.",
-    "Avoid inventing unavailable cabinet IDs.",
-    "Keep notes concise and practical.",
-  ].join(" ");
+  const plannerInputPayload = { plannerInput };
+  const plannerPrompt = await readRequiredTextFile(
+    SMART_KITCHEN_PROMPT_PATH,
+    "smart-kitchen prompt"
+  );
+  const outputShapeText = await readRequiredTextFile(
+    SMART_KITCHEN_OUTPUT_SHAPE_PATH,
+    "smart-kitchen output shape"
+  );
 
   const aiPlannerRequestPayload = {
     model: plannerModel,
     reasoning: {
       effort: "medium",
     },
-    max_output_tokens: 5000,
+    max_output_tokens: 20000,
     text: {
       format: {
         type: "json_object",
@@ -1659,7 +1821,7 @@ export async function POST(request: Request) {
         content: [
           {
             type: "input_text",
-            text: plannerInstructions,
+            text: plannerPrompt,
           },
         ],
       },
@@ -1668,44 +1830,21 @@ export async function POST(request: Request) {
         content: [
           {
             type: "input_text",
-            text: JSON.stringify({
-              task:
-                "Plan a smart kitchen using the room walls, elevationPlan.fixedObjects, and the available cabinet/product catalog.",
-              outputShape: {
-                layoutType: "single-wall | galley | l-shape",
-                wallOrder: ["wall-id-1", "wall-id-2"],
-                notes: ["overall design note"],
-                walls: [
-                  {
-                    wallId: "wall id",
-                    wallLabel: "Wall 2",
-                    needCabinetPlacement: true,
-                    placements: [
-                      {
-                        catalogId: "catalog id",
-                        leftInches: 12,
-                        bottomInches: 0,
-                        topOption:
-                          "null | sink | surface-cooktop | front-control-cooktop",
-                        notes: ["optional short placement note"],
-                      },
-                    ],
-                    notes: ["short wall-specific note"],
-                  },
-                ],
-              },
-              importantRules: [
-                "Only include wall objects for walls where needCabinetPlacement is true.",
-                "If a selected wall should stay empty, return that wall with placements: [].",
-                "For floor-standing cabinets/products, bottomInches should be 0.",
-                "For wall-mounted cabinets/products, choose bottomInches to make the elevation look good.",
-                "Do not overlap any elevationPlan.fixedObjects or new placements on the same wall.",
-                "Use the provided wallLabel values such as Wall 1 and Wall 2 to understand designer feedback.",
-                "Return wallId when possible. wallLabel is also accepted if needed.",
-                "Keep the response compact so the JSON finishes completely.",
-              ],
-              plannerInput,
-            }),
+            text: `Planner input JSON:\n${JSON.stringify(plannerInputPayload, null, 2)}`,
+          },
+        ],
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: [
+              "Required output shape reference:",
+              'Use the value of "outputShape" as the schema reference.',
+              'Return only the inner JSON object that matches that shape. Do not wrap your final answer in an outer "outputShape" key.',
+              outputShapeText,
+            ].join("\n\n"),
           },
         ],
       },
@@ -1715,7 +1854,8 @@ export async function POST(request: Request) {
   if (body.previewOnly) {
     return NextResponse.json({
       preview: aiPlannerRequestPayload,
-      plannerInput,
+      plannerInput: plannerInputPayload,
+      outputShape: outputShapeText,
     });
   }
 
@@ -1746,7 +1886,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       layout: buildFallbackSmartLayout({
         room: roomForGeneration,
-        selectedWallIds,
         plannerModel,
         designerFeedback,
         plannerFailureReason:
@@ -1770,20 +1909,30 @@ export async function POST(request: Request) {
     return NextResponse.json({
       layout: buildFallbackSmartLayout({
         room: roomForGeneration,
-        selectedWallIds,
         plannerModel,
         designerFeedback,
         plannerFailureReason: `The smart planner returned invalid JSON. ${plannerParseError}`,
       }),
+      aiOutput: plannerText,
       usedFallback: true,
       plannerError: `The smart planner returned invalid JSON. ${plannerParseError}`,
     });
   }
 
+  if (
+    rawPlan &&
+    typeof rawPlan === "object" &&
+    !Array.isArray(rawPlan) &&
+    "outputShape" in rawPlan
+  ) {
+    const wrappedPlan = rawPlan as { outputShape?: unknown };
+    if (wrappedPlan.outputShape) {
+      rawPlan = wrappedPlan.outputShape;
+    }
+  }
+
   const plan = normalizeSmartKitchenPlan(fullRoom, rawPlan, plannerModel);
-  const smartLayout = generateSmartKitchenLayout(fullRoom, plan, {
-    selectedWallIds,
-  });
+  const smartLayout = generateSmartKitchenLayout(fullRoom, plan);
 
   if (smartLayout.cabinets.length > 0) {
     return NextResponse.json({
@@ -1799,13 +1948,12 @@ export async function POST(request: Request) {
             },
           }
         : smartLayout,
+      aiOutput: rawPlan,
       plan,
     });
   }
 
-  const fallbackLayout = generateKitchenLayout(roomForGeneration, {
-    selectedWallIds,
-  });
+  const fallbackLayout = generateKitchenLayout(roomForGeneration);
 
   return NextResponse.json({
     layout: {
@@ -1824,6 +1972,7 @@ export async function POST(request: Request) {
         ],
       },
     },
+    aiOutput: rawPlan,
     plan,
     usedFallback: true,
   });

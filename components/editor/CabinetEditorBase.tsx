@@ -43,10 +43,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { exportRoomInput } from "@/lib/ai/roomExport";
-import {
-  filterRoomForKitchenGeneration,
-  generateKitchenLayout,
-} from "@/lib/ai/kitchenDesigner";
+import { generateKitchenLayout } from "@/lib/ai/kitchenDesigner";
 import type { AiRoomInput, GeneratedKitchenLayout } from "@/lib/ai/types";
 
 type Panel =
@@ -68,19 +65,31 @@ type Tool =
   | "place-cabinet"
   | null;
 
-type CabinetCategory = "base" | "tall" | "wall";
+type CabinetCategory = "base" | "pantry" | "wall";
 type ProductCategory = "base" | "wall";
+type ObjectSupportType = "floor-supported" | "elevated-supported";
+type OvenCabinetProductLayout =
+  | "none"
+  | "single-oven"
+  | "double-oven"
+  | "microwave-oven"
+  | "single-microwave";
 type MeasurementDisplayUnit = "feet-inches" | "inches";
 type CabinetImage =
   | "base"
   | "base-corner"
   | "base-one-door"
   | "base-drawer"
+  | "base-sink-cabinet"
+  | "base-farm-sink-cabinet"
+  | "base-spice-rack"
+  | "base-trash-can"
   | "base-appliance"
   | "base-dishwasher"
   | "base-refrigerator"
   | "base-range"
   | "base-blind-left"
+  | "base-blind-right"
   | "base-two-door-one-drawer"
   | "base-one-door-one-drawer"
   | "base-two-door-two-drawer"
@@ -89,14 +98,33 @@ type CabinetImage =
   | "base-blind-left-one-drawer"
   | "base-blind-right-one-drawer"
   | "base-oven-bottom-drawer"
-  | "tall"
-  | "wall"
+  | "base-microwave-bottom-drawer"
+  | "pantry-one-door"
+  | "pantry-two-door"
+  | "wall-two-doors"
+  | "wall-one-door"
+  | "wall-blind-left"
+  | "wall-blind-right"
   | "wall-hood"
   | "wall-microwave"
   | "wall-oven"
   | "wall-double-oven"
   | "wall-microwave-one-door"
-  | "wall-hood-one-door";
+  | "wall-hood-one-door"
+  | "accessory-base-filler"
+  | "accessory-wall-filler"
+  | "accessory-wall-filler-horizontal"
+  | "accessory-filler"
+  | "accessory-base-end-panel"
+  | "accessory-wall-end-panel";
+
+type CabinetDimensionSet = {
+  widthInches: number;
+  heightInches: number;
+  depthInches: number;
+};
+
+type AccessoryKind = "base-filler" | "wall-filler" | "filler" | "base-end-panel" | "wall-end-panel";
 
 type CabinetCatalogItem = {
   id: string;
@@ -104,16 +132,22 @@ type CabinetCatalogItem = {
   title: string;
   subtitle: string;
   widthInches: number;
+  heightInches: number;
   depthInches: number;
   image: CabinetImage;
+  standardWidthOptions?: number[];
+  standardHeightOptions?: number[];
+  standardDepthOptions?: number[];
+  isAccessory?: boolean;
+  accessoryKind?: AccessoryKind;
   isProduct?: boolean;
   productCategory?: ProductCategory;
-  defaultHeightInches?: number;
   defaultDistanceFromFloorInches?: number;
 };
 
 type PlanViewMode = "floor" | "elevation";
-type WallElevationViewMode = "interior" | "exterior" | "none";
+type WallElevationViewMode = "interior" | "exterior";
+type WallCabinetPlacementMode = "none" | "both" | "interior" | "exterior";
 
 type SidebarItem = {
   id: Panel;
@@ -135,6 +169,7 @@ type Wall = {
   kind?: WallKind;
   elevationViewMode?: WallElevationViewMode;
   needCabinetPlacement?: boolean;
+  cabinetPlacementMode?: WallCabinetPlacementMode;
   sourceThinLength?: number;
   sourceThinMode?: ThickWallCreationMode;
 };
@@ -177,6 +212,14 @@ type CabinetElement = {
   // tied to the same wall as the floor-plan placement, like doors/windows.
   wallId?: string;
   wallFace?: WallFaceSide;
+  lockMode?: "locked" | "required" | "suggested";
+  accessoryKind?: AccessoryKind;
+  blindDoorWidthInches?: number;
+  blindFillerWidthInches?: number;
+  ovenCabinetProductLayout?: OvenCabinetProductLayout;
+  ovenCabinetProductHeightInches?: number;
+  ovenCabinetFillerHeightInches?: number;
+  ovenCabinetBottomDrawerHeightInches?: number;
 };
 
 
@@ -204,11 +247,12 @@ type WallSelectionDetail = {
   id: string;
   kind: WallKind;
   elevationViewMode: WallElevationViewMode;
-  needCabinetPlacement: boolean;
+  cabinetPlacementMode: WallCabinetPlacementMode;
 };
 
 type CabinetSelectionDetail = {
   id: string;
+  catalogId?: string;
   widthInches: number;
   depthInches: number;
   heightInches: number;
@@ -221,6 +265,13 @@ type CabinetSelectionDetail = {
   sinkFixture?: boolean;
   cooktopFixture?: "surface" | "front";
   cooktopFrontHeightInches?: number;
+  accessoryKind?: AccessoryKind;
+  blindDoorWidthInches?: number;
+  blindFillerWidthInches?: number;
+  ovenCabinetProductLayout?: OvenCabinetProductLayout;
+  ovenCabinetProductHeightInches?: number;
+  ovenCabinetFillerHeightInches?: number;
+  ovenCabinetBottomDrawerHeightInches?: number;
 };
 
 
@@ -528,7 +579,7 @@ const sidebarItems: SidebarItem[] = [
   { id: "structures", label: "Structures", icon: DoorOpen },
   { id: "products", label: "Products", icon: Sofa },
   { id: "cabinets", label: "Cabinets", icon: Boxes },
-  { id: "objects", label: "Objects", icon: Square },
+  { id: "objects", label: "Accessories", icon: Square },
   { id: "text", label: "Text", icon: Type },
   { id: "lines", label: "Lines", icon: PencilLine },
 ];
@@ -542,6 +593,10 @@ const MOVE_STEP = 48;
 const WORKSPACE_WIDTH = 2400;
 const WORKSPACE_HEIGHT = 1600;
 const GRID_SIZE = 28;
+const FLOOR_SUPPORTED_PANTRY_MIN_HEIGHT_INCHES = 54;
+const CABINET_TOE_KICK_HEIGHT_INCHES = 4.5;
+const OVEN_CABINET_DEFAULT_FILLER_HEIGHT_INCHES = 3;
+const OVEN_CABINET_DEFAULT_BOTTOM_DRAWER_HEIGHT_INCHES = 11.6875;
 const SNAP_THRESHOLD = 9;
 const WALL_ATTACH_THRESHOLD = 22;
 const WALL_STROKE_WIDTH = 16;
@@ -554,13 +609,274 @@ const DEFAULT_WINDOW_WIDTH = (39.25 / 12) * GRID_SIZE;
 const DEFAULT_DOOR_WIDTH = (36 / 12) * GRID_SIZE;
 const DEFAULT_ELEVATION_WALL_HEIGHT_INCHES = 96;
 
+function getSupportTypeForCategory(
+  category: CabinetCategory,
+  _widthInches?: number,
+  heightInches?: number
+): ObjectSupportType {
+  if (category === "wall") return "elevated-supported";
+  if (category === "pantry") {
+    return (heightInches ?? 0) >= FLOOR_SUPPORTED_PANTRY_MIN_HEIGHT_INCHES
+      ? "floor-supported"
+      : "elevated-supported";
+  }
+  return "floor-supported";
+}
+
+
+function parseDimensionOptionList(value: string) {
+  return value
+    .trim()
+    .split(/\s*,\s*|\s+/)
+    .map((item) => Number(item))
+    .filter((item) => Number.isFinite(item));
+}
+
+const BASE_WIDE_WIDTH_OPTIONS = parseDimensionOptionList("24 27 30 33 36 39 42 45 48");
+const BASE_NARROW_WIDTH_OPTIONS = parseDimensionOptionList("9 12 15 18 21 24");
+const BASE_SINK_WIDTH_OPTIONS = parseDimensionOptionList("24 27 30 33 36 39 42");
+const BASE_FARM_SINK_WIDTH_OPTIONS = parseDimensionOptionList("30 33 36 39 42");
+const BASE_THREE_DRAWER_WIDTH_OPTIONS = parseDimensionOptionList("12 15 18 21 24 30 33 36");
+const BASE_TWO_DRAWER_WIDTH_OPTIONS = parseDimensionOptionList("15 18 21 24 30 33 36");
+const BASE_SPICE_RACK_WIDTH_OPTIONS = parseDimensionOptionList("6 9 12");
+const BASE_TRASH_CAN_WIDTH_OPTIONS = parseDimensionOptionList("12 15 18 21 24 29");
+const BASE_BLIND_WIDTH_OPTIONS = parseDimensionOptionList("36 42");
+const BASE_OVEN_WIDTH_OPTIONS = parseDimensionOptionList("30 33 36 39 42");
+const BASE_MICROWAVE_WIDTH_OPTIONS = parseDimensionOptionList("24 30");
+const BASE_ONE_DOOR_PANTRY_WIDTH_OPTIONS = parseDimensionOptionList("9 12 15 18 21 24");
+const BASE_TWO_DOOR_PANTRY_WIDTH_OPTIONS = parseDimensionOptionList("24 27 30 33 36 39 42 45 48");
+const BASE_STANDARD_HEIGHT_OPTIONS = parseDimensionOptionList("34.5");
+const BASE_STANDARD_DEPTH_OPTIONS = parseDimensionOptionList("24");
+const BASE_OVEN_HEIGHT_OPTIONS = parseDimensionOptionList("69");
+const BASE_OVEN_DEPTH_OPTIONS = parseDimensionOptionList("24 26");
+const BASE_MICROWAVE_HEIGHT_OPTIONS = parseDimensionOptionList("34.5");
+const BASE_MICROWAVE_DEPTH_OPTIONS = parseDimensionOptionList("24 26");
+const BASE_PANTRY_HEIGHT_OPTIONS = parseDimensionOptionList("54 57");
+const BASE_PANTRY_DEPTH_OPTIONS = parseDimensionOptionList("24 26");
+const WALL_ONE_DOOR_WIDTH_OPTIONS = parseDimensionOptionList("9 12 15 18 21 24");
+const WALL_TWO_DOOR_WIDTH_OPTIONS = parseDimensionOptionList("24 27 30 33 36 39 42 45 48");
+const WALL_STANDARD_HEIGHT_OPTIONS = parseDimensionOptionList("12 15 18 24 30 36 42");
+const WALL_PANTRY_HEIGHT_OPTIONS = parseDimensionOptionList("12 15 18 24 30 36 39 42 45");
+const WALL_STANDARD_DEPTH_OPTIONS = parseDimensionOptionList("12 14 15 16");
+const WALL_PANTRY_DEPTH_OPTIONS = parseDimensionOptionList("24 26");
+
+function isOvenLikeBottomDrawerCabinetImage(image?: CabinetImage) {
+  return image === "base-oven-bottom-drawer" || image === "base-microwave-bottom-drawer";
+}
+
+function isBlindCabinetImage(image?: CabinetImage) {
+  return Boolean(
+    image === "base-blind-left" ||
+      image === "base-blind-right" ||
+      image === "wall-blind-left" ||
+      image === "wall-blind-right" ||
+      image === "base-blind-left-one-drawer" ||
+      image === "base-blind-right-one-drawer"
+  );
+}
+
+function getBlindCabinetSide(image?: CabinetImage): "left" | "right" | null {
+  if (
+    image === "base-blind-left" ||
+    image === "wall-blind-left" ||
+    image === "base-blind-left-one-drawer"
+  ) {
+    return "left";
+  }
+  if (
+    image === "base-blind-right" ||
+    image === "wall-blind-right" ||
+    image === "base-blind-right-one-drawer"
+  ) {
+    return "right";
+  }
+  return null;
+}
+
+function isBuiltInSinkCabinetImage(image?: CabinetImage) {
+  return image === "base-sink-cabinet" || image === "base-farm-sink-cabinet";
+}
+
+function isFarmSinkCabinetImage(image?: CabinetImage) {
+  return image === "base-farm-sink-cabinet";
+}
+
+function isSpiceRackCabinetImage(image?: CabinetImage) {
+  return image === "base-spice-rack";
+}
+
+function isTrashCanCabinetImage(image?: CabinetImage) {
+  return image === "base-trash-can";
+}
+
+function canHaveBaseTopFixtureControls(image?: CabinetImage) {
+  return Boolean(
+    image &&
+      !isBuiltInSinkCabinetImage(image) &&
+      !isSpiceRackCabinetImage(image) &&
+      !isTrashCanCabinetImage(image) &&
+      image !== "pantry-one-door" &&
+      image !== "pantry-two-door" &&
+      !isOvenLikeBottomDrawerCabinetImage(image)
+  );
+}
+
+function getDefaultBlindCabinetDoorWidthInches(
+  widthInches: number,
+  category: CabinetCategory
+) {
+  if (category === "wall") {
+    return Math.max(0, widthInches - 12 - 3);
+  }
+  return widthInches <= 36 ? 12 : 18;
+}
+
+function getBlindCabinetWidthSegments(
+  cabinet: Pick<
+    CabinetElement,
+    "image" | "category" | "width" | "blindDoorWidthInches" | "blindFillerWidthInches"
+  >
+) {
+  const widthInches = Math.max(0, pixelsToInches(cabinet.width));
+  const category =
+    cabinet.category ??
+    (cabinet.image ? getCabinetCategoryForImage(cabinet.image) : "base");
+  const minimumBlindWidthInches = 3;
+  const fillerWidthInches = clamp(
+    cabinet.blindFillerWidthInches ?? 3,
+    0,
+    Math.max(0, widthInches - minimumBlindWidthInches)
+  );
+  const doorWidthInches = clamp(
+    cabinet.blindDoorWidthInches ??
+      getDefaultBlindCabinetDoorWidthInches(widthInches, category),
+    0,
+    Math.max(0, widthInches - fillerWidthInches - minimumBlindWidthInches)
+  );
+  const blindWidthInches = Math.max(
+    0,
+    widthInches - doorWidthInches - fillerWidthInches
+  );
+
+  return {
+    widthInches,
+    doorWidthInches,
+    fillerWidthInches,
+    blindWidthInches,
+    side: getBlindCabinetSide(cabinet.image),
+  };
+}
+
+function normalizeBlindCabinetSettings(cabinet: CabinetElement) {
+  if (!isBlindCabinetImage(cabinet.image)) return cabinet;
+
+  const { doorWidthInches, fillerWidthInches } =
+    getBlindCabinetWidthSegments(cabinet);
+
+  return {
+    ...cabinet,
+    blindDoorWidthInches: doorWidthInches,
+    blindFillerWidthInches: fillerWidthInches,
+  };
+}
+
+function getDefaultOvenCabinetProductHeightInches(totalHeightInches: number) {
+  const availableCabinetBodyHeightInches = Math.max(
+    0,
+    totalHeightInches - CABINET_TOE_KICK_HEIGHT_INCHES
+  );
+  return Math.max(
+    0,
+    availableCabinetBodyHeightInches -
+      OVEN_CABINET_DEFAULT_FILLER_HEIGHT_INCHES -
+      OVEN_CABINET_DEFAULT_BOTTOM_DRAWER_HEIGHT_INCHES
+  );
+}
+
+function getOvenCabinetHeightSegments(
+  cabinet: Pick<
+    CabinetElement,
+    | "heightInches"
+    | "ovenCabinetProductHeightInches"
+    | "ovenCabinetFillerHeightInches"
+    | "ovenCabinetBottomDrawerHeightInches"
+  >
+) {
+  const totalHeightInches = Math.max(
+    0,
+    (cabinet.heightInches ?? 36) - CABINET_TOE_KICK_HEIGHT_INCHES
+  );
+  const bottomDrawerHeightInches = clamp(
+    cabinet.ovenCabinetBottomDrawerHeightInches ??
+      OVEN_CABINET_DEFAULT_BOTTOM_DRAWER_HEIGHT_INCHES,
+    0,
+    totalHeightInches
+  );
+  const defaultProductHeightInches = getDefaultOvenCabinetProductHeightInches(
+    totalHeightInches
+  );
+  const productHeightInches = clamp(
+    cabinet.ovenCabinetProductHeightInches ?? defaultProductHeightInches,
+    0,
+    Math.max(0, totalHeightInches - bottomDrawerHeightInches)
+  );
+  const fillerFallbackHeightInches =
+    cabinet.ovenCabinetFillerHeightInches ??
+    Math.max(
+      0,
+      totalHeightInches - bottomDrawerHeightInches - productHeightInches
+    );
+  const fillerHeightInches = clamp(
+    fillerFallbackHeightInches,
+    0,
+    Math.max(0, totalHeightInches - bottomDrawerHeightInches - productHeightInches)
+  );
+
+  return {
+    totalHeightInches,
+    productHeightInches,
+    fillerHeightInches,
+    bottomDrawerHeightInches,
+  };
+}
+
+function normalizeOvenCabinetHeightSegments(cabinet: CabinetElement) {
+  if (!isOvenLikeBottomDrawerCabinetImage(cabinet.image)) return cabinet;
+
+  const {
+    productHeightInches,
+    fillerHeightInches,
+    bottomDrawerHeightInches,
+  } = getOvenCabinetHeightSegments(cabinet);
+
+  return {
+    ...cabinet,
+    ovenCabinetProductHeightInches: productHeightInches,
+    ovenCabinetFillerHeightInches: fillerHeightInches,
+    ovenCabinetBottomDrawerHeightInches: bottomDrawerHeightInches,
+  };
+}
+
+function normalizeSpecialCabinetState(cabinet: CabinetElement) {
+  return normalizeBlindCabinetSettings(normalizeOvenCabinetHeightSegments(cabinet));
+}
+
+function getDefaultBottomDrawerProductLayout(
+  image?: CabinetImage
+): OvenCabinetProductLayout | undefined {
+  if (image === "base-oven-bottom-drawer") return "single-oven";
+  if (image === "base-microwave-bottom-drawer") return "single-microwave";
+  return undefined;
+}
+
 const CABINET_CATALOG: CabinetCatalogItem[] = [
   {
     id: "base-corner-cabinet",
     category: "base",
-    title: "L-Shaped Corner Cabinet",
-    subtitle: '36" W x 36" D',
+    title: "L-Shaped Corner Base Cabinet",
+    subtitle: '36" W x 36" H x 36" D',
     widthInches: 36,
+    heightInches: 36,
     depthInches: 36,
     image: "base-corner",
   },
@@ -568,226 +884,488 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     id: "product-dishwasher",
     category: "base",
     title: "Dishwashing Machine",
-    subtitle: '24" W x 24" D',
+    subtitle: '24" W x 34" H x 24" D',
     widthInches: 24,
+    heightInches: 34,
     depthInches: 24,
     image: "base-dishwasher",
     isProduct: true,
     productCategory: "base",
-    defaultHeightInches: 34,
   },
   {
     id: "product-refrigerator",
     category: "base",
     title: "Refrigerator",
-    subtitle: '36" W x 30" D',
+    subtitle: '36" W x 84" H x 30" D',
     widthInches: 36,
+    heightInches: 84,
     depthInches: 30,
     image: "base-refrigerator",
     isProduct: true,
     productCategory: "base",
-    defaultHeightInches: 84,
   },
   {
     id: "product-range",
     category: "base",
     title: "Range",
-    subtitle: '30" W x 24" D',
+    subtitle: '30" W x 36" H x 24" D',
     widthInches: 30,
+    heightInches: 36,
     depthInches: 24,
     image: "base-range",
     isProduct: true,
     productCategory: "base",
-    defaultHeightInches: 36,
   },
   {
     id: "base-two-door-cabinet",
     category: "base",
-    title: "2 Door Cabinet",
-    subtitle: '36" W x 24" D',
-    widthInches: 36,
+    title: "2 Door Base Cabinet",
+    subtitle: '24" W x 34.5" H x 24" D',
+    widthInches: 24,
+    heightInches: 34.5,
     depthInches: 24,
     image: "base",
+    standardWidthOptions: BASE_WIDE_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
   },
   {
     id: "base-one-door-cabinet",
     category: "base",
-    title: "1 Door Cabinet",
-    subtitle: '18" W x 24" D',
-    widthInches: 18,
+    title: "1 Door Base Cabinet",
+    subtitle: '9" W x 34.5" H x 24" D',
+    widthInches: 9,
+    heightInches: 34.5,
     depthInches: 24,
     image: "base-one-door",
+    standardWidthOptions: BASE_NARROW_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
   },
   {
     id: "base-drawer-cabinet",
     category: "base",
-    title: "3 Drawers Cabinet",
-    subtitle: '30" W x 24" D',
-    widthInches: 30,
+    title: "3 Drawers Base Cabinet",
+    subtitle: '9" W x 34.5" H x 24" D',
+    widthInches: 9,
+    heightInches: 34.5,
     depthInches: 24,
     image: "base-drawer",
+    standardWidthOptions: BASE_THREE_DRAWER_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
+  },
+  {
+    id: "base-sink-cabinet",
+    category: "base",
+    title: "Sink Base Cabinet",
+    subtitle: '24" W x 34.5" H x 24" D',
+    widthInches: 24,
+    heightInches: 34.5,
+    depthInches: 24,
+    image: "base-sink-cabinet",
+    standardWidthOptions: BASE_SINK_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
+  },
+  {
+    id: "base-farm-sink-cabinet",
+    category: "base",
+    title: "Sink Farm Base Cabinet",
+    subtitle: '30" W x 34.5" H x 24" D',
+    widthInches: 30,
+    heightInches: 34.5,
+    depthInches: 24,
+    image: "base-farm-sink-cabinet",
+    standardWidthOptions: BASE_FARM_SINK_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
   },
   {
     id: "base-blind-left-cabinet",
     category: "base",
-    title: "1 Door 3 Tier Blind (Left) Cabinet",
-    subtitle: '48" W x 24" D',
-    widthInches: 48,
+    title: "1 Door Blind (Left) Base Cabinet",
+    subtitle: '36" W x 34.5" H x 24" D',
+    widthInches: 36,
+    heightInches: 34.5,
     depthInches: 24,
     image: "base-blind-left",
+    standardWidthOptions: BASE_BLIND_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
+  },
+  {
+    id: "base-blind-right-cabinet",
+    category: "base",
+    title: "1 Door Blind (Right) Base Cabinet",
+    subtitle: '36" W x 34.5" H x 24" D',
+    widthInches: 36,
+    heightInches: 34.5,
+    depthInches: 24,
+    image: "base-blind-right",
+    standardWidthOptions: BASE_BLIND_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
   },
   {
     id: "base-two-door-one-drawer-cabinet",
     category: "base",
-    title: "2 Door, 1 Drawer",
-    subtitle: '36" W x 24" D',
-    widthInches: 36,
+    title: "1 Top Drawer, 2 Doors Base Cabinet",
+    subtitle: '24" W x 34.5" H x 24" D',
+    widthInches: 24,
+    heightInches: 34.5,
     depthInches: 24,
     image: "base-two-door-one-drawer",
+    standardWidthOptions: BASE_WIDE_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
   },
   {
     id: "base-one-door-one-drawer-cabinet",
     category: "base",
-    title: "1 Door, 1 Drawer",
-    subtitle: '18" W x 24" D',
-    widthInches: 18,
+    title: "1 Top Drawer, 1 Door Base Cabinet",
+    subtitle: '9" W x 34.5" H x 24" D',
+    widthInches: 9,
+    heightInches: 34.5,
     depthInches: 24,
     image: "base-one-door-one-drawer",
+    standardWidthOptions: BASE_NARROW_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
   },
   {
     id: "base-two-door-two-drawer-cabinet",
     category: "base",
-    title: "2 Door, 2 Drawer",
-    subtitle: '36" W x 24" D',
-    widthInches: 36,
+    title: "2 Top Drawers, 2 Doors Base Cabinet",
+    subtitle: '24" W x 34.5" H x 24" D',
+    widthInches: 24,
+    heightInches: 34.5,
     depthInches: 24,
     image: "base-two-door-two-drawer",
+    standardWidthOptions: BASE_WIDE_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
   },
   {
     id: "base-two-drawer-cabinet",
     category: "base",
-    title: "2 Drawer",
-    subtitle: '18" W x 24" D',
-    widthInches: 18,
+    title: "2 Drawer Base Cabinet",
+    subtitle: '9" W x 34.5" H x 24" D',
+    widthInches: 9,
+    heightInches: 34.5,
     depthInches: 24,
     image: "base-two-drawer",
+    standardWidthOptions: BASE_TWO_DRAWER_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
   },
   {
-    id: "base-four-drawer-cabinet",
+    id: "base-spice-rack-cabinet",
     category: "base",
-    title: "4 Drawer",
-    subtitle: '18" W x 24" D',
-    widthInches: 18,
+    title: "Spice Rack Base Cabinet",
+    subtitle: '6" W x 34.5" H x 24" D',
+    widthInches: 6,
+    heightInches: 34.5,
     depthInches: 24,
-    image: "base-four-drawer",
+    image: "base-spice-rack",
+    standardWidthOptions: BASE_SPICE_RACK_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
   },
   {
-    id: "base-blind-left-one-drawer-cabinet",
+    id: "base-trash-can-cabinet",
     category: "base",
-    title: "1 Door 1 Drawer Blind (Left)",
-    subtitle: '48" W x 24" D',
-    widthInches: 48,
+    title: "Trash Can Base Cabinet",
+    subtitle: '12" W x 34.5" H x 24" D',
+    widthInches: 12,
+    heightInches: 34.5,
     depthInches: 24,
-    image: "base-blind-left-one-drawer",
-  },
-  {
-    id: "base-blind-right-one-drawer-cabinet",
-    category: "base",
-    title: "1 Door 1 Drawer Blind (Right)",
-    subtitle: '48" W x 24" D',
-    widthInches: 48,
-    depthInches: 24,
-    image: "base-blind-right-one-drawer",
+    image: "base-trash-can",
+    standardWidthOptions: BASE_TRASH_CAN_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
   },
   {
     id: "base-oven-bottom-drawer-cabinet",
     category: "base",
-    title: "Oven with 1 Bottom Drawer",
-    subtitle: '30" W x 24" D',
+    title: "Oven with 1 Bottom Drawer Base Cabinet",
+    subtitle: '30" W x 69" H x 26" D',
     widthInches: 30,
-    depthInches: 24,
+    heightInches: 69,
+    depthInches: 26,
     image: "base-oven-bottom-drawer",
+    standardWidthOptions: BASE_OVEN_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_OVEN_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_OVEN_DEPTH_OPTIONS,
   },
   {
-    id: "wall-cabinet",
+    id: "base-microwave-bottom-drawer-cabinet",
+    category: "base",
+    title: "Microwave with 1 Bottom Drawer Base Cabinet",
+    subtitle: '24" W x 34.5" H x 24" D',
+    widthInches: 24,
+    heightInches: 34.5,
+    depthInches: 24,
+    image: "base-microwave-bottom-drawer",
+    standardWidthOptions: BASE_MICROWAVE_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_MICROWAVE_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_MICROWAVE_DEPTH_OPTIONS,
+  },
+  {
+    id: "base-pantry-one-door-cabinet",
+    category: "base",
+    title: "1 Door Pantry Cabinet (Base)",
+    subtitle: '9" W x 54" H x 24" D',
+    widthInches: 9,
+    heightInches: 54,
+    depthInches: 24,
+    image: "pantry-one-door",
+    standardWidthOptions: BASE_ONE_DOOR_PANTRY_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_PANTRY_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_PANTRY_DEPTH_OPTIONS,
+  },
+  {
+    id: "base-pantry-two-door-cabinet",
+    category: "base",
+    title: "2 Door Pantry Cabinet (Base)",
+    subtitle: '24" W x 54" H x 24" D',
+    widthInches: 24,
+    heightInches: 54,
+    depthInches: 24,
+    image: "pantry-two-door",
+    standardWidthOptions: BASE_TWO_DOOR_PANTRY_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_PANTRY_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_PANTRY_DEPTH_OPTIONS,
+  },
+  {
+    id: "wall-two-door-cabinet",
     category: "wall",
     title: "2 Door Wall Cabinet",
-    subtitle: '24" W x 12" D',
+    subtitle: '24" W x 12" H x 12" D',
     widthInches: 24,
+    heightInches: 12,
     depthInches: 12,
-    image: "wall",
+    image: "wall-two-doors",
+    standardWidthOptions: WALL_TWO_DOOR_WIDTH_OPTIONS,
+    standardHeightOptions: WALL_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: WALL_STANDARD_DEPTH_OPTIONS,
+  },
+  {
+    id: "wall-one-door-cabinet",
+    category: "wall",
+    title: "1 Door Wall Cabinet",
+    subtitle: '9" W x 12" H x 12" D',
+    widthInches: 9,
+    heightInches: 12,
+    depthInches: 12,
+    image: "wall-one-door",
+    standardWidthOptions: WALL_ONE_DOOR_WIDTH_OPTIONS,
+    standardHeightOptions: WALL_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: WALL_STANDARD_DEPTH_OPTIONS,
+  },
+  {
+    id: "wall-blind-left-cabinet",
+    category: "wall",
+    title: "1 Door Blind (Left) Wall Cabinet",
+    subtitle: '36" W x 34.5" H x 24" D',
+    widthInches: 36,
+    heightInches: 34.5,
+    depthInches: 24,
+    image: "wall-blind-left",
+    standardWidthOptions: BASE_BLIND_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
+    defaultDistanceFromFloorInches: 54,
+  },
+  {
+    id: "wall-blind-right-cabinet",
+    category: "wall",
+    title: "1 Door Blind (Right) Wall Cabinet",
+    subtitle: '36" W x 34.5" H x 24" D',
+    widthInches: 36,
+    heightInches: 34.5,
+    depthInches: 24,
+    image: "wall-blind-right",
+    standardWidthOptions: BASE_BLIND_WIDTH_OPTIONS,
+    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
+    defaultDistanceFromFloorInches: 54,
+  },
+  {
+    id: "wall-pantry-one-door-cabinet",
+    category: "wall",
+    title: "1 Door Pantry Cabinet (Wall)",
+    subtitle: '9" W x 12" H x 24" D',
+    widthInches: 9,
+    heightInches: 12,
+    depthInches: 24,
+    image: "pantry-one-door",
+    standardWidthOptions: WALL_ONE_DOOR_WIDTH_OPTIONS,
+    standardHeightOptions: WALL_PANTRY_HEIGHT_OPTIONS,
+    standardDepthOptions: WALL_PANTRY_DEPTH_OPTIONS,
+    defaultDistanceFromFloorInches: 54,
+  },
+  {
+    id: "wall-pantry-two-door-cabinet",
+    category: "wall",
+    title: "2 Doors Pantry Cabinet (Wall)",
+    subtitle: '24" W x 12" H x 24" D',
+    widthInches: 24,
+    heightInches: 12,
+    depthInches: 24,
+    image: "pantry-two-door",
+    standardWidthOptions: WALL_TWO_DOOR_WIDTH_OPTIONS,
+    standardHeightOptions: WALL_PANTRY_HEIGHT_OPTIONS,
+    standardDepthOptions: WALL_PANTRY_DEPTH_OPTIONS,
+    defaultDistanceFromFloorInches: 54,
   },
   {
     id: "product-wall-hood",
     category: "wall",
     title: "Hood",
-    subtitle: '30" W x 12" D',
+    subtitle: '30" W x 24" H x 12" D',
     widthInches: 30,
+    heightInches: 24,
     depthInches: 12,
     image: "wall-hood",
     isProduct: true,
     productCategory: "wall",
-    defaultHeightInches: 24,
     defaultDistanceFromFloorInches: 60,
   },
   {
     id: "product-wall-microwave",
     category: "wall",
     title: "Microwave",
-    subtitle: '30" W x 15" D',
+    subtitle: '30" W x 18" H x 15" D',
     widthInches: 30,
+    heightInches: 18,
     depthInches: 15,
     image: "wall-microwave",
     isProduct: true,
     productCategory: "wall",
-    defaultHeightInches: 18,
     defaultDistanceFromFloorInches: 54,
   },
   {
     id: "product-wall-oven",
     category: "wall",
     title: "Single Oven",
-    subtitle: '30" W x 24" D',
+    subtitle: '30" W x 30" H x 24" D',
     widthInches: 30,
+    heightInches: 30,
     depthInches: 24,
     image: "wall-oven",
     isProduct: true,
     productCategory: "wall",
-    defaultHeightInches: 30,
     defaultDistanceFromFloorInches: 42,
   },
   {
     id: "product-wall-double-oven",
     category: "wall",
     title: "Double Oven",
-    subtitle: '30" W x 24" D',
+    subtitle: '30" W x 54" H x 24" D',
     widthInches: 30,
+    heightInches: 54,
     depthInches: 24,
     image: "wall-double-oven",
     isProduct: true,
     productCategory: "wall",
-    defaultHeightInches: 54,
     defaultDistanceFromFloorInches: 18,
   },
   {
-    id: "wall-microwave-one-door-cabinet",
-    category: "wall",
-    title: "Microwave with 1 Door Wall Cabinet",
-    subtitle: '24" W x 12" D',
-    widthInches: 24,
-    depthInches: 12,
-    image: "wall-microwave-one-door",
+    id: "accessory-base-filler",
+    category: "base",
+    title: "Base Filler",
+    subtitle: '4" T x 34.5" H x 24" W',
+    widthInches: 4,
+    heightInches: 34.5,
+    depthInches: 24,
+    image: "accessory-base-filler",
+    isAccessory: true,
+    accessoryKind: "base-filler",
   },
   {
-    id: "wall-hood-one-door-cabinet",
+    id: "accessory-wall-filler",
     category: "wall",
-    title: "Hood with 1 Door Wall Cabinet",
-    subtitle: '30" W x 12" D',
-    widthInches: 30,
+    title: "Wall Filler (Vertical)",
+    subtitle: '4" T x 30" H x 12" W',
+    widthInches: 4,
+    heightInches: 30,
     depthInches: 12,
-    image: "wall-hood-one-door",
+    image: "accessory-wall-filler",
+    isAccessory: true,
+    accessoryKind: "wall-filler",
+    defaultDistanceFromFloorInches: 54,
   },
-];
+  {
+    id: "accessory-wall-filler-horizontal",
+    category: "wall",
+    title: "Wall Filler (Horizontal)",
+    subtitle: '36" T x 3" H x 24" W',
+    widthInches: 36,
+    heightInches: 3,
+    depthInches: 24,
+    image: "accessory-wall-filler-horizontal",
+    isAccessory: true,
+    accessoryKind: "wall-filler",
+    defaultDistanceFromFloorInches: 54,
+  },
+  {
+    id: "accessory-base-end-panel",
+    category: "base",
+    title: "Base End Panel",
+    subtitle: '4" T x 34.5" H x 36" W',
+    widthInches: 4,
+    heightInches: 34.5,
+    depthInches: 36,
+    image: "accessory-base-end-panel",
+    isAccessory: true,
+    accessoryKind: "base-end-panel",
+  },
+  {
+    id: "accessory-wall-end-panel",
+    category: "wall",
+    title: "Wall End Panel",
+    subtitle: '4" T x 30" H x 12" W',
+    widthInches: 4,
+    heightInches: 30,
+    depthInches: 12,
+    image: "accessory-wall-end-panel",
+    isAccessory: true,
+    accessoryKind: "wall-end-panel",
+    defaultDistanceFromFloorInches: 54,
+  },
+ ];
+
+function buildSmartInputCatalog(): AiRoomInput["catalog"] {
+  return CABINET_CATALOG.map((catalogItem) => ({
+    ...catalogItem,
+    // Keep accessory metadata on the room payload because roomExport currently
+    // normalizes the catalog and can drop fields that the smart-input preview needs.
+    isAccessory: catalogItem.isAccessory ?? false,
+    accessoryKind: catalogItem.accessoryKind ?? undefined,
+    thicknessInches: catalogItem.isAccessory ? catalogItem.widthInches : undefined,
+    projectedWidthInches: catalogItem.isAccessory ? catalogItem.depthInches : undefined,
+    supportType: getSupportTypeForCategory(
+      catalogItem.category,
+      catalogItem.widthInches,
+      catalogItem.heightInches
+    ),
+    hasToeKick: cabinetHasToeKick({
+      category: catalogItem.category,
+      widthInches: catalogItem.widthInches,
+      heightInches: catalogItem.heightInches,
+      image: catalogItem.image,
+    }),
+  })) as AiRoomInput["catalog"];
+}
+
+function withSmartInputCatalog(room: AiRoomInput): AiRoomInput {
+  return {
+    ...room,
+    catalog: buildSmartInputCatalog(),
+  };
+}
+
 const ELEVATION_VIEWBOX_WIDTH = 1200;
 const ELEVATION_VIEWBOX_HEIGHT = 860;
 
@@ -802,13 +1380,146 @@ function downloadJsonFile(filename: string, payload: unknown) {
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = filename;
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
 }
 
 async function readJsonFile(file: File): Promise<AiRoomInput> {
   const text = await file.text();
   return JSON.parse(text) as AiRoomInput;
+}
+
+async function readUnknownJsonFile(file: File): Promise<unknown> {
+  const text = await file.text();
+  return JSON.parse(text) as unknown;
+}
+
+type ImportedKitchenPlacement = {
+  catalogId: string;
+  wallFace?: "interior" | "exterior" | null;
+  leftInches: number;
+  bottomInches?: number | null;
+  builtInFillerThicknessInches?: number | null;
+  widthInches?: number | null;
+  depthInches?: number | null;
+  thicknessInches?: number | null;
+  heightInches?: number | null;
+  topOption?: "sink" | "surface-cooktop" | "front-control-cooktop" | null;
+  notes?: string[];
+};
+
+type ImportedKitchenWallPlan = {
+  wallId?: string;
+  wallLabel?: string;
+  placements?: ImportedKitchenPlacement[];
+  notes?: string[];
+};
+
+type ImportedKitchenPlan = {
+  layoutType?: GeneratedKitchenLayout["summary"]["layoutType"];
+  wallOrder?: string[];
+  walls?: ImportedKitchenWallPlan[];
+  notes?: string[];
+};
+
+function toImportedKitchenNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function normalizeImportedKitchenPlacement(value: unknown): ImportedKitchenPlacement | null {
+  if (!value || typeof value !== "object") return null;
+
+  const candidate = value as Record<string, unknown>;
+  const catalogId = typeof candidate.catalogId === "string" ? candidate.catalogId : null;
+  const leftInches = toImportedKitchenNumber(candidate.leftInches);
+
+  if (!catalogId || leftInches === null) return null;
+
+  return {
+    catalogId,
+    wallFace:
+      candidate.wallFace === "interior" || candidate.wallFace === "exterior"
+        ? candidate.wallFace
+        : null,
+    leftInches,
+    bottomInches: toImportedKitchenNumber(candidate.bottomInches),
+    builtInFillerThicknessInches: toImportedKitchenNumber(
+      candidate.builtInFillerThicknessInches
+    ),
+    widthInches: toImportedKitchenNumber(candidate.widthInches),
+    depthInches: toImportedKitchenNumber(candidate.depthInches),
+    thicknessInches: toImportedKitchenNumber(candidate.thicknessInches),
+    heightInches: toImportedKitchenNumber(candidate.heightInches),
+    topOption:
+      candidate.topOption === "sink" ||
+      candidate.topOption === "surface-cooktop" ||
+      candidate.topOption === "front-control-cooktop"
+        ? candidate.topOption
+        : null,
+    notes: Array.isArray(candidate.notes)
+      ? candidate.notes.filter((item): item is string => typeof item === "string")
+      : [],
+  };
+}
+
+function normalizeImportedKitchenPlan(value: unknown): ImportedKitchenPlan | null {
+  if (!value || typeof value !== "object") return null;
+
+  const candidate = value as Record<string, unknown>;
+  const innerValue =
+    "outputShape" in candidate &&
+    candidate.outputShape &&
+    typeof candidate.outputShape === "object"
+      ? (candidate.outputShape as Record<string, unknown>)
+      : candidate;
+
+  return {
+    layoutType:
+      innerValue.layoutType === "single-wall" ||
+      innerValue.layoutType === "galley" ||
+      innerValue.layoutType === "l-shape" ||
+      innerValue.layoutType === "u-shape" ||
+      innerValue.layoutType === "connected-wall-return"
+        ? innerValue.layoutType
+        : undefined,
+    wallOrder: Array.isArray(innerValue.wallOrder)
+      ? innerValue.wallOrder.filter((item): item is string => typeof item === "string")
+      : [],
+    walls: Array.isArray(innerValue.walls)
+      ? innerValue.walls
+          .map((wall): ImportedKitchenWallPlan | null => {
+            if (!wall || typeof wall !== "object") return null;
+            const wallCandidate = wall as Record<string, unknown>;
+            return {
+              wallId:
+                typeof wallCandidate.wallId === "string" ? wallCandidate.wallId : undefined,
+              wallLabel:
+                typeof wallCandidate.wallLabel === "string"
+                  ? wallCandidate.wallLabel
+                  : undefined,
+              placements: Array.isArray(wallCandidate.placements)
+                ? wallCandidate.placements
+                    .map((placement) => normalizeImportedKitchenPlacement(placement))
+                    .filter(
+                      (placement): placement is ImportedKitchenPlacement => Boolean(placement)
+                    )
+                : [],
+              notes: Array.isArray(wallCandidate.notes)
+                ? wallCandidate.notes.filter((item): item is string => typeof item === "string")
+                : [],
+            };
+          })
+          .filter((wall): wall is ImportedKitchenWallPlan => Boolean(wall))
+      : [],
+    notes: Array.isArray(innerValue.notes)
+      ? innerValue.notes.filter((item): item is string => typeof item === "string")
+      : [],
+  };
 }
 
 
@@ -827,37 +1538,9 @@ function wallsMatchForAiSelection(editorWall: Wall, aiWall: AiRoomInput["walls"]
   );
 }
 
-function resolveSelectedAiWallIds(
-  aiWalls: AiRoomInput["walls"],
-  selectedEditorWalls: Wall[]
-) {
-  const resolvedIds: string[] = [];
-
-  selectedEditorWalls.forEach((selectedWall) => {
-    const exactIdMatch = aiWalls.find(
-      (aiWall) => aiWall.id === selectedWall.id && aiWall.kind !== "thin-wall"
-    );
-
-    if (exactIdMatch) {
-      resolvedIds.push(exactIdMatch.id);
-      return;
-    }
-
-    const geometryMatch = aiWalls.find(
-      (aiWall) => aiWall.kind !== "thin-wall" && wallsMatchForAiSelection(selectedWall, aiWall)
-    );
-
-    if (geometryMatch) {
-      resolvedIds.push(geometryMatch.id);
-    }
-  });
-
-  return Array.from(new Set(resolvedIds));
-}
-
 type SmartElevationFixedObject = {
   id: string;
-  type: "window" | "door" | "cabinet" | "product";
+  type: "window" | "door" | "cabinet" | "product" | "accessory";
   coordinateSpace: "elevationPlan";
   leftInches: number;
   rightInches: number;
@@ -870,6 +1553,8 @@ type SmartElevationFixedObject = {
   category?: CabinetCategory;
   image?: CabinetImage | null;
   topOption?: "sink" | "surface-cooktop" | "front-control-cooktop" | null;
+  lockMode?: "locked" | "required" | "suggested";
+  accessoryKind?: AccessoryKind;
 };
 
 type AiRoomWallWithEditorElevationData = AiRoomInput["walls"][number] & {
@@ -936,12 +1621,111 @@ function getEditorCabinetTopOption(cabinetItem: CabinetElement) {
   return null;
 }
 
+function getCabinetCatalogItemByIdentity(cabinetItem: { catalogId?: string; image?: CabinetImage }) {
+  if (cabinetItem.catalogId) {
+    const catalogMatch = CABINET_CATALOG.find((catalogItem) => catalogItem.id === cabinetItem.catalogId);
+    if (catalogMatch) return catalogMatch;
+
+    // Backward compatibility for drawings saved before the two-door wall cabinet ID was renamed.
+    if (cabinetItem.catalogId === "wall-cabinet") {
+      return CABINET_CATALOG.find((catalogItem) => catalogItem.id === "wall-two-door-cabinet") ?? null;
+    }
+
+    // Backward compatibility for drawings saved before filler was renamed to base filler.
+    if (cabinetItem.catalogId === "accessory-filler") {
+      return CABINET_CATALOG.find((catalogItem) => catalogItem.id === "accessory-base-filler") ?? null;
+    }
+  }
+
+  if (cabinetItem.image === "accessory-filler") {
+    return CABINET_CATALOG.find((catalogItem) => catalogItem.id === "accessory-base-filler") ?? null;
+  }
+
+  return cabinetItem.image
+    ? CABINET_CATALOG.find((catalogItem) => catalogItem.image === cabinetItem.image) ?? null
+    : null;
+}
+
 function getEditorCabinetCatalogItem(cabinetItem: CabinetElement) {
-  return cabinetItem.catalogId
-    ? CABINET_CATALOG.find((catalogItem) => catalogItem.id === cabinetItem.catalogId) ?? null
-    : cabinetItem.image
-      ? CABINET_CATALOG.find((catalogItem) => catalogItem.image === cabinetItem.image) ?? null
-      : null;
+  return getCabinetCatalogItemByIdentity(cabinetItem);
+}
+
+function formatDimensionOptionNumber(value: number) {
+  const rounded = Math.round(value * 100) / 100;
+  return Number.isInteger(rounded) ? `${rounded}` : `${rounded}`;
+}
+
+function getCatalogDimensionOptions(catalogItem: CabinetCatalogItem | null | undefined) {
+  if (!catalogItem) {
+    return {
+      widths: [] as number[],
+      heights: [] as number[],
+      depths: [] as number[],
+    };
+  }
+
+  const uniqueSorted = (values: number[]) =>
+    Array.from(new Set(values.map((value) => roundToQuarter(value)))).sort(
+      (left, right) => left - right
+    );
+
+  return {
+    widths: uniqueSorted(
+      catalogItem.standardWidthOptions?.length
+        ? catalogItem.standardWidthOptions
+        : [catalogItem.widthInches]
+    ),
+    heights: uniqueSorted(
+      catalogItem.standardHeightOptions?.length
+        ? catalogItem.standardHeightOptions
+        : [catalogItem.heightInches]
+    ),
+    depths: uniqueSorted(
+      catalogItem.standardDepthOptions?.length
+        ? catalogItem.standardDepthOptions
+        : [catalogItem.depthInches]
+    ),
+  };
+}
+
+function exportAiRoomInputFromEditor(params: {
+  walls: Wall[];
+  windows: WindowElement[];
+  doors: DoorElement[];
+  cabinets: CabinetElement[];
+}) {
+  return exportRoomInput({
+    walls: attachWallDebugDotsForExport(params.walls) as never,
+    windows: params.windows as never,
+    doors: params.doors as never,
+    cabinets: params.cabinets as never,
+    catalog: CABINET_CATALOG as never,
+    gridSize: GRID_SIZE,
+    wallThickness: WALL_THICKNESS,
+  });
+}
+
+function matchesDimensionOption(options: number[], value: number) {
+  return options.some((option) => Math.abs(option - value) < 0.01);
+}
+
+function getDefaultDimensionFromOptions(
+  catalogItem: CabinetCatalogItem | null | undefined,
+  axis: "width" | "height" | "depth"
+) {
+  if (!catalogItem) return 0;
+  const options = getCatalogDimensionOptions(catalogItem);
+  const axisOptions =
+    axis === "width" ? options.widths : axis === "height" ? options.heights : options.depths;
+  const currentValue =
+    axis === "width"
+      ? catalogItem.widthInches
+      : axis === "height"
+        ? catalogItem.heightInches
+        : catalogItem.depthInches;
+
+  if (matchesDimensionOption(axisOptions, currentValue)) return currentValue;
+  return axisOptions[0] ?? currentValue;
 }
 
 function getEditorElevationFixedObjectsForWall(
@@ -1014,6 +1798,9 @@ function getEditorElevationFixedObjectsForWall(
         cabinetItem.category ??
         catalogItem?.category ??
         "base";
+      const isAccessory = Boolean(
+        catalogItem?.isAccessory || isAccessoryCabinetImage(cabinetItem.image)
+      );
       const isProduct = Boolean(
         catalogItem?.isProduct || isProductCabinetImage(cabinetItem.image)
       );
@@ -1026,13 +1813,14 @@ function getEditorElevationFixedObjectsForWall(
 
       return {
         id: cabinetItem.id,
-        type: isProduct ? "product" : "cabinet",
+        type: isAccessory ? "accessory" : isProduct ? "product" : "cabinet",
         coordinateSpace: "elevationPlan",
         catalogId: cabinetItem.catalogId ?? null,
         title: catalogItem?.title ?? "Placed object",
         category,
         image: cabinetItem.image ?? catalogItem?.image ?? null,
         topOption: getEditorCabinetTopOption(cabinetItem),
+        accessoryKind: cabinetItem.accessoryKind ?? catalogItem?.accessoryKind,
         leftInches: roundSmartObjectInches(metrics.distanceFromLeftInches),
         rightInches: roundSmartObjectInches(metrics.distanceFromRightInches),
         bottomInches: roundSmartObjectInches(bottomInches),
@@ -1040,9 +1828,10 @@ function getEditorElevationFixedObjectsForWall(
         depthInches: roundSmartObjectInches(pixelsToInches(cabinetItem.depth)),
         heightInches: roundSmartObjectInches(
           cabinetItem.heightInches ??
-            catalogItem?.defaultHeightInches ??
+            catalogItem?.heightInches ??
             (category === "wall" ? 30 : 36)
         ),
+        lockMode: cabinetItem.lockMode ?? "locked",
       };
     })
     .filter((fixedObject): fixedObject is SmartElevationFixedObject => Boolean(fixedObject));
@@ -1137,10 +1926,12 @@ export default function CabinetEditorBase({
   const [generatedLayout, setGeneratedLayout] = useState<GeneratedKitchenLayout | null>(null);
   const [isDesignerSummaryCollapsed, setIsDesignerSummaryCollapsed] = useState(false);
   const [isGeneratingSmartKitchen, setIsGeneratingSmartKitchen] = useState(false);
+  const [lastSmartKitchenAiOutput, setLastSmartKitchenAiOutput] = useState<unknown | null>(null);
   const [smartKitchenFeedback, setSmartKitchenFeedback] = useState("");
   const [isSmartKitchenFeedbackCollapsed, setIsSmartKitchenFeedbackCollapsed] = useState(false);
   const [loadedRoom, setLoadedRoom] = useState<AiRoomInput | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const importKitchenInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedCabinetCatalogItem = useMemo(
     () => CABINET_CATALOG.find((item) => item.id === selectedCabinetCatalogId) ?? CABINET_CATALOG[0],
@@ -1167,6 +1958,35 @@ export default function CabinetEditorBase({
       window.removeEventListener(
         "pelican-wall-selection-change",
         handleWallSelectionChange
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleWallCabinetPlacementModeChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        id: string;
+        value: WallCabinetPlacementMode;
+      }>;
+      const { id, value } = customEvent.detail ?? {};
+      if (!id || !value) return;
+
+      setSelectedWallDetail((current) =>
+        current && current.id === id
+          ? { ...current, cabinetPlacementMode: value }
+          : current
+      );
+    };
+
+    window.addEventListener(
+      "pelican-wall-cabinet-placement-mode-change",
+      handleWallCabinetPlacementModeChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pelican-wall-cabinet-placement-mode-change",
+        handleWallCabinetPlacementModeChange
       );
     };
   }, []);
@@ -1221,7 +2041,7 @@ export default function CabinetEditorBase({
       const detail = customEvent.detail ?? null;
       setSelectedCabinetDetail(detail);
       if (detail) {
-        setActivePanel(detail.image && isProductCabinetImage(detail.image) ? "products" : "cabinets");
+        setActivePanel(detail.image && isAccessoryCabinetImage(detail.image) ? "objects" : detail.image && isProductCabinetImage(detail.image) ? "products" : "cabinets");
       }
     };
 
@@ -1313,6 +2133,10 @@ export default function CabinetEditorBase({
     importInputRef.current?.click();
   };
 
+  const handleImportKitchenClick = () => {
+    importKitchenInputRef.current?.click();
+  };
+
   const handleImportedRoom = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -1327,6 +2151,21 @@ export default function CabinetEditorBase({
     }
   };
 
+  const handleImportedKitchen = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    window.dispatchEvent(
+      new CustomEvent("pelican-ai-import-kitchen-output-request", {
+        detail: { file },
+      })
+    );
+
+    event.target.value = "";
+  };
+
   return (
     <MeasurementDisplayUnitContext.Provider value={measurementDisplayUnit}>
       <main className="flex h-screen w-screen flex-col overflow-hidden bg-white text-pelican-navy">
@@ -1339,14 +2178,10 @@ export default function CabinetEditorBase({
               : undefined
         }
         onImportRoom={isAiViewer ? handleImportRoomClick : undefined}
+        onImportKitchen={isAiPrototype ? handleImportKitchenClick : undefined}
         onExportRoom={
           isAiPrototype
             ? () => window.dispatchEvent(new Event("pelican-ai-export-room-request"))
-            : undefined
-        }
-        onStartWallSelection={
-          isAiPrototype
-            ? () => window.dispatchEvent(new Event("pelican-ai-start-wall-selection"))
             : undefined
         }
         onDownloadSmartKitchenInput={
@@ -1357,6 +2192,18 @@ export default function CabinetEditorBase({
                 )
             : undefined
         }
+        onDownloadLastSmartKitchenOutput={
+          isAiPrototype
+            ? () => {
+                if (!lastSmartKitchenAiOutput) return;
+                downloadJsonFile(
+                  "pelican-smart-kitchen-ai-output.json",
+                  lastSmartKitchenAiOutput
+                );
+              }
+            : undefined
+        }
+        hasLastSmartKitchenOutput={Boolean(lastSmartKitchenAiOutput)}
         onGenerateKitchen={
           isAiPrototype
             ? () => window.dispatchEvent(new Event("pelican-ai-generate-kitchen-request"))
@@ -1379,6 +2226,15 @@ export default function CabinetEditorBase({
           accept="application/json,.json"
           className="hidden"
           onChange={handleImportedRoom}
+        />
+      )}
+      {isAiPrototype && (
+        <input
+          ref={importKitchenInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={handleImportedKitchen}
         />
       )}
 
@@ -1429,7 +2285,7 @@ export default function CabinetEditorBase({
                   <p className="mt-1 text-xs leading-5 text-slate-600">
                     Use wall labels like{" "}
                     {generatedLayout.elevations.map((item) => item.label).join(", ")}.
-                    The next Generate smart kitchen run will read this feedback together with the selected walls, catalog, and pre-placed objects.
+                    The next Generate smart kitchen run will read this feedback together with the available walls, catalog, and pre-placed objects.
                   </p>
                 </div>
                 {smartKitchenFeedback.trim() ? (
@@ -1445,7 +2301,7 @@ export default function CabinetEditorBase({
               <textarea
                 value={smartKitchenFeedback}
                 onChange={(event) => setSmartKitchenFeedback(event.target.value)}
-                placeholder='Example: "Wall 1 should feel more symmetrical in elevation, Wall 2 can stay lighter, and avoid a tall pantry unless it really helps."'
+                placeholder='Example: "Wall 1 should feel more symmetrical in elevation, Wall 2 can stay lighter, and avoid a pantry cabinet unless it really helps."'
                 className="mt-3 min-h-[110px] w-full resize-y rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none ring-0 placeholder:text-slate-400 focus:border-pelican-teal"
               />
             </div>
@@ -1513,6 +2369,7 @@ export default function CabinetEditorBase({
             showElevationMeasurements={showElevationMeasurements}
             enableAiPrototype={isAiPrototype}
             smartKitchenFeedback={smartKitchenFeedback}
+            onSmartKitchenOutput={setLastSmartKitchenAiOutput}
             loadedRoom={isAiViewer ? loadedRoom : null}
           />
         </section>
@@ -1537,6 +2394,7 @@ export default function CabinetEditorBase({
               }
             }}
             onSelectCabinetCatalog={(catalogId) => setSelectedCabinetCatalogId(catalogId)}
+            onRequestPanel={setActivePanel}
           />
           <MainToolbar
             active={activePanel}
@@ -1551,7 +2409,7 @@ export default function CabinetEditorBase({
                 window.dispatchEvent(new Event("pelican-deselect-window"));
                 window.dispatchEvent(new Event("pelican-deselect-door"));
               }
-              if (panel !== "cabinets" && panel !== "products") {
+              if (panel !== "cabinets" && panel !== "products" && panel !== "objects") {
                 setSelectedCabinetDetail(null);
                 window.dispatchEvent(new Event("pelican-deselect-cabinet"));
               }
@@ -1567,18 +2425,22 @@ export default function CabinetEditorBase({
 function TopBar({
   title,
   onImportRoom,
+  onImportKitchen,
   onExportRoom,
-  onStartWallSelection,
   onDownloadSmartKitchenInput,
+  onDownloadLastSmartKitchenOutput,
+  hasLastSmartKitchenOutput = false,
   onGenerateKitchen,
   onGenerateSmartKitchen,
   isGeneratingSmartKitchen = false,
 }: {
   title?: string;
   onImportRoom?: () => void;
+  onImportKitchen?: () => void;
   onExportRoom?: () => void;
-  onStartWallSelection?: () => void;
   onDownloadSmartKitchenInput?: () => void;
+  onDownloadLastSmartKitchenOutput?: () => void;
+  hasLastSmartKitchenOutput?: boolean;
   onGenerateKitchen?: () => void;
   onGenerateSmartKitchen?: () => void;
   isGeneratingSmartKitchen?: boolean;
@@ -1608,21 +2470,25 @@ function TopBar({
         {onImportRoom ? (
           <TopAction icon={Download} label="Import room JSON" onClick={onImportRoom} />
         ) : null}
+        {onImportKitchen ? (
+          <TopAction icon={Download} label="Import kitchen" onClick={onImportKitchen} />
+        ) : null}
         {onExportRoom ? (
           <TopAction icon={Download} label="Export room JSON" onClick={onExportRoom} />
-        ) : null}
-        {onStartWallSelection ? (
-          <TopAction
-            icon={Scan}
-            label="Select kitchen walls"
-            onClick={onStartWallSelection}
-          />
         ) : null}
         {onDownloadSmartKitchenInput ? (
           <TopAction
             icon={Download}
             label="Download smart input"
             onClick={onDownloadSmartKitchenInput}
+          />
+        ) : null}
+        {onDownloadLastSmartKitchenOutput ? (
+          <TopAction
+            icon={Download}
+            label="Download last AI output"
+            onClick={onDownloadLastSmartKitchenOutput}
+            disabled={!hasLastSmartKitchenOutput}
           />
         ) : null}
         {onGenerateKitchen ? (
@@ -1945,6 +2811,7 @@ function CanvasArea({
   showElevationMeasurements,
   enableAiPrototype,
   smartKitchenFeedback,
+  onSmartKitchenOutput,
   loadedRoom = null,
 }: {
   activeTool: Tool;
@@ -1963,6 +2830,7 @@ function CanvasArea({
   showElevationMeasurements: boolean;
   enableAiPrototype: boolean;
   smartKitchenFeedback: string;
+  onSmartKitchenOutput?: (payload: unknown | null) => void;
   loadedRoom?: AiRoomInput | null;
 }) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -1991,6 +2859,47 @@ function CanvasArea({
   const [selectedCabinetId, setSelectedCabinetId] = useState<string | null>(null);
   const selectedCabinetIdRef = useRef<string | null>(null);
   const smartKitchenFeedbackRef = useRef(smartKitchenFeedback);
+  const resolveImportedPlacementWallFace = useCallback(
+    (
+      wall: Wall,
+      importedWallFace: ImportedKitchenPlacement["wallFace"]
+    ): WallFaceSide => {
+      const thickWalls = wallsRef.current.filter(isThickWall);
+      const interiorSide = getInteriorMeasurementGuideSide(wall, thickWalls);
+      const measurementSide =
+        importedWallFace === "exterior"
+          ? interiorSide === "left"
+            ? "right"
+            : "left"
+          : interiorSide;
+
+      return measurementSideToWallFaceSide(wall, measurementSide);
+    },
+    []
+  );
+  const getImportedWallFaceSpanPixels = useCallback(
+    (wall: Wall, wallFace: WallFaceSide) => {
+      const thickWalls = wallsRef.current.filter(isThickWall);
+      const axis = getElevationWallAxis(wall);
+      const geometry = getWallSegmentBlackDotGeometry(
+        wall.start,
+        wall.end,
+        thickWalls
+      );
+      const faceStartAnchor =
+        wallFace === "left" ? geometry.startLeft : geometry.startRight;
+      const faceEndAnchor =
+        wallFace === "left" ? geometry.endLeft : geometry.endRight;
+      const faceStartScalar = dot(sub(faceStartAnchor, axis.start), axis.direction);
+      const faceEndScalar = dot(sub(faceEndAnchor, axis.start), axis.direction);
+
+      return {
+        axis,
+        faceStartScalar: Math.min(faceStartScalar, faceEndScalar),
+      };
+    },
+    []
+  );
   const [cabinetPreview, setCabinetPreview] = useState<CabinetPlacementPreview | null>(null);
   const cabinetPreviewRef = useRef<CabinetPlacementPreview | null>(null);
   const cabinetDragRef = useRef<CabinetDragState | null>(null);
@@ -2017,7 +2926,6 @@ function CanvasArea({
   const [editingMeasurement, setEditingMeasurement] =
     useState<MeasurementEditState | null>(null);
   const [isSelectingArea, setIsSelectingArea] = useState(false);
-  const [isKitchenWallSelectionMode, setIsKitchenWallSelectionMode] = useState(false);
   const [selectionStart, setSelectionStart] = useState<Point | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<Point | null>(null);
   const [groupSelectedWallIds, setGroupSelectedWallIds] = useState<string[]>([]);
@@ -2077,15 +2985,14 @@ function CanvasArea({
     if (!enableAiPrototype) return undefined;
 
     const handleExportRoomRequest = () => {
-      const room = exportRoomInput({
-        walls: wallsRef.current as never,
-        windows: windowsRef.current as never,
-        doors: doorsRef.current as never,
-        cabinets: cabinetsRef.current as never,
-        catalog: CABINET_CATALOG as never,
-        gridSize: GRID_SIZE,
-        wallThickness: WALL_THICKNESS,
-      });
+      const room = withSmartInputCatalog(
+        exportAiRoomInputFromEditor({
+          walls: wallsRef.current,
+          windows: windowsRef.current,
+          doors: doorsRef.current,
+          cabinets: cabinetsRef.current,
+        })
+      );
 
       if (room.walls.length === 0) {
         showEditorAlert(
@@ -2104,35 +3011,6 @@ function CanvasArea({
       window.removeEventListener("pelican-ai-export-room-request", handleExportRoomRequest);
     };
   }, [enableAiPrototype, showEditorAlert]);
-
-  useEffect(() => {
-    if (!enableAiPrototype) return undefined;
-
-    const handleStartWallSelection = () => {
-      setActiveTool(null);
-      activeToolRef.current = null;
-      setIsSelectionMode(false);
-      setIsKitchenWallSelectionMode(true);
-      setSelectedCabinetId(null);
-      setSelectedWindowId(null);
-      setSelectedDoorId(null);
-      setSelectedWallId(null);
-      setGroupSelectedCabinetIds([]);
-      setGroupContextMenu(null);
-      setMenuPosition(null);
-      setDrawingStart(null);
-      setPreviewPoint(null);
-      setSelectionStart(null);
-      setSelectionEnd(null);
-      setIsSelectingArea(false);
-    };
-
-    window.addEventListener("pelican-ai-start-wall-selection", handleStartWallSelection);
-
-    return () => {
-      window.removeEventListener("pelican-ai-start-wall-selection", handleStartWallSelection);
-    };
-  }, [enableAiPrototype, setIsSelectionMode]);
 
   const thickWalls = useMemo(() => walls.filter(isThickWall), [walls]);
   const structuralThickWalls = useMemo(() => thickWalls.filter((wall) => !isDetachedPanelWall(wall)), [thickWalls]);
@@ -2183,10 +3061,7 @@ function CanvasArea({
   const wallChains = useMemo(() => buildWallChains(structuralThickWalls), [structuralThickWalls]);
   const thinWallChains = useMemo(() => buildWallChains(thinWalls), [thinWalls]);
   const elevationWalls = useMemo(
-    () =>
-      [...structuralThickWalls, ...peninWalls].filter(
-        (wall) => getWallElevationViewMode(wall) !== "none"
-      ),
+    () => [...structuralThickWalls, ...peninWalls],
     [structuralThickWalls, peninWalls]
   );
 
@@ -2198,7 +3073,6 @@ function CanvasArea({
 
   const clearWallSelectionState = useCallback(() => {
     setSelectedWallId(null);
-    setIsKitchenWallSelectionMode(false);
     setMenuPosition(null);
     setEditingMeasurement(null);
     setDrawingStart(null);
@@ -2311,20 +3185,111 @@ function CanvasArea({
     []
   );
 
+  const buildImportedKitchenCabinet = useCallback(
+    (
+      wall: Wall,
+      placement: ImportedKitchenPlacement,
+      catalogItem: CabinetCatalogItem
+    ): CabinetElement => {
+      const wallFace = resolveImportedPlacementWallFace(wall, placement.wallFace);
+      const { axis, faceStartScalar } = getImportedWallFaceSpanPixels(wall, wallFace);
+      const isAccessory = Boolean(catalogItem.accessoryKind);
+      const spanWidthInches = isAccessory
+        ? placement.thicknessInches ?? catalogItem.widthInches
+        : placement.widthInches ?? catalogItem.widthInches;
+      const projectionDepthInches = isAccessory
+        ? placement.widthInches ?? catalogItem.depthInches
+        : placement.depthInches ?? catalogItem.depthInches;
+      const heightInches =
+        placement.heightInches ??
+        catalogItem.heightInches ??
+        (catalogItem.category === "wall" ? 30 : 34.5);
+      const supportType = getSupportTypeForCategory(
+        catalogItem.category,
+        spanWidthInches,
+        heightInches
+      );
+      const bottomInches =
+        supportType === "floor-supported"
+          ? 0
+          : placement.bottomInches ??
+            catalogItem.defaultDistanceFromFloorInches ??
+            (catalogItem.category === "wall" ? 54 : 0);
+      const widthPixels = inchesToPixels(spanWidthInches);
+      const depthPixels = inchesToPixels(projectionDepthInches);
+      const centerProjection =
+        faceStartScalar + inchesToPixels(placement.leftInches) + widthPixels / 2;
+      const faceSign = wallFace === "left" ? 1 : -1;
+      const center = add(
+        axis.start,
+        add(
+          mul(axis.direction, centerProjection),
+          mul(axis.normal, faceSign * (WALL_THICKNESS / 2 + depthPixels / 2))
+        )
+      );
+      const rotation =
+        (Math.atan2(axis.direction.y, axis.direction.x) * 180) / Math.PI;
+
+      const cabinet: CabinetElement = {
+        id: crypto.randomUUID(),
+        center,
+        width: widthPixels,
+        depth: depthPixels,
+        rotation,
+        category: catalogItem.category,
+        catalogId: catalogItem.id,
+        image: catalogItem.image,
+        accessoryKind: catalogItem.accessoryKind,
+        heightInches,
+        distanceFromFloorInches: bottomInches,
+        wallId: wall.id,
+        wallFace,
+        sinkFixture:
+          placement.topOption === "sink" || isBuiltInSinkCabinetImage(catalogItem.image)
+            ? true
+            : undefined,
+        cooktopFixture:
+          placement.topOption === "surface-cooktop"
+            ? "surface"
+            : placement.topOption === "front-control-cooktop"
+              ? "front"
+              : undefined,
+        cooktopFrontHeightInches:
+          placement.topOption === "front-control-cooktop" ? 3 : undefined,
+        blindDoorWidthInches: isBlindCabinetImage(catalogItem.image)
+          ? getDefaultBlindCabinetDoorWidthInches(
+              spanWidthInches,
+              catalogItem.category
+            )
+          : undefined,
+        blindFillerWidthInches: isBlindCabinetImage(catalogItem.image)
+          ? placement.builtInFillerThicknessInches ?? 3
+          : undefined,
+        ovenCabinetProductLayout: getDefaultBottomDrawerProductLayout(catalogItem.image),
+        ovenCabinetProductHeightInches:
+          isOvenLikeBottomDrawerCabinetImage(catalogItem.image)
+            ? getDefaultOvenCabinetProductHeightInches(heightInches)
+            : undefined,
+      };
+
+      return normalizeSpecialCabinetState(cabinet);
+    },
+    [getImportedWallFaceSpanPixels, resolveImportedPlacementWallFace]
+  );
+
   useEffect(() => {
     if (!enableAiPrototype) return undefined;
 
     const handleDownloadSmartKitchenInputRequest = async () => {
       const room = addEditorElevationWidthsToRoom(
-        exportRoomInput({
-          walls: wallsRef.current as never,
-          windows: windowsRef.current as never,
-          doors: doorsRef.current as never,
-          cabinets: cabinetsRef.current as never,
-          catalog: CABINET_CATALOG as never,
-          gridSize: GRID_SIZE,
-          wallThickness: WALL_THICKNESS,
-        }),
+        withSmartInputCatalog(
+          exportAiRoomInputFromEditor({
+            walls: wallsRef.current,
+            windows: windowsRef.current,
+            doors: doorsRef.current,
+            cabinets: cabinetsRef.current,
+          })
+        ),
         wallsRef.current,
         cabinetsRef.current,
         windowsRef.current,
@@ -2339,33 +3304,6 @@ function CanvasArea({
         return;
       }
 
-      const currentGroupSelectedWallIds = groupSelectedWallIdsRef.current;
-      const currentSelectedWallId = selectedWallIdRef.current;
-      const selectedWallIds = [
-        ...(currentGroupSelectedWallIds.length > 0 ? currentGroupSelectedWallIds : []),
-        ...(currentGroupSelectedWallIds.length === 0 && currentSelectedWallId ? [currentSelectedWallId] : []),
-      ];
-      const selectedEditorWalls = Array.from(new Set(selectedWallIds))
-        .map((wallId) => wallsRef.current.find((wall) => wall.id === wallId) ?? null)
-        .filter((wall): wall is Wall => Boolean(wall && isThickWall(wall)));
-      const selectedThickWallIds = resolveSelectedAiWallIds(room.walls, selectedEditorWalls);
-
-      if (selectedWallIds.length > 0 && selectedEditorWalls.length === 0) {
-        showEditorAlert(
-          "Your current selection does not include any thick wall sides. Select one or more thick walls, or clear the selection to use all thick walls.",
-          "Smart input blocked"
-        );
-        return;
-      }
-
-      if (selectedEditorWalls.length > 0 && selectedThickWallIds.length === 0) {
-        showEditorAlert(
-          "The selected wall sides could not be matched to the exported AI room. Select the kitchen walls again, then download the smart kitchen input.",
-          "Smart input blocked"
-        );
-        return;
-      }
-
       try {
         const response = await fetch("/api/smart-kitchen", {
           method: "POST",
@@ -2374,8 +3312,6 @@ function CanvasArea({
           },
           body: JSON.stringify({
             room,
-            selectedWallIds:
-              selectedThickWallIds.length > 0 ? selectedThickWallIds : undefined,
             designerFeedback: smartKitchenFeedbackRef.current.trim() || undefined,
             previewOnly: true,
           }),
@@ -2383,10 +3319,10 @@ function CanvasArea({
 
         const payload = (await response.json()) as {
           error?: string;
-          preview?: unknown;
+          plannerInput?: unknown;
         };
 
-        if (!response.ok || !payload.preview) {
+        if (!response.ok || !payload.plannerInput) {
           showEditorAlert(
             payload.error ??
               "The smart kitchen input could not be prepared for download.",
@@ -2395,32 +3331,9 @@ function CanvasArea({
           return;
         }
 
-        const previewRequest = payload.preview as {
-          input?: Array<{
-            role?: string;
-            content?: Array<{
-              type?: string;
-              text?: string;
-            }>;
-          }>;
-        };
-        const userTextPayload =
-          previewRequest.input
-            ?.find((item) => item.role === "user")
-            ?.content?.find((item) => item.type === "input_text")
-            ?.text ?? null;
-
-        if (!userTextPayload) {
-          showEditorAlert(
-            "The smart kitchen input preview did not contain a downloadable user JSON payload.",
-            "Smart input failed"
-          );
-          return;
-        }
-
         downloadJsonFile(
           "pelican-smart-kitchen-ai-input.json",
-          JSON.parse(userTextPayload)
+          payload.plannerInput
         );
       } catch (error) {
         showEditorAlert(
@@ -2449,14 +3362,11 @@ function CanvasArea({
     if (!enableAiPrototype) return undefined;
 
     const handleGenerateKitchenRequest = () => {
-      const room = exportRoomInput({
-        walls: wallsRef.current as never,
-        windows: windowsRef.current as never,
-        doors: doorsRef.current as never,
-        cabinets: cabinetsRef.current as never,
-        catalog: CABINET_CATALOG as never,
-        gridSize: GRID_SIZE,
-        wallThickness: WALL_THICKNESS,
+      const room = exportAiRoomInputFromEditor({
+        walls: wallsRef.current,
+        windows: windowsRef.current,
+        doors: doorsRef.current,
+        cabinets: cabinetsRef.current,
       });
 
       if (room.walls.length === 0) {
@@ -2467,57 +3377,7 @@ function CanvasArea({
         return;
       }
 
-      const currentGroupSelectedWallIds = groupSelectedWallIdsRef.current;
-      const currentSelectedWallId = selectedWallIdRef.current;
-      const selectedWallIds = [
-        ...(currentGroupSelectedWallIds.length > 0 ? currentGroupSelectedWallIds : []),
-        ...(currentGroupSelectedWallIds.length === 0 && currentSelectedWallId ? [currentSelectedWallId] : []),
-      ];
-      const selectedEditorWalls = Array.from(new Set(selectedWallIds))
-        .map((wallId) => wallsRef.current.find((wall) => wall.id === wallId) ?? null)
-        .filter((wall): wall is Wall => Boolean(wall && isThickWall(wall)));
-      const selectedThickWallIds = resolveSelectedAiWallIds(room.walls, selectedEditorWalls);
-
-      if (selectedWallIds.length > 0 && selectedEditorWalls.length === 0) {
-        showEditorAlert(
-          "Your current selection does not include any thick wall sides. Select one or more thick walls, or clear the selection to use all thick walls.",
-          "Kitchen generation blocked"
-        );
-        return;
-      }
-
-      if (selectedEditorWalls.length > 0 && selectedThickWallIds.length === 0) {
-        showEditorAlert(
-          "The selected wall sides could not be matched to the exported AI room. Select the kitchen walls again, then generate the kitchen.",
-          "Kitchen generation blocked"
-        );
-        return;
-      }
-
-      const roomForGeneration = selectedThickWallIds.length > 0
-        ? {
-            ...room,
-            walls: room.walls.filter(
-              (wall) => wall.kind === "thin-wall" || selectedThickWallIds.includes(wall.id)
-            ),
-            windows: room.windows.filter((windowItem) => selectedThickWallIds.includes(windowItem.wallId)),
-            doors: room.doors.filter((doorItem) => selectedThickWallIds.includes(doorItem.wallId)),
-            cabinets: room.cabinets.filter(
-              (cabinetItem) =>
-                Boolean(cabinetItem.wallId && selectedThickWallIds.includes(cabinetItem.wallId))
-            ),
-            wallChains: room.wallChains
-              .map((chain) => ({
-                ...chain,
-                wallIds: chain.wallIds.filter((wallId) => selectedThickWallIds.includes(wallId)),
-              }))
-              .filter((chain) => chain.wallIds.length > 0),
-          }
-        : room;
-
-      const layout = generateKitchenLayout(roomForGeneration, {
-        selectedWallIds: selectedThickWallIds.length > 0 ? selectedThickWallIds : undefined,
-      });
+      const layout = generateKitchenLayout(room);
 
       if (layout.cabinets.length === 0) {
         showEditorAlert(
@@ -2527,23 +3387,11 @@ function CanvasArea({
         return;
       }
 
-      commitCabinetsChange((currentCabinets) => {
-        if (selectedThickWallIds.length === 0) {
-          return layout.cabinets as CabinetElement[];
-        }
-
-        const selectedWallSet = new Set(selectedThickWallIds);
-        const untouchedCabinets = currentCabinets.filter(
-          (cabinetItem) => !cabinetItem.wallId || !selectedWallSet.has(cabinetItem.wallId)
-        );
-
-        return [...untouchedCabinets, ...(layout.cabinets as CabinetElement[])];
-      });
+      commitCabinetsChange(() => layout.cabinets as CabinetElement[]);
       setSelectedCabinetId(null);
       setSelectedWindowId(null);
       setSelectedDoorId(null);
       setSelectedWallId(null);
-      setIsKitchenWallSelectionMode(false);
       setGroupSelectedCabinetIds([]);
       setGroupSelectedWallIds([]);
       setGroupContextMenu(null);
@@ -2576,15 +3424,14 @@ function CanvasArea({
 
     const handleGenerateSmartKitchenRequest = async () => {
       const room = addEditorElevationWidthsToRoom(
-        exportRoomInput({
-          walls: wallsRef.current as never,
-          windows: windowsRef.current as never,
-          doors: doorsRef.current as never,
-          cabinets: cabinetsRef.current as never,
-          catalog: CABINET_CATALOG as never,
-          gridSize: GRID_SIZE,
-          wallThickness: WALL_THICKNESS,
-        }),
+        withSmartInputCatalog(
+          exportAiRoomInputFromEditor({
+            walls: wallsRef.current,
+            windows: windowsRef.current,
+            doors: doorsRef.current,
+            cabinets: cabinetsRef.current,
+          })
+        ),
         wallsRef.current,
         cabinetsRef.current,
         windowsRef.current,
@@ -2599,38 +3446,6 @@ function CanvasArea({
         return;
       }
 
-      const currentGroupSelectedWallIds = groupSelectedWallIdsRef.current;
-      const currentSelectedWallId = selectedWallIdRef.current;
-      const selectedWallIds = [
-        ...(currentGroupSelectedWallIds.length > 0 ? currentGroupSelectedWallIds : []),
-        ...(currentGroupSelectedWallIds.length === 0 && currentSelectedWallId ? [currentSelectedWallId] : []),
-      ];
-      const selectedEditorWalls = Array.from(new Set(selectedWallIds))
-        .map((wallId) => wallsRef.current.find((wall) => wall.id === wallId) ?? null)
-        .filter((wall): wall is Wall => Boolean(wall && isThickWall(wall)));
-      const selectedThickWallIds = resolveSelectedAiWallIds(room.walls, selectedEditorWalls);
-
-      if (selectedWallIds.length > 0 && selectedEditorWalls.length === 0) {
-        showEditorAlert(
-          "Your current selection does not include any thick wall sides. Select one or more thick walls, or clear the selection to use all thick walls.",
-          "Smart kitchen blocked"
-        );
-        return;
-      }
-
-      if (selectedEditorWalls.length > 0 && selectedThickWallIds.length === 0) {
-        showEditorAlert(
-          "The selected wall sides could not be matched to the exported AI room. Select the kitchen walls again, then generate the smart kitchen.",
-          "Smart kitchen blocked"
-        );
-        return;
-      }
-
-      const roomForGeneration = filterRoomForKitchenGeneration(
-        room,
-        selectedThickWallIds.length > 0 ? selectedThickWallIds : undefined
-      );
-
       window.dispatchEvent(
         new CustomEvent("pelican-ai-smart-kitchen-status", {
           detail: { isLoading: true },
@@ -2644,9 +3459,7 @@ function CanvasArea({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            room: roomForGeneration,
-            selectedWallIds:
-              selectedThickWallIds.length > 0 ? selectedThickWallIds : undefined,
+            room,
             designerFeedback: smartKitchenFeedbackRef.current.trim() || undefined,
           }),
         });
@@ -2654,7 +3467,10 @@ function CanvasArea({
         const payload = (await response.json()) as {
           error?: string;
           layout?: GeneratedKitchenLayout;
+          aiOutput?: unknown;
+          plan?: unknown;
         };
+        const downloadableAiOutput = payload.aiOutput ?? payload.plan ?? null;
 
         if (!response.ok || !payload.layout) {
           showEditorAlert(
@@ -2673,34 +3489,40 @@ function CanvasArea({
           return;
         }
 
-        commitCabinetsChange((currentCabinets) => {
-          if (selectedThickWallIds.length === 0) {
-            return payload.layout!.cabinets as CabinetElement[];
-          }
+        onSmartKitchenOutput?.(downloadableAiOutput);
 
-          const selectedWallSet = new Set(selectedThickWallIds);
-          const untouchedCabinets = currentCabinets.filter(
-            (cabinetItem) => !cabinetItem.wallId || !selectedWallSet.has(cabinetItem.wallId)
+        if (downloadableAiOutput) {
+          downloadJsonFile(
+            "pelican-smart-kitchen-ai-output.json",
+            downloadableAiOutput
           );
+        }
 
-          return [...untouchedCabinets, ...(payload.layout!.cabinets as CabinetElement[])];
-        });
-        setSelectedCabinetId(null);
-        setSelectedWindowId(null);
-        setSelectedDoorId(null);
-        setSelectedWallId(null);
-        setIsKitchenWallSelectionMode(false);
-        setGroupSelectedCabinetIds([]);
-        setGroupSelectedWallIds([]);
-        setGroupContextMenu(null);
-        setMenuPosition(null);
-        updateCabinetPreview(null);
-        updateDoorPreview(null);
-        updateWindowPreview(null);
+        const didImportAiOutput =
+          downloadableAiOutput &&
+          applyImportedKitchenPlan(downloadableAiOutput, {
+            importNote: "Kitchen imported automatically from smart AI output.",
+            plannerModel: payload.layout.summary.plannerModel ?? "smart-ai-output",
+          });
 
-        window.dispatchEvent(
-          new CustomEvent("pelican-ai-kitchen-generated", { detail: payload.layout })
-        );
+        if (!didImportAiOutput) {
+          commitCabinetsChange(() => payload.layout!.cabinets as CabinetElement[]);
+          setSelectedCabinetId(null);
+          setSelectedWindowId(null);
+          setSelectedDoorId(null);
+          setSelectedWallId(null);
+          setGroupSelectedCabinetIds([]);
+          setGroupSelectedWallIds([]);
+          setGroupContextMenu(null);
+          setMenuPosition(null);
+          updateCabinetPreview(null);
+          updateDoorPreview(null);
+          updateWindowPreview(null);
+
+          window.dispatchEvent(
+            new CustomEvent("pelican-ai-kitchen-generated", { detail: payload.layout })
+          );
+        }
       } catch (error) {
         showEditorAlert(
           error instanceof Error
@@ -2731,11 +3553,201 @@ function CanvasArea({
   }, [
     enableAiPrototype,
     commitCabinetsChange,
+    onSmartKitchenOutput,
     showEditorAlert,
     updateCabinetPreview,
     updateDoorPreview,
     updateWindowPreview,
   ]);
+
+  function applyImportedKitchenPlan(
+    rawPlan: unknown,
+    options?: {
+      importNote?: string;
+      plannerModel?: string;
+    }
+  ) {
+      const importedPlan = normalizeImportedKitchenPlan(rawPlan);
+
+      if (!importedPlan || !importedPlan.walls?.length) {
+        return false;
+      }
+
+      const thickWalls = wallsRef.current.filter(isThickWall);
+      if (thickWalls.length === 0) {
+        return false;
+      }
+
+      const wallLabelLookup = new Map(
+        thickWalls.map((wall, index) => [wall.id, `Wall ${index + 1}`] as const)
+      );
+      const labelToWallIdLookup = new Map(
+        Array.from(wallLabelLookup.entries()).map(([wallId, wallLabel]) => [
+          wallLabel.toLowerCase(),
+          wallId,
+        ])
+      );
+
+      const importedCabinets: CabinetElement[] = [];
+
+      for (const wallPlan of importedPlan.walls ?? []) {
+        const resolvedWallId =
+          wallPlan.wallId && thickWalls.some((wall) => wall.id === wallPlan.wallId)
+            ? wallPlan.wallId
+            : wallPlan.wallLabel
+              ? labelToWallIdLookup.get(wallPlan.wallLabel.trim().toLowerCase()) ?? null
+              : null;
+        if (!resolvedWallId) continue;
+
+        const wall = thickWalls.find((candidateWall) => candidateWall.id === resolvedWallId);
+        if (!wall) continue;
+
+        for (const placement of wallPlan.placements ?? []) {
+          const catalogItem = CABINET_CATALOG.find(
+            (item) => item.id === placement.catalogId
+          );
+          if (!catalogItem) continue;
+          importedCabinets.push(
+            buildImportedKitchenCabinet(wall, placement, catalogItem)
+          );
+        }
+      }
+
+      if (importedCabinets.length === 0) {
+        return false;
+      }
+
+      commitCabinetsChange(() => importedCabinets);
+      setSelectedCabinetId(null);
+      setSelectedWindowId(null);
+      setSelectedDoorId(null);
+      setSelectedWallId(null);
+      setGroupSelectedCabinetIds([]);
+      setGroupSelectedWallIds([]);
+      setGroupContextMenu(null);
+      setMenuPosition(null);
+      updateCabinetPreview(null);
+      updateDoorPreview(null);
+      updateWindowPreview(null);
+
+      const room = addEditorElevationWidthsToRoom(
+        withSmartInputCatalog(
+          exportAiRoomInputFromEditor({
+            walls: wallsRef.current,
+            windows: windowsRef.current,
+            doors: doorsRef.current,
+            cabinets: importedCabinets,
+          })
+        ),
+        wallsRef.current,
+        importedCabinets,
+        windowsRef.current,
+        doorsRef.current
+      );
+
+      onSmartKitchenOutput?.(rawPlan);
+
+      window.dispatchEvent(
+        new CustomEvent("pelican-ai-kitchen-generated", {
+          detail: {
+            room,
+            cabinets: importedCabinets,
+            summary: {
+              layoutType: importedPlan.layoutType ?? "single-wall",
+              notes: [
+                options?.importNote ?? "Kitchen imported from AI output JSON.",
+                ...(importedPlan.notes ?? []),
+              ],
+              selectedWallIds: thickWalls.map((wall) => wall.id),
+              generationMethod: "smart-ai",
+              plannerModel: options?.plannerModel ?? "imported-ai-output",
+            },
+            elevations: thickWalls.map((wall, index) => ({
+              wallId: wall.id,
+              label: wallLabelLookup.get(wall.id) ?? `Wall ${index + 1}`,
+              cabinetCount: importedCabinets.filter(
+                (cabinet) => cabinet.wallId === wall.id
+              ).length,
+            })),
+          } as GeneratedKitchenLayout,
+        })
+      );
+
+      return true;
+  }
+
+  const importKitchenFromOutputPlan = useCallback(
+    async (file: File) => {
+      const rawPlan = await readUnknownJsonFile(file);
+      const didImport = applyImportedKitchenPlan(rawPlan, {
+        importNote: "Kitchen imported from AI output JSON.",
+        plannerModel: "imported-ai-output",
+      });
+
+      if (didImport) return;
+
+      const importedPlan = normalizeImportedKitchenPlan(rawPlan);
+      const thickWalls = wallsRef.current.filter(isThickWall);
+
+      if (!importedPlan || !importedPlan.walls?.length) {
+        showEditorAlert(
+          "The imported kitchen JSON did not contain any wall placements.",
+          "Import kitchen failed"
+        );
+        return;
+      }
+
+      if (thickWalls.length === 0) {
+        showEditorAlert(
+          "Draw thin walls and convert them into thick walls first, then import a kitchen layout.",
+          "Import kitchen blocked"
+        );
+        return;
+      }
+
+      showEditorAlert(
+        "The imported kitchen JSON did not produce any drawable cabinets in the current room.",
+        "Import kitchen failed"
+      );
+    },
+    [
+      applyImportedKitchenPlan,
+      showEditorAlert,
+    ]
+  );
+
+  useEffect(() => {
+    if (!enableAiPrototype) return undefined;
+
+    const handleImportKitchenOutputRequest = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ file?: File }>;
+      const file = customEvent.detail?.file;
+      if (!file) return;
+
+      try {
+        await importKitchenFromOutputPlan(file);
+      } catch (error) {
+        showEditorAlert(
+          error instanceof Error
+            ? error.message
+            : "The selected kitchen JSON could not be imported.",
+          "Import kitchen failed"
+        );
+      }
+    };
+
+    window.addEventListener(
+      "pelican-ai-import-kitchen-output-request",
+      handleImportKitchenOutputRequest
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pelican-ai-import-kitchen-output-request",
+        handleImportKitchenOutputRequest
+      );
+    };
+  }, [enableAiPrototype, importKitchenFromOutputPlan, showEditorAlert]);
 
   const undoWallChange = useCallback(() => {
     const previousSnapshot = undoStackRef.current.pop();
@@ -2919,23 +3931,40 @@ function CanvasArea({
     const wallDistanceMetrics = selectedCabinet
       ? getCabinetElevationDistanceMetrics(selectedCabinet, walls, cabinets)
       : null;
+    const catalogItem = selectedCabinet ? getEditorCabinetCatalogItem(selectedCabinet) : null;
     const detail = selectedCabinet
       ? {
           id: selectedCabinet.id,
+          catalogId: selectedCabinet.catalogId ?? catalogItem?.id,
           widthInches: pixelsToInches(selectedCabinet.width),
           depthInches: pixelsToInches(selectedCabinet.depth),
           heightInches:
             selectedCabinet.heightInches ??
+            catalogItem?.heightInches ??
             (category === "wall" ? 30 : 36),
           distanceFromFloorInches:
             selectedCabinet.distanceFromFloorInches ??
-            (category === "wall" ? 54 : 0),
+            (isElevationFloatingCabinet(selectedCabinet) ? 54 : 0),
           ...(wallDistanceMetrics ?? {}),
           category: category ?? undefined,
           image: selectedCabinet.image,
           sinkFixture: selectedCabinet.sinkFixture,
           cooktopFixture: selectedCabinet.cooktopFixture,
           cooktopFrontHeightInches: selectedCabinet.cooktopFrontHeightInches,
+          accessoryKind: selectedCabinet.accessoryKind ?? catalogItem?.accessoryKind,
+          blindDoorWidthInches: isBlindCabinetImage(selectedCabinet.image)
+            ? getBlindCabinetWidthSegments(selectedCabinet).doorWidthInches
+            : undefined,
+          blindFillerWidthInches: isBlindCabinetImage(selectedCabinet.image)
+            ? getBlindCabinetWidthSegments(selectedCabinet).fillerWidthInches
+            : undefined,
+          ovenCabinetProductLayout: selectedCabinet.ovenCabinetProductLayout ?? "none",
+          ovenCabinetProductHeightInches:
+            getOvenCabinetHeightSegments(selectedCabinet).productHeightInches,
+          ovenCabinetFillerHeightInches:
+            getOvenCabinetHeightSegments(selectedCabinet).fillerHeightInches,
+          ovenCabinetBottomDrawerHeightInches:
+            getOvenCabinetHeightSegments(selectedCabinet).bottomDrawerHeightInches,
         }
       : null;
 
@@ -2950,7 +3979,7 @@ function CanvasArea({
           id: selectedWall.id,
           kind: selectedWall.kind ?? "wall",
           elevationViewMode: getWallElevationViewMode(selectedWall),
-          needCabinetPlacement: selectedWall.needCabinetPlacement ?? true,
+          cabinetPlacementMode: getWallCabinetPlacementMode(selectedWall),
         }
       : null;
 
@@ -3055,7 +4084,33 @@ function CanvasArea({
 
       commitWallsChange((currentWalls) =>
         currentWalls.map((wall) =>
-          wall.id === id ? { ...wall, needCabinetPlacement: value } : wall
+          wall.id === id
+            ? {
+                ...wall,
+                needCabinetPlacement: value,
+                cabinetPlacementMode: value
+                  ? getWallCabinetPlacementMode(wall) === "none"
+                    ? "interior"
+                    : getWallCabinetPlacementMode(wall)
+                  : "none",
+              }
+            : wall
+        )
+      );
+    };
+
+    const handleWallCabinetPlacementModeChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        id: string;
+        value: WallCabinetPlacementMode;
+      }>;
+
+      const { id, value } = customEvent.detail ?? {};
+      if (!id || !value) return;
+
+      commitWallsChange((currentWalls) =>
+        currentWalls.map((wall) =>
+          wall.id === id ? { ...wall, cabinetPlacementMode: value } : wall
         )
       );
     };
@@ -3073,6 +4128,10 @@ function CanvasArea({
       "pelican-wall-need-cabinet-placement-change",
       handleWallNeedCabinetPlacementChange
     );
+    window.addEventListener(
+      "pelican-wall-cabinet-placement-mode-change",
+      handleWallCabinetPlacementModeChange
+    );
     window.addEventListener("pelican-deselect-wall", handleWallDeselect);
 
     return () => {
@@ -3083,6 +4142,10 @@ function CanvasArea({
       window.removeEventListener(
         "pelican-wall-need-cabinet-placement-change",
         handleWallNeedCabinetPlacementChange
+      );
+      window.removeEventListener(
+        "pelican-wall-cabinet-placement-mode-change",
+        handleWallCabinetPlacementModeChange
       );
       window.removeEventListener("pelican-deselect-wall", handleWallDeselect);
     };
@@ -3160,8 +4223,33 @@ function CanvasArea({
     const handleCabinetAttributeChange = (event: Event) => {
       const customEvent = event as CustomEvent<{
         id: string;
-        field: "widthInches" | "depthInches" | "heightInches" | "distanceFromFloorInches" | "distanceFromLeftInches" | "distanceFromRightInches" | "sinkFixture" | "cooktopFixture" | "cooktopFrontHeightInches" | "topFixture";
-        value: number | boolean | "surface" | "front" | "sink" | "none" | null;
+        field:
+          | "widthInches"
+          | "depthInches"
+          | "heightInches"
+          | "dimensions"
+          | "distanceFromFloorInches"
+          | "distanceFromLeftInches"
+          | "distanceFromRightInches"
+          | "sinkFixture"
+          | "cooktopFixture"
+          | "cooktopFrontHeightInches"
+          | "blindDoorWidthInches"
+          | "blindFillerWidthInches"
+          | "topFixture"
+          | "ovenCabinetProductLayout"
+          | "ovenCabinetProductHeightInches"
+          | "ovenCabinetFillerHeightInches"
+          | "ovenCabinetBottomDrawerHeightInches";
+        value:
+          | number
+          | CabinetDimensionSet
+          | boolean
+          | "surface"
+          | "front"
+          | "none"
+          | OvenCabinetProductLayout
+          | null;
       }>;
 
       const { id, field, value } = customEvent.detail ?? {};
@@ -3175,7 +4263,12 @@ function CanvasArea({
         field === "distanceFromFloorInches" ||
         field === "distanceFromLeftInches" ||
         field === "distanceFromRightInches" ||
-        field === "cooktopFrontHeightInches";
+        field === "cooktopFrontHeightInches" ||
+        field === "blindDoorWidthInches" ||
+        field === "blindFillerWidthInches" ||
+        field === "ovenCabinetProductHeightInches" ||
+        field === "ovenCabinetFillerHeightInches" ||
+        field === "ovenCabinetBottomDrawerHeightInches";
 
       if (isNumericCabinetField && !Number.isFinite(Number(value))) return;
 
@@ -3183,9 +4276,87 @@ function CanvasArea({
         currentCabinets.map((cabinetItem) => {
           if (cabinetItem.id !== id) return cabinetItem;
 
+          if (field === "dimensions") {
+            const nextDimension = value as CabinetDimensionSet;
+            if (
+              !nextDimension ||
+              !Number.isFinite(nextDimension.widthInches) ||
+              !Number.isFinite(nextDimension.heightInches) ||
+              !Number.isFinite(nextDimension.depthInches)
+            ) {
+              return cabinetItem;
+            }
+
+            const nextWidthPixels = inchesToPixels(Math.max(isAccessoryCabinetImage(cabinetItem.image) ? 0.25 : 6, nextDimension.widthInches));
+            const nextDepthPixels = inchesToPixels(Math.max(1, nextDimension.depthInches));
+            const nextHeightInches = Math.max(1, nextDimension.heightInches);
+
+            let nextCabinet = resolveCabinetDimensionChange(
+              cabinetItem,
+              { ...cabinetItem, width: nextWidthPixels },
+              wallsRef.current,
+              currentCabinets
+            );
+            nextCabinet = resolveCabinetDimensionChange(
+              nextCabinet,
+              { ...nextCabinet, depth: nextDepthPixels },
+              wallsRef.current,
+              currentCabinets.map((candidate) =>
+                candidate.id === id ? nextCabinet : candidate
+              )
+            );
+            nextCabinet = {
+              ...nextCabinet,
+              heightInches: nextHeightInches,
+              distanceFromFloorInches: getSupportTypeForCategory(
+                getCabinetElevationCategory(nextCabinet),
+                pixelsToInches(nextCabinet.width),
+                nextHeightInches
+              ) === "floor-supported"
+                ? 0
+                : nextCabinet.distanceFromFloorInches,
+            };
+            if (isBlindCabinetImage(nextCabinet.image)) {
+              nextCabinet = {
+                ...nextCabinet,
+                blindDoorWidthInches: getDefaultBlindCabinetDoorWidthInches(
+                  nextDimension.widthInches,
+                  getCabinetElevationCategory(nextCabinet)
+                ),
+                blindFillerWidthInches: 3,
+              };
+            }
+            if (isOvenLikeBottomDrawerCabinetImage(nextCabinet.image)) {
+              nextCabinet = {
+                ...nextCabinet,
+                ovenCabinetProductHeightInches: getDefaultOvenCabinetProductHeightInches(
+                  nextHeightInches
+                ),
+                ovenCabinetFillerHeightInches:
+                  OVEN_CABINET_DEFAULT_FILLER_HEIGHT_INCHES,
+                ovenCabinetBottomDrawerHeightInches:
+                  OVEN_CABINET_DEFAULT_BOTTOM_DRAWER_HEIGHT_INCHES,
+              };
+            }
+            nextCabinet = normalizeSpecialCabinetState(nextCabinet);
+
+            if (isElevationFloatingCabinet(nextCabinet)) {
+              const candidateCabinets = currentCabinets.map((candidate) =>
+                candidate.id === id ? nextCabinet : candidate
+              );
+              const stackMessage = getWallCabinetStackOverflowMessage(candidateCabinets, wallsRef.current, id);
+              if (stackMessage) {
+                showEditorAlert(stackMessage);
+                return cabinetItem;
+              }
+            }
+
+            return nextCabinet;
+          }
+
           if (field === "topFixture") {
             const nextTopFixture =
-              value === "sink" || value === "surface" || value === "front"
+              value === "surface" || value === "front"
                 ? value
                 : "none";
             const nextCooktopFixture =
@@ -3195,7 +4366,9 @@ function CanvasArea({
 
             return {
               ...cabinetItem,
-              sinkFixture: nextTopFixture === "sink",
+              sinkFixture: isBuiltInSinkCabinetImage(cabinetItem.image)
+                ? cabinetItem.sinkFixture
+                : false,
               cooktopFixture: nextCooktopFixture,
               cooktopFrontHeightInches: nextCooktopFixture === "front"
                 ? cabinetItem.cooktopFrontHeightInches ?? 6
@@ -3231,6 +4404,99 @@ function CanvasArea({
             };
           }
 
+          if (field === "blindDoorWidthInches") {
+            const { widthInches, fillerWidthInches } =
+              getBlindCabinetWidthSegments(cabinetItem);
+            return normalizeBlindCabinetSettings({
+              ...cabinetItem,
+              blindDoorWidthInches: clamp(
+                Number(value) || 0,
+                0,
+                Math.max(0, widthInches - fillerWidthInches - 3)
+              ),
+            });
+          }
+
+          if (field === "blindFillerWidthInches") {
+            const { widthInches, doorWidthInches } =
+              getBlindCabinetWidthSegments(cabinetItem);
+            return normalizeBlindCabinetSettings({
+              ...cabinetItem,
+              blindFillerWidthInches: clamp(
+                Number(value) || 0,
+                0,
+                Math.max(0, widthInches - doorWidthInches - 3)
+              ),
+            });
+          }
+
+          if (field === "ovenCabinetProductLayout") {
+            return {
+              ...cabinetItem,
+              ovenCabinetProductLayout: (value as OvenCabinetProductLayout) ?? "none",
+            };
+          }
+
+          if (field === "ovenCabinetProductHeightInches") {
+            const { totalHeightInches, bottomDrawerHeightInches } =
+              getOvenCabinetHeightSegments(cabinetItem);
+            const nextProductHeightInches = clamp(
+              Number(value) || 0,
+              0,
+              Math.max(0, totalHeightInches - bottomDrawerHeightInches)
+            );
+            return {
+              ...cabinetItem,
+              ovenCabinetProductHeightInches: nextProductHeightInches,
+              ovenCabinetFillerHeightInches: Math.max(
+                0,
+                totalHeightInches -
+                  bottomDrawerHeightInches -
+                  nextProductHeightInches
+              ),
+            };
+          }
+
+          if (field === "ovenCabinetFillerHeightInches") {
+            const { totalHeightInches, bottomDrawerHeightInches } =
+              getOvenCabinetHeightSegments(cabinetItem);
+            const nextFillerHeightInches = clamp(
+              Number(value) || 0,
+              0,
+              Math.max(0, totalHeightInches - bottomDrawerHeightInches)
+            );
+            return {
+              ...cabinetItem,
+              ovenCabinetFillerHeightInches: nextFillerHeightInches,
+              ovenCabinetProductHeightInches: Math.max(
+                0,
+                totalHeightInches -
+                  bottomDrawerHeightInches -
+                  nextFillerHeightInches
+              ),
+            };
+          }
+
+          if (field === "ovenCabinetBottomDrawerHeightInches") {
+            const { totalHeightInches, productHeightInches } =
+              getOvenCabinetHeightSegments(cabinetItem);
+            const nextDrawerHeightInches = clamp(
+              Number(value) || 0,
+              0,
+              Math.max(0, totalHeightInches - productHeightInches)
+            );
+            return {
+              ...cabinetItem,
+              ovenCabinetBottomDrawerHeightInches: nextDrawerHeightInches,
+              ovenCabinetFillerHeightInches: Math.max(
+                0,
+                totalHeightInches -
+                  productHeightInches -
+                  nextDrawerHeightInches
+              ),
+            };
+          }
+
           if (field === "distanceFromLeftInches" || field === "distanceFromRightInches") {
             const metrics = getCabinetElevationDistanceMetrics(
               cabinetItem,
@@ -3257,12 +4523,16 @@ function CanvasArea({
           }
 
           if (field === "distanceFromFloorInches") {
+            if (!isElevationFloatingCabinet(cabinetItem)) {
+              return { ...cabinetItem, distanceFromFloorInches: 0 };
+            }
+
             const nextCabinet = {
               ...cabinetItem,
               distanceFromFloorInches: Math.max(0, Number(value)),
             };
 
-            if (getCabinetElevationCategory(nextCabinet) === "wall") {
+            if (isElevationFloatingCabinet(nextCabinet)) {
               const candidateCabinets = currentCabinets.map((candidate) =>
                 candidate.id === id ? nextCabinet : candidate
               );
@@ -3277,9 +4547,10 @@ function CanvasArea({
           }
 
           if (field === "widthInches") {
+            const minWidthInches = isAccessoryCabinetImage(cabinetItem.image) ? 0.25 : 6;
             return resolveCabinetDimensionChange(
               cabinetItem,
-              { ...cabinetItem, width: inchesToPixels(Math.max(6, Number(value))) },
+              { ...cabinetItem, width: inchesToPixels(Math.max(minWidthInches, Number(value))) },
               wallsRef.current,
               currentCabinets
             );
@@ -3294,10 +4565,23 @@ function CanvasArea({
             );
           }
 
-          const nextCabinet = { ...cabinetItem, heightInches: Math.max(1, Number(value)) };
-          if (getCabinetElevationCategory(nextCabinet) === "wall") {
+          const nextHeightInches = Math.max(1, Number(value));
+          const nextCabinet = {
+            ...cabinetItem,
+            heightInches: nextHeightInches,
+            distanceFromFloorInches: getSupportTypeForCategory(
+              getCabinetElevationCategory(cabinetItem),
+              pixelsToInches(cabinetItem.width),
+              nextHeightInches
+            ) === "floor-supported"
+              ? 0
+              : cabinetItem.distanceFromFloorInches,
+          };
+          const normalizedNextCabinet =
+            normalizeSpecialCabinetState(nextCabinet);
+          if (isElevationFloatingCabinet(normalizedNextCabinet)) {
             const candidateCabinets = currentCabinets.map((candidate) =>
-              candidate.id === id ? nextCabinet : candidate
+              candidate.id === id ? normalizedNextCabinet : candidate
             );
             const stackMessage = getWallCabinetStackOverflowMessage(candidateCabinets, wallsRef.current, id);
             if (stackMessage) {
@@ -3306,7 +4590,7 @@ function CanvasArea({
             }
           }
 
-          return nextCabinet;
+          return normalizedNextCabinet;
         })
       );
     };
@@ -3327,9 +4611,8 @@ function CanvasArea({
   }, [commitCabinetsChange, showEditorAlert, updateCabinetPreview]);
 
   useEffect(() => {
-    if (isDrawingTool(activeTool) && (isSelectionMode || isKitchenWallSelectionMode)) {
+    if (isDrawingTool(activeTool) && isSelectionMode) {
       setIsSelectionMode(false);
-      setIsKitchenWallSelectionMode(false);
       setGroupSelectedWallIds([]);
       setGroupSelectedCabinetIds([]);
       setGroupContextMenu(null);
@@ -3337,7 +4620,7 @@ function CanvasArea({
       setSelectionEnd(null);
       setIsSelectingArea(false);
     }
-  }, [activeTool, isKitchenWallSelectionMode, isSelectionMode, setIsSelectionMode]);
+  }, [activeTool, isSelectionMode, setIsSelectionMode]);
 
   useEffect(() => {
     window.dispatchEvent(
@@ -3472,10 +4755,6 @@ useEffect(() => {
         event.preventDefault();
         setIsSelectionMode(false);
       }
-      if (isKitchenWallSelectionMode) {
-        event.preventDefault();
-        setIsKitchenWallSelectionMode(false);
-      }
 
       setDrawingStart(null);
       setPreviewPoint(null);
@@ -3500,9 +4779,9 @@ useEffect(() => {
       event.preventDefault();
 
       if (groupSelectedWallIds.length > 0) {
-        const selectedWallIds = new Set(groupSelectedWallIds);
+        const wallIdsToDelete = new Set(groupSelectedWallIds);
         commitWallsChange((currentWalls) =>
-          currentWalls.filter((wall) => !selectedWallIds.has(wall.id))
+          currentWalls.filter((wall) => !wallIdsToDelete.has(wall.id))
         );
       }
 
@@ -3594,7 +4873,7 @@ useEffect(() => {
   window.addEventListener("keydown", handleKeyDown, true);
 
   return () => window.removeEventListener("keydown", handleKeyDown, true);
-}, [commitWallsChange, commitWindowsChange, commitDoorsChange, commitCabinetsChange, editingMeasurement, groupSelectedWallIds, groupSelectedCabinetIds, isKitchenWallSelectionMode, isSelectionMode, redoWallChange, selectedWallId, setActiveTool, setIsSelectionMode, undoWallChange, updateCabinetPreview]);
+}, [commitWallsChange, commitWindowsChange, commitDoorsChange, commitCabinetsChange, editingMeasurement, groupSelectedWallIds, groupSelectedCabinetIds, isSelectionMode, redoWallChange, selectedWallId, setActiveTool, setIsSelectionMode, undoWallChange, updateCabinetPreview]);
 
   const screenToWorkspace = (clientX: number, clientY: number): Point | null => {
     const canvas = canvasRef.current;
@@ -3763,27 +5042,6 @@ useEffect(() => {
     setEditingMeasurement(null);
   };
 
-  const toggleKitchenWallSelection = (wallId: string) => {
-    const wall = walls.find((currentWall) => currentWall.id === wallId);
-    if (!wall || !isThickWall(wall)) return;
-
-    setSelectedWallId(null);
-    setSelectedWindowId(null);
-    setSelectedDoorId(null);
-    setSelectedCabinetId(null);
-    updateWindowPreview(null);
-    updateDoorPreview(null);
-    setMenuPosition(null);
-    setEditingMeasurement(null);
-    setGroupContextMenu(null);
-    setGroupSelectedCabinetIds([]);
-    setGroupSelectedWallIds((currentIds) =>
-      currentIds.includes(wallId)
-        ? currentIds.filter((currentId) => currentId !== wallId)
-        : [...currentIds, wallId]
-    );
-  };
-
   const handleMenuDragStart = (
     event: React.PointerEvent<HTMLDivElement>,
     startPosition: Point
@@ -3842,14 +5100,14 @@ useEffect(() => {
     }
 
     const rect = getSelectionRect(selectionStart, selectionEnd);
-    const selectedWallIds = wallsRef.current
+    const areaWallIds = wallsRef.current
       .filter((wall) => wallIntersectsSelectionRect(wall, rect))
       .map((wall) => wall.id);
     const selectedCabinetIds = cabinetsRef.current
       .filter((cabinetItem) => cabinetIntersectsSelectionRect(cabinetItem, rect))
       .map((cabinetItem) => cabinetItem.id);
 
-    setGroupSelectedWallIds(selectedWallIds);
+    setGroupSelectedWallIds(areaWallIds);
     setGroupSelectedCabinetIds(selectedCabinetIds);
     setGroupContextMenu(null);
     setSelectedWallId(null);
@@ -3918,15 +5176,6 @@ useEffect(() => {
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
-
-    if (isKitchenWallSelectionMode) {
-      setSelectedWindowId(null);
-      setSelectedDoorId(null);
-      setSelectedCabinetId(null);
-      setMenuPosition(null);
-      setEditingMeasurement(null);
-      return;
-    }
 
     if (isSelectionMode) {
       event.preventDefault();
@@ -4330,7 +5579,7 @@ useEffect(() => {
         wallId: wallResolvedPreview.wallId ?? currentCabinet.wallId,
         wallFace: wallResolvedPreview.wallFace ?? currentCabinet.wallFace,
       };
-      const supportedByLowerCabinet = getCabinetElevationCategory(movingCandidateForSupportCheck) === "wall" && Boolean(
+      const supportedByLowerCabinet = isElevationFloatingCabinet(movingCandidateForSupportCheck) && Boolean(
         getWallCabinetSupportedWall(
           movingCandidateForSupportCheck,
           cabinetsRef.current,
@@ -4679,18 +5928,54 @@ useEffect(() => {
       category: selectedCabinetCategory,
       catalogId: selectedCabinetCatalogItem.id,
       image: selectedCabinetCatalogItem.image,
-      heightInches: selectedCabinetCatalogItem.defaultHeightInches ?? (selectedCabinetCategory === "wall" ? 30 : 36),
-      distanceFromFloorInches: selectedCabinetCatalogItem.defaultDistanceFromFloorInches ?? (selectedCabinetCategory === "wall" ? 54 : 0),
+      accessoryKind: selectedCabinetCatalogItem.accessoryKind,
+      heightInches: selectedCabinetCatalogItem.heightInches ?? (selectedCabinetCategory === "wall" ? 30 : 36),
+      distanceFromFloorInches:
+        getSupportTypeForCategory(
+          selectedCabinetCategory,
+          selectedCabinetCatalogItem.widthInches,
+          selectedCabinetCatalogItem.heightInches ?? (selectedCabinetCategory === "wall" ? 30 : 36)
+        ) === "floor-supported"
+          ? 0
+          : selectedCabinetCatalogItem.defaultDistanceFromFloorInches ??
+            (selectedCabinetCategory === "wall" ? 54 : 0),
       wallId: placement.wallId,
       wallFace: placement.wallFace,
+      sinkFixture: isBuiltInSinkCabinetImage(selectedCabinetCatalogItem.image) ? true : undefined,
+      blindDoorWidthInches: isBlindCabinetImage(selectedCabinetCatalogItem.image)
+        ? getDefaultBlindCabinetDoorWidthInches(
+            selectedCabinetCatalogItem.widthInches,
+            selectedCabinetCategory
+          )
+        : undefined,
+      blindFillerWidthInches: isBlindCabinetImage(selectedCabinetCatalogItem.image)
+        ? 3
+        : undefined,
+      ovenCabinetProductLayout:
+        getDefaultBottomDrawerProductLayout(selectedCabinetCatalogItem.image),
+      ovenCabinetProductHeightInches:
+        isOvenLikeBottomDrawerCabinetImage(selectedCabinetCatalogItem.image)
+          ? getDefaultOvenCabinetProductHeightInches(
+              selectedCabinetCatalogItem.heightInches ?? 36
+            )
+          : undefined,
+      ovenCabinetFillerHeightInches:
+        isOvenLikeBottomDrawerCabinetImage(selectedCabinetCatalogItem.image)
+          ? OVEN_CABINET_DEFAULT_FILLER_HEIGHT_INCHES
+          : undefined,
+      ovenCabinetBottomDrawerHeightInches:
+        isOvenLikeBottomDrawerCabinetImage(selectedCabinetCatalogItem.image)
+          ? OVEN_CABINET_DEFAULT_BOTTOM_DRAWER_HEIGHT_INCHES
+          : undefined,
     };
+    const normalizedNewCabinet = normalizeSpecialCabinetState(newCabinet);
 
-    const candidateCabinets = [...cabinetsRef.current, newCabinet];
-    const placementResult: WallCabinetStackPlacementResult = selectedCabinetCategory === "wall"
+    const candidateCabinets = [...cabinetsRef.current, normalizedNewCabinet];
+    const placementResult: WallCabinetStackPlacementResult = isElevationFloatingCabinet(normalizedNewCabinet)
       ? applyWallCabinetStackSpacingOnPlacement(
           candidateCabinets,
           wallsRef.current,
-          newCabinet.id
+          normalizedNewCabinet.id
         )
       : { cabinets: candidateCabinets };
 
@@ -4700,7 +5985,7 @@ useEffect(() => {
     }
 
     commitCabinetsChange(placementResult.cabinets);
-    setSelectedCabinetId(newCabinet.id);
+    setSelectedCabinetId(normalizedNewCabinet.id);
     setSelectedDoorId(null);
     setSelectedWindowId(null);
     setSelectedWallId(null);
@@ -5496,8 +6781,6 @@ useEffect(() => {
         "relative min-h-0 flex-1 overflow-hidden bg-[#f5f5f5] touch-none select-none",
         isSelectionMode && (groupSelectedWallIds.length > 0 || groupSelectedCabinetIds.length > 0)
           ? "cursor-move"
-          : isKitchenWallSelectionMode
-            ? "cursor-pointer"
           : isSelectionMode
             ? "cursor-crosshair"
             : activeTool === "place-window" || activeTool === "place-door" || activeTool === "place-cabinet"
@@ -5643,14 +6926,7 @@ useEffect(() => {
             <WallAttachIndicator point={wallHoverPoint} />
           )}
 
-          {isKitchenWallSelectionMode ? (
-            <WallSelectionHitAreas
-              walls={thickWalls}
-              activeTool={activeTool}
-              selectedWallId={selectedWallId}
-              onSelectWall={toggleKitchenWallSelection}
-            />
-          ) : !isSelectionMode ? (
+          {!isSelectionMode ? (
             <WallSelectionHitAreas
               walls={walls}
               activeTool={activeTool}
@@ -6153,11 +7429,6 @@ useEffect(() => {
             />
           )}
         </svg>
-        {isKitchenWallSelectionMode && (
-          <div className="pointer-events-none absolute left-4 top-4 rounded-md border border-slate-200 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm">
-            Click thick walls to add or remove them from the kitchen selection. Press Escape to exit.
-          </div>
-        )}
       </div>
 
       <MoveControl
@@ -6284,7 +7555,69 @@ function getInteriorMeasurementGuideSide(
 }
 
 function getWallElevationViewMode(wall: Wall): WallElevationViewMode {
-  return wall.elevationViewMode ?? "interior";
+  return wall.elevationViewMode === "exterior" ? "exterior" : "interior";
+}
+
+function getWallCabinetPlacementMode(wall: Wall): WallCabinetPlacementMode {
+  return wall.cabinetPlacementMode === "none" ||
+    wall.cabinetPlacementMode === "both" ||
+    wall.cabinetPlacementMode === "interior" ||
+    wall.cabinetPlacementMode === "exterior"
+    ? wall.cabinetPlacementMode
+    : "interior";
+}
+
+function getWallCabinetPlacementGuideSides(
+  wall: Wall,
+  walls: Wall[]
+): Exclude<MeasurementSide, "length">[] {
+  if (getWallCabinetPlacementMode(wall) === "none") {
+    return [];
+  }
+
+  const interiorSide = getInteriorMeasurementGuideSide(wall, walls);
+  const exteriorSide = interiorSide === "left" ? "right" : "left";
+  const mode = getWallCabinetPlacementMode(wall);
+
+  if (mode === "both") {
+    return [interiorSide, exteriorSide];
+  }
+
+  return [mode === "exterior" ? exteriorSide : interiorSide];
+}
+
+function getWallCabinetPlacementDebugLines(
+  wall: Wall,
+  walls: Wall[]
+): Array<{ key: string; start: Point; end: Point }> {
+  const thickWalls = walls.filter(isThickWall);
+  if (!thickWalls.length || getWallCabinetPlacementMode(wall) === "none") {
+    return [];
+  }
+
+  const geometry = getWallSegmentBlackDotGeometry(wall.start, wall.end, thickWalls);
+  const interiorSide = getInteriorMeasurementGuideSide(wall, thickWalls);
+  const exteriorSide = interiorSide === "left" ? "right" : "left";
+  const mode = getWallCabinetPlacementMode(wall);
+
+  const lineForSide = (side: Exclude<MeasurementSide, "length">) =>
+    side === "left"
+      ? {
+          key: `${wall.id}-left`,
+          start: geometry.startLeft,
+          end: geometry.endLeft,
+        }
+      : {
+          key: `${wall.id}-right`,
+          start: geometry.startRight,
+          end: geometry.endRight,
+        };
+
+  if (mode === "both") {
+    return [lineForSide(interiorSide), lineForSide(exteriorSide)];
+  }
+
+  return [lineForSide(mode === "exterior" ? exteriorSide : interiorSide)];
 }
 
 function getWallElevationGuideSide(
@@ -6305,11 +7638,7 @@ function getWallElevationDebugGuideSide(
   wall: Wall,
   walls: Wall[]
 ): Exclude<MeasurementSide, "length"> | null {
-  const mode = getWallElevationViewMode(wall);
-
-  if (mode === "none") return null;
-
-  return getWallElevationGuideSide(wall, walls);
+  return getWallCabinetPlacementGuideSides(wall, walls)[0] ?? null;
 }
 
 function measurementSideToWallFaceSide(
@@ -6338,9 +7667,6 @@ function getWallProjectedFaceForElevation(
   wall: Wall,
   walls: Wall[]
 ): WallFaceSide | null {
-  const mode = getWallElevationViewMode(wall);
-  if (mode === "none") return null;
-
   return measurementSideToWallFaceSide(
     wall,
     getWallElevationGuideSide(wall, walls)
@@ -6766,10 +8092,8 @@ function getElevationWallInteriorSpan(
 
   const thickWalls = walls.filter(isThickWall);
   const guideSide =
-    getWallElevationViewMode(wall) === "none"
-      ? getCabinetFacingMeasurementGuideSide(wall, cabinets, thickWalls) ??
-        getWallElevationGuideSide(wall, walls)
-      : getWallElevationGuideSide(wall, walls);
+    getCabinetFacingMeasurementGuideSide(wall, cabinets, thickWalls) ??
+    getWallElevationGuideSide(wall, walls);
   const runEndpoints = getStructureGuideEndpointsFromMeasurementRun(
     wall,
     thickWalls,
@@ -7116,9 +8440,24 @@ function ElevationCabinetOnWall({
   const outerStroke = invalid ? "#ef4444" : selected ? "#22bfd6" : "#111827";
   const outerStrokeWidth = selected ? 3 : 2;
   const innerStroke = invalid ? "#fca5a5" : selected ? "#67e8f9" : "#64748b";
-  const fill = "#f1ede4";
-  const panelFill = "#fafaf7";
   const cabinetImage = image ?? getDefaultCabinetImageForCategory(category);
+  if (isAccessoryCabinetImage(cabinetImage)) {
+    return (
+      <g>
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          fill={invalid ? "#fee2e2" : selected ? "#d9f8fd" : "#fafaf7"}
+          stroke={innerStroke}
+          strokeWidth="1.5"
+          vectorEffect="non-scaling-stroke"
+        />
+      </g>
+    );
+  }
+
   const frontControlExtraInches =
     cabinet &&
     category === "base" &&
@@ -7129,46 +8468,44 @@ function ElevationCabinetOnWall({
   const baseHeightInches = cabinet
     ? Math.max(1, getCabinetElevationSpec(cabinet, category).heightInches)
     : 0;
+  const toeKickHeight =
+    cabinet && cabinetHasToeKick(cabinet) && baseHeightInches > 0
+      ? clamp((CABINET_TOE_KICK_HEIGHT_INCHES / baseHeightInches) * height, 0, Math.max(0, height - 1))
+      : 0;
   const frontControlBlockHeight = frontControlExtraInches > 0 && baseHeightInches > 0
     ? clamp((frontControlExtraInches / baseHeightInches) * height, 0, height * 0.8)
     : 0;
   const bodyY = y;
-  const bodyHeight = Math.max(1, height);
+  const bodyHeight = Math.max(1, height - toeKickHeight);
   const inset = Math.min(10, Math.max(4, Math.min(width, bodyHeight) * 0.08));
   const handleStroke = "#111827";
   const handleHeight = Math.min(bodyHeight * 0.42, Math.max(18, bodyHeight * 0.22));
   const handleTop = bodyY + bodyHeight / 2 - handleHeight / 2;
   const singleHandleX = x + width - inset - Math.max(6, width * 0.08);
-  const innerX = x + inset;
-  const innerY = bodyY + inset;
-  const innerWidth = Math.max(0, width - inset * 2);
-  const innerHeight = Math.max(0, bodyHeight - inset * 2);
+  const renderStandaloneProduct = isStandaloneBaseProductElevationImage(cabinetImage);
+  const innerX = x;
+  const innerY = bodyY;
+  const innerWidth = width;
+  const innerHeight = bodyHeight;
 
   return (
     <g>
-      <rect
-        x={x}
-        y={bodyY}
-        width={width}
-        height={bodyHeight}
-        fill={fill}
-        stroke={outerStroke}
-        strokeWidth={outerStrokeWidth}
-        vectorEffect="non-scaling-stroke"
-      />
-      <rect
-        x={innerX}
-        y={innerY}
-        width={innerWidth}
-        height={innerHeight}
-        fill={panelFill}
-        stroke={innerStroke}
-        strokeWidth="1.4"
-        vectorEffect="non-scaling-stroke"
-      />
+      {(selected || invalid) && (
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          fill="none"
+          stroke={outerStroke}
+          strokeWidth={outerStrokeWidth}
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
 
-      {category === "base" ? (
+      {category !== "wall" ? (
         <ElevationBaseCabinetDetails
+          cabinet={cabinet}
           image={cabinetImage}
           x={x}
           y={bodyY}
@@ -7187,6 +8524,7 @@ function ElevationCabinetOnWall({
         />
       ) : (
         <ElevationWallCabinetDetails
+          cabinet={cabinet}
           image={cabinetImage}
           x={x}
           y={bodyY}
@@ -7200,6 +8538,18 @@ function ElevationCabinetOnWall({
           handleStroke={handleStroke}
           handleTop={handleTop}
           handleHeight={handleHeight}
+        />
+      )}
+      {toeKickHeight > 0 && (
+        <rect
+          x={x}
+          y={y + height - toeKickHeight}
+          width={width}
+          height={toeKickHeight}
+          fill="#f1ede4"
+          stroke={innerStroke}
+          strokeWidth="1.55"
+          vectorEffect="non-scaling-stroke"
         />
       )}
       {cabinet && (
@@ -7219,6 +8569,7 @@ function ElevationCabinetOnWall({
 }
 
 function ElevationWallCabinetDetails({
+  cabinet,
   image,
   x,
   y,
@@ -7233,6 +8584,7 @@ function ElevationWallCabinetDetails({
   handleTop,
   handleHeight,
 }: {
+  cabinet?: CabinetElement;
   image: CabinetImage;
   x: number;
   y: number;
@@ -7250,6 +8602,9 @@ function ElevationWallCabinetDetails({
   const handleOffsetFromCenter = Math.max(6, Math.min(16, width * 0.08));
   const leftCenterX = x + width / 2 - handleOffsetFromCenter;
   const rightCenterX = x + width / 2 + handleOffsetFromCenter;
+  const panelFill = "#fafaf7";
+  const panelGap = Math.max(2, Math.min(6, innerWidth * 0.04));
+  const panelStrokeWidth = 1.5;
 
   const renderSingleDoorTopSection = (sectionHeight: number) => {
     const dividerY = innerY + sectionHeight;
@@ -7522,6 +8877,55 @@ function ElevationWallCabinetDetails({
     );
   }
 
+  if (image === "wall-blind-left" || image === "wall-blind-right") {
+    return renderBlindCabinetElevationFront({
+      cabinet,
+      image,
+      innerX,
+      innerY,
+      innerWidth,
+      innerHeight,
+      innerStroke,
+      handleStroke,
+      handleHeight,
+    });
+  }
+
+  if (image === "wall-one-door" || image === "pantry-one-door") {
+    const panelInsetX = Math.max(4, innerWidth * 0.06);
+    const panelInsetY = Math.max(4, innerHeight * 0.06);
+    const panelX = innerX + panelInsetX;
+    const panelY = innerY + panelInsetY;
+    const panelWidth = Math.max(0, innerWidth - panelInsetX * 2);
+    const panelHeight = Math.max(0, innerHeight - panelInsetY * 2);
+    const singleDoorHandleX = x + width - Math.max(10, width * 0.16);
+
+    return (
+      <g>
+        <rect
+          x={panelX}
+          y={panelY}
+          width={panelWidth}
+          height={panelHeight}
+          fill={panelFill}
+          stroke={innerStroke}
+          strokeWidth={panelStrokeWidth}
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={singleDoorHandleX}
+          y1={handleTop}
+          x2={singleDoorHandleX}
+          y2={handleTop + handleHeight}
+          stroke={handleStroke}
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </g>
+    );
+  }
+
   if (image === "wall-microwave-one-door") {
     const topSectionHeight = innerHeight * 0.34;
     const { dividerY, topSection } = renderSingleDoorTopSection(topSectionHeight);
@@ -7660,6 +9064,26 @@ function ElevationWallCabinetDetails({
 
   return (
     <g>
+      <rect
+        x={innerX}
+        y={innerY}
+        width={Math.max(0, innerWidth / 2 - panelGap / 2)}
+        height={innerHeight}
+        fill={panelFill}
+        stroke={innerStroke}
+        strokeWidth={panelStrokeWidth}
+        vectorEffect="non-scaling-stroke"
+      />
+      <rect
+        x={innerX + innerWidth / 2 + panelGap / 2}
+        y={innerY}
+        width={Math.max(0, innerWidth / 2 - panelGap / 2)}
+        height={innerHeight}
+        fill={panelFill}
+        stroke={innerStroke}
+        strokeWidth={panelStrokeWidth}
+        vectorEffect="non-scaling-stroke"
+      />
       <line
         x1={x + width / 2}
         y1={innerY}
@@ -7765,6 +9189,7 @@ function ElevationSinkFixture({
 }
 
 function ElevationBaseCabinetDetails({
+  cabinet,
   image,
   x,
   y,
@@ -7781,6 +9206,7 @@ function ElevationBaseCabinetDetails({
   handleHeight,
   singleHandleX,
 }: {
+  cabinet?: CabinetElement;
   image: CabinetImage;
   x: number;
   y: number;
@@ -7804,6 +9230,147 @@ function ElevationBaseCabinetDetails({
   const drawerHandleWidth = Math.max(12, Math.min(34, width * 0.26));
   const drawerHandleX1 = x + width / 2 - drawerHandleWidth / 2;
   const drawerHandleX2 = x + width / 2 + drawerHandleWidth / 2;
+  const panelFill = "#fafaf7";
+  const panelStrokeWidth = 1.5;
+  const panelGap = Math.max(2, Math.min(6, innerWidth * 0.04));
+
+  const renderDoubleDoorLowerSection = (topY: number, lowerHeight: number) => {
+    const leftPanelWidth = Math.max(0, innerWidth / 2 - panelGap / 2);
+    const rightPanelX = innerX + innerWidth / 2 + panelGap / 2;
+    return (
+      <>
+        <rect
+          x={innerX}
+          y={topY}
+          width={leftPanelWidth}
+          height={lowerHeight}
+          fill={panelFill}
+          stroke={innerStroke}
+          strokeWidth={panelStrokeWidth}
+          vectorEffect="non-scaling-stroke"
+        />
+        <rect
+          x={rightPanelX}
+          y={topY}
+          width={leftPanelWidth}
+          height={lowerHeight}
+          fill={panelFill}
+          stroke={innerStroke}
+          strokeWidth={panelStrokeWidth}
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={doorDividerX}
+          y1={topY}
+          x2={doorDividerX}
+          y2={topY + lowerHeight}
+          stroke={innerStroke}
+          strokeWidth="1.35"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={leftHandleX}
+          y1={topY + lowerHeight * 0.3}
+          x2={leftHandleX}
+          y2={topY + lowerHeight * 0.3 + Math.min(handleHeight, lowerHeight * 0.42)}
+          stroke={handleStroke}
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={rightHandleX}
+          y1={topY + lowerHeight * 0.3}
+          x2={rightHandleX}
+          y2={topY + lowerHeight * 0.3 + Math.min(handleHeight, lowerHeight * 0.42)}
+          stroke={handleStroke}
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </>
+    );
+  };
+
+  const renderSinkBaseFront = (variant: "standard" | "farm") => {
+    const topSectionHeight = innerHeight * 0.24;
+    const lowerTop = innerY + topSectionHeight;
+    const lowerHeight = innerHeight - topSectionHeight;
+    const apronInsetX = Math.max(4, innerWidth * 0.09);
+    const apronX = innerX + apronInsetX;
+    const apronWidth = innerWidth - apronInsetX * 2;
+    const apronHeight = Math.max(0, topSectionHeight * 0.86);
+    const apronY = innerY + Math.max(1.5, topSectionHeight * 0.06);
+
+    return (
+      <g>
+        {variant === "farm" ? (
+          <path
+            d={`M ${apronX} ${apronY} L ${apronX + apronWidth} ${apronY} L ${apronX + apronWidth} ${apronY + apronHeight * 0.72} Q ${innerX + innerWidth / 2} ${apronY + apronHeight} ${apronX} ${apronY + apronHeight * 0.72} Z`}
+            fill="#f8fafc"
+            stroke={innerStroke}
+            strokeWidth={panelStrokeWidth}
+            vectorEffect="non-scaling-stroke"
+          />
+        ) : (
+          <rect
+            x={innerX}
+            y={innerY}
+            width={innerWidth}
+            height={topSectionHeight}
+            fill={panelFill}
+            stroke={innerStroke}
+            strokeWidth={panelStrokeWidth}
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
+        {renderDoubleDoorLowerSection(lowerTop, lowerHeight)}
+      </g>
+    );
+  };
+
+  const renderFullHeightSingleFront = (showBins = false) => (
+    <g>
+      <rect
+        x={innerX}
+        y={innerY}
+        width={innerWidth}
+        height={innerHeight}
+        fill={panelFill}
+        stroke={innerStroke}
+        strokeWidth={panelStrokeWidth}
+        vectorEffect="non-scaling-stroke"
+      />
+      {showBins && (
+        <>
+          {[0.3, 0.7].map((ratio) => (
+            <rect
+              key={`trash-bin-${ratio}`}
+              x={innerX + innerWidth * (ratio - 0.14)}
+              y={innerY + innerHeight * 0.26}
+              width={innerWidth * 0.22}
+              height={innerHeight * 0.34}
+              rx="2"
+              fill="none"
+              stroke={innerStroke}
+              strokeWidth="1"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </>
+      )}
+      <line
+        x1={singleHandleX}
+        y1={handleTop}
+        x2={singleHandleX}
+        y2={handleTop + handleHeight}
+        stroke={handleStroke}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </g>
+  );
 
   if (image === "base-corner") {
     const returnSectionWidth = Math.max(12, Math.min(innerWidth * 0.24, 26));
@@ -7910,36 +9477,41 @@ function ElevationBaseCabinetDetails({
   if (image === "base-drawer") {
     return (
       <g>
-        {[1, 2].map((index) => (
-          <line
-            key={`elev-drawer-${index}`}
-            x1={innerX}
-            y1={innerY + (innerHeight * index) / 3}
-            x2={innerX + innerWidth}
-            y2={innerY + (innerHeight * index) / 3}
-            stroke={innerStroke}
-            strokeWidth="1.3"
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
-        {[0, 1, 2].map((index) => {
+        {Array.from({ length: 3 }, (_, index) => {
+          const drawerY = innerY + (innerHeight * index) / 3;
+          const drawerHeight = innerHeight / 3;
           const centerY = innerY + (innerHeight * (index + 0.5)) / 3;
           return (
-            <line
-              key={`elev-drawer-pull-${index}`}
-              x1={drawerHandleX1}
-              y1={centerY}
-              x2={drawerHandleX2}
-              y2={centerY}
-              stroke={handleStroke}
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-            />
+            <g key={`elev-drawer-${index}`}>
+              <rect
+                x={innerX}
+                y={drawerY}
+                width={innerWidth}
+                height={drawerHeight}
+                fill={panelFill}
+                stroke={innerStroke}
+                strokeWidth={panelStrokeWidth}
+                vectorEffect="non-scaling-stroke"
+              />
+              <line
+                x1={drawerHandleX1}
+                y1={centerY}
+                x2={drawerHandleX2}
+                y2={centerY}
+                stroke={handleStroke}
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            </g>
           );
         })}
       </g>
     );
+  }
+
+  if (image === "base-sink-cabinet" || image === "base-farm-sink-cabinet") {
+    return renderSinkBaseFront(image === "base-farm-sink-cabinet" ? "farm" : "standard");
   }
 
 
@@ -8025,25 +9597,81 @@ function ElevationBaseCabinetDetails({
     );
   }
 
-  if (image === "base-oven-bottom-drawer") {
-    const controlBottom = innerY + innerHeight * 0.22;
-    const drawerTop = innerY + innerHeight * 0.82;
-    const ovenX = innerX + innerWidth * 0.12;
-    const ovenY = controlBottom + innerHeight * 0.04;
-    const ovenWidth = innerWidth * 0.76;
-    const ovenHeight = Math.max(0, drawerTop - ovenY - innerHeight * 0.05);
+  if (image === "base-oven-bottom-drawer" || image === "base-microwave-bottom-drawer") {
+    const {
+      totalHeightInches,
+      bottomDrawerHeightInches,
+      productHeightInches,
+      fillerHeightInches,
+    } = getOvenCabinetHeightSegments(cabinet ?? { heightInches: 36 });
+    const fillerHeight = totalHeightInches > 0 ? (fillerHeightInches / totalHeightInches) * innerHeight : 0;
+    const drawerHeight = totalHeightInches > 0 ? (bottomDrawerHeightInches / totalHeightInches) * innerHeight : 0;
+    const productHeight = Math.max(0, innerHeight - fillerHeight - drawerHeight);
+    const fillerBottom = innerY + fillerHeight;
+    const productY = fillerBottom;
+    const drawerTop = innerY + innerHeight - drawerHeight;
+    const productX = innerX;
+    const productWidth = innerWidth;
+    const productInnerX = productX + productWidth * 0.12;
     const drawerHandleWidth = Math.max(10, Math.min(28, innerWidth * 0.28));
+    const productLayout =
+      cabinet?.ovenCabinetProductLayout ??
+      getDefaultBottomDrawerProductLayout(image) ??
+      "none";
+
+    const renderSingleOven = (ovenY: number, ovenHeight: number, key: string) => (
+      <g key={key}>
+        <rect x={productX} y={ovenY} width={productWidth} height={ovenHeight} rx={Math.max(2, Math.min(6, width * 0.03))} fill="#d1d5db" stroke={innerStroke} strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
+        <rect x={productInnerX} y={ovenY + ovenHeight * 0.16} width={productWidth * 0.76} height={ovenHeight * 0.6} rx={Math.max(2, Math.min(5, height * 0.02))} fill="#eceff3" stroke="#9ca3af" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        <line x1={productX + productWidth * 0.22} y1={ovenY + ovenHeight * 0.08} x2={productX + productWidth * 0.78} y2={ovenY + ovenHeight * 0.08} stroke="#6b7280" strokeWidth="1.4" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </g>
+    );
+
+    const renderMicrowave = (microwaveY: number, microwaveHeight: number) => (
+      <g>
+        <rect x={productX} y={microwaveY} width={productWidth} height={microwaveHeight} rx="2" fill="#d1d5db" stroke={innerStroke} strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
+        <rect x={productX + productWidth * 0.08} y={microwaveY + microwaveHeight * 0.18} width={productWidth * 0.54} height={microwaveHeight * 0.46} rx="2" fill="#94a3b8" opacity="0.55" stroke="#64748b" strokeWidth="0.9" vectorEffect="non-scaling-stroke" />
+        <rect x={productX + productWidth * 0.68} y={microwaveY + microwaveHeight * 0.12} width={productWidth * 0.18} height={microwaveHeight * 0.62} rx="2" fill="#f8fafc" stroke="#94a3b8" strokeWidth="0.8" vectorEffect="non-scaling-stroke" />
+      </g>
+    );
+
     return (
       <g>
-        <line x1={innerX} y1={controlBottom} x2={innerX + innerWidth} y2={controlBottom} stroke={innerStroke} strokeWidth="1.3" vectorEffect="non-scaling-stroke" />
-        <line x1={innerX} y1={drawerTop} x2={innerX + innerWidth} y2={drawerTop} stroke={innerStroke} strokeWidth="1.3" vectorEffect="non-scaling-stroke" />
-        <rect x={innerX + innerWidth * 0.16} y={innerY + innerHeight * 0.08} width={innerWidth * 0.68} height={innerHeight * 0.08} rx="2" fill="#d1d5db" stroke={innerStroke} strokeWidth="1" vectorEffect="non-scaling-stroke" />
-        <circle cx={innerX + innerWidth * 0.32} cy={innerY + innerHeight * 0.12} r={Math.max(1.4, Math.min(2.4, innerWidth * 0.03))} fill={handleStroke} />
-        <circle cx={innerX + innerWidth * 0.68} cy={innerY + innerHeight * 0.12} r={Math.max(1.4, Math.min(2.4, innerWidth * 0.03))} fill={handleStroke} />
-        <rect x={ovenX} y={ovenY} width={ovenWidth} height={ovenHeight} rx={Math.max(2, Math.min(6, width * 0.03))} fill="#d1d5db" stroke={innerStroke} strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
-        <rect x={ovenX + ovenWidth * 0.12} y={ovenY + ovenHeight * 0.16} width={ovenWidth * 0.76} height={ovenHeight * 0.6} rx={Math.max(2, Math.min(5, height * 0.02))} fill="#eceff3" stroke="#9ca3af" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-        <line x1={ovenX + ovenWidth * 0.22} y1={ovenY + ovenHeight * 0.08} x2={ovenX + ovenWidth * 0.78} y2={ovenY + ovenHeight * 0.08} stroke="#6b7280" strokeWidth="1.4" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-        <line x1={x + width / 2 - drawerHandleWidth / 2} y1={drawerTop + (innerY + innerHeight - drawerTop) * 0.5} x2={x + width / 2 + drawerHandleWidth / 2} y2={drawerTop + (innerY + innerHeight - drawerTop) * 0.5} stroke={handleStroke} strokeWidth="1.55" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        {fillerHeight > 0 && (
+          <rect x={innerX} y={innerY} width={innerWidth} height={fillerHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+        )}
+        {productHeight > 0 && productLayout === "none" && (
+          <rect
+            x={productX}
+            y={productY}
+            width={productWidth}
+            height={productHeight}
+            fill="#111827"
+            stroke={innerStroke}
+            strokeWidth="1.2"
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
+        {productHeight > 0 && productLayout === "single-oven" && renderSingleOven(productY, productHeight, "single-oven")}
+        {productHeight > 0 && productLayout === "double-oven" && (
+          <>
+            {renderSingleOven(productY, productHeight / 2 - 1, "double-oven-top")}
+            {renderSingleOven(productY + productHeight / 2 + 1, productHeight / 2 - 1, "double-oven-bottom")}
+          </>
+        )}
+        {productHeight > 0 && productLayout === "single-microwave" && renderMicrowave(productY, productHeight)}
+        {productHeight > 0 && productLayout === "microwave-oven" && (() => {
+          const microwaveHeight = Math.min(productHeight * 0.42, productHeight * 0.48);
+          const ovenHeight = Math.max(productHeight - microwaveHeight - 2, productHeight * 0.5);
+          return (
+            <>
+              {renderMicrowave(productY, microwaveHeight)}
+              {renderSingleOven(productY + microwaveHeight + 2, ovenHeight, "microwave-oven-bottom")}
+            </>
+          );
+        })()}
+        <rect x={innerX} y={drawerTop} width={innerWidth} height={drawerHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+        <line x1={x + width / 2 - drawerHandleWidth / 2} y1={drawerTop + drawerHeight * 0.5} x2={x + width / 2 + drawerHandleWidth / 2} y2={drawerTop + drawerHeight * 0.5} stroke={handleStroke} strokeWidth="1.55" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       </g>
     );
   }
@@ -8057,20 +9685,34 @@ function ElevationBaseCabinetDetails({
     const drawerHandleWidthLocal = Math.max(8, Math.min(24, innerWidth * 0.2));
     const doorTop = drawerBottom;
     const doorHeight = innerY + innerHeight - doorTop;
+    const leftPanelWidth = Math.max(0, innerWidth / 2 - panelGap / 2);
+    const rightPanelX = innerX + innerWidth / 2 + panelGap / 2;
 
     return (
       <g>
-        <line x1={innerX} y1={drawerBottom} x2={innerX + innerWidth} y2={drawerBottom} stroke={innerStroke} strokeWidth="1.3" vectorEffect="non-scaling-stroke" />
-        {hasTwoDrawers && (
-          <line x1={drawerMidX} y1={innerY} x2={drawerMidX} y2={drawerBottom} stroke={innerStroke} strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
+        {hasTwoDrawers ? (
+          <>
+            <rect x={innerX} y={innerY} width={innerWidth / 2} height={drawerBottom - innerY} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+            <rect x={drawerMidX} y={innerY} width={innerWidth / 2} height={drawerBottom - innerY} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+          </>
+        ) : (
+          <rect x={innerX} y={innerY} width={innerWidth} height={drawerBottom - innerY} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
         )}
         {hasTwoDrawers ? (
           <>
-            <circle cx={innerX + innerWidth * 0.25} cy={drawerHandleY} r={Math.max(1.4, Math.min(2.8, width * 0.018))} fill={handleStroke} />
-            <circle cx={innerX + innerWidth * 0.75} cy={drawerHandleY} r={Math.max(1.4, Math.min(2.8, width * 0.018))} fill={handleStroke} />
+            <line x1={innerX + innerWidth * 0.15} y1={drawerHandleY} x2={innerX + innerWidth * 0.35} y2={drawerHandleY} stroke={handleStroke} strokeWidth="1.45" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+            <line x1={innerX + innerWidth * 0.65} y1={drawerHandleY} x2={innerX + innerWidth * 0.85} y2={drawerHandleY} stroke={handleStroke} strokeWidth="1.45" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
           </>
         ) : (
           <line x1={x + width / 2 - drawerHandleWidthLocal / 2} y1={drawerHandleY} x2={x + width / 2 + drawerHandleWidthLocal / 2} y2={drawerHandleY} stroke={handleStroke} strokeWidth="1.45" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        )}
+        {isSingleDoor ? (
+          <rect x={innerX} y={doorTop} width={innerWidth} height={doorHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+        ) : (
+          <>
+            <rect x={innerX} y={doorTop} width={leftPanelWidth} height={doorHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+            <rect x={rightPanelX} y={doorTop} width={leftPanelWidth} height={doorHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+          </>
         )}
         {!isSingleDoor && (
           <line x1={doorDividerX} y1={doorTop} x2={doorDividerX} y2={doorTop + doorHeight} stroke={innerStroke} strokeWidth="1.35" vectorEffect="non-scaling-stroke" />
@@ -8091,190 +9733,91 @@ function ElevationBaseCabinetDetails({
     const drawerCount = image === "base-two-drawer" ? 2 : 4;
     return (
       <g>
-        {Array.from({ length: drawerCount - 1 }, (_, index) => (
-          <line
-            key={`elev-new-drawer-divider-${index}`}
-            x1={innerX}
-            y1={innerY + (innerHeight * (index + 1)) / drawerCount}
-            x2={innerX + innerWidth}
-            y2={innerY + (innerHeight * (index + 1)) / drawerCount}
-            stroke={innerStroke}
-            strokeWidth="1.3"
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
         {Array.from({ length: drawerCount }, (_, index) => {
+          const drawerY = innerY + (innerHeight * index) / drawerCount;
+          const drawerHeight = innerHeight / drawerCount;
           const centerY = innerY + (innerHeight * (index + 0.5)) / drawerCount;
           const localHandleWidth = Math.max(10, Math.min(28, innerWidth * 0.32));
           return (
-            <line
-              key={`elev-new-drawer-pull-${index}`}
-              x1={x + width / 2 - localHandleWidth / 2}
-              y1={centerY}
-              x2={x + width / 2 + localHandleWidth / 2}
-              y2={centerY}
-              stroke={handleStroke}
-              strokeWidth="1.55"
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-            />
+            <g key={`elev-new-drawer-pull-${index}`}>
+              <rect
+                x={innerX}
+                y={drawerY}
+                width={innerWidth}
+                height={drawerHeight}
+                fill={panelFill}
+                stroke={innerStroke}
+                strokeWidth={panelStrokeWidth}
+                vectorEffect="non-scaling-stroke"
+              />
+              <line
+                x1={x + width / 2 - localHandleWidth / 2}
+                y1={centerY}
+                x2={x + width / 2 + localHandleWidth / 2}
+                y2={centerY}
+                stroke={handleStroke}
+                strokeWidth="1.55"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            </g>
           );
         })}
       </g>
     );
   }
 
-  if (image === "base-blind-left-one-drawer") {
-    const blindWidth = innerWidth * 0.42;
-    const rightX = innerX + blindWidth;
-    const rightWidth = innerWidth - blindWidth;
-    const drawerBottom = innerY + innerHeight * 0.24;
-    const rightHandleX = rightX + rightWidth - Math.max(7, rightWidth * 0.16);
-
-    return (
-      <g>
-        <rect x={innerX} y={innerY} width={blindWidth} height={innerHeight} fill="#111827" stroke={innerStroke} strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
-        {[1 / 3, 2 / 3].map((ratio) => (
-          <line key={`blind-one-drawer-shelf-${ratio}`} x1={innerX + Math.max(2, blindWidth * 0.08)} y1={innerY + innerHeight * ratio} x2={innerX + blindWidth - Math.max(2, blindWidth * 0.08)} y2={innerY + innerHeight * ratio} stroke="#f9fafb" strokeWidth="1.15" strokeLinecap="round" opacity="0.78" vectorEffect="non-scaling-stroke" />
-        ))}
-        <line x1={rightX} y1={innerY} x2={rightX} y2={innerY + innerHeight} stroke={innerStroke} strokeWidth="1.3" vectorEffect="non-scaling-stroke" />
-        <line x1={rightX} y1={drawerBottom} x2={innerX + innerWidth} y2={drawerBottom} stroke={innerStroke} strokeWidth="1.3" vectorEffect="non-scaling-stroke" />
-        <circle cx={rightX + rightWidth / 2} cy={innerY + innerHeight * 0.12} r={Math.max(1.4, Math.min(2.8, width * 0.018))} fill={handleStroke} />
-        <line x1={rightHandleX} y1={drawerBottom + (innerY + innerHeight - drawerBottom) * 0.28} x2={rightHandleX} y2={drawerBottom + (innerY + innerHeight - drawerBottom) * 0.28 + Math.min(handleHeight, (innerY + innerHeight - drawerBottom) * 0.42)} stroke={handleStroke} strokeWidth="1.6" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      </g>
-    );
+  if (image === "base-spice-rack") {
+    return renderFullHeightSingleFront(false);
   }
 
-  if (image === "base-blind-right-one-drawer") {
-    const blindWidth = innerWidth * 0.42;
-    const leftWidth = innerWidth - blindWidth;
-    const blindX = innerX + leftWidth;
-    const drawerBottom = innerY + innerHeight * 0.24;
-    const leftHandleX = innerX + Math.max(7, leftWidth * 0.16);
-
-    return (
-      <g>
-        <rect
-          x={blindX}
-          y={innerY}
-          width={blindWidth}
-          height={innerHeight}
-          fill="#111827"
-          stroke={innerStroke}
-          strokeWidth="1.2"
-          vectorEffect="non-scaling-stroke"
-        />
-        {[1 / 3, 2 / 3].map((ratio) => (
-          <line
-            key={`blind-right-one-drawer-shelf-${ratio}`}
-            x1={blindX + Math.max(2, blindWidth * 0.08)}
-            y1={innerY + innerHeight * ratio}
-            x2={blindX + blindWidth - Math.max(2, blindWidth * 0.08)}
-            y2={innerY + innerHeight * ratio}
-            stroke="#f9fafb"
-            strokeWidth="1.15"
-            strokeLinecap="round"
-            opacity="0.78"
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
-        <line
-          x1={blindX}
-          y1={innerY}
-          x2={blindX}
-          y2={innerY + innerHeight}
-          stroke={innerStroke}
-          strokeWidth="1.3"
-          vectorEffect="non-scaling-stroke"
-        />
-        <line
-          x1={innerX}
-          y1={drawerBottom}
-          x2={blindX}
-          y2={drawerBottom}
-          stroke={innerStroke}
-          strokeWidth="1.3"
-          vectorEffect="non-scaling-stroke"
-        />
-        <circle
-          cx={innerX + leftWidth / 2}
-          cy={innerY + innerHeight * 0.12}
-          r={Math.max(1.4, Math.min(2.8, width * 0.018))}
-          fill={handleStroke}
-        />
-        <line
-          x1={leftHandleX}
-          y1={drawerBottom + (innerY + innerHeight - drawerBottom) * 0.28}
-          x2={leftHandleX}
-          y2={drawerBottom + (innerY + innerHeight - drawerBottom) * 0.28 + Math.min(handleHeight, (innerY + innerHeight - drawerBottom) * 0.42)}
-          stroke={handleStroke}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      </g>
-    );
+  if (image === "base-trash-can") {
+    return renderFullHeightSingleFront(true);
   }
 
-  if (image === "base-blind-left") {
-    const blindWidth = innerWidth * 0.42;
-    const doorX = innerX + blindWidth;
-    const doorWidth = innerWidth - blindWidth;
-    const doorHandleX = doorX + doorWidth - Math.max(7, doorWidth * 0.16);
+  if (
+    image === "base-blind-left-one-drawer" ||
+    image === "base-blind-right-one-drawer" ||
+    image === "base-blind-left" ||
+    image === "base-blind-right"
+  ) {
+    return renderBlindCabinetElevationFront({
+      cabinet,
+      image,
+      innerX,
+      innerY,
+      innerWidth,
+      innerHeight,
+      innerStroke,
+      handleStroke,
+      handleHeight,
+    });
+  }
 
+  if (image === "base" || image === "pantry-two-door") {
+    const panelWidth = Math.max(0, innerWidth / 2 - panelGap / 2);
     return (
       <g>
         <rect
           x={innerX}
           y={innerY}
-          width={blindWidth}
+          width={panelWidth}
           height={innerHeight}
-          fill="#111827"
+          fill={panelFill}
           stroke={innerStroke}
-          strokeWidth="1.2"
+          strokeWidth={panelStrokeWidth}
           vectorEffect="non-scaling-stroke"
         />
-        {[1 / 3, 2 / 3].map((ratio) => (
-          <line
-            key={`blind-tier-divider-${ratio}`}
-            x1={innerX + Math.max(2, blindWidth * 0.08)}
-            y1={innerY + innerHeight * ratio}
-            x2={innerX + blindWidth - Math.max(2, blindWidth * 0.08)}
-            y2={innerY + innerHeight * ratio}
-            stroke="#f9fafb"
-            strokeWidth="1.15"
-            strokeLinecap="round"
-            opacity="0.78"
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
         <rect
-          x={doorX}
+          x={innerX + innerWidth / 2 + panelGap / 2}
           y={innerY}
-          width={doorWidth}
+          width={panelWidth}
           height={innerHeight}
-          fill="none"
+          fill={panelFill}
           stroke={innerStroke}
-          strokeWidth="1.2"
+          strokeWidth={panelStrokeWidth}
           vectorEffect="non-scaling-stroke"
         />
-        <line
-          x1={doorHandleX}
-          y1={handleTop}
-          x2={doorHandleX}
-          y2={handleTop + handleHeight}
-          stroke={handleStroke}
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      </g>
-    );
-  }
-
-  if (image === "base") {
-    return (
-      <g>
         <line x1={doorDividerX} y1={innerY} x2={doorDividerX} y2={innerY + innerHeight} stroke={innerStroke} strokeWidth="1.4" vectorEffect="non-scaling-stroke" />
         <line x1={leftHandleX} y1={handleTop} x2={leftHandleX} y2={handleTop + handleHeight} stroke={handleStroke} strokeWidth="1.6" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
         <line x1={rightHandleX} y1={handleTop} x2={rightHandleX} y2={handleTop + handleHeight} stroke={handleStroke} strokeWidth="1.6" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
@@ -8283,7 +9826,87 @@ function ElevationBaseCabinetDetails({
   }
 
   return (
-    <line x1={singleHandleX} y1={handleTop} x2={singleHandleX} y2={handleTop + handleHeight} stroke={handleStroke} strokeWidth="1.6" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    <g>
+      <rect
+        x={innerX}
+        y={innerY}
+        width={innerWidth}
+        height={innerHeight}
+        fill={panelFill}
+        stroke={innerStroke}
+        strokeWidth={panelStrokeWidth}
+        vectorEffect="non-scaling-stroke"
+      />
+      <line x1={singleHandleX} y1={handleTop} x2={singleHandleX} y2={handleTop + handleHeight} stroke={handleStroke} strokeWidth="1.6" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </g>
+  );
+}
+
+function renderBlindCabinetElevationFront(params: {
+  cabinet?: CabinetElement;
+  image: CabinetImage;
+  innerX: number;
+  innerY: number;
+  innerWidth: number;
+  innerHeight: number;
+  innerStroke: string;
+  handleStroke: string;
+  handleHeight: number;
+}) {
+  const {
+    cabinet,
+    image,
+    innerX,
+    innerY,
+    innerWidth,
+    innerHeight,
+    innerStroke,
+    handleStroke,
+    handleHeight,
+  } = params;
+  const panelFill = "#fafaf7";
+  const panelStrokeWidth = 1.5;
+  const widthScale = innerWidth / Math.max(1, cabinet?.width ? pixelsToInches(cabinet.width) : innerWidth);
+  const blindWidths = cabinet
+    ? getBlindCabinetWidthSegments(cabinet)
+    : {
+        widthInches: innerWidth,
+        doorWidthInches: innerWidth * 0.36,
+        fillerWidthInches: 3,
+        blindWidthInches: innerWidth * 0.64,
+        side: getBlindCabinetSide(image),
+      };
+  const side = blindWidths.side ?? "left";
+  const doorWidth = blindWidths.doorWidthInches * widthScale;
+  const fillerWidth = blindWidths.fillerWidthInches * widthScale;
+  const blindWidth = Math.max(0, innerWidth - doorWidth - fillerWidth);
+
+  if (side === "right") {
+    const doorX = innerX;
+    const fillerX = doorX + doorWidth;
+    const blindX = fillerX + fillerWidth;
+    const doorHandleX = doorX + Math.max(7, doorWidth * 0.16);
+    return (
+      <g>
+        <rect x={blindX} y={innerY} width={blindWidth} height={innerHeight} fill="#111827" stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+        <rect x={fillerX} y={innerY} width={fillerWidth} height={innerHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+        <rect x={doorX} y={innerY} width={doorWidth} height={innerHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+        <line x1={doorHandleX} y1={innerY + innerHeight * 0.28} x2={doorHandleX} y2={innerY + innerHeight * 0.28 + Math.min(handleHeight, innerHeight * 0.42)} stroke={handleStroke} strokeWidth="1.6" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </g>
+    );
+  }
+
+  const blindX = innerX;
+  const fillerX = blindX + blindWidth;
+  const doorX = fillerX + fillerWidth;
+  const doorHandleX = doorX + doorWidth - Math.max(7, doorWidth * 0.16);
+  return (
+    <g>
+      <rect x={blindX} y={innerY} width={blindWidth} height={innerHeight} fill="#111827" stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+      <rect x={fillerX} y={innerY} width={fillerWidth} height={innerHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+      <rect x={doorX} y={innerY} width={doorWidth} height={innerHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
+      <line x1={doorHandleX} y1={innerY + innerHeight * 0.28} x2={doorHandleX} y2={innerY + innerHeight * 0.28 + Math.min(handleHeight, innerHeight * 0.42)} stroke={handleStroke} strokeWidth="1.6" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </g>
   );
 }
 
@@ -8490,7 +10113,7 @@ function getCabinetElevationPlacementsForWall(
         (candidate) =>
           candidate.wall.id === wall.id && candidate.wallFace === projectedFace
       ) ?? null;
-      const supportedWall = category === "wall"
+      const supportedWall = isElevationFloatingCabinet(cabinetItem)
         ? getWallCabinetSupportedWall(cabinetItem, cabinets, allWalls, cabinetItem.id)
         : null;
 
@@ -9096,7 +10719,7 @@ function resolveCabinetElevationMoveStartSamePath(
 
   // If the pointer moves through an occupied same-depth range, place the moving
   // cabinet on the side of that obstacle indicated by the pointer center. This
-  // lets users move a tall cabinet from the right side of a base cabinet to the
+  // lets users move a pantry cabinet from the right side of a base cabinet to the
   // left side without overlap and without dragging the base cabinet along.
   const requestedCenter = requestedStartInches + movingWidthInches / 2;
   for (let iteration = 0; iteration < samePathObstacles.length + 2; iteration += 1) {
@@ -9143,7 +10766,7 @@ function getCabinetElevationCategory(cabinetItem: CabinetElement): CabinetCatego
 function getCabinetFloorVisualLayerPriority(cabinetItem: Pick<CabinetElement, "category" | "width" | "depth">): number {
   const category = getCabinetElevationCategory(cabinetItem as CabinetElement);
   if (category === "wall") return 30;
-  if (category === "tall") return 20;
+  if (category === "pantry") return 20;
   return 10;
 }
 
@@ -9161,29 +10784,41 @@ function getCabinetElevationSpec(cabinetItem: CabinetElement, category: CabinetC
   // This is the cabinet BODY size only. Accessories like the front-control
   // cooktop are drawn as an add-on block above the cabinet body, so editing
   // cooktopFrontHeightInches never changes/stretches the cabinet itself.
+  const supportType = getCabinetSupportType(cabinetItem);
+  const defaultHeightInches =
+    category === "pantry" ? 84 : category === "wall" ? 30 : 36;
+  const heightInches = cabinetItem.heightInches ?? defaultHeightInches;
+
+  if (supportType === "floor-supported") {
+    return {
+      heightInches,
+      distanceFromFloorInches: 0,
+    };
+  }
+
   if (cabinetItem.heightInches !== undefined || cabinetItem.distanceFromFloorInches !== undefined) {
     return {
-      heightInches: cabinetItem.heightInches ?? (category === "wall" ? 30 : 36),
+      heightInches,
       distanceFromFloorInches: cabinetItem.distanceFromFloorInches ?? (category === "wall" ? 54 : 0),
     };
   }
 
-  if (category === "tall") {
+  if (category === "pantry") {
     return {
-      heightInches: 84,
+      heightInches,
       distanceFromFloorInches: 0,
     };
   }
 
   if (category === "wall") {
     return {
-      heightInches: 30,
+      heightInches,
       distanceFromFloorInches: 54,
     };
   }
 
   return {
-    heightInches: 36,
+    heightInches,
     distanceFromFloorInches: 0,
   };
 }
@@ -9222,15 +10857,8 @@ type ElevationCornerReservation = {
 };
 
 function getCabinetDisplayTitle(cabinetItem: CabinetElement) {
-  const catalogMatch = cabinetItem.catalogId
-    ? CABINET_CATALOG.find((catalogItem) => catalogItem.id === cabinetItem.catalogId)
-    : null;
+  const catalogMatch = getCabinetCatalogItemByIdentity(cabinetItem);
   if (catalogMatch?.title) return catalogMatch.title;
-
-  const imageMatch = cabinetItem.image
-    ? CABINET_CATALOG.find((catalogItem) => catalogItem.image === cabinetItem.image)
-    : null;
-  if (imageMatch?.title) return imageMatch.title;
 
   if (cabinetItem.image) {
     return cabinetItem.image
@@ -9240,7 +10868,7 @@ function getCabinetDisplayTitle(cabinetItem: CabinetElement) {
   }
 
   const category = getCabinetElevationCategory(cabinetItem);
-  return category === "wall" ? "Wall cabinet" : "Base cabinet";
+  return category === "wall" ? "Wall cabinet" : category === "pantry" ? "Pantry cabinet" : "Base cabinet";
 }
 
 function isLShapedCornerCabinet(cabinetItem: Partial<Pick<CabinetElement, "image" | "category">>) {
@@ -9891,6 +11519,7 @@ function ElevationPlanView({
   const calculationWalls = allWalls ?? walls;
   const elevationStructureWalls = calculationWalls.filter((candidateWall) => !isDetachedPanelWall(candidateWall));
   const wall = walls[activeIndex] ?? walls[0];
+  const currentElevationViewMode = getWallElevationViewMode(wall);
   const isPeninElevationWall = isDetachedPanelWall(wall);
   const peninElevationSegment = isPeninElevationWall
     ? getPeninWallVisibleSegment(wall, elevationStructureWalls)
@@ -10645,7 +12274,7 @@ function ElevationPlanView({
     };
 
     let startInches = resolveWallEdgeBoundedValue(desiredStartInches, maxStartInches);
-    let distanceFromFloorInches = category === "wall"
+    let distanceFromFloorInches = isElevationFloatingCabinet({ category, widthInches: widthInches })
       ? resolveWallEdgeBoundedValue(desiredDistanceFromFloorInches, maxDistanceFromFloorInches)
       : 0;
 
@@ -10777,7 +12406,7 @@ function ElevationPlanView({
       startInches = clamp(horizontalSnap.startInches, 0, Math.max(0, wallLengthInches - widthInches));
     }
 
-    if (category === "wall") {
+    if (isElevationFloatingCabinet({ category, widthInches: widthInches })) {
       let bestVerticalSnap: { bottomInches: number; distance: number; message?: string } | null = null;
 
       otherObstacleBoxes.forEach((other) => {
@@ -10827,7 +12456,7 @@ function ElevationPlanView({
         message?: string;
       };
 
-      const verticalResolutionCandidates: ElevationResolutionCandidate[] = category === "wall"
+      const verticalResolutionCandidates: ElevationResolutionCandidate[] = isElevationFloatingCabinet({ category, widthInches: widthInches })
         ? otherObstacleBoxes.reduce<ElevationResolutionCandidate[]>((candidates, other) => {
             if (getHorizontalOverlap(startInches, other) <= minUsefulOverlapInches) return candidates;
             candidates.push(
@@ -10887,7 +12516,7 @@ function ElevationPlanView({
       if (resolutionCandidate) {
         return {
           startInches: clamp(resolutionCandidate.startInches, 0, Math.max(0, wallLengthInches - widthInches)),
-          distanceFromFloorInches: category === "wall"
+          distanceFromFloorInches: isElevationFloatingCabinet({ category, widthInches: widthInches })
             ? clamp(resolutionCandidate.distanceFromFloorInches, 0, Math.max(0, wallHeightInches - heightInches))
             : 0,
         };
@@ -10977,7 +12606,7 @@ function ElevationPlanView({
       });
     });
 
-    if (category === "wall") {
+    if (isElevationFloatingCabinet({ category, widthInches: widthInches })) {
       const yCandidates = [
         {
           value: top,
@@ -11203,7 +12832,7 @@ function ElevationPlanView({
       desiredDisplayStartInches - dragState.depthVisualOffsetInches,
       dragState.widthInches
     );
-    const desiredDistanceFromFloor = dragState.category === "wall"
+    const desiredDistanceFromFloor = isElevationFloatingCabinet({ category: dragState.category, widthInches: dragState.widthInches })
       ? (wallBottom - point.y) / renderScale - dragState.grabOffsetBottomYInches
       : 0;
 
@@ -11316,15 +12945,47 @@ function ElevationPlanView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#f5f5f5]">
-      <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
-        <div>
-          <div className="text-sm font-semibold text-pelican-navy">Elevation plan</div>
-          <div className="text-xs text-slate-500">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-slate-200 bg-white px-5 py-3">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-pelican-navy">
+            Wall {activeIndex + 1} of {walls.length}
+          </div>
+          <div className="hidden text-xs text-slate-500">
             Wall {activeIndex + 1} of {walls.length} · {overallLengthLabel} wide
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex justify-center">
+          <div className="flex w-full max-w-[240px] flex-col items-center gap-1">
+            <label
+              htmlFor="elevation-plan-view-mode"
+              className="text-[11px] font-bold uppercase tracking-wide text-pelican-navy"
+            >
+              Elevation view
+            </label>
+            <select
+              id="elevation-plan-view-mode"
+              value={currentElevationViewMode}
+              onChange={(event) => {
+                window.dispatchEvent(
+                  new CustomEvent("pelican-wall-elevation-view-change", {
+                    detail: {
+                      id: wall.id,
+                      value: event.target.value as WallElevationViewMode,
+                    },
+                  })
+                );
+              }}
+              disabled={!isThickWall(wall)}
+              className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-pelican-teal"
+            >
+              <option value="interior">Interior side</option>
+              <option value="exterior">Exterior side</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onPrevious}
@@ -13070,39 +14731,7 @@ function WallChain({
   );
   const elevationViewDebugLines = renderElevationViewDebugLine
     ? chainWalls
-        .map((wall) => {
-          const guideSide = getWallElevationDebugGuideSide(wall, sourceWalls);
-          if (!guideSide) return null;
-          const runEndpoints = getStructureGuideEndpointsFromMeasurementRun(
-            wall,
-            sourceWalls,
-            guideSide
-          );
-
-          if (runEndpoints) {
-            return {
-              key: wall.id,
-              start: runEndpoints.startAnchor,
-              end: runEndpoints.endAnchor,
-            };
-          }
-
-          return {
-            key: wall.id,
-            start: getWallSideMeasurementAnchor(
-              wall.start,
-              wall.end,
-              guideSide,
-              sourceWalls
-            ),
-            end: getWallSideMeasurementAnchor(
-              wall.end,
-              wall.start,
-              guideSide,
-              sourceWalls
-            ),
-          };
-        })
+        .flatMap((wall) => getWallCabinetPlacementDebugLines(wall, sourceWalls))
         .filter((line): line is { key: string; start: Point; end: Point } => Boolean(line))
         .filter((line) => distance(line.start, line.end) > 0.001)
     : [];
@@ -13242,6 +14871,32 @@ function uniqueDebugPointsByDistance(points: Point[], tolerance = 1) {
   }
 
   return unique;
+}
+
+function attachWallDebugDotsForExport(walls: Wall[]) {
+  const thickWalls = walls.filter(isThickWall);
+  return walls.map((wall) => {
+    if (!isThickWall(wall)) return wall;
+    const geometry = getWallSegmentBlackDotGeometry(
+      wall.start,
+      wall.end,
+      thickWalls
+    );
+
+    return {
+      ...wall,
+      debugDots: {
+        left: {
+          start: geometry.startLeft,
+          end: geometry.endLeft,
+        },
+        right: {
+          start: geometry.startRight,
+          end: geometry.endRight,
+        },
+      },
+    };
+  });
 }
 
 function getWallSideMeasurementAnchor(
@@ -14738,66 +16393,36 @@ function WallPropertiesPanel({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label
-            htmlFor="wall-elevation-view-mode"
-            className="text-[11px] font-bold uppercase text-pelican-navy"
-          >
-            Elevation view
-          </label>
-          <select
-            id="wall-elevation-view-mode"
-            value={selectedWall.elevationViewMode}
-            onChange={(event) => {
-              window.dispatchEvent(
-                new CustomEvent("pelican-wall-elevation-view-change", {
-                  detail: {
-                    id: selectedWall.id,
-                    value: event.target.value as WallElevationViewMode,
-                  },
-                })
-              );
-            }}
-            disabled={!isThickWallSelection}
-            className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-pelican-teal"
-          >
-            <option value="interior">Interior side</option>
-            <option value="exterior">Exterior side</option>
-            <option value="none">None</option>
-          </select>
-          <p className="text-xs leading-5 text-slate-500">
-            {isThickWallSelection
-              ? "Choose which wall face is highlighted in floor plan and used for the elevation view."
-              : "Thin walls are not projected as elevation wall faces, so this option is disabled."}
-          </p>
-        </div>
-
-        <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-700">
-          <input
-            type="checkbox"
-            checked={selectedWall.needCabinetPlacement ?? true}
-            disabled={!isThickWallSelection}
-            onChange={(event) => {
-              window.dispatchEvent(
-                new CustomEvent("pelican-wall-need-cabinet-placement-change", {
-                  detail: {
-                    id: selectedWall.id,
-                    value: event.target.checked,
-                  },
-                })
-              );
-            }}
-            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-pelican-teal focus:ring-pelican-teal"
-          />
-          <span>
-            <span className="block text-[11px] font-bold uppercase text-pelican-navy">
-              Need Cabinet Placement
-            </span>
-            <span className="mt-1 block text-xs font-medium leading-5 text-slate-500">
-              Include this wall as available for smart cabinet placement.
-            </span>
-          </span>
-        </label>
+        {isThickWallSelection ? (
+          <div className="space-y-2">
+            <label
+              htmlFor="wall-cabinet-placement-mode"
+              className="text-[11px] font-bold uppercase text-pelican-navy"
+            >
+              Cabinet placement side
+            </label>
+            <select
+              id="wall-cabinet-placement-mode"
+              value={selectedWall.cabinetPlacementMode ?? "interior"}
+              onChange={(event) => {
+                window.dispatchEvent(
+                  new CustomEvent("pelican-wall-cabinet-placement-mode-change", {
+                    detail: {
+                      id: selectedWall.id,
+                      value: event.target.value as WallCabinetPlacementMode,
+                    },
+                  })
+                );
+              }}
+              className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:border-pelican-teal"
+            >
+              <option value="none">None</option>
+              <option value="both">Both</option>
+              <option value="interior">Interior</option>
+              <option value="exterior">Exterior</option>
+            </select>
+          </div>
+        ) : null}
       </div>
     </aside>
   );
@@ -14810,6 +16435,40 @@ function CabinetPropertiesPanel({
   selectedCabinet: CabinetSelectionDetail;
   onBack: () => void;
 }) {
+  const [customDimensionCabinetIds, setCustomDimensionCabinetIds] = useState<Set<string>>(() => new Set());
+  const isSelectedAccessory = isAccessoryCabinetImage(selectedCabinet.image);
+  const selectedCabinetDimensions: CabinetDimensionSet = {
+    widthInches: roundToQuarter(selectedCabinet.widthInches),
+    heightInches: roundToQuarter(selectedCabinet.heightInches),
+    depthInches: roundToQuarter(selectedCabinet.depthInches),
+  };
+  const selectedCatalogItem = getCabinetCatalogItemByIdentity({
+    catalogId: selectedCabinet.catalogId,
+    image: selectedCabinet.image,
+  });
+  const dimensionOptions = selectedCatalogItem && !isSelectedAccessory
+    ? getCatalogDimensionOptions(selectedCatalogItem)
+    : {
+        widths: [selectedCabinetDimensions.widthInches],
+        heights: [selectedCabinetDimensions.heightInches],
+        depths: [selectedCabinetDimensions.depthInches],
+      };
+  const matchesStandardDimensionOptions =
+    matchesDimensionOption(dimensionOptions.widths, selectedCabinetDimensions.widthInches) &&
+    matchesDimensionOption(dimensionOptions.heights, selectedCabinetDimensions.heightInches) &&
+    matchesDimensionOption(dimensionOptions.depths, selectedCabinetDimensions.depthInches);
+  const isForcedCustomDimension = customDimensionCabinetIds.has(selectedCabinet.id);
+  const showCustomDimensionSliders =
+    isSelectedAccessory || isForcedCustomDimension || !matchesStandardDimensionOptions;
+  const usesAccessoryDimensionOrder = isSelectedAccessory;
+  const isSelectedProduct = isProductCabinetImage(selectedCabinet.image);
+  const selectedObjectName = selectedCatalogItem?.title ?? (isSelectedAccessory ? "Accessory" : isSelectedProduct ? "Product" : "Cabinet");
+  const selectedObjectType = isSelectedAccessory
+    ? "Accessories"
+    : isSelectedProduct
+      ? `${selectedCabinet.category === "wall" ? "Wall" : "Base"} Product`
+      : `${selectedCabinet.category === "wall" ? "Wall" : "Base"} Cabinet`;
+
   const updateCabinetNumber = (
     field: "widthInches" | "depthInches" | "heightInches" | "distanceFromFloorInches" | "distanceFromLeftInches" | "distanceFromRightInches",
     value: string
@@ -14829,9 +16488,81 @@ function CabinetPropertiesPanel({
     );
   };
 
+  const updateCabinetDimensionDropdownField = (
+    field: "widthInches" | "heightInches" | "depthInches",
+    value: string
+  ) => {
+    const nextValue = Number(value);
+    if (!Number.isFinite(nextValue)) return;
+
+    setCustomDimensionCabinetIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      nextIds.delete(selectedCabinet.id);
+      return nextIds;
+    });
+
+    window.dispatchEvent(
+      new CustomEvent("pelican-cabinet-attribute-change", {
+        detail: {
+          id: selectedCabinet.id,
+          field: "dimensions",
+          value: {
+            ...selectedCabinetDimensions,
+            [field]: nextValue,
+          },
+        },
+      })
+    );
+  };
+
+  const updateCustomDimensionToggle = (checked: boolean) => {
+    setCustomDimensionCabinetIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      if (checked) {
+        nextIds.add(selectedCabinet.id);
+      } else {
+        nextIds.delete(selectedCabinet.id);
+      }
+      return nextIds;
+    });
+
+    if (!checked && !matchesStandardDimensionOptions && selectedCatalogItem) {
+      window.dispatchEvent(
+        new CustomEvent("pelican-cabinet-attribute-change", {
+        detail: {
+          id: selectedCabinet.id,
+          field: "dimensions",
+          value: {
+            widthInches: getDefaultDimensionFromOptions(selectedCatalogItem, "width"),
+            heightInches: getDefaultDimensionFromOptions(selectedCatalogItem, "height"),
+              depthInches: getDefaultDimensionFromOptions(selectedCatalogItem, "depth"),
+            },
+          },
+        })
+      );
+    }
+  };
+
   const updateCabinetAccessory = (
-    field: "sinkFixture" | "cooktopFixture" | "cooktopFrontHeightInches" | "topFixture",
-    value: boolean | "surface" | "front" | "sink" | "none" | null | number
+    field:
+      | "sinkFixture"
+      | "cooktopFixture"
+      | "cooktopFrontHeightInches"
+      | "blindDoorWidthInches"
+      | "blindFillerWidthInches"
+      | "topFixture"
+      | "ovenCabinetProductLayout"
+      | "ovenCabinetProductHeightInches"
+      | "ovenCabinetFillerHeightInches"
+      | "ovenCabinetBottomDrawerHeightInches",
+    value:
+      | boolean
+      | "surface"
+      | "front"
+      | "none"
+      | OvenCabinetProductLayout
+      | null
+      | number
   ) => {
     window.dispatchEvent(
       new CustomEvent("pelican-cabinet-attribute-change", {
@@ -14845,8 +16576,28 @@ function CabinetPropertiesPanel({
   };
 
   const canAddCabinetTopFixtures =
-    selectedCabinet.category === "base" && !isProductCabinetImage(selectedCabinet.image);
-  const canEditCabinetBottomDistance = selectedCabinet.category === "wall";
+    selectedCabinet.category === "base" &&
+    !isProductCabinetImage(selectedCabinet.image) &&
+    !isSelectedAccessory &&
+    canHaveBaseTopFixtureControls(selectedCabinet.image);
+  const canEditCabinetBottomDistance = isElevationFloatingCabinet({
+    category: selectedCabinet.category,
+    widthInches: selectedCabinet.widthInches,
+    heightInches: selectedCabinet.heightInches,
+    image: selectedCabinet.image,
+  });
+  const isSelectedBlindCabinet = isBlindCabinetImage(selectedCabinet.image);
+  const isSelectedOvenBottomDrawerCabinet = isOvenLikeBottomDrawerCabinetImage(selectedCabinet.image);
+  const blindCabinetWidths = isSelectedBlindCabinet
+    ? getBlindCabinetWidthSegments({
+        image: selectedCabinet.image,
+        category: selectedCabinet.category,
+        width: inchesToPixels(selectedCabinet.widthInches),
+        blindDoorWidthInches: selectedCabinet.blindDoorWidthInches,
+        blindFillerWidthInches: selectedCabinet.blindFillerWidthInches,
+      })
+    : null;
+  const ovenCabinetHeights = getOvenCabinetHeightSegments(selectedCabinet);
 
   return (
     <aside className="h-full w-[280px] overflow-y-auto border-r border-slate-200 bg-white">
@@ -14863,35 +16614,191 @@ function CabinetPropertiesPanel({
 
       <div className="space-y-6 px-4 py-5">
         <div className="flex items-center gap-4">
-          <CabinetCatalogImage image={selectedCabinet.image ?? getDefaultCabinetImageForCategory(selectedCabinet.category ?? (selectedCabinet.depthInches <= 15 ? "wall" : "base"))} />
+          <CabinetCatalogImage
+            image={selectedCabinet.image ?? getDefaultCabinetImageForCategory(selectedCabinet.category ?? (selectedCabinet.depthInches <= 15 ? "wall" : "base"))}
+            category={selectedCabinet.category ?? (selectedCabinet.depthInches <= 15 ? "wall" : "base")}
+            widthInches={selectedCabinet.widthInches}
+            heightInches={selectedCabinet.heightInches}
+            blindDoorWidthInches={selectedCabinet.blindDoorWidthInches}
+            blindFillerWidthInches={selectedCabinet.blindFillerWidthInches}
+            ovenCabinetProductLayout={selectedCabinet.ovenCabinetProductLayout}
+            ovenCabinetProductHeightInches={selectedCabinet.ovenCabinetProductHeightInches}
+            ovenCabinetFillerHeightInches={selectedCabinet.ovenCabinetFillerHeightInches}
+            ovenCabinetBottomDrawerHeightInches={selectedCabinet.ovenCabinetBottomDrawerHeightInches}
+          />
           <div>
             <div className="text-[11px] font-bold uppercase text-slate-400">
-              Cabinets
+              {selectedObjectType}
             </div>
             <div className="text-sm font-bold text-slate-700">
-              Selected Cabinet
+              {selectedObjectName}
             </div>
           </div>
         </div>
 
-        <WindowPropertyInput
-          label="Width"
-          value={roundToQuarter(selectedCabinet.widthInches)}
-          unit="in"
-          onChange={(value) => updateCabinetNumber("widthInches", value)}
-        />
-        <WindowPropertyInput
-          label="Depth"
-          value={roundToQuarter(selectedCabinet.depthInches)}
-          unit="in"
-          onChange={(value) => updateCabinetNumber("depthInches", value)}
-        />
-        <WindowPropertyInput
-          label="Height"
-          value={roundToQuarter(selectedCabinet.heightInches)}
-          unit="in"
-          onChange={(value) => updateCabinetNumber("heightInches", value)}
-        />
+        {!isSelectedAccessory && (
+          <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="text-[11px] font-bold uppercase text-pelican-navy">
+              Standard dimension
+            </div>
+
+            {showCustomDimensionSliders ? (
+              <>
+                <WindowPropertyInput
+                  label="Width"
+                  value={roundToQuarter(selectedCabinet.widthInches)}
+                  unit="in"
+                  min={6}
+                  onChange={(value) => updateCabinetNumber("widthInches", value)}
+                />
+                <WindowPropertyInput
+                  label="Height"
+                  value={roundToQuarter(selectedCabinet.heightInches)}
+                  unit="in"
+                  min={1}
+                  onChange={(value) => updateCabinetNumber("heightInches", value)}
+                />
+                <WindowPropertyInput
+                  label="Depth"
+                  value={roundToQuarter(selectedCabinet.depthInches)}
+                  unit="in"
+                  min={1}
+                  onChange={(value) => updateCabinetNumber("depthInches", value)}
+                />
+              </>
+            ) : (
+              <>
+                <label className="block space-y-2">
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    Width
+                  </span>
+                  <select
+                    value={roundToQuarter(selectedCabinet.widthInches)}
+                    onChange={(event) =>
+                      updateCabinetDimensionDropdownField("widthInches", event.target.value)
+                    }
+                    className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-pelican-navy outline-none focus:border-pelican-teal focus:ring-2 focus:ring-pelican-teal/20"
+                  >
+                    {dimensionOptions.widths.map((dimension) => (
+                      <option key={`width-${dimension}`} value={dimension}>
+                        {formatDimensionOptionNumber(dimension)} in
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block space-y-2">
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    Height
+                  </span>
+                  <select
+                    value={roundToQuarter(selectedCabinet.heightInches)}
+                    onChange={(event) =>
+                      updateCabinetDimensionDropdownField("heightInches", event.target.value)
+                    }
+                    className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-pelican-navy outline-none focus:border-pelican-teal focus:ring-2 focus:ring-pelican-teal/20"
+                  >
+                    {dimensionOptions.heights.map((dimension) => (
+                      <option key={`height-${dimension}`} value={dimension}>
+                        {formatDimensionOptionNumber(dimension)} in
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block space-y-2">
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    Depth
+                  </span>
+                  <select
+                    value={roundToQuarter(selectedCabinet.depthInches)}
+                    onChange={(event) =>
+                      updateCabinetDimensionDropdownField("depthInches", event.target.value)
+                    }
+                    className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-pelican-navy outline-none focus:border-pelican-teal focus:ring-2 focus:ring-pelican-teal/20"
+                  >
+                    {dimensionOptions.depths.map((dimension) => (
+                      <option key={`depth-${dimension}`} value={dimension}>
+                        {formatDimensionOptionNumber(dimension)} in
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
+
+            <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm font-semibold text-slate-700">
+              <input
+                type="checkbox"
+                checked={showCustomDimensionSliders}
+                onChange={(event) => updateCustomDimensionToggle(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-pelican-teal focus:ring-pelican-teal"
+              />
+              <span>
+                <span className="block text-[11px] font-bold uppercase text-pelican-navy">
+                  Customize dimension
+                </span>
+                <span className="mt-1 block text-xs font-medium leading-5 text-slate-500">
+                  Turn this on to manually adjust width, height, and depth with sliders.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+
+        {showCustomDimensionSliders && isSelectedAccessory && (
+          <>
+            {usesAccessoryDimensionOrder ? (
+              <>
+                <WindowPropertyInput
+                  label="Thickness"
+                  value={roundToQuarter(selectedCabinet.widthInches)}
+                  unit="in"
+                  min={0.25}
+                  onChange={(value) => updateCabinetNumber("widthInches", value)}
+                />
+                <WindowPropertyInput
+                  label="Height"
+                  value={roundToQuarter(selectedCabinet.heightInches)}
+                  unit="in"
+                  min={1}
+                  onChange={(value) => updateCabinetNumber("heightInches", value)}
+                />
+                <WindowPropertyInput
+                  label="Width"
+                  value={roundToQuarter(selectedCabinet.depthInches)}
+                  unit="in"
+                  min={1}
+                  onChange={(value) => updateCabinetNumber("depthInches", value)}
+                />
+              </>
+            ) : (
+              <>
+                <WindowPropertyInput
+                  label="Width"
+                  value={roundToQuarter(selectedCabinet.widthInches)}
+                  unit="in"
+                  min={6}
+                  onChange={(value) => updateCabinetNumber("widthInches", value)}
+                />
+                <WindowPropertyInput
+                  label="Height"
+                  value={roundToQuarter(selectedCabinet.heightInches)}
+                  unit="in"
+                  min={1}
+                  onChange={(value) => updateCabinetNumber("heightInches", value)}
+                />
+                <WindowPropertyInput
+                  label="Depth"
+                  value={roundToQuarter(selectedCabinet.depthInches)}
+                  unit="in"
+                  min={1}
+                  onChange={(value) => updateCabinetNumber("depthInches", value)}
+                />
+              </>
+            )}
+          </>
+        )}
 
         {(selectedCabinet.distanceFromLeftInches !== undefined || canEditCabinetBottomDistance) && (
           <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -14948,21 +16855,16 @@ function CabinetPropertiesPanel({
                 Fixture / appliance
               </span>
               <select
-                value={
-                  selectedCabinet.sinkFixture
-                    ? "sink"
-                    : selectedCabinet.cooktopFixture ?? "none"
-                }
+                value={selectedCabinet.cooktopFixture ?? "none"}
                 onChange={(event) =>
                   updateCabinetAccessory(
                     "topFixture",
-                    event.target.value as "none" | "sink" | "surface" | "front"
+                    event.target.value as "none" | "surface" | "front"
                   )
                 }
                 className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-pelican-navy outline-none focus:border-pelican-teal focus:ring-2 focus:ring-pelican-teal/20"
               >
                 <option value="none">None</option>
-                <option value="sink">Sink</option>
                 <option value="surface">Surface cooktop</option>
                 <option value="front">Front-control cooktop</option>
               </select>
@@ -14976,6 +16878,104 @@ function CabinetPropertiesPanel({
                 onChange={(value) => updateCabinetAccessory("cooktopFrontHeightInches", Number(value))}
               />
             )}
+          </div>
+        )}
+
+        {isSelectedOvenBottomDrawerCabinet && (
+          <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="text-[11px] font-bold uppercase text-pelican-navy">
+              Oven cabinet products
+            </div>
+
+            <label className="block space-y-2">
+              <span className="text-[11px] font-semibold text-slate-500">
+                Product stack
+              </span>
+              <select
+                value={selectedCabinet.ovenCabinetProductLayout ?? "none"}
+                onChange={(event) =>
+                  updateCabinetAccessory(
+                    "ovenCabinetProductLayout",
+                    event.target.value as OvenCabinetProductLayout
+                  )
+                }
+                className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-pelican-navy outline-none focus:border-pelican-teal focus:ring-2 focus:ring-pelican-teal/20"
+              >
+                {selectedCabinet.image === "base-microwave-bottom-drawer" ? (
+                  <>
+                    <option value="none">None</option>
+                    <option value="single-microwave">1 Microwave</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="none">None</option>
+                    <option value="single-oven">1 Oven</option>
+                    <option value="double-oven">2 Ovens</option>
+                    <option value="microwave-oven">1 Microwave + 1 Oven</option>
+                  </>
+                )}
+              </select>
+            </label>
+
+            <WindowPropertyInput
+              label="Products height"
+              value={roundToQuarter(ovenCabinetHeights.productHeightInches)}
+              unit="in"
+              max={Math.max(0, ovenCabinetHeights.totalHeightInches - ovenCabinetHeights.bottomDrawerHeightInches)}
+              onChange={(value) =>
+                updateCabinetAccessory("ovenCabinetProductHeightInches", Number(value))
+              }
+            />
+
+            <WindowPropertyInput
+              label="Filler height"
+              value={roundToQuarter(ovenCabinetHeights.fillerHeightInches)}
+              unit="in"
+              max={Math.max(0, ovenCabinetHeights.totalHeightInches - ovenCabinetHeights.bottomDrawerHeightInches)}
+              onChange={(value) =>
+                updateCabinetAccessory("ovenCabinetFillerHeightInches", Number(value))
+              }
+            />
+
+            <WindowPropertyInput
+              label="Bottom drawer height"
+              value={roundToQuarter(ovenCabinetHeights.bottomDrawerHeightInches)}
+              unit="in"
+              max={Math.max(0, ovenCabinetHeights.totalHeightInches - ovenCabinetHeights.productHeightInches)}
+              onChange={(value) =>
+                updateCabinetAccessory("ovenCabinetBottomDrawerHeightInches", Number(value))
+              }
+            />
+          </div>
+        )}
+
+        {isSelectedBlindCabinet && blindCabinetWidths && (
+          <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="text-[11px] font-bold uppercase text-pelican-navy">
+              Blind cabinet front
+            </div>
+
+            <WindowPropertyInput
+              label="Door width"
+              value={roundToQuarter(blindCabinetWidths.doorWidthInches)}
+              unit="in"
+              min={0}
+              max={Math.max(0, blindCabinetWidths.widthInches - blindCabinetWidths.fillerWidthInches - 3)}
+              onChange={(value) =>
+                updateCabinetAccessory("blindDoorWidthInches", Number(value))
+              }
+            />
+
+            <WindowPropertyInput
+              label="Filler thickness"
+              value={roundToQuarter(blindCabinetWidths.fillerWidthInches)}
+              unit="in"
+              min={0}
+              max={Math.max(0, blindCabinetWidths.widthInches - blindCabinetWidths.doorWidthInches - 3)}
+              onChange={(value) =>
+                updateCabinetAccessory("blindFillerWidthInches", Number(value))
+              }
+            />
           </div>
         )}
 
@@ -15072,6 +17072,7 @@ function ContextPanel({
   selectedCabinetCatalogId,
   onSelectCabinetCategory,
   onSelectCabinetCatalog,
+  onRequestPanel,
 }: {
   activePanel: Panel;
   activeTool: Tool;
@@ -15085,6 +17086,7 @@ function ContextPanel({
   selectedCabinetCatalogId: string;
   onSelectCabinetCategory: (category: CabinetCategory) => void;
   onSelectCabinetCatalog: (catalogId: string) => void;
+  onRequestPanel: (panel: Panel) => void;
 }) {
   const [structureTab, setStructureTab] = useState<"doors" | "windows">("doors");
   const [productCategoryTab, setProductCategoryTab] = useState<ProductCategory>("base");
@@ -15094,20 +17096,20 @@ function ContextPanel({
     setActiveTool(tool);
   };
 
-  if (activePanel === "products" && selectedCabinet && isProductCabinetImage(selectedCabinet.image)) {
-    return (
-      <CabinetPropertiesPanel
-        selectedCabinet={selectedCabinet}
-        onBack={() => window.dispatchEvent(new Event("pelican-deselect-cabinet"))}
-      />
-    );
-  }
+  if (selectedCabinet) {
+    const selectedCabinetBackPanel: Panel = isAccessoryCabinetImage(selectedCabinet.image)
+      ? "objects"
+      : isProductCabinetImage(selectedCabinet.image)
+        ? "products"
+        : "cabinets";
 
-  if (activePanel === "cabinets" && selectedCabinet) {
     return (
       <CabinetPropertiesPanel
         selectedCabinet={selectedCabinet}
-        onBack={() => window.dispatchEvent(new Event("pelican-deselect-cabinet"))}
+        onBack={() => {
+          window.dispatchEvent(new Event("pelican-deselect-cabinet"));
+          onRequestPanel(selectedCabinetBackPanel);
+        }}
       />
     );
   }
@@ -15123,7 +17125,7 @@ function ContextPanel({
 
   if (activePanel === "cabinets") {
     const visibleCabinets = CABINET_CATALOG.filter(
-      (item) => item.category === cabinetCategoryTab && !item.isProduct
+      (item) => item.category === cabinetCategoryTab && !item.isProduct && !item.isAccessory
     );
 
     return (
@@ -15174,7 +17176,7 @@ function ContextPanel({
                 activateToolFromCard("place-cabinet");
               }}
             >
-<CabinetCatalogImage image={cabinetItem.image} />
+<CabinetCatalogImage image={cabinetItem.image} category={cabinetItem.category} widthInches={cabinetItem.widthInches} heightInches={cabinetItem.heightInches} />
             </CabinetToolCard>
           ))}
         </div>
@@ -15236,7 +17238,45 @@ function ContextPanel({
                 activateToolFromCard("place-cabinet");
               }}
             >
-              <CabinetCatalogImage image={productItem.image} />
+              <CabinetCatalogImage image={productItem.image} category={productItem.category} widthInches={productItem.widthInches} heightInches={productItem.heightInches} />
+            </CabinetToolCard>
+          ))}
+        </div>
+      </aside>
+    );
+  }
+
+
+  if (activePanel === "objects") {
+    const visibleAccessories = CABINET_CATALOG.filter((item) => item.isAccessory);
+
+    return (
+      <aside className="h-full w-[280px] overflow-y-auto border-r border-slate-200 bg-white">
+        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-4">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+            Accessories
+          </div>
+          <div className="mt-1 text-sm font-bold text-pelican-navy">
+            Add filler or end panels
+          </div>
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            Pick an accessory, then click a wall-side gap or cabinet edge in the plan. End panels snap and collide like cabinets.
+          </p>
+        </div>
+
+        <div className="space-y-3 px-3 pb-6 pt-4">
+          {visibleAccessories.map((accessoryItem) => (
+            <CabinetToolCard
+              key={accessoryItem.id}
+              title={accessoryItem.title}
+              subtitle={accessoryItem.subtitle}
+              active={activeTool === "place-cabinet" && selectedCabinetCatalogId === accessoryItem.id}
+              onClick={() => {
+                onSelectCabinetCatalog(accessoryItem.id);
+                activateToolFromCard("place-cabinet");
+              }}
+            >
+              <CabinetCatalogImage image={accessoryItem.image} category={accessoryItem.category} widthInches={accessoryItem.widthInches} heightInches={accessoryItem.heightInches} />
             </CabinetToolCard>
           ))}
         </div>
@@ -15679,8 +17719,8 @@ function SimpleWallCabinetImage() {
 
 
 function getDefaultCabinetImageForCategory(category: CabinetCategory): CabinetImage {
-  if (category === "tall") return "tall";
-  if (category === "wall") return "wall";
+  if (category === "pantry") return "pantry-two-door";
+  if (category === "wall") return "wall-two-doors";
   return "base";
 }
 
@@ -15689,9 +17729,18 @@ function getCabinetImage(cabinetItem: Partial<Pick<CabinetElement, "image" | "ca
 }
 
 function getCabinetCategoryForImage(image: CabinetImage): CabinetCategory {
-  if (image === "tall") return "tall";
   if (
-    image === "wall" ||
+    image === "accessory-wall-filler" ||
+    image === "accessory-wall-filler-horizontal" ||
+    image === "accessory-wall-end-panel"
+  ) return "wall";
+  if (image === "accessory-base-filler" || image === "accessory-filler" || image === "accessory-base-end-panel") return "base";
+  if (image === "pantry-one-door" || image === "pantry-two-door") return "pantry";
+  if (
+    image === "wall-two-doors" ||
+    image === "wall-one-door" ||
+    image === "wall-blind-left" ||
+    image === "wall-blind-right" ||
     image === "wall-hood" ||
     image === "wall-microwave" ||
     image === "wall-oven" ||
@@ -15714,15 +17763,109 @@ function isProductCabinetImage(image?: CabinetImage) {
   );
 }
 
-function getCabinetCatalogPreviewFrame(image: CabinetImage) {
-  const category = getCabinetCategoryForImage(image);
+function isAccessoryCabinetImage(image?: CabinetImage) {
+  return Boolean(
+    image === "accessory-base-filler" ||
+      image === "accessory-wall-filler" ||
+      image === "accessory-wall-filler-horizontal" ||
+      image === "accessory-filler" ||
+      image === "accessory-base-end-panel" ||
+      image === "accessory-wall-end-panel"
+  );
+}
+
+function getCabinetSupportType(
+  cabinetItem: Partial<
+    Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
+      Pick<CabinetSelectionDetail, "widthInches" | "heightInches">
+  >
+): ObjectSupportType {
+  const category =
+    cabinetItem.category ??
+    (cabinetItem.image ? getCabinetCategoryForImage(cabinetItem.image) : "base");
+  const widthInches =
+    typeof cabinetItem.widthInches === "number"
+      ? cabinetItem.widthInches
+      : typeof cabinetItem.width === "number"
+        ? pixelsToInches(cabinetItem.width)
+        : undefined;
+  const heightInches =
+    typeof cabinetItem.heightInches === "number"
+      ? cabinetItem.heightInches
+      : undefined;
+
+  return getSupportTypeForCategory(category, widthInches, heightInches);
+}
+
+function isFloorStandingCabinet(
+  cabinetItem: Partial<
+    Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
+      Pick<CabinetSelectionDetail, "widthInches" | "heightInches">
+  >
+) {
+  return getCabinetSupportType(cabinetItem) === "floor-supported";
+}
+
+function isElevationFloatingCabinet(
+  cabinetItem: Partial<
+    Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
+      Pick<CabinetSelectionDetail, "widthInches" | "heightInches">
+  >
+) {
+  return getCabinetSupportType(cabinetItem) === "elevated-supported";
+}
+
+function cabinetHasToeKick(
+  cabinetItem: Partial<
+    Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
+      Pick<CabinetSelectionDetail, "widthInches" | "heightInches">
+  >
+) {
+  const category =
+    cabinetItem.category ??
+    (cabinetItem.image ? getCabinetCategoryForImage(cabinetItem.image) : "base");
+
+  if (isProductCabinetImage(cabinetItem.image) || isAccessoryCabinetImage(cabinetItem.image)) {
+    return false;
+  }
+
+  return (
+    (category === "base" || category === "pantry") &&
+    isFloorStandingCabinet(cabinetItem)
+  );
+}
+
+function isStandaloneBaseProductElevationImage(image?: CabinetImage) {
+  return image === "base-dishwasher" || image === "base-refrigerator" || image === "base-range";
+}
+
+function isFillerAccessoryCabinetImage(image?: CabinetImage) {
+  return Boolean(
+    image === "accessory-base-filler" ||
+      image === "accessory-wall-filler" ||
+      image === "accessory-wall-filler-horizontal" ||
+      image === "accessory-filler"
+  );
+}
+
+function getCabinetCatalogPreviewFrame(image: CabinetImage, categoryOverride?: CabinetCategory) {
+  const category = categoryOverride ?? getCabinetCategoryForImage(image);
+
+  if (image === "accessory-wall-filler-horizontal") {
+    return { x: 24, y: 52, width: 82, height: 14, category };
+  }
+
+  if (isAccessoryCabinetImage(image)) {
+    return { x: 58, y: 24, width: 14, height: 62, category };
+  }
 
   if (image === "base-refrigerator") {
     return { x: 28, y: 6, width: 74, height: 94, category };
   }
 
-  if (category === "tall") {
-    return { x: 34, y: 8, width: 62, height: 90, category };
+  if (category === "pantry") {
+    const isSingleDoorPantry = image === "pantry-one-door";
+    return { x: isSingleDoorPantry ? 42 : 28, y: 8, width: isSingleDoorPantry ? 46 : 74, height: 90, category };
   }
 
   if (image === "wall-hood") {
@@ -15750,13 +17893,16 @@ function getCabinetCatalogPreviewFrame(image: CabinetImage) {
     "base-one-door-one-drawer",
     "base-two-drawer",
     "base-four-drawer",
+    "base-spice-rack",
+    "base-trash-can",
   ];
   const wideBaseImages: CabinetImage[] = [
     "base-refrigerator",
     "base-corner",
     "base-blind-left",
-    "base-blind-left-one-drawer",
-    "base-blind-right-one-drawer",
+    "base-blind-right",
+    "base-sink-cabinet",
+    "base-farm-sink-cabinet",
   ];
 
   if (wideBaseImages.includes(image)) {
@@ -15773,8 +17919,30 @@ function getCabinetCatalogPreviewFrame(image: CabinetImage) {
 
 const L_SHAPED_CORNER_CABINET_DISPLAY_IMAGE = "data:image/webp;base64,UklGRsoMAABXRUJQVlA4IL4MAACQPgCdASrwALQAPjEYikOiIaERqV1MIAMEtLd9Siv9Wv//n/AgWhH8A/0/R/8v+f/SmEii+sz0EfzuQHY5eeP89rZ6UOez07vosfWy/32TV9APQb9J/bv7z+TnZW+MfZb5P8D9pf0EfEf07y7/xH97/bf+2+l/tr/nfta+QL8Y/kn9c/If+scY1l/9y/03879gj0s+Pf2b+xftt/gfjj6gfkB7h/6X6u+4B/mP2g/JnnJaAH5b/xn5Jf4D4bf6f/P/k17xfzX+3f7L+9fkj9jX8b/o/+W/vX7p/47///+77meqK/dIj4kVcofArG4kVcofArG4kVLMY69dPvFtLXpyib/rn7APcCaxtLlPtjY+GDL49jHfRr/l7DO4dNrdzVHw3aXIva5+S1QilxDN8tZp9EbaxihhE8O0zIwxULUjxskEJwI6kEigmmdRKwKAHD0hzNikRhXFNyvuWm2uinKcswpj432V3x5Fg9AqDHuTlukaasStZUluUo1l02iWN+iBz5JVOj3J6dnrYWoZ7KAPedSvTOUueXZo0OAGZaAibVbKjxKDwlctD9UxAHq8LOpMnWMmNhiVEq7i7d0f8U+wtTtdl51OdPCWy4+eOIzBxrxO6+4OIOJ56Xo/zWmKuSkUuyluIZd0NBaRJZdQdxIONxIq5Q+BWNxIq5QaAAD+/7cQAABG8aq+7TV/7xUfc+GB2mNd55z+P5iLHo+u5dc1dMV9YZS/cPEFqVZvTQFbnGRuvBvDinMObJpbww6KyA4z2ky/JWspNzctyOJ6ny86inHC4Xo9YNE2mwBA51422ADPNPHn9DARq1o4WVE9LI+tRUVvIR+cVm9V0r2O2EwoF6ovRWtNQxCabvE3dCkVtt5eVpsADTo8+u6xlXj1omoCgZ3rxPsp8WfF5jvZGUNdM6j12kiTR6vArylKvGLHDgJLoiWolqMxrtoWVKLUt1C2RXXrItAN9hKZMruXLfTq93W7Hn3Yqt+m/0zxWenRzWAeNw8MGXWi/YmbSjOuglsKKi3gbQ8ce1k042l8aXogWL40zhoE0L9HcWPACP4lGUe1tlOanb/t08FQYRFQeElqZY7ODDm7gRoUyeWukvxy8c/EuSlpFBZVlkQvpg8fAKv897cUzCnBQeZCG7v0iGZOmFzKMKrgO6Mf/gTATHtPA4t331Yro78fULWK3CQ1SO7dZN89f+OpMVfPr6+UTXtAyDkXJjojps1f4gkySpKTm8/M8qYiSql8+zejiPaVxUaFoJQBomPUrohwuqDG2cgoaptpAU/M3yrSx4z1YqRhc99GxFVAzTVlaxA9lp8CLbX1Wd0AMMknQGA6aBgt9ViNRH+Nl4sZyp5gBYlrCdZvtiR4SauKINcYrT0lHxDKjYKx+ls++q2YavzwagUnSU2MIynPWX5LnqxIkeSQt5MetxzLfrpvNIBarGa4VW6bgmncBS0mGXMlLBBHfOEjedosXaBZV3/3rdfQeAnmFylMh7KYc36p0ndLGzH5BdOkS3D0Kde51mNzVsHpnNcQM+9ltG9Rfsz2MfkdW2A+qb3I30K4wJssQh/n2O4685SGG4TMKyY4IMhTwN8JXEWso8wrgv7gL2L0cXsac7aNVTXqB53+oRZ87mTUyXnTe8ajrzRBZHlf2CzlK+TbWf2gbSfWvFtx/15xrWy1iowUw7otI/g0w//7yGz/mhFUjHSWepvXDAS0yd+ESOtNu8exeVp+gAui6Fp71gNMshyJ8Hoja8NQ8GyQr28Q7+NIruIrueArp4OecEaJ8K/PZCwtp19kUDWPmhZ9FGdZzQzP4IcHYad3hpRtjZT/51R0WGqYbBlWleTFR6aI7iBH3aQw2JtQBJKcj1AfJVZnBQEpaDaxeOij2/PexGhFBRruZ1yTcqnaJBKfs9LIFyLQHnESagWcWOU/w2Mz4r8OTCgUrWNXZ8FbFgK42JKS/vBaKqGhL4kwmAb1lt7l6M/gIX0NKvUEBK/J17Re76BdzMH6KSHZOlQqo/D+0oCl3z+n+C5nQ71zYxF2unl2OFF3tcrIoREz1T6eOCfixto7/g/zvRhd3VIKQpjmFgKZvkkF/s2N5Ei+5SZu1TeGz0aiP3rmiEXLRLWJu2XHZfs19DnuULxuovfrtoyz7OyLc9kNIqiRvziAisczrCZV0NZL3q2gInoBqSkLVdJGqRcUwFnG0Wo/oenN/xxoRxjLN/cgyrnQe5h8IleSVxmsJDb1r4LJJts5QwVJyBUIsrV6UCRN5SJdvdrXYxWbg+EI9wJ099kUBs1FVLayBs6j7fZd5DklMfOzg59HuSccYfIa+RZ+gJL8TmxFttdSj57gBCCukr+99N4djlhNnVYj+v6ORe+GEW7CdOxvWfxrGxUVp7LPQoFksH357FtSZqd1kB4+ksZo4724ZR7muYlweEfVWAsr0sPifvKWvunn0+XXuIiTlwApptGdL6acB0PyfqAwpxJ3OrxhbkcYAioXL0uZdKPYsduSGPUG0buYCfH8WHZ5zmwOD1lugUlYDavq0DMslXGUWSfMh5u8L+/jYmgD3X81xe5pFubl40iKUXXiTF4yVvkwhEWrnB4inylZGCX6a1O6fPQYsZURFHqr3+AUmW+CeZas7/N67WUJOtthrc4FI5olWziEHOtO5S2PNaEw+e2CzaEr0VYeYweZ+Wierwy7qWbl3lhRY07/ej/Gc57/UdgUic2ArzyyHjI2tnIxZRX9p8W2BYWvaQHQ9O6P4KpDxv2HH80oWPl5GiZzi088PTFeStdSIUyqUAf8lRVjEVyUbFpANdCzxFotfzU2cOH7Kv3sLCoUpTpQidPdO1tR00/A4D5d/o9y556q2i9zbD7RxZQVjTc9lT6Jhh5JEaZN+6SxFtvDhB4a+uPX12QKVTZW2E6rA5dluSTOGEIgQdaHQ5x2kstyHQ+NO+SaZT6Qa2DOIRSFj5oQrXpdwX3HYsWO907O4cZ3ZcGNPxFa5fexXKp5p25oYaitMHd5mnLY1sxRU6fH0l+KFR2f3AtQzX7onWhw8T6f2mqysSD0Bi0IsX0bjnnIcTjfQt9OicIldF7Hd99xa3yco353kJNbV3vnSAUT1v+7oBqp7C2y5E7Z8BAO8i0uslB0oH+da03whLHra34yu4SrGfYmvpIViyTkUDzXRsbjFcxgG+3BN1/lopVlIPVAzFG65F/mVHTCr/IqBg61rJnNZZzKmBaRt8jIkxZfIjJJeeE5Kq1HqB7vzqID/Y99KgzAQvvgCPqjXJyqw1IvpCyTl5zTBwBTaz3Y25tXMpU4LPgedhTe7rfwBNNfObxdilrCp1fShRyvK9s0Wtz4s8zm/KqdbGOwBbbUVQgNyMAlFevEP65X9C98g8o9Sd6CoBUTVDPDTxuCf1gBTyqBCHngf6y+DVOY1XGi4hwPrt49nnXbGB7bTHs8tIbAYLtlTeYespL0SM+TJvmxTZi+/2vPx3mrGmdMuuSYRh5LXcT6/sGgFYnXRhpM9Z99b6OpSM6SiTilbxPFaxIWZ5HQrifYzE0T35+6QET4okKui4ZH82LDw8jSx5XnZf8YTLhkwJ+EArwUSLuKAEhjuiV4AzGOJedXmGVI4VbQTuJyoLlh/EHCPlZ8aM2dDG6j3KAdGL+435EBzeIbZ5nJWHEIMzfMFSeWPayPfrZfK2sb4UhXDRhIYZNzrWolswjvnhDbOMHsOLGUR9FnzmFlt6+ubzA6V7BmTjB+LZiakmkCqH6N2YX/r+wurTGHHu/gm1vKrphdkoEg5Fk+BTxuYpSRZFbdOchkAniJsjTm6xPg/s6J7vNNrRRqSSkWLtnIfU7L6adqN3tMReKUfsG9LDFgysbSsmz+jgJmP75mBsltFB8DGH1W4QlJVbLa4wP7eIrePPvj9xeXZMJTg0F4ylVwYKBdXGGwJW0HTMn0waTJ5Ekc5XawxEJARWo0+UVj045LaLaZ0945qvpLtpPLnRrgNttTt4l2Tg77gUdv18EnqSQwlpq0vXxr6m9lAQsoVeI8epAuxs5mBY2o3BICOnQgoBUE/g8q+uRVy4KQSiMSK9BOKRQrCcNaBR+sYyd2thdXY+/LsxI28pPpkcmO7Qf71jDjuVb9aqw7Jvk6cgmN5rKujSjvaEPsuy2N62oOmZPYzUzkJfNDQii1Cl1nBfyhOeKfMyiTfN6okIMuTJeeSWVJG7yYeKSOOk4oLkXu/3fgYREhw39hsLI9iUCSKOh5ck+Lq1UJVpbmKUQ/Dz03+VC+M9Vt7ekftwAAFXetBNFcsGrhVL+BGj7hPd2wdB1EtRACjw5H0AAACPr8qotLHMbXIZ3dctIbXLhpGJrXO8uKIVtgAAAAAAAA";
 
-function CabinetCatalogImage({ image }: { image: CabinetImage }) {
-  const frame = getCabinetCatalogPreviewFrame(image);
+function CabinetCatalogImage({
+  image,
+  category,
+  widthInches,
+  heightInches,
+  blindDoorWidthInches,
+  blindFillerWidthInches,
+  ovenCabinetProductLayout,
+  ovenCabinetProductHeightInches,
+  ovenCabinetFillerHeightInches,
+  ovenCabinetBottomDrawerHeightInches,
+}: {
+  image: CabinetImage;
+  category?: CabinetCategory;
+  widthInches?: number;
+  heightInches?: number;
+  blindDoorWidthInches?: number;
+  blindFillerWidthInches?: number;
+  ovenCabinetProductLayout?: OvenCabinetProductLayout;
+  ovenCabinetProductHeightInches?: number;
+  ovenCabinetFillerHeightInches?: number;
+  ovenCabinetBottomDrawerHeightInches?: number;
+}) {
+  const frame = getCabinetCatalogPreviewFrame(image, category);
 
   if (image === "base-corner") {
     return <SimpleCornerBaseCabinetImage />;
@@ -15789,6 +17957,23 @@ function CabinetCatalogImage({ image }: { image: CabinetImage }) {
         height={frame.height}
         category={frame.category}
         image={image}
+        cabinet={{
+          id: `catalog-preview-${image}`,
+          center: { x: 0, y: 0 },
+          width: inchesToPixels(widthInches ?? (frame.width / GRID_SIZE) * 12),
+          depth: inchesToPixels(24),
+          rotation: 0,
+          category: frame.category,
+          image,
+          heightInches,
+          sinkFixture: isBuiltInSinkCabinetImage(image) ? true : undefined,
+          blindDoorWidthInches,
+          blindFillerWidthInches,
+          ovenCabinetProductLayout,
+          ovenCabinetProductHeightInches,
+          ovenCabinetFillerHeightInches,
+          ovenCabinetBottomDrawerHeightInches,
+        }}
       />
     </svg>
   );
@@ -16009,6 +18194,7 @@ function CabinetOnFloor({
         category: dragPreview.category,
         image: dragPreview.image ?? cabinetItem.image,
         wallId: dragPreview.wallId ?? cabinetItem.wallId,
+        accessoryKind: cabinetItem.accessoryKind,
       }
     : cabinetItem;
 
@@ -16096,6 +18282,7 @@ function CabinetSelectionOverlay({
         category: dragPreview.category,
         image: dragPreview.image ?? cabinetItem.image,
         wallId: dragPreview.wallId ?? cabinetItem.wallId,
+        accessoryKind: cabinetItem.accessoryKind,
       }
     : cabinetItem;
   const metrics = getCabinetWallDistanceMetrics(overlayCabinet, walls);
@@ -16263,6 +18450,60 @@ function CabinetPlanShape({
   const inset = Math.min(7, Math.max(3, Math.min(width, depth) * 0.16));
   const image = getCabinetImage(cabinetItem);
   const isLShapedCornerCabinet = image === "base-corner";
+  const isAccessory = isAccessoryCabinetImage(image);
+  const selectionHandles = [
+    { x: 0, y: -depth / 2 },
+    { x: width / 2, y: 0 },
+    { x: 0, y: depth / 2 },
+    { x: -width / 2, y: 0 },
+  ];
+
+  if (isAccessory) {
+    const accessoryStrokeWidth = selected ? 2.2 : 2;
+    const fillerTabDepth = Math.min(Math.max(inchesToPixels(4), 5), Math.max(1, depth - 2));
+    const showFillerTab = isFillerAccessoryCabinetImage(image) && depth > fillerTabDepth + 2;
+    const fillerDividerY = depth / 2 - fillerTabDepth;
+
+    return (
+      <g transform={`translate(${center.x} ${center.y}) rotate(${rotation})`}>
+        <rect
+          x={-width / 2}
+          y={-depth / 2}
+          width={width}
+          height={depth}
+          fill={fill}
+          fillOpacity={fillOpacity}
+          stroke={stroke}
+          strokeWidth={accessoryStrokeWidth}
+          vectorEffect="non-scaling-stroke"
+        />
+        {showFillerTab && (
+          <line
+            x1={-width / 2}
+            y1={fillerDividerY}
+            x2={width / 2}
+            y2={fillerDividerY}
+            stroke={stroke}
+            strokeWidth={accessoryStrokeWidth}
+            strokeOpacity={detailOpacity}
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
+        {selected && selectionHandles.map((handle, index) => (
+          <circle
+            key={`cabinet-handle-${index}`}
+            cx={handle.x}
+            cy={handle.y}
+            r="4"
+            fill="#22bfd6"
+            stroke="#ffffff"
+            strokeWidth="1.5"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </g>
+    );
+  }
 
   return (
     <g transform={`translate(${center.x} ${center.y}) rotate(${rotation})`}>
@@ -16315,19 +18556,23 @@ function CabinetPlanShape({
           )}
         </>
       )}
-      <CabinetPlanVariantDetails
-        cabinetItem={cabinetItem}
-        inset={inset}
-        stroke={innerStroke}
-        detailOpacity={detailOpacity}
-      />
-      <CabinetPlanAccessoryDetails
-        cabinetItem={cabinetItem}
-        inset={inset}
-        stroke={innerStroke}
-        detailOpacity={detailOpacity}
-      />
-      {getCabinetPlanHandleTabRects(cabinetItem).map((tab, index) => (
+      {!isAccessory && (
+        <>
+          <CabinetPlanVariantDetails
+            cabinetItem={cabinetItem}
+            inset={inset}
+            stroke={innerStroke}
+            detailOpacity={detailOpacity}
+          />
+          <CabinetPlanAccessoryDetails
+            cabinetItem={cabinetItem}
+            inset={inset}
+            stroke={innerStroke}
+            detailOpacity={detailOpacity}
+          />
+        </>
+      )}
+      {!isAccessory && getCabinetPlanHandleTabRects(cabinetItem).map((tab, index) => (
         <rect
           key={`cabinet-plan-handle-tab-${index}`}
           x={tab.x}
@@ -16340,12 +18585,7 @@ function CabinetPlanShape({
           vectorEffect="non-scaling-stroke"
         />
       ))}
-      {selected && [
-        { x: 0, y: -depth / 2 },
-        { x: width / 2, y: 0 },
-        { x: 0, y: depth / 2 },
-        { x: -width / 2, y: 0 },
-      ].map((handle, index) => (
+      {selected && selectionHandles.map((handle, index) => (
         <circle
           key={`cabinet-handle-${index}`}
           cx={handle.x}
@@ -16748,7 +18988,7 @@ function getCabinetPlacementPreview(
     rotation: resolvedRotation,
     category: cabinetCategory,
     image: cabinetImage,
-    heightInches: cabinetCategory === "wall" ? 30 : 36,
+    heightInches: cabinetCategory === "wall" ? 30 : cabinetCategory === "pantry" ? 84 : 36,
     distanceFromFloorInches: cabinetCategory === "wall" ? 54 : 0,
     wallId: attachment?.wall.id,
     wallFace: attachment?.wallFace,
@@ -17646,7 +19886,9 @@ function getAdjacentCabinetSnappedCenter(
     if (otherCabinet.id === excludedCabinetId) continue;
 
     const otherCategory = getCabinetElevationCategory(otherCabinet);
-    const samePlacementLayer = (pendingCategory === "wall") === (otherCategory === "wall");
+    const samePlacementLayer =
+      isElevationFloatingCabinet({ category: pendingCategory, width }) ===
+      isElevationFloatingCabinet(otherCabinet);
 
     const otherBounds = getRotatedRectBounds(
       otherCabinet.center,
@@ -17684,7 +19926,7 @@ function getAdjacentCabinetSnappedCenter(
 
     // Alignment snaps are only same-layer. Cross-layer alignment was the root cause
     // of wall cabinets being pulled into a small false gap or a small false overlap
-    // when the user wanted edge-to-edge placement beside base/tall cabinets.
+    // when the user wanted edge-to-edge placement beside base/pantry cabinets.
     if (samePlacementLayer && nearVerticalNeighbor) {
       considerSnap("x", "alignment", otherBounds.minX - bounds.minX, alignmentThreshold);
       considerSnap("x", "alignment", otherBounds.maxX - bounds.maxX, alignmentThreshold);
@@ -17818,7 +20060,7 @@ function getCabinetEdgeToEdgeSnappedCenter({
     // paths unless they share the same wall/run. Collision validation still
     // decides whether the snapped placement is legal after the edge alignment.
     if (
-      (movingCategory === "wall") !== (otherCategory === "wall") &&
+      isElevationFloatingCabinet({ category: movingCategory, width }) !== isElevationFloatingCabinet(otherCabinet) &&
       preferredWallId &&
       otherCabinet.wallId &&
       otherCabinet.wallId !== preferredWallId
@@ -17965,8 +20207,8 @@ function getWallCabinetElevationOverlapMessage(
       // excludedCabinetId is present, so overlap is still blocked normally.
       if (
         !excludedCabinetId &&
-        movingCategory === "wall" &&
-        otherCategory === "wall" &&
+        isElevationFloatingCabinet(movingPlacement.cabinet) &&
+        isElevationFloatingCabinet(otherPlacement.cabinet) &&
         cabinetsBelongToSameWall(movingPlacement.cabinet, otherPlacement.cabinet)
       ) {
         return false;
@@ -18058,10 +20300,10 @@ function getDisallowedCabinetBodyOverlap(
       ? cabinets.map((candidate) => candidate.id === cabinetItem.id ? cabinetItem : candidate)
       : [...cabinets, cabinetItem];
 
-    // Base and tall cabinets are floor-standing. If two floor-standing cabinets
+    // Base cabinets are floor-standing. If two floor-standing cabinets
     // overlap in the floor plan, they collide physically even when they are
     // attached to different connected wall runs such as an L-shaped corner.
-    if (isFloorStandingCabinetCategory(category) && isFloorStandingCabinetCategory(otherCategory)) {
+    if (isFloorStandingCabinet(cabinetItem) && isFloorStandingCabinet(otherCabinet)) {
       if (cabinetsShareWallButDifferentFaces(cabinetItem, otherCabinet)) {
         return false;
       }
@@ -18074,18 +20316,18 @@ function getDisallowedCabinetBodyOverlap(
     // blocks any remaining vertical overlap.
     if (
       !excludedCabinetId &&
-      category === "wall" &&
-      otherCategory === "wall" &&
+      isElevationFloatingCabinet(cabinetItem) &&
+      isElevationFloatingCabinet(otherCabinet) &&
       sameWall
     ) {
       return false;
     }
 
     // For upper/lower combinations, the floor plan alone is not enough. A wall
-    // cabinet may look like it sits over a base cabinet in top view but still be
-    // valid because it is above the base in elevation. Block only when their
-    // vertical elevation ranges overlap. This also catches wall-vs-tall and
-    // different-wall wall-vs-wall collisions at L-shaped corners.
+    // or pantry cabinet may look like it sits over a base cabinet in top view but
+    // still be valid because it is above the base in elevation. Block only when
+    // their vertical elevation ranges overlap. This also catches different-wall
+    // floating-cabinet collisions at L-shaped corners.
     if (cabinetVerticalRangesOverlap(cabinetItem, otherCabinet)) {
       return true;
     }
@@ -18132,10 +20374,6 @@ function cabinetsShareWallButDifferentFaces(
   );
 }
 
-function isFloorStandingCabinetCategory(category: CabinetCategory) {
-  return category === "base" || category === "tall";
-}
-
 function getCabinetVerticalRangeInches(cabinetItem: CabinetElement) {
   const category = getCabinetElevationCategory(cabinetItem);
   const spec = getCabinetElevationSpec(cabinetItem, category);
@@ -18172,8 +20410,8 @@ function isSameWallWallCabinetStackOverlapAllowed(
   // A wall cabinet from a different wall is physically crossing into another
   // cabinet's footprint, so it must be blocked.
   return (
-    category === "wall" &&
-    otherCategory === "wall" &&
+    isElevationFloatingCabinet(cabinetItem) &&
+    isElevationFloatingCabinet(otherCabinet) &&
     cabinetsBelongToSameWall(cabinetItem, otherCabinet)
   );
 }
@@ -18185,12 +20423,12 @@ function isSameWallCrossLayerCabinetOverlapAllowed(
   const category = getCabinetElevationCategory(cabinetItem);
   const otherCategory = getCabinetElevationCategory(otherCabinet);
 
-  // Wall cabinets are upper cabinets; base/tall cabinets are floor-standing.
-  // They may share the same floor-plan footprint only on the same wall because
-  // they occupy different elevation layers on that wall. If the cabinets are
-  // attached to different walls, the floor-plan overlap is a real collision.
+  // Wall and pantry cabinets can float above lower cabinets. They may share
+  // the same floor-plan footprint only on the same wall because they occupy
+  // different elevation layers on that wall. If the cabinets are attached to
+  // different walls, the floor-plan overlap is a real collision.
   return (
-    (category === "wall") !== (otherCategory === "wall") &&
+    isElevationFloatingCabinet(cabinetItem) !== isElevationFloatingCabinet(otherCabinet) &&
     cabinetsBelongToSameWall(cabinetItem, otherCabinet)
   );
 }
@@ -18222,7 +20460,7 @@ function getWallCabinetSupportedWall(
     rotation: cabinetItem.rotation,
   });
 
-  if (category !== "wall") return null;
+  if (!isElevationFloatingCabinet(cabinetItem)) return null;
 
   const bodyBounds = getRotatedRectBounds(
     cabinetItem.center,
@@ -18345,15 +20583,25 @@ function cabinetIntersectsAnyCabinet(
 
     const otherCategory = getCabinetElevationCategory(otherCabinet);
 
-    if (cabinetCategory === "wall" && otherCategory === "wall") return false;
+    if (
+      isElevationFloatingCabinet({
+        category: cabinetCategory,
+        width: cabinetItem.width,
+        image: cabinetItem.image,
+      }) &&
+      isElevationFloatingCabinet(otherCabinet)
+    ) return false;
 
-    // Wall cabinets may sit over base/tall cabinets, but no cabinet may sit on
-    // top of another cabinet of the same placement layer. Base/tall cabinets are
+    // Wall cabinets may sit over base/pantry cabinets, but no cabinet may sit on
+    // top of another cabinet of the same placement layer. Base/pantry cabinets are
     // floor-standing and cannot be placed over any cabinet.
-    const wallOverBaseOrTall =
-      (cabinetCategory === "wall" && otherCategory !== "wall") ||
-      (cabinetCategory !== "wall" && otherCategory === "wall");
-    if (wallOverBaseOrTall) return false;
+    const floatingOverFloorStanding =
+      isElevationFloatingCabinet({
+        category: cabinetCategory,
+        width: cabinetItem.width,
+        image: cabinetItem.image,
+      }) !== isElevationFloatingCabinet(otherCabinet);
+    if (floatingOverFloorStanding) return false;
 
     const otherBodyBounds = getRotatedRectBounds(
       otherCabinet.center,
@@ -18470,7 +20718,7 @@ function resolveCabinetDragCenterAgainstCabinetCollisions(
     // Wall cabinets can overlap in floor plan while being safe at different
     // elevations. Use the elevation projection to decide whether this pair is a
     // real cabinet collision that should block/snap the drag.
-    if (candidateCategory === "wall" || otherCategory === "wall") {
+    if (isElevationFloatingCabinet(candidateCabinet) || isElevationFloatingCabinet(otherCabinet)) {
       return Boolean(getCabinetElevationPairOverlap(candidateCabinet, otherCabinet, cabinets, walls));
     }
 
@@ -18775,11 +21023,18 @@ function areCabinetsEqual(left: CabinetElement[], right: CabinetElement[]) {
       Math.abs((cabinetItem.heightInches ?? 0) - (otherCabinet.heightInches ?? 0)) < 0.001 &&
       Math.abs((cabinetItem.distanceFromFloorInches ?? 0) - (otherCabinet.distanceFromFloorInches ?? 0)) < 0.001 &&
       Math.abs((cabinetItem.cooktopFrontHeightInches ?? 0) - (otherCabinet.cooktopFrontHeightInches ?? 0)) < 0.001 &&
+      Math.abs((cabinetItem.blindDoorWidthInches ?? 0) - (otherCabinet.blindDoorWidthInches ?? 0)) < 0.001 &&
+      Math.abs((cabinetItem.blindFillerWidthInches ?? 0) - (otherCabinet.blindFillerWidthInches ?? 0)) < 0.001 &&
+      Math.abs((cabinetItem.ovenCabinetProductHeightInches ?? 0) - (otherCabinet.ovenCabinetProductHeightInches ?? 0)) < 0.001 &&
+      Math.abs((cabinetItem.ovenCabinetFillerHeightInches ?? 0) - (otherCabinet.ovenCabinetFillerHeightInches ?? 0)) < 0.001 &&
+      Math.abs((cabinetItem.ovenCabinetBottomDrawerHeightInches ?? 0) - (otherCabinet.ovenCabinetBottomDrawerHeightInches ?? 0)) < 0.001 &&
       (cabinetItem.category ?? null) === (otherCabinet.category ?? null) &&
       (cabinetItem.catalogId ?? null) === (otherCabinet.catalogId ?? null) &&
       (cabinetItem.image ?? null) === (otherCabinet.image ?? null) &&
       Boolean(cabinetItem.sinkFixture) === Boolean(otherCabinet.sinkFixture) &&
       (cabinetItem.cooktopFixture ?? null) === (otherCabinet.cooktopFixture ?? null) &&
+      (cabinetItem.ovenCabinetProductLayout ?? "none") ===
+        (otherCabinet.ovenCabinetProductLayout ?? "none") &&
       (cabinetItem.wallId ?? null) === (otherCabinet.wallId ?? null) &&
       (cabinetItem.wallFace ?? null) === (otherCabinet.wallFace ?? null)
     );
@@ -19645,6 +21900,7 @@ function CabinetPlanVariantDetails({
     );
   }
 
+
   if (image === "base-refrigerator") {
     const bodyX = -width / 2 + inset * 1.15;
     const bodyY = -depth / 2 + inset * 1.15;
@@ -19710,11 +21966,26 @@ function CabinetPlanVariantDetails({
     );
   }
 
-  if (image === "base-drawer" || image === "base-two-drawer" || image === "base-four-drawer" || image === "base-two-door-one-drawer" || image === "base-one-door-one-drawer" || image === "base-two-door-two-drawer") {
+  if (
+    image === "base-drawer" ||
+    image === "base-two-drawer" ||
+    image === "base-four-drawer" ||
+    image === "base-two-door-one-drawer" ||
+    image === "base-one-door-one-drawer" ||
+    image === "base-two-door-two-drawer" ||
+    image === "base-sink-cabinet" ||
+    image === "base-farm-sink-cabinet" ||
+    image === "base-spice-rack" ||
+    image === "base-trash-can"
+  ) {
     return <g opacity={detailOpacity}>{topLine}</g>;
   }
 
-  if (image === "base-appliance" || image === "base-oven-bottom-drawer") {
+  if (
+    image === "base-appliance" ||
+    image === "base-oven-bottom-drawer" ||
+    image === "base-microwave-bottom-drawer"
+  ) {
     return (
       <g opacity={detailOpacity}>
         {topLine}
@@ -19735,19 +22006,25 @@ function CabinetPlanVariantDetails({
 
   if (
     image === "base-blind-left" ||
+    image === "base-blind-right" ||
+    image === "wall-blind-left" ||
+    image === "wall-blind-right" ||
     image === "base-blind-left-one-drawer" ||
     image === "base-blind-right-one-drawer"
   ) {
+    const panelInsetX = Math.max(3, Math.min(7, width * 0.05));
+    const panelInsetY = Math.max(3, Math.min(6, depth * 0.12));
     return (
       <g opacity={detailOpacity}>
         {topLine}
-        <line
-          x1={image === "base-blind-right-one-drawer" ? width / 2 - width * 0.36 : -width / 2 + width * 0.36}
-          y1={-depth / 2 + inset}
-          x2={image === "base-blind-right-one-drawer" ? width / 2 - width * 0.36 : -width / 2 + width * 0.36}
-          y2={depth / 2 - inset}
+        <rect
+          x={-width / 2 + panelInsetX}
+          y={-depth / 2 + panelInsetY}
+          width={Math.max(0, width - panelInsetX * 2)}
+          height={depth - panelInsetY * 2}
+          fill="none"
           stroke={stroke}
-          strokeWidth="1.1"
+          strokeWidth="1"
           vectorEffect="non-scaling-stroke"
         />
       </g>
@@ -19766,6 +22043,11 @@ function getCabinetPlanHandleTabRects(
 ) {
   const image = getCabinetImage(cabinetItem);
   if (isProductCabinetImage(image)) return [];
+
+  if (isAccessoryCabinetImage(image)) {
+    return [];
+  }
+
   const tabWidth = Math.min(22, Math.max(10, cabinetItem.width * 0.18));
   const tabHeight = Math.min(8, Math.max(5, cabinetItem.depth * 0.18));
   const tabY = cabinetItem.depth / 2 - tabHeight * 0.12;
@@ -19802,16 +22084,25 @@ function getCabinetPlanHandleTabRects(
 
   if (
     image === "base-one-door" ||
+    image === "pantry-one-door" ||
+    image === "base-spice-rack" ||
+    image === "base-trash-can" ||
     image === "base-appliance" ||
     image === "base-oven-bottom-drawer" ||
+    image === "base-microwave-bottom-drawer" ||
     image === "base-blind-left" ||
+    image === "wall-blind-left" ||
     image === "base-one-door-one-drawer" ||
     image === "base-two-drawer" ||
     image === "base-four-drawer" ||
     image === "base-blind-left-one-drawer"
   ) {
     tabCenters = [cabinetItem.width / 2 - tabWidth * 0.9];
-  } else if (image === "base-blind-right-one-drawer") {
+  } else if (
+    image === "base-blind-right-one-drawer" ||
+    image === "base-blind-right" ||
+    image === "wall-blind-right"
+  ) {
     tabCenters = [-cabinetItem.width / 2 + tabWidth * 0.9];
   } else if (image === "base-drawer") {
     tabCenters = [0];
@@ -21225,6 +23516,7 @@ function areWallsEqual(a: Wall[], b: Wall[]) {
       (wall.kind ?? "wall") === (other.kind ?? "wall") &&
       getWallElevationViewMode(wall) === getWallElevationViewMode(other) &&
       (wall.needCabinetPlacement ?? true) === (other.needCabinetPlacement ?? true) &&
+      getWallCabinetPlacementMode(wall) === getWallCabinetPlacementMode(other) &&
       samePoint(wall.start, other.start) &&
       samePoint(wall.end, other.end)
     );

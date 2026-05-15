@@ -1,0 +1,63 @@
+"outputShape": {
+  "layoutType": "single-wall | galley | l-shape | u-shape | connected-wall-return",
+  "wallOrder": [
+    "wall-id-1",
+    "wall-id-2"
+  ],
+  "notes": [
+    "overall design note"
+  ],
+  "walls": [
+    {
+      "wallId": "wall id",
+      "wallLabel": "Wall 2",
+      "cabinetPlacementMode": "none | both | interior | exterior",
+      "placements": [
+        {
+          "catalogId": "catalog id",
+          "wallFace": "interior | exterior",
+          "leftInches": 12,
+          "bottomInches": 0,
+          "builtInFillerThicknessInches": "number | only for blind cabinet placements; describes the blind cabinet's built-in filler thickness",
+          "widthInches": "number | normal cabinets/products: wall-span; filler/end panel: projection/depth away from wall",
+          "depthInches": "number | required only for normal cabinets/products; do not use for filler/end panel",
+          "thicknessInches": "number | required only for filler/end panel; wall-span dimension",
+          "heightInches": "number | vertical height of the placement from bottomInches upward",
+          "topOption": "null | sink | surface-cooktop | front-control-cooktop",
+          "notes": [
+            "optional short placement note"
+          ]
+        }
+      ],
+      "notes": [
+        "short wall-specific note"
+      ],
+      "zoneType": "cooking | cold-storage | wet-cleaning | prep-storage | pantry-storage | mixed | empty"
+    }
+  ],
+  "dimensionNaming": {
+    "normalCabinetOrProduct": {
+      "widthInches": "left-to-right wall/elevation span",
+      "depthInches": "projection away from wall",
+      "heightInches": "vertical height from bottomInches upward"
+    },
+    "fillerOrEndPanel": {
+      "thicknessInches": "left-to-right wall/elevation span; use this instead of widthInches for filler/end-panel span",
+      "widthInches": "projection away from wall; use this instead of depthInches for filler/end-panel projection",
+      "heightInches": "vertical height from bottomInches upward",
+      "depthInches": "do not output this field for filler/end-panel placements"
+    }
+  },
+  "zonePlan": [
+    {
+      "zoneType": "cooking | cold-storage | wet-cleaning | prep-storage | pantry-storage | mixed | empty",
+      "wallIds": [
+        "wall-id-1"
+      ],
+      "wallLabels": [
+        "Wall 1"
+      ],
+      "reason": "short reason why this zone works well here"
+    }
+  ]
+}
