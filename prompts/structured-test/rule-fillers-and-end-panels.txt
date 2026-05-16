@@ -1,0 +1,66 @@
+Rule file: Fillers and end panels
+
+Use this file only after the main layout is stable.
+
+Core principle:
+- Fillers and end panels are not the same thing.
+- Use them only when the condition truly calls for them.
+- Keep runs closed and intentional. Do not leave random gaps.
+
+Fillers:
+- Use fillers to close actual gaps.
+- Typical cases:
+  - wall-to-cabinet gap
+  - corner clearance condition
+  - cabinet-to-cabinet fit adjustment
+  - appliance clearance condition
+  - scribe or installation adjustment
+
+End panels:
+- Use end panels to finish an exposed visible side.
+- Typical cases:
+  - exposed run end
+  - exposed refrigerator or pantry side
+  - exposed cabinet side caused by height or depth mismatch
+  - exposed inner side beside a shorter adjacent wall product
+
+Important separation:
+- If the issue is a gap, use a filler.
+- If the issue is a visible exposed side with no gap, use an end panel.
+- Do not use an end panel as a gap filler.
+- Do not place both a filler and an end panel for the exact same condition unless there is a real separate need.
+- Do not use end panels at shared inside corners where a filler or corner-clearance condition is required.
+
+Exposed-side priority rule:
+- If a cabinet or product side is visibly exposed to open air, prioritize an end panel on that exposed side.
+- Do not solve a visibly exposed cabinet side by placing a filler first and then placing an end panel outside that filler.
+- Do not place an end panel first and then attach a filler directly to that end panel on the same side condition.
+- A filler directly connected to an end panel, or an end panel directly connected to a filler, on the same exposed side condition is not allowed.
+- If the side is exposed, the finish logic should be driven by the end panel, not by a filler chain.
+
+Specific invalid example:
+- cabinet -> filler -> end panel on the same exposed side is invalid
+- cabinet -> end panel -> filler on the same exposed side is invalid
+
+How to resolve that condition:
+- If the cabinet side is exposed, use the end panel as the side finish.
+- If there is also a separate true gap somewhere else, solve that gap independently without chaining filler and end panel directly together on the same exposed side.
+- If a side condition seems to require both, reconsider the cabinet position, run length, or adjacent object strategy before allowing a filler/end-panel chain.
+
+Accessory selection reminders:
+- Use `accessory-base-filler` for base/floor gaps.
+- Use `accessory-wall-filler` for wall/upper gaps.
+- Use `accessory-base-end-panel` for exposed base-category side faces.
+- Use `accessory-wall-end-panel` for exposed wall-category side faces.
+- If a dishwasher sits at the end of a base run with no cabinet beside it, a base end panel may be needed for finish/support conditions.
+
+Accessory dimensions:
+- Accessories should still use `widthInches`, `heightInches`, and `depthInches`.
+- For fillers and end panels:
+  - `widthInches` = wall-span width
+  - `depthInches` = projection
+  - `heightInches` = vertical height
+
+Flexibility:
+- Fillers and end panels may use flexible dimensions when needed.
+- They do not have to be restricted to standard cabinet dimension sets.

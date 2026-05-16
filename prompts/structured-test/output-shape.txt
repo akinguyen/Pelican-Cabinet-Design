@@ -16,12 +16,11 @@
         {
           "catalogId": "catalog id",
           "wallFace": "interior | exterior",
-          "leftInches": 12,
-          "bottomInches": 0,
-          "builtInFillerThicknessInches": "number | only for blind cabinet placements; describes the blind cabinet's built-in filler thickness",
-          "widthInches": "number | normal cabinets/products: wall-span; filler/end panel: projection/depth away from wall",
-          "depthInches": "number | required only for normal cabinets/products; do not use for filler/end panel",
-          "thicknessInches": "number | required only for filler/end panel; wall-span dimension",
+          "leftInches": "number | distance along the selected wall face from that face's start point to the placement's left/start edge",
+          "bottomInches": "number | vertical distance from the floor to the bottom of the placement",
+          "builtInFillerWidthInches": "number | only for blind cabinet placements; describes the blind cabinet's built-in filler width",
+          "widthInches": "number | left-to-right wall/elevation span",
+          "depthInches": "number | projection away from wall",
           "heightInches": "number | vertical height of the placement from bottomInches upward",
           "topOption": "null | sink | surface-cooktop | front-control-cooktop",
           "notes": [
@@ -36,16 +35,10 @@
     }
   ],
   "dimensionNaming": {
-    "normalCabinetOrProduct": {
+    "allObjects": {
       "widthInches": "left-to-right wall/elevation span",
       "depthInches": "projection away from wall",
       "heightInches": "vertical height from bottomInches upward"
-    },
-    "fillerOrEndPanel": {
-      "thicknessInches": "left-to-right wall/elevation span; use this instead of widthInches for filler/end-panel span",
-      "widthInches": "projection away from wall; use this instead of depthInches for filler/end-panel projection",
-      "heightInches": "vertical height from bottomInches upward",
-      "depthInches": "do not output this field for filler/end-panel placements"
     }
   },
   "zonePlan": [

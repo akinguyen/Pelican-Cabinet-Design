@@ -1,0 +1,22 @@
+Structured smart-kitchen prompt test set
+
+Purpose:
+- This folder is a test-only alternative to `prompts/prompt.txt`.
+- It keeps the current production prompt untouched.
+- The goal is to split the dense kitchen-planning prompt into a cleaner overview prompt plus focused rule files.
+
+Suggested file order:
+1. prompt-overview.txt
+2. rule-input-and-walls.txt
+3. rule-zone-planning.txt
+4. rule-corner-and-blind-cabinets.txt
+5. rule-object-placement.txt
+6. rule-fillers-and-end-panels.txt
+7. rule-output-json.txt
+8. rule-final-self-check.txt
+
+How this mock structure is intended to work:
+- `prompt-overview.txt` explains the planner's purpose, the high-level flow, and tells the AI to consult the rule files.
+- Each `rule-*.txt` file contains one focused area of requirements instead of mixing every detail into one large prompt.
+- The original production prompt's drawing/image-export sections are intentionally not carried over here because this test structure is for JSON planning only.
+- This is only a prompt-organization experiment. It does not change the current runtime behavior unless the app is later wired to read these files.

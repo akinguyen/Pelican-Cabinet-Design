@@ -1764,15 +1764,9 @@ export function generateSmartKitchenLayout(
 
         const wallWidthInches = getPlacementWallWidthInches(wallEntry);
         const leftInches = placement.leftInches;
-        const isAccessory =
-          catalogItem.id.startsWith("accessory-") ||
-          String(catalogItem.image ?? "").startsWith("accessory-");
-        const spanWidthInches = isAccessory
-          ? placement.thicknessInches ?? catalogItem.widthInches
-          : placement.widthInches ?? catalogItem.widthInches;
-        const projectionDepthInches = isAccessory
-          ? placement.widthInches ?? catalogItem.depthInches
-          : placement.depthInches ?? catalogItem.depthInches;
+        const spanWidthInches = placement.widthInches ?? catalogItem.widthInches;
+        const projectionDepthInches =
+          placement.depthInches ?? catalogItem.depthInches;
         const widthInches = spanWidthInches;
 
         if (leftInches < -0.01 || leftInches + widthInches > wallWidthInches + 0.01) {
@@ -1818,12 +1812,12 @@ export function generateSmartKitchenLayout(
             plannedCabinet.image === "base-blind-right" ||
             plannedCabinet.image === "wall-blind-left" ||
             plannedCabinet.image === "wall-blind-right") &&
-          placement.builtInFillerThicknessInches !== null &&
-          placement.builtInFillerThicknessInches !== undefined
+          placement.builtInFillerWidthInches !== null &&
+          placement.builtInFillerWidthInches !== undefined
         ) {
           plannedCabinet = {
             ...plannedCabinet,
-            blindFillerWidthInches: placement.builtInFillerThicknessInches,
+            blindFillerWidthInches: placement.builtInFillerWidthInches,
             blindDoorWidthInches: getBlindDoorWidthInches(
               plannedCabinet,
               spanWidthInches

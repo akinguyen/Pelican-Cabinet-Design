@@ -34,14 +34,26 @@ type OpenAIResponsesPayload = {
   output?: OpenAIResponsesOutputMessage[];
 };
 
-const SMART_KITCHEN_PROMPT_PATH = path.join(
+const SMART_KITCHEN_PROMPT_DIR = path.join(
   process.cwd(),
   "prompts",
-  "prompt.txt"
+  "structured-test"
 );
+const SMART_KITCHEN_PROMPT_OVERVIEW_PATH = path.join(
+  SMART_KITCHEN_PROMPT_DIR,
+  "prompt-overview.txt"
+);
+const SMART_KITCHEN_RULE_FILES = [
+  "rule-input-and-walls.txt",
+  "rule-zone-planning.txt",
+  "rule-corner-and-blind-cabinets.txt",
+  "rule-object-placement.txt",
+  "rule-fillers-and-end-panels.txt",
+  "rule-output-json.txt",
+  "rule-final-self-check.txt",
+] as const;
 const SMART_KITCHEN_OUTPUT_SHAPE_PATH = path.join(
-  process.cwd(),
-  "prompts",
+  SMART_KITCHEN_PROMPT_DIR,
   "output-shape.txt"
 );
 
@@ -156,6 +168,29 @@ async function readRequiredTextFile(filePath: string, label: string) {
     const reason = error instanceof Error ? error.message : "Unknown file read error.";
     throw new Error(`Unable to read ${label} at ${filePath}. ${reason}`);
   }
+}
+
+async function readStructuredSmartKitchenPrompt() {
+  const overviewText = await readRequiredTextFile(
+    SMART_KITCHEN_PROMPT_OVERVIEW_PATH,
+    "smart-kitchen prompt overview"
+  );
+  const ruleTexts = await Promise.all(
+    SMART_KITCHEN_RULE_FILES.map(async (fileName) => ({
+      fileName,
+      text: await readRequiredTextFile(
+        path.join(SMART_KITCHEN_PROMPT_DIR, fileName),
+        `smart-kitchen rule file ${fileName}`
+      ),
+    }))
+  );
+
+  return [
+    overviewText.trim(),
+    ...ruleTexts.map(
+      ({ fileName, text }) => `Reference file: ${fileName}\n\n${text.trim()}`
+    ),
+  ].join("\n\n---\n\n");
 }
 
 function add(a: AiPoint, b: AiPoint): AiPoint {
@@ -976,7 +1011,6 @@ type ElevationFixedObjectSummary = Record<string, unknown> & {
   type: string;
   coordinateSpace: "elevationPlan";
   leftInches: number;
-  rightInches: number;
   bottomInches: number;
 };
 
@@ -1048,10 +1082,9 @@ function normalizeClientElevationFixedObject(value: unknown): ElevationFixedObje
   const id = typeof candidate.id === "string" ? candidate.id : null;
   const type = typeof candidate.type === "string" ? candidate.type : null;
   const leftInches = toNullableNumber(candidate.leftInches);
-  const rightInches = toNullableNumber(candidate.rightInches);
   const bottomInches = toNullableNumber(candidate.bottomInches);
 
-  if (!id || !type || leftInches === null || rightInches === null || bottomInches === null) {
+  if (!id || !type || leftInches === null || bottomInches === null) {
     return null;
   }
 
@@ -1061,7 +1094,6 @@ function normalizeClientElevationFixedObject(value: unknown): ElevationFixedObje
     type,
     coordinateSpace: "elevationPlan",
     leftInches: roundElevationPlanInches(leftInches),
-    rightInches: roundElevationPlanInches(rightInches),
     bottomInches: roundElevationPlanInches(bottomInches),
   };
 
@@ -1244,14 +1276,22 @@ function summarizeWallFaceDots(
 ) {
   const elevationViewMode = getWallElevationViewMode(wall);
   const cornerDots = getWallCornerDots(room, wall);
-  const interiorPair = {
-    start: cornerDots.startLeft,
-    end: cornerDots.endLeft,
-  };
-  const exteriorPair = {
-    start: cornerDots.startRight,
-    end: cornerDots.endRight,
-  };
+  const interiorMeasurementSide = getInteriorMeasurementGuideSide(room, wall);
+  const exteriorMeasurementSide = interiorMeasurementSide === "left" ? "right" : "left";
+  const pairForSide = (side: "left" | "right") =>
+    side === "left"
+      ? {
+          dotPair: ["left-start", "left-end"] as [string, string],
+          start: cornerDots.startLeft,
+          end: cornerDots.endLeft,
+        }
+      : {
+          dotPair: ["right-start", "right-end"] as [string, string],
+          start: cornerDots.startRight,
+          end: cornerDots.endRight,
+        };
+  const interiorPair = pairForSide(interiorMeasurementSide);
+  const exteriorPair = pairForSide(exteriorMeasurementSide);
 
   return {
     elevationViewMode,
@@ -1285,7 +1325,7 @@ function summarizeWallFaceDots(
       ["right-start", "left-start"],
     ],
     interiorSide: {
-      dotPair: ["left-start", "left-end"],
+      dotPair: interiorPair.dotPair,
       start: {
         x: interiorPair.start.x,
         y: interiorPair.start.y,
@@ -1302,7 +1342,7 @@ function summarizeWallFaceDots(
       ),
     },
     exteriorSide: {
-      dotPair: ["right-start", "right-end"],
+      dotPair: exteriorPair.dotPair,
       start: {
         x: exteriorPair.start.x,
         y: exteriorPair.start.y,
@@ -1381,6 +1421,9 @@ function normalizePlacement(value: unknown): SmartKitchenPlacement | null {
     candidate.topOption === "front-control-cooktop"
       ? candidate.topOption
       : null;
+  const legacyThicknessInches = toNullableNumber(candidate.thicknessInches);
+  const parsedWidthInches = toNullableNumber(candidate.widthInches);
+  const parsedDepthInches = toNullableNumber(candidate.depthInches);
 
   if (!catalogId || leftInches === null) return null;
 
@@ -1389,13 +1432,13 @@ function normalizePlacement(value: unknown): SmartKitchenPlacement | null {
     leftInches,
     bottomInches,
     wallFace,
-    widthInches: toNullableNumber(candidate.widthInches),
-    depthInches: toNullableNumber(candidate.depthInches),
-    thicknessInches: toNullableNumber(candidate.thicknessInches),
+    widthInches: legacyThicknessInches ?? parsedWidthInches,
+    depthInches:
+      parsedDepthInches ?? (legacyThicknessInches !== null ? parsedWidthInches : null),
     heightInches: toNullableNumber(candidate.heightInches),
-    builtInFillerThicknessInches: toNullableNumber(
-      candidate.builtInFillerThicknessInches
-    ),
+    builtInFillerWidthInches:
+      toNullableNumber(candidate.builtInFillerWidthInches) ??
+      toNullableNumber(candidate.builtInFillerThicknessInches),
     topOption,
     notes: toStringArray(candidate.notes),
   };
@@ -1570,14 +1613,12 @@ function summarizeWalls(room: AiRoomInput) {
               Math.round((windowItem.width / room.meta.gridSize) * 12 * 10) / 10;
             const centerOffsetInches = windowItem.t * elevationWidthInches;
             const leftInches = elevationWidthInches / 2 + centerOffsetInches - widthInches / 2;
-            const rightInches = elevationWidthInches - leftInches - widthInches;
 
             return {
               id: windowItem.id,
               type: "window",
               coordinateSpace: "elevationPlan" as const,
               leftInches: Math.round(leftInches * 10) / 10,
-              rightInches: Math.round(rightInches * 10) / 10,
               bottomInches: Math.round(windowItem.distanceFromFloorInches * 10) / 10,
               widthInches,
               heightInches: Math.round(windowItem.heightInches * 10) / 10,
@@ -1590,14 +1631,12 @@ function summarizeWalls(room: AiRoomInput) {
               Math.round((doorItem.width / room.meta.gridSize) * 12 * 10) / 10;
             const centerOffsetInches = doorItem.t * elevationWidthInches;
             const leftInches = elevationWidthInches / 2 + centerOffsetInches - widthInches / 2;
-            const rightInches = elevationWidthInches - leftInches - widthInches;
 
             return {
               id: doorItem.id,
               type: "door",
               coordinateSpace: "elevationPlan" as const,
               leftInches: Math.round(leftInches * 10) / 10,
-              rightInches: Math.round(rightInches * 10) / 10,
               bottomInches: Math.round(doorItem.distanceFromFloorInches * 10) / 10,
               widthInches,
               heightInches: Math.round(doorItem.heightInches * 10) / 10,
@@ -1641,18 +1680,12 @@ function summarizeWalls(room: AiRoomInput) {
               catalogId: cabinetItem.catalogId ?? null,
               title: catalogItem?.title ?? "Placed object",
               category,
-              image: cabinetItem.image ?? catalogItem?.image ?? null,
               topOption: getTopOption(cabinetItem),
-              accessoryKind:
-                (cabinetItem as typeof cabinetItem & { accessoryKind?: string }).accessoryKind ??
-                (catalogItem as typeof catalogItem & { accessoryKind?: string } | null)?.accessoryKind ??
-                null,
               widthInches,
               depthInches:
                 Math.round(((cabinetItem.depth / room.meta.gridSize) * 12) * 10) / 10,
               heightInches,
               leftInches: elevationOffsets.leftInches,
-              rightInches: elevationOffsets.rightInches,
               bottomInches: elevationOffsets.bottomInches,
             };
           }),
@@ -1715,7 +1748,7 @@ function summarizeCatalog(room: AiRoomInput) {
         type === "accessory"
           ? []
           : catalogItem.standardDepthOptions ?? [item.depthInches],
-      builtInFillerThickness: isBlindCabinet ? 3 : null,
+      builtInFillerWidth: isBlindCabinet ? 3 : null,
     };
   });
 }
@@ -1795,10 +1828,7 @@ export async function POST(request: Request) {
     designerFeedback: designerFeedback || null,
   };
   const plannerInputPayload = { plannerInput };
-  const plannerPrompt = await readRequiredTextFile(
-    SMART_KITCHEN_PROMPT_PATH,
-    "smart-kitchen prompt"
-  );
+  const plannerPrompt = await readStructuredSmartKitchenPrompt();
   const outputShapeText = await readRequiredTextFile(
     SMART_KITCHEN_OUTPUT_SHAPE_PATH,
     "smart-kitchen output shape"

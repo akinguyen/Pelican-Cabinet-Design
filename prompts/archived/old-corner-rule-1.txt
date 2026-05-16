@@ -1,0 +1,136 @@
+Rule file: Corner strategy and blind cabinets
+
+Use this file when a cabinet run reaches a usable inside corner.
+
+Corner-first rule:
+- Resolve inside corners before finishing the rest of the run.
+- A bad corner can invalidate an otherwise reasonable layout.
+- Validate the floor plan, not only the elevation.
+
+Corner invalidation rules:
+- A corner is invalid if a perpendicular run blocks the usable face of a cabinet even when the footprints do not technically overlap.
+- Do not place normal base cabinets, drawer bases, pantry cabinets, refrigerators, appliances, or products tight into a corner if the perpendicular run blocks their opening or access.
+- If a corner cabinet would be blocked, solve it by changing the corner strategy rather than forcing the cabinet.
+
+Corner strategy:
+- At usable inside corners, decide whether the corner should remain open, use clearance/fillers, or use a blind cabinet.
+- Do not let perpendicular runs overlap each other in floor plan.
+- Make the corner look intentional and buildable.
+
+Blind cabinet usage:
+- Blind cabinets are the preferred corner solution for usable inside cabinet corners when cabinetry continues around the corner.
+- Use base blind cabinets for base/floor cabinet corners.
+- Use wall blind cabinets for upper/wall cabinet corners.
+- Orient the blind area toward the adjacent perpendicular wall.
+- Keep the operable visible portion clear and usable.
+- Use the adjacent perpendicular object to visually cover or align with the blind portion without physically overlapping it.
+
+Blind side meaning:
+- For right blind cabinets, the visible side is on the left and the blind side is on the right.
+- For left blind cabinets, the visible side is on the right and the blind side is on the left.
+
+Blind size defaults:
+- base blind width 36, 37, 38, 39 will have 12-inch door
+- base blind width 42, 43, 44, 45 will have 18-inch door
+- wall blind width 36, 37, 38, 39 will have 21-inch door
+- wall blind width 42, 43, 44, 45 will have 27-inch door
+- with the standard 3-inch built-in filler, that means:
+  - 36-inch base blind = 15 inches visible and 21 inches blind
+  - 42-inch base blind = 21 inches visible and 21 inches blind
+  - 36-inch wall blind = 24 inches visible and 12 inches blind
+  - 42-inch wall blind = 30 inches visible and 12 inches blind
+
+Blind cabinet pull understanding:
+- A 36-inch blind can typically pull to about 39 inches.
+- A 42-inch blind can typically pull to about 45 inches.
+- Use pull only when needed to make the corner work better.
+
+Built-in filler:
+- Blind cabinets include a built-in filler.
+- Do not add a separate filler accessory just to represent that built-in blind filler.
+- Use the blind placement field that represents the built-in filler width.
+- The built-in filler sits beside the door on the blind side.
+- Changing built-in filler width changes the visible portion and the blind portion while keeping the full cabinet coherent.
+- The AI is allowed to increase or decrease `builtInFillerWidthInches` when needed to make the blind corner work better.
+- Increasing `builtInFillerWidthInches` increases the visible portion and reduces the blind portion.
+- Decreasing `builtInFillerWidthInches` reduces the visible portion and increases the blind portion.
+- This is one valid way to tune the blind-part width so it better matches the depth of the perpendicular adjacent cabinet.
+- Only adjust `builtInFillerWidthInches` within a realistic and standard-feeling range. Do not use extreme or unrealistic filler widths.
+
+Blind-cabinet width selection order:
+- First, try the standard blind cabinet widths directly, using the default built-in filler width and the correct door-width rule for that blind width.
+- For base blind cabinets, think through widths such as 36, 37, 38, 39, 42, 43, 44, 45.
+- For wall blind cabinets, think through widths such as 36, 37, 38, 39, 42, 43, 44, 45.
+- For each candidate blind width, calculate:
+  - visible part width = door width + built-in filler width
+  - blind part width = total blind cabinet width - visible part width
+- Compare that blind part width to the depth of the perpendicular adjacent cabinet.
+- If one of the standard blind widths already gives a good blind-part match using the default built-in filler width, prefer that solution first.
+- Only if no standard blind width produces a good blind-part match should the AI begin fine-tuning `builtInFillerWidthInches`.
+
+Most important blind-corner geometry:
+- A valid blind corner forms a clean L shape in floor plan.
+- The perpendicular adjacent cabinet should be positioned so its depth matches the width of the blind part whenever possible.
+- The perpendicular adjacent cabinet must not overlap the blind cabinet footprint.
+- The correct relationship is edge-touching or alignment, not overlap.
+- Think of the perpendicular adjacent cabinet as meeting the blind part at its edge so the two objects form a clean L-shaped corner.
+
+What “valid corner” means for a blind cabinet:
+1. The visible part of the blind cabinet stays fully clear and operable.
+2. The blind part is the part that faces the perpendicular run.
+3. The perpendicular adjacent cabinet sits directly in front of the blind part, not in front of the visible part.
+4. The perpendicular adjacent cabinet depth should equal the blind-part width whenever possible.
+5. The perpendicular adjacent cabinet and the blind cabinet must touch only by edge alignment or with a small intentional filler gap.
+6. The perpendicular adjacent cabinet must never slide under, occupy, or overlap any part of the blind cabinet footprint.
+
+Touching and filler cases:
+- Best case: the perpendicular adjacent cabinet touches the blind cabinet exactly at the edge and forms a clean L shape.
+- Also valid: a small filler may exist between the blind cabinet and the perpendicular adjacent cabinet if needed for fit, clearance, or design.
+- Even when a filler is inserted between them, the overall condition must still read as a clean L shape.
+- A filler between them is still not permission for overlap. The footprints must remain separate.
+
+How to think about the blind part:
+- The blind part is the hidden/non-operable portion that the perpendicular run is meant to align with.
+- The visible part is the usable portion with the door and built-in filler.
+- The perpendicular adjacent cabinet should align to the blind part width, not the visible part width.
+
+Examples of valid blind-corner logic:
+- If the blind part is about 24 inches wide, a perpendicular adjacent base cabinet that is 24 inches deep is a strong match.
+- If the blind part is about 12 inches wide, a perpendicular adjacent wall cabinet that is 12 inches deep is a strong match.
+- If exact matching is not possible, adjust pull, built-in filler width, cabinet choice, or perpendicular run position so the corner still reads correctly.
+- Another valid tuning method is:
+  - increase `builtInFillerWidthInches` if the blind part needs to become smaller
+  - decrease `builtInFillerWidthInches` if the blind part needs to become larger
+  - use this only when the resulting visible portion still feels realistic and operable
+
+Important blind-corner decision logic:
+- Do not immediately fine-tune `builtInFillerWidthInches` just because one blind width is close.
+- First test the available standard blind widths with the default built-in filler.
+- If a standard blind width already produces a blind-part width that matches the adjacent cabinet depth, prefer that over custom filler tuning.
+- Use filler tuning as a second-step adjustment method, not the first-step method.
+- This applies to both base blind cabinets and wall blind cabinets.
+
+Blind validation:
+- The visible portion must remain operable.
+- The blind portion should align with or be covered by the perpendicular run.
+- The perpendicular object must not physically overlap the blind cabinet footprint.
+- The blind range should match the perpendicular object projection depth when possible.
+- If the corner still looks wrong, redesign it instead of forcing the blind cabinet.
+
+Do not force a blind cabinet when:
+- the blind side would be exposed to open air
+- the visible side would be blocked
+- the blind range cannot be fully covered/aligned
+- the perpendicular run would need to overlap it
+- the wall is not allowed for cabinet placement
+- a cleaner solution is to shift the run, leave clearance, or redesign the zone
+
+When a blind cabinet fails:
+- shift the perpendicular run
+- change the cabinet type
+- leave clearance
+- pull the blind cabinet within its allowed pull range
+- adjust built-in filler width within a reasonable range
+- change the depth of the perpendicular adjacent cabinet if another catalog choice fits better
+- add a small filler between the blind cabinet and perpendicular cabinet if needed
+- redesign the zone or corner strategy

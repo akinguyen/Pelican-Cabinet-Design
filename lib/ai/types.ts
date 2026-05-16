@@ -207,9 +207,8 @@ export type SmartKitchenPlacement = {
   resolvedWallFace?: SmartKitchenResolvedWallFace | null;
   widthInches?: number | null;
   depthInches?: number | null;
-  thicknessInches?: number | null;
   heightInches?: number | null;
-  builtInFillerThicknessInches?: number | null;
+  builtInFillerWidthInches?: number | null;
   topOption?: SmartKitchenPlacementTopOption | null;
   notes?: string[];
 };

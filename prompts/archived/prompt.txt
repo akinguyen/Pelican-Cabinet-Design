@@ -110,7 +110,7 @@ Use each item’s:
 - standardDepthOptions
 - category
 - type
-- builtInFillerThickness, if present
+- builtInFillerWidth, if present
 
 Do not invent random cabinet or product sizes when catalog options can solve the placement. Flexible accessories such as fillers and end panels may be adjusted as needed.
 
@@ -271,17 +271,15 @@ For fillers/end panels:
 - wallFace
 - leftInches
 - bottomInches
-- thicknessInches
 - widthInches
+- depthInches
 - heightInches
 - topOption
 - notes
 
-Do not include depthInches for fillers or end panels.
-
 For blind cabinets:
 
-- include builtInFillerThicknessInches
+- include builtInFillerWidthInches
 
 Floor-standing items normally use:
 
@@ -307,14 +305,14 @@ For normal cabinets/products:
 
 For fillers/end panels:
 
-- thicknessInches = left-to-right wall/elevation span
-- widthInches = projection/depth away from wall
-- depthInches must not be used
+- widthInches = left-to-right wall/elevation span
+- depthInches = projection/depth away from wall
+- heightInches = vertical height
 
 For overlap checking on the same wall:
 
 - normal cabinet/product: check leftInches + widthInches
-- filler/end panel: check leftInches + thicknessInches
+- filler/end panel: check leftInches + widthInches
 
 ---
 
@@ -536,11 +534,11 @@ A blind cabinet’s built-in filler is part of the blind cabinet. Do not add a s
 
 Every blind cabinet placement must include:
 
-- builtInFillerThicknessInches
+- builtInFillerWidthInches
 
 Usually use:
 
-- builtInFillerThicknessInches: 3
+- builtInFillerWidthInches: 3
 
 Inside a blind cabinet front, treat the layout as:
 
@@ -608,14 +606,14 @@ If the adjacent perpendicular object overlaps any part of the blind cabinet foot
 
 If any part of the blind range remains visually exposed or the adjacent perpendicular object's depth does not align cleanly with the blind range, the blind cabinet is not valid yet. Fix it by choosing one of these options:
 
-- increase builtInFillerThicknessInches by a reasonable amount, usually about 4" to 5" if needed, so the visible range becomes larger and the blind range becomes smaller
+- increase builtInFillerWidthInches by a reasonable amount, usually about 4" to 5" if needed, so the visible range becomes larger and the blind range becomes smaller
 - pull the blind cabinet farther from the corner within the allowed pull range so the blind range matches the adjacent perpendicular object depth when possible
 - use a 42" blind instead of a 36" blind if it gives a better visible/blind split
 - choose a perpendicular wall/base object with a depth that fully covers and aligns with the blind range without blocking the visible range and without overlapping the blind cabinet footprint
 - shift the perpendicular run so it starts directly in front of the blind range at the front edge or clearance boundary without overlapping it
 - redesign the corner or avoid the blind cabinet if a clean L shape cannot be made
 
-Do not use unrealistic built-in filler values. Keep built-in filler thickness within a reasonable cabinet/filler range.
+Do not use unrealistic built-in filler values. Keep built-in filler width within a reasonable cabinet/filler range.
 
 Apply this rule to both:
 
@@ -690,8 +688,8 @@ Create these drawings:
    - For each object, include a small dimension label:
      - Normal cabinet/product: Width x Height x Depth
        Example: 30"W x 34.5"H x 24"D
-     - Filler/end panel: Thickness x Height x Projection
-       Example: 3"T x 34.5"H x 24"P
+     - Filler/end panel: Width x Height x Depth
+       Example: 3"W x 34.5"H x 24"D
      - Blind cabinet: Width x Height x Depth + built-in filler + visible range
        Example: 42"W x 34.5"H x 24"D, BF 3", visible 21"
 
@@ -700,7 +698,7 @@ Create these drawings:
    - One image per designed wall
    - Use the selected wall face length as the elevation width
    - Label all objects clearly
-   - Show object dimensions as Width x Height x Depth, or Thickness x Height x Projection for fillers/end panels
+   - Show object dimensions as Width x Height x Depth
    - Show fixedObjects in their exact positions if present
 
 3. Full kitchen floor plan
@@ -768,7 +766,7 @@ For every placement, construct the object footprint using wall-local coordinates
 4. Determine the wall-span:
 
    - Normal cabinet/product: span = widthInches
-   - Filler/end panel: span = thicknessInches
+   - Filler/end panel: span = widthInches
 
 5. Determine the projection depth:
 
@@ -825,7 +823,7 @@ For each base/tall/product footprint:
 
 For each filler/end panel:
 
-- thickness along the wall
+- width along the wall
 - projection away from the wall
 
 For each blind cabinet:
@@ -833,7 +831,7 @@ For each blind cabinet:
 - total width
 - visible/usable range
 - blind range
-- built-in filler thickness
+- built-in filler width
 - no-overlap L-shaped relationship with the perpendicular run
 
 Example floor-plan blind label:
@@ -881,8 +879,8 @@ Before finalizing, check:
 - Adjacent perpendicular objects cover blind ranges by L-shaped adjacency/alignment, not by sliding under or overlapping the blind cabinet.
 - If a perpendicular object overlaps a blind range, push/shift it farther from the corner until it no longer overlaps while still aligning with the blind range.
 - Wall blind cabinets are checked the same way as base blind cabinets.
-- If a wall blind cabinet’s blind range is partly exposed or overlapped, the design adjusts builtInFillerThicknessInches, pulls the blind cabinet, changes the perpendicular object depth, shifts the perpendicular run, or avoids that blind cabinet.
-- builtInFillerThicknessInches is adjusted only within a reasonable range, usually around 3" standard and about 4" to 5" when needed.
+- If a wall blind cabinet’s blind range is partly exposed or overlapped, the design adjusts builtInFillerWidthInches, pulls the blind cabinet, changes the perpendicular object depth, shifts the perpendicular run, or avoids that blind cabinet.
+- builtInFillerWidthInches is adjusted only within a reasonable range, usually around 3" standard and about 4" to 5" when needed.
 - Blind cabinets are pulled when needed so the visible/usable range is not blocked by the adjacent perpendicular run.
 - If a corner cabinet would be blocked, the design uses a blind cabinet, shifted run, clearance, or different zone layout.
 - No filler and end panel are used together for the same exact gap/exposed-side condition.

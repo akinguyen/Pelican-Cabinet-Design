@@ -1,0 +1,41 @@
+Rule file: Output JSON requirements
+
+Use this file to make sure the final answer is shaped correctly.
+
+Output rules:
+- Return JSON only.
+- Return only the inner object that matches the output shape.
+- Do not wrap the answer inside an extra `outputShape` property.
+- Do not include markdown, prose, or images.
+- Keep the JSON valid, compact, and complete.
+
+Wall-plan expectations:
+- Return walls in the structure defined by `output-shape.txt`.
+- Each designed wall should include its placements, notes, and zone type as required by the shape.
+- Use the correct wall ID or wall label as expected by the output shape.
+- Every allowed wall should receive placements unless placement is physically impossible or clearly invalid, in which case notes should explain why.
+
+Placement expectations:
+- Each placement should describe the chosen catalog item and where it goes on the selected wall face.
+- Use consistent `leftInches`, `bottomInches`, `widthInches`, `depthInches`, and `heightInches`.
+- For blind cabinets, include the built-in filler width field.
+- Use `wallFace` explicitly when needed.
+
+Notes should briefly explain important design decisions such as:
+- zone decisions
+- fixed-object constraints
+- filler usage
+- connected corner conditions
+- blocked-cabinet corrections
+- blind cabinet logic
+- end panels
+- pantry stacking
+- symmetry
+- catalog limitations
+
+Before finalizing:
+1. Confirm every placement fits the selected wall face span.
+2. Confirm no floor-plan overlap exists.
+3. Confirm fixed objects were preserved.
+4. Confirm fillers and end panels are used for the correct reasons.
+5. Confirm the result matches the required output JSON shape exactly.

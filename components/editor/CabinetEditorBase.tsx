@@ -43,7 +43,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { exportRoomInput } from "@/lib/ai/roomExport";
-import { generateKitchenLayout } from "@/lib/ai/kitchenDesigner";
 import type { AiRoomInput, GeneratedKitchenLayout } from "@/lib/ai/types";
 
 type Panel =
@@ -638,9 +637,9 @@ const BASE_SINK_WIDTH_OPTIONS = parseDimensionOptionList("24 27 30 33 36 39 42")
 const BASE_FARM_SINK_WIDTH_OPTIONS = parseDimensionOptionList("30 33 36 39 42");
 const BASE_THREE_DRAWER_WIDTH_OPTIONS = parseDimensionOptionList("12 15 18 21 24 30 33 36");
 const BASE_TWO_DRAWER_WIDTH_OPTIONS = parseDimensionOptionList("15 18 21 24 30 33 36");
-const BASE_SPICE_RACK_WIDTH_OPTIONS = parseDimensionOptionList("6 9 12");
+const BASE_SPICE_RACK_WIDTH_OPTIONS = parseDimensionOptionList("6 9 12 15");
 const BASE_TRASH_CAN_WIDTH_OPTIONS = parseDimensionOptionList("12 15 18 21 24 29");
-const BASE_BLIND_WIDTH_OPTIONS = parseDimensionOptionList("36 42");
+const BASE_BLIND_WIDTH_OPTIONS = parseDimensionOptionList("36 37 38 39 42 43 44 45");
 const BASE_OVEN_WIDTH_OPTIONS = parseDimensionOptionList("30 33 36 39 42");
 const BASE_MICROWAVE_WIDTH_OPTIONS = parseDimensionOptionList("24 30");
 const BASE_ONE_DOOR_PANTRY_WIDTH_OPTIONS = parseDimensionOptionList("9 12 15 18 21 24");
@@ -726,9 +725,9 @@ function getDefaultBlindCabinetDoorWidthInches(
   category: CabinetCategory
 ) {
   if (category === "wall") {
-    return Math.max(0, widthInches - 12 - 3);
+    return widthInches < 42 ? 21 : 27;
   }
-  return widthInches <= 36 ? 12 : 18;
+  return widthInches < 42 ? 12 : 18;
 }
 
 function getBlindCabinetWidthSegments(
@@ -757,12 +756,14 @@ function getBlindCabinetWidthSegments(
     0,
     widthInches - doorWidthInches - fillerWidthInches
   );
+  const visibleWidthInches = Math.max(0, doorWidthInches + fillerWidthInches);
 
   return {
     widthInches,
     doorWidthInches,
     fillerWidthInches,
     blindWidthInches,
+    visibleWidthInches,
     side: getBlindCabinetSide(cabinet.image),
   };
 }
@@ -1167,28 +1168,28 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     id: "wall-blind-left-cabinet",
     category: "wall",
     title: "1 Door Blind (Left) Wall Cabinet",
-    subtitle: '36" W x 34.5" H x 24" D',
+    subtitle: '36" W x 12" H x 12" D',
     widthInches: 36,
-    heightInches: 34.5,
-    depthInches: 24,
+    heightInches: 12,
+    depthInches: 12,
     image: "wall-blind-left",
     standardWidthOptions: BASE_BLIND_WIDTH_OPTIONS,
-    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
-    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
+    standardHeightOptions: WALL_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: WALL_STANDARD_DEPTH_OPTIONS,
     defaultDistanceFromFloorInches: 54,
   },
   {
     id: "wall-blind-right-cabinet",
     category: "wall",
     title: "1 Door Blind (Right) Wall Cabinet",
-    subtitle: '36" W x 34.5" H x 24" D',
+    subtitle: '36" W x 12" H x 12" D',
     widthInches: 36,
-    heightInches: 34.5,
-    depthInches: 24,
+    heightInches: 12,
+    depthInches: 12,
     image: "wall-blind-right",
     standardWidthOptions: BASE_BLIND_WIDTH_OPTIONS,
-    standardHeightOptions: BASE_STANDARD_HEIGHT_OPTIONS,
-    standardDepthOptions: BASE_STANDARD_DEPTH_OPTIONS,
+    standardHeightOptions: WALL_STANDARD_HEIGHT_OPTIONS,
+    standardDepthOptions: WALL_STANDARD_DEPTH_OPTIONS,
     defaultDistanceFromFloorInches: 54,
   },
   {
@@ -1275,7 +1276,7 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     id: "accessory-base-filler",
     category: "base",
     title: "Base Filler",
-    subtitle: '4" T x 34.5" H x 24" W',
+    subtitle: '4" W x 34.5" H x 24" D',
     widthInches: 4,
     heightInches: 34.5,
     depthInches: 24,
@@ -1287,7 +1288,7 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     id: "accessory-wall-filler",
     category: "wall",
     title: "Wall Filler (Vertical)",
-    subtitle: '4" T x 30" H x 12" W',
+    subtitle: '4" W x 30" H x 12" D',
     widthInches: 4,
     heightInches: 30,
     depthInches: 12,
@@ -1300,7 +1301,7 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     id: "accessory-wall-filler-horizontal",
     category: "wall",
     title: "Wall Filler (Horizontal)",
-    subtitle: '36" T x 3" H x 24" W',
+    subtitle: '36" W x 3" H x 24" D',
     widthInches: 36,
     heightInches: 3,
     depthInches: 24,
@@ -1313,7 +1314,7 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     id: "accessory-base-end-panel",
     category: "base",
     title: "Base End Panel",
-    subtitle: '4" T x 34.5" H x 36" W',
+    subtitle: '4" W x 34.5" H x 36" D',
     widthInches: 4,
     heightInches: 34.5,
     depthInches: 36,
@@ -1325,7 +1326,7 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     id: "accessory-wall-end-panel",
     category: "wall",
     title: "Wall End Panel",
-    subtitle: '4" T x 30" H x 12" W',
+    subtitle: '4" W x 30" H x 12" D',
     widthInches: 4,
     heightInches: 30,
     depthInches: 12,
@@ -1343,8 +1344,6 @@ function buildSmartInputCatalog(): AiRoomInput["catalog"] {
     // normalizes the catalog and can drop fields that the smart-input preview needs.
     isAccessory: catalogItem.isAccessory ?? false,
     accessoryKind: catalogItem.accessoryKind ?? undefined,
-    thicknessInches: catalogItem.isAccessory ? catalogItem.widthInches : undefined,
-    projectedWidthInches: catalogItem.isAccessory ? catalogItem.depthInches : undefined,
     supportType: getSupportTypeForCategory(
       catalogItem.category,
       catalogItem.widthInches,
@@ -1404,10 +1403,9 @@ type ImportedKitchenPlacement = {
   wallFace?: "interior" | "exterior" | null;
   leftInches: number;
   bottomInches?: number | null;
-  builtInFillerThicknessInches?: number | null;
+  builtInFillerWidthInches?: number | null;
   widthInches?: number | null;
   depthInches?: number | null;
-  thicknessInches?: number | null;
   heightInches?: number | null;
   topOption?: "sink" | "surface-cooktop" | "front-control-cooktop" | null;
   notes?: string[];
@@ -1437,6 +1435,9 @@ function normalizeImportedKitchenPlacement(value: unknown): ImportedKitchenPlace
   const candidate = value as Record<string, unknown>;
   const catalogId = typeof candidate.catalogId === "string" ? candidate.catalogId : null;
   const leftInches = toImportedKitchenNumber(candidate.leftInches);
+  const legacyThicknessInches = toImportedKitchenNumber(candidate.thicknessInches);
+  const parsedWidthInches = toImportedKitchenNumber(candidate.widthInches);
+  const parsedDepthInches = toImportedKitchenNumber(candidate.depthInches);
 
   if (!catalogId || leftInches === null) return null;
 
@@ -1448,12 +1449,12 @@ function normalizeImportedKitchenPlacement(value: unknown): ImportedKitchenPlace
         : null,
     leftInches,
     bottomInches: toImportedKitchenNumber(candidate.bottomInches),
-    builtInFillerThicknessInches: toImportedKitchenNumber(
-      candidate.builtInFillerThicknessInches
-    ),
-    widthInches: toImportedKitchenNumber(candidate.widthInches),
-    depthInches: toImportedKitchenNumber(candidate.depthInches),
-    thicknessInches: toImportedKitchenNumber(candidate.thicknessInches),
+    builtInFillerWidthInches:
+      toImportedKitchenNumber(candidate.builtInFillerWidthInches) ??
+      toImportedKitchenNumber(candidate.builtInFillerThicknessInches),
+    widthInches: legacyThicknessInches ?? parsedWidthInches,
+    depthInches:
+      parsedDepthInches ?? (legacyThicknessInches !== null ? parsedWidthInches : null),
     heightInches: toImportedKitchenNumber(candidate.heightInches),
     topOption:
       candidate.topOption === "sink" ||
@@ -2177,7 +2178,9 @@ export default function CabinetEditorBase({
               ? "AI kitchen viewer"
               : undefined
         }
-        onImportRoom={isAiViewer ? handleImportRoomClick : undefined}
+        onImportRoom={
+          isAiPrototype || isAiViewer ? handleImportRoomClick : undefined
+        }
         onImportKitchen={isAiPrototype ? handleImportKitchenClick : undefined}
         onExportRoom={
           isAiPrototype
@@ -2204,11 +2207,6 @@ export default function CabinetEditorBase({
             : undefined
         }
         hasLastSmartKitchenOutput={Boolean(lastSmartKitchenAiOutput)}
-        onGenerateKitchen={
-          isAiPrototype
-            ? () => window.dispatchEvent(new Event("pelican-ai-generate-kitchen-request"))
-            : undefined
-        }
         onGenerateSmartKitchen={
           isAiPrototype
             ? () =>
@@ -2219,7 +2217,7 @@ export default function CabinetEditorBase({
         }
         isGeneratingSmartKitchen={isGeneratingSmartKitchen}
       />
-      {isAiViewer && (
+      {(isAiPrototype || isAiViewer) && (
         <input
           ref={importInputRef}
           type="file"
@@ -2370,7 +2368,7 @@ export default function CabinetEditorBase({
             enableAiPrototype={isAiPrototype}
             smartKitchenFeedback={smartKitchenFeedback}
             onSmartKitchenOutput={setLastSmartKitchenAiOutput}
-            loadedRoom={isAiViewer ? loadedRoom : null}
+            loadedRoom={isAiPrototype || isAiViewer ? loadedRoom : null}
           />
         </section>
 
@@ -2430,7 +2428,6 @@ function TopBar({
   onDownloadSmartKitchenInput,
   onDownloadLastSmartKitchenOutput,
   hasLastSmartKitchenOutput = false,
-  onGenerateKitchen,
   onGenerateSmartKitchen,
   isGeneratingSmartKitchen = false,
 }: {
@@ -2441,7 +2438,6 @@ function TopBar({
   onDownloadSmartKitchenInput?: () => void;
   onDownloadLastSmartKitchenOutput?: () => void;
   hasLastSmartKitchenOutput?: boolean;
-  onGenerateKitchen?: () => void;
   onGenerateSmartKitchen?: () => void;
   isGeneratingSmartKitchen?: boolean;
 }) {
@@ -2468,10 +2464,10 @@ function TopBar({
           onClick={() => window.dispatchEvent(new Event("pelican-editor-redo"))}
         />
         {onImportRoom ? (
-          <TopAction icon={Download} label="Import room JSON" onClick={onImportRoom} />
+          <TopAction icon={Download} label="Import room" onClick={onImportRoom} />
         ) : null}
         {onImportKitchen ? (
-          <TopAction icon={Download} label="Import kitchen" onClick={onImportKitchen} />
+          <TopAction icon={Download} label="Import objects" onClick={onImportKitchen} />
         ) : null}
         {onExportRoom ? (
           <TopAction icon={Download} label="Export room JSON" onClick={onExportRoom} />
@@ -2490,9 +2486,6 @@ function TopBar({
             onClick={onDownloadLastSmartKitchenOutput}
             disabled={!hasLastSmartKitchenOutput}
           />
-        ) : null}
-        {onGenerateKitchen ? (
-          <TopAction icon={Boxes} label="Generate kitchen" onClick={onGenerateKitchen} />
         ) : null}
         {onGenerateSmartKitchen ? (
           <TopAction
@@ -2877,10 +2870,9 @@ function CanvasArea({
     },
     []
   );
-  const getImportedWallFaceSpanPixels = useCallback(
+  const getImportedWallFacePlacementGeometry = useCallback(
     (wall: Wall, wallFace: WallFaceSide) => {
       const thickWalls = wallsRef.current.filter(isThickWall);
-      const axis = getElevationWallAxis(wall);
       const geometry = getWallSegmentBlackDotGeometry(
         wall.start,
         wall.end,
@@ -2890,12 +2882,23 @@ function CanvasArea({
         wallFace === "left" ? geometry.startLeft : geometry.startRight;
       const faceEndAnchor =
         wallFace === "left" ? geometry.endLeft : geometry.endRight;
-      const faceStartScalar = dot(sub(faceStartAnchor, axis.start), axis.direction);
-      const faceEndScalar = dot(sub(faceEndAnchor, axis.start), axis.direction);
+      const faceVector = sub(faceEndAnchor, faceStartAnchor);
+      const faceLength = vectorLength(faceVector);
+      const faceDirection =
+        faceLength > 0.001 ? normalize(faceVector) : normalize(sub(wall.end, wall.start));
+      const faceNormal = wallFace === "left" ? getElevationWallAxis(wall).normal : mul(getElevationWallAxis(wall).normal, -1);
+      const viewDirection = mul(faceNormal, -1);
+      const viewerRight = normalize(perp(viewDirection));
+      const startProjection = dot(faceStartAnchor, viewerRight);
+      const endProjection = dot(faceEndAnchor, viewerRight);
+      const displayOrigin =
+        startProjection <= endProjection ? faceStartAnchor : faceEndAnchor;
 
       return {
-        axis,
-        faceStartScalar: Math.min(faceStartScalar, faceEndScalar),
+        displayOrigin,
+        viewerRight,
+        faceNormal,
+        faceLength,
       };
     },
     []
@@ -3192,14 +3195,11 @@ function CanvasArea({
       catalogItem: CabinetCatalogItem
     ): CabinetElement => {
       const wallFace = resolveImportedPlacementWallFace(wall, placement.wallFace);
-      const { axis, faceStartScalar } = getImportedWallFaceSpanPixels(wall, wallFace);
-      const isAccessory = Boolean(catalogItem.accessoryKind);
-      const spanWidthInches = isAccessory
-        ? placement.thicknessInches ?? catalogItem.widthInches
-        : placement.widthInches ?? catalogItem.widthInches;
-      const projectionDepthInches = isAccessory
-        ? placement.widthInches ?? catalogItem.depthInches
-        : placement.depthInches ?? catalogItem.depthInches;
+      const { displayOrigin, viewerRight, faceNormal, faceLength } =
+        getImportedWallFacePlacementGeometry(wall, wallFace);
+      const spanWidthInches = placement.widthInches ?? catalogItem.widthInches;
+      const projectionDepthInches =
+        placement.depthInches ?? catalogItem.depthInches;
       const heightInches =
         placement.heightInches ??
         catalogItem.heightInches ??
@@ -3217,18 +3217,38 @@ function CanvasArea({
             (catalogItem.category === "wall" ? 54 : 0);
       const widthPixels = inchesToPixels(spanWidthInches);
       const depthPixels = inchesToPixels(projectionDepthInches);
-      const centerProjection =
-        faceStartScalar + inchesToPixels(placement.leftInches) + widthPixels / 2;
-      const faceSign = wallFace === "left" ? 1 : -1;
-      const center = add(
-        axis.start,
+      const maxDisplayStartPixels = Math.max(0, faceLength - widthPixels);
+      const displayStartPixels = clamp(
+        inchesToPixels(placement.leftInches),
+        0,
+        maxDisplayStartPixels
+      );
+      const roughCenter = add(
+        displayOrigin,
         add(
-          mul(axis.direction, centerProjection),
-          mul(axis.normal, faceSign * (WALL_THICKNESS / 2 + depthPixels / 2))
+          mul(viewerRight, displayStartPixels + widthPixels / 2),
+          mul(faceNormal, WALL_THICKNESS / 2 + depthPixels / 2)
         )
       );
-      const rotation =
-        (Math.atan2(axis.direction.y, axis.direction.x) * 180) / Math.PI;
+      const baseRotation =
+        (Math.atan2(viewerRight.y, viewerRight.x) * 180) / Math.PI;
+      const preview = getCabinetPlacementPreview(
+        roughCenter,
+        wallsRef.current.filter(isThickWall),
+        widthPixels,
+        depthPixels,
+        baseRotation,
+        [],
+        undefined,
+        catalogItem.category,
+        false,
+        true,
+        false,
+        wall.id,
+        catalogItem.image
+      );
+      const center = preview.center;
+      const rotation = preview.rotation;
 
       const cabinet: CabinetElement = {
         id: crypto.randomUUID(),
@@ -3242,8 +3262,8 @@ function CanvasArea({
         accessoryKind: catalogItem.accessoryKind,
         heightInches,
         distanceFromFloorInches: bottomInches,
-        wallId: wall.id,
-        wallFace,
+        wallId: preview.wallId ?? wall.id,
+        wallFace: preview.wallFace ?? wallFace,
         sinkFixture:
           placement.topOption === "sink" || isBuiltInSinkCabinetImage(catalogItem.image)
             ? true
@@ -3263,7 +3283,7 @@ function CanvasArea({
             )
           : undefined,
         blindFillerWidthInches: isBlindCabinetImage(catalogItem.image)
-          ? placement.builtInFillerThicknessInches ?? 3
+          ? placement.builtInFillerWidthInches ?? 3
           : undefined,
         ovenCabinetProductLayout: getDefaultBottomDrawerProductLayout(catalogItem.image),
         ovenCabinetProductHeightInches:
@@ -3274,7 +3294,7 @@ function CanvasArea({
 
       return normalizeSpecialCabinetState(cabinet);
     },
-    [getImportedWallFaceSpanPixels, resolveImportedPlacementWallFace]
+    [getImportedWallFacePlacementGeometry, resolveImportedPlacementWallFace]
   );
 
   useEffect(() => {
@@ -3357,67 +3377,6 @@ function CanvasArea({
       );
     };
   }, [enableAiPrototype, showEditorAlert]);
-
-  useEffect(() => {
-    if (!enableAiPrototype) return undefined;
-
-    const handleGenerateKitchenRequest = () => {
-      const room = exportAiRoomInputFromEditor({
-        walls: wallsRef.current,
-        windows: windowsRef.current,
-        doors: doorsRef.current,
-        cabinets: cabinetsRef.current,
-      });
-
-      if (room.walls.length === 0) {
-        showEditorAlert(
-          "Draw thin walls and convert them into thick walls first, then generate a kitchen.",
-          "Kitchen generation blocked"
-        );
-        return;
-      }
-
-      const layout = generateKitchenLayout(room);
-
-      if (layout.cabinets.length === 0) {
-        showEditorAlert(
-          "The engine could not place cabinets on the current room. Try a larger wall run or add more thick walls.",
-          "No kitchen generated"
-        );
-        return;
-      }
-
-      commitCabinetsChange(() => layout.cabinets as CabinetElement[]);
-      setSelectedCabinetId(null);
-      setSelectedWindowId(null);
-      setSelectedDoorId(null);
-      setSelectedWallId(null);
-      setGroupSelectedCabinetIds([]);
-      setGroupSelectedWallIds([]);
-      setGroupContextMenu(null);
-      setMenuPosition(null);
-      updateCabinetPreview(null);
-      updateDoorPreview(null);
-      updateWindowPreview(null);
-
-      window.dispatchEvent(
-        new CustomEvent("pelican-ai-kitchen-generated", { detail: layout })
-      );
-    };
-
-    window.addEventListener("pelican-ai-generate-kitchen-request", handleGenerateKitchenRequest);
-
-    return () => {
-      window.removeEventListener("pelican-ai-generate-kitchen-request", handleGenerateKitchenRequest);
-    };
-  }, [
-    enableAiPrototype,
-    commitCabinetsChange,
-    showEditorAlert,
-    updateCabinetPreview,
-    updateDoorPreview,
-    updateWindowPreview,
-  ]);
 
   useEffect(() => {
     if (!enableAiPrototype) return undefined;
@@ -8891,14 +8850,12 @@ function ElevationWallCabinetDetails({
     });
   }
 
-  if (image === "wall-one-door" || image === "pantry-one-door") {
-    const panelInsetX = Math.max(4, innerWidth * 0.06);
-    const panelInsetY = Math.max(4, innerHeight * 0.06);
-    const panelX = innerX + panelInsetX;
-    const panelY = innerY + panelInsetY;
-    const panelWidth = Math.max(0, innerWidth - panelInsetX * 2);
-    const panelHeight = Math.max(0, innerHeight - panelInsetY * 2);
-    const singleDoorHandleX = x + width - Math.max(10, width * 0.16);
+  if (image === "pantry-one-door") {
+    const panelX = innerX;
+    const panelY = innerY;
+    const panelWidth = innerWidth;
+    const panelHeight = innerHeight;
+    const singleDoorHandleX = panelX + panelWidth - Math.max(8, panelWidth * 0.14);
 
     return (
       <g>
@@ -8914,9 +8871,42 @@ function ElevationWallCabinetDetails({
         />
         <line
           x1={singleDoorHandleX}
-          y1={handleTop}
+          y1={panelY + panelHeight * 0.3}
           x2={singleDoorHandleX}
-          y2={handleTop + handleHeight}
+          y2={panelY + panelHeight * 0.3 + Math.min(handleHeight, panelHeight * 0.42)}
+          stroke={handleStroke}
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </g>
+    );
+  }
+
+  if (image === "wall-one-door") {
+    const panelX = innerX;
+    const panelY = innerY;
+    const panelWidth = innerWidth;
+    const panelHeight = innerHeight;
+    const singleDoorHandleX = panelX + panelWidth - Math.max(10, panelWidth * 0.16);
+
+    return (
+      <g>
+        <rect
+          x={panelX}
+          y={panelY}
+          width={panelWidth}
+          height={panelHeight}
+          fill={panelFill}
+          stroke={innerStroke}
+          strokeWidth={panelStrokeWidth}
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={singleDoorHandleX}
+          y1={panelY + panelHeight * 0.3}
+          x2={singleDoorHandleX}
+          y2={panelY + panelHeight * 0.3 + Math.min(handleHeight, panelHeight * 0.42)}
           stroke={handleStroke}
           strokeWidth="1.6"
           strokeLinecap="round"
@@ -11323,32 +11313,22 @@ function getElevationCornerReservationsForWall(
     });
   });
 
-  const closestByCorrespondingWall = new Map<string, ReservationCandidate>();
-
-  candidates.forEach((candidate) => {
-    const groupKey = `${candidate.attachedWallId}:${candidate.boundary}`;
-    const existing = closestByCorrespondingWall.get(groupKey);
-
-    if (
-      !existing ||
-      candidate.distanceToSharedCornerPixels < existing.distanceToSharedCornerPixels - 0.001 ||
-      (
-        Math.abs(candidate.distanceToSharedCornerPixels - existing.distanceToSharedCornerPixels) <= 0.001 &&
-        candidate.boundaryDistanceInches < existing.boundaryDistanceInches - 0.001
-      ) ||
-      (
-        Math.abs(candidate.distanceToSharedCornerPixels - existing.distanceToSharedCornerPixels) <= 0.001 &&
-        Math.abs(candidate.boundaryDistanceInches - existing.boundaryDistanceInches) <= 0.001 &&
-        candidate.projectedWidthInches > existing.projectedWidthInches
-      )
-    ) {
-      closestByCorrespondingWall.set(groupKey, candidate);
-    }
-  });
-
-  const perpendicularReservations = Array.from(closestByCorrespondingWall.values())
+  // Keep separate reservations for distinct vertical bands on the same attached
+  // wall/boundary pair. A wall blind and a base blind at the same corner should
+  // both show their taken areas on the neighboring elevation instead of one
+  // suppressing the other before vertical dedupe happens.
+  const perpendicularReservations = [...candidates]
     .sort((left, right) => {
+      if (left.attachedWallId !== right.attachedWallId) {
+        return left.attachedWallId.localeCompare(right.attachedWallId);
+      }
       if (left.boundary !== right.boundary) return left.boundary === "start" ? -1 : 1;
+      if (Math.abs(left.distanceFromFloorInches - right.distanceFromFloorInches) > 0.001) {
+        return left.distanceFromFloorInches - right.distanceFromFloorInches;
+      }
+      if (Math.abs(left.distanceToSharedCornerPixels - right.distanceToSharedCornerPixels) > 0.001) {
+        return left.distanceToSharedCornerPixels - right.distanceToSharedCornerPixels;
+      }
       return left.startInches - right.startInches;
     })
     .map(({ attachedWallId, projectedWidthInches, ...reservation }) => reservation);
@@ -16460,7 +16440,6 @@ function CabinetPropertiesPanel({
   const isForcedCustomDimension = customDimensionCabinetIds.has(selectedCabinet.id);
   const showCustomDimensionSliders =
     isSelectedAccessory || isForcedCustomDimension || !matchesStandardDimensionOptions;
-  const usesAccessoryDimensionOrder = isSelectedAccessory;
   const isSelectedProduct = isProductCabinetImage(selectedCabinet.image);
   const selectedObjectName = selectedCatalogItem?.title ?? (isSelectedAccessory ? "Accessory" : isSelectedProduct ? "Product" : "Cabinet");
   const selectedObjectType = isSelectedAccessory
@@ -16748,55 +16727,27 @@ function CabinetPropertiesPanel({
 
         {showCustomDimensionSliders && isSelectedAccessory && (
           <>
-            {usesAccessoryDimensionOrder ? (
-              <>
-                <WindowPropertyInput
-                  label="Thickness"
-                  value={roundToQuarter(selectedCabinet.widthInches)}
-                  unit="in"
-                  min={0.25}
-                  onChange={(value) => updateCabinetNumber("widthInches", value)}
-                />
-                <WindowPropertyInput
-                  label="Height"
-                  value={roundToQuarter(selectedCabinet.heightInches)}
-                  unit="in"
-                  min={1}
-                  onChange={(value) => updateCabinetNumber("heightInches", value)}
-                />
-                <WindowPropertyInput
-                  label="Width"
-                  value={roundToQuarter(selectedCabinet.depthInches)}
-                  unit="in"
-                  min={1}
-                  onChange={(value) => updateCabinetNumber("depthInches", value)}
-                />
-              </>
-            ) : (
-              <>
-                <WindowPropertyInput
-                  label="Width"
-                  value={roundToQuarter(selectedCabinet.widthInches)}
-                  unit="in"
-                  min={6}
-                  onChange={(value) => updateCabinetNumber("widthInches", value)}
-                />
-                <WindowPropertyInput
-                  label="Height"
-                  value={roundToQuarter(selectedCabinet.heightInches)}
-                  unit="in"
-                  min={1}
-                  onChange={(value) => updateCabinetNumber("heightInches", value)}
-                />
-                <WindowPropertyInput
-                  label="Depth"
-                  value={roundToQuarter(selectedCabinet.depthInches)}
-                  unit="in"
-                  min={1}
-                  onChange={(value) => updateCabinetNumber("depthInches", value)}
-                />
-              </>
-            )}
+            <WindowPropertyInput
+              label="Width"
+              value={roundToQuarter(selectedCabinet.widthInches)}
+              unit="in"
+              min={0.25}
+              onChange={(value) => updateCabinetNumber("widthInches", value)}
+            />
+            <WindowPropertyInput
+              label="Height"
+              value={roundToQuarter(selectedCabinet.heightInches)}
+              unit="in"
+              min={1}
+              onChange={(value) => updateCabinetNumber("heightInches", value)}
+            />
+            <WindowPropertyInput
+              label="Depth"
+              value={roundToQuarter(selectedCabinet.depthInches)}
+              unit="in"
+              min={1}
+              onChange={(value) => updateCabinetNumber("depthInches", value)}
+            />
           </>
         )}
 
@@ -16967,7 +16918,7 @@ function CabinetPropertiesPanel({
             />
 
             <WindowPropertyInput
-              label="Filler thickness"
+              label="Built-in Filler Width"
               value={roundToQuarter(blindCabinetWidths.fillerWidthInches)}
               unit="in"
               min={0}
@@ -17774,6 +17725,29 @@ function isAccessoryCabinetImage(image?: CabinetImage) {
   );
 }
 
+function getCabinetPlanBodyFill(cabinetItem: Pick<CabinetElement, "image">, preview = false, invalid = false) {
+  if (invalid) return "#fee2e2";
+  if (preview) return "#d9f8fd";
+
+  const image = getCabinetImage(cabinetItem);
+
+  if (
+    image === "base-dishwasher" ||
+    image === "base-refrigerator" ||
+    image === "wall-microwave" ||
+    image === "wall-oven" ||
+    image === "wall-double-oven"
+  ) {
+    return "#d1d5db";
+  }
+
+  if (image === "base-range" || image === "wall-hood") {
+    return "#e5e7eb";
+  }
+
+  return "#f1ede4";
+}
+
 function getCabinetSupportType(
   cabinetItem: Partial<
     Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
@@ -18442,7 +18416,7 @@ function CabinetPlanShape({
   invalid?: boolean;
 }) {
   const { center, width, depth, rotation } = cabinetItem;
-  const fill = invalid ? "#fee2e2" : preview ? "#d9f8fd" : "#f1ede4";
+  const fill = getCabinetPlanBodyFill(cabinetItem, preview, invalid);
   const fillOpacity = 1;
   const detailOpacity = invalid ? 0.75 : 1;
   const stroke = invalid ? "#ef4444" : selected ? "#22bfd6" : "#475569";
@@ -18451,6 +18425,7 @@ function CabinetPlanShape({
   const image = getCabinetImage(cabinetItem);
   const isLShapedCornerCabinet = image === "base-corner";
   const isAccessory = isAccessoryCabinetImage(image);
+  const isBlindCabinet = isBlindCabinetImage(image);
   const selectionHandles = [
     { x: 0, y: -depth / 2 },
     { x: width / 2, y: 0 },
@@ -18541,7 +18516,7 @@ function CabinetPlanShape({
             strokeWidth={selected ? 2.2 : 2}
             vectorEffect="non-scaling-stroke"
           />
-          {width > inset * 2 && depth > inset * 2 && (
+          {!isBlindCabinet && width > inset * 2 && depth > inset * 2 && (
             <rect
               x={-width / 2 + inset}
               y={-depth / 2 + inset}
@@ -21871,6 +21846,9 @@ function CabinetPlanVariantDetails({
 }) {
   const { width, depth } = cabinetItem;
   const image = getCabinetImage(cabinetItem);
+  const blindCabinetWidths = isBlindCabinetImage(image)
+    ? getBlindCabinetWidthSegments(cabinetItem)
+    : null;
   const topLine = (
     <line
       x1={-width / 2 + 6}
@@ -22012,21 +21990,127 @@ function CabinetPlanVariantDetails({
     image === "base-blind-left-one-drawer" ||
     image === "base-blind-right-one-drawer"
   ) {
-    const panelInsetX = Math.max(3, Math.min(7, width * 0.05));
-    const panelInsetY = Math.max(3, Math.min(6, depth * 0.12));
+    const panelInsetX = 0;
+    const panelInsetY = 0;
+    const innerWidth = width;
+    const innerHeight = depth;
+    const side = blindCabinetWidths?.side ?? getBlindCabinetSide(image) ?? "left";
+    const visibleWidthRatio =
+      blindCabinetWidths && blindCabinetWidths.widthInches > 0
+        ? blindCabinetWidths.visibleWidthInches / blindCabinetWidths.widthInches
+        : 0.45;
+    const visibleWidth = innerWidth * clamp(visibleWidthRatio, 0, 1);
+    const blindWidth = Math.max(0, innerWidth - visibleWidth);
+    const visibleX =
+      side === "right" ? -width / 2 + panelInsetX : -width / 2 + panelInsetX + blindWidth;
+    const blindX =
+      side === "right" ? -width / 2 + panelInsetX + visibleWidth : -width / 2 + panelInsetX;
+    const dividerX =
+      side === "right"
+        ? -width / 2 + panelInsetX + visibleWidth
+        : -width / 2 + panelInsetX + blindWidth;
+    const bodySize = Math.max(4.8, Math.min(8, Math.min(width, depth) * 0.085));
+    const captionY = -depth / 2 + innerHeight * 0.46;
+    const detailY = captionY + bodySize * 1.15;
+    const visiblePatternId = `blind-visible-dot-pattern-${cabinetItem.id}`;
+    const blindPatternId = `blind-hidden-hatch-pattern-${cabinetItem.id}`;
+
     return (
       <g opacity={detailOpacity}>
-        {topLine}
+        <defs>
+          <pattern
+            id={visiblePatternId}
+            width="10"
+            height="10"
+            patternUnits="userSpaceOnUse"
+          >
+            <circle cx="3" cy="3" r="1.2" fill="#a78bfa" opacity="0.45" />
+          </pattern>
+          <pattern
+            id={blindPatternId}
+            width="10"
+            height="10"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <line
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="10"
+              stroke="#8b5cf6"
+              strokeOpacity="0.28"
+              strokeWidth="2"
+            />
+          </pattern>
+        </defs>
         <rect
-          x={-width / 2 + panelInsetX}
+          x={visibleX}
           y={-depth / 2 + panelInsetY}
-          width={Math.max(0, width - panelInsetX * 2)}
-          height={depth - panelInsetY * 2}
-          fill="none"
+          width={visibleWidth}
+          height={innerHeight}
+          fill={`url(#${visiblePatternId})`}
+          opacity="0.85"
+          vectorEffect="non-scaling-stroke"
+        />
+        <rect
+          x={blindX}
+          y={-depth / 2 + panelInsetY}
+          width={blindWidth}
+          height={innerHeight}
+          fill={`url(#${blindPatternId})`}
+          opacity="0.9"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={dividerX}
+          y1={-depth / 2}
+          x2={dividerX}
+          y2={depth / 2}
           stroke={stroke}
           strokeWidth="1"
           vectorEffect="non-scaling-stroke"
         />
+        <text
+          x={visibleX + visibleWidth / 2}
+          y={captionY}
+          textAnchor="middle"
+          fontSize={bodySize}
+          fontWeight="600"
+          fill="#3f3f46"
+        >
+          visible
+        </text>
+        <text
+          x={visibleX + visibleWidth / 2}
+          y={detailY}
+          textAnchor="middle"
+          fontSize={bodySize}
+          fontWeight="700"
+          fill="#3f3f46"
+        >
+          {`${roundToQuarter(blindCabinetWidths?.visibleWidthInches ?? 0)}"`}
+        </text>
+        <text
+          x={blindX + blindWidth / 2}
+          y={captionY}
+          textAnchor="middle"
+          fontSize={bodySize}
+          fontWeight="600"
+          fill="#3f3f46"
+        >
+          blind
+        </text>
+        <text
+          x={blindX + blindWidth / 2}
+          y={detailY}
+          textAnchor="middle"
+          fontSize={bodySize}
+          fontWeight="700"
+          fill="#3f3f46"
+        >
+          {`${roundToQuarter(blindCabinetWidths?.blindWidthInches ?? 0)}"`}
+        </text>
       </g>
     );
   }
