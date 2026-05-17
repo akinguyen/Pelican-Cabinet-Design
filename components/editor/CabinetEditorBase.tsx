@@ -85,534 +85,63 @@ import {
   pixelsToInches,
   roundToQuarter,
 } from "./measurements";
-
-type Panel =
-  | "walls"
-  | "structures"
-  | "products"
-  | "cabinets"
-  | "objects"
-  | "text"
-  | "lines";
-
-type Tool =
-  | "draw-wall"
-  | "draw-thin-wall"
-  | "draw-penin-wall"
-  | "draw-island-wall"
-  | "place-window"
-  | "place-door"
-  | "place-cabinet"
-  | null;
-
-type CabinetCategory = "base" | "pantry" | "wall";
-type ProductCategory = "base" | "wall";
-type ObjectSupportType = "floor-supported" | "elevated-supported";
-type OvenCabinetProductLayout =
-  | "none"
-  | "single-oven"
-  | "double-oven"
-  | "microwave-oven"
-  | "single-microwave";
-type MeasurementDisplayUnit = "feet-inches" | "inches";
-type CabinetImage =
-  | "base"
-  | "base-corner"
-  | "base-one-door"
-  | "base-drawer"
-  | "base-sink-cabinet"
-  | "base-farm-sink-cabinet"
-  | "base-spice-rack"
-  | "base-trash-can"
-  | "base-appliance"
-  | "base-dishwasher"
-  | "base-refrigerator"
-  | "base-range"
-  | "base-blind-left"
-  | "base-blind-right"
-  | "base-two-door-one-drawer"
-  | "base-one-door-one-drawer"
-  | "base-two-door-two-drawer"
-  | "base-two-drawer"
-  | "base-four-drawer"
-  | "base-blind-left-one-drawer"
-  | "base-blind-right-one-drawer"
-  | "base-oven-bottom-drawer"
-  | "base-microwave-bottom-drawer"
-  | "pantry-one-door"
-  | "pantry-two-door"
-  | "wall-two-doors"
-  | "wall-one-door"
-  | "wall-blind-left"
-  | "wall-blind-right"
-  | "wall-hood"
-  | "wall-microwave"
-  | "wall-oven"
-  | "wall-double-oven"
-  | "wall-microwave-one-door"
-  | "wall-hood-one-door"
-  | "accessory-base-filler"
-  | "accessory-wall-filler"
-  | "accessory-wall-filler-horizontal"
-  | "accessory-filler"
-  | "accessory-base-end-panel"
-  | "accessory-wall-end-panel";
-
-type CabinetDimensionSet = {
-  widthInches: number;
-  heightInches: number;
-  depthInches: number;
-};
-
-type AccessoryKind = "base-filler" | "wall-filler" | "filler" | "base-end-panel" | "wall-end-panel";
-
-type CabinetCatalogItem = {
-  id: string;
-  category: CabinetCategory;
-  title: string;
-  subtitle: string;
-  widthInches: number;
-  heightInches: number;
-  depthInches: number;
-  image: CabinetImage;
-  standardWidthOptions?: number[];
-  standardHeightOptions?: number[];
-  standardDepthOptions?: number[];
-  isAccessory?: boolean;
-  accessoryKind?: AccessoryKind;
-  isProduct?: boolean;
-  productCategory?: ProductCategory;
-  defaultDistanceFromFloorInches?: number;
-};
-
-type PlanViewMode = "floor" | "elevation";
-type WallElevationViewMode = "interior" | "exterior";
-type WallCabinetPlacementMode = "none" | "both" | "interior" | "exterior";
-
-type SidebarItem = {
-  id: Panel;
-  label: string;
-  icon: React.ElementType;
-};
-
-type Point = {
-  x: number;
-  y: number;
-};
-
-type WallKind = "wall" | "thin-wall" | "penin-wall" | "island-wall";
-
-type Wall = {
-  id: string;
-  start: Point;
-  end: Point;
-  kind?: WallKind;
-  elevationViewMode?: WallElevationViewMode;
-  needCabinetPlacement?: boolean;
-  cabinetPlacementMode?: WallCabinetPlacementMode;
-  sourceThinLength?: number;
-  sourceThinMode?: ThickWallCreationMode;
-};
-
-type WindowElement = {
-  id: string;
-  wallId: string;
-  t: number;
-  width: number;
-  heightInches: number;
-  distanceFromFloorInches: number;
-  tabSide?: 1 | -1;
-};
-
-type DoorElement = {
-  id: string;
-  wallId: string;
-  t: number;
-  width: number;
-  heightInches: number;
-  distanceFromFloorInches: number;
-};
-
-// CabinetElement
-type CabinetElement = {
-  id: string;
-  center: Point;
-  width: number;
-  depth: number;
-  rotation: number;
-  category?: CabinetCategory;
-  catalogId?: string;
-  image?: CabinetImage;
-  heightInches?: number;
-  distanceFromFloorInches?: number;
-  sinkFixture?: boolean;
-  cooktopFixture?: "surface" | "front";
-  cooktopFrontHeightInches?: number;
-  // Wall that this cabinet is attached to. This keeps elevation projection
-  // tied to the same wall as the floor-plan placement, like doors/windows.
-  wallId?: string;
-  wallFace?: WallFaceSide;
-  lockMode?: "locked" | "required" | "suggested";
-  accessoryKind?: AccessoryKind;
-  blindDoorWidthInches?: number;
-  blindFillerWidthInches?: number;
-  ovenCabinetProductLayout?: OvenCabinetProductLayout;
-  ovenCabinetProductHeightInches?: number;
-  ovenCabinetFillerHeightInches?: number;
-  ovenCabinetBottomDrawerHeightInches?: number;
-};
-
-
-type WindowSelectionDetail = {
-  id: string;
-  widthInches: number;
-  heightInches: number;
-  distanceFromFloorInches: number;
-  distanceFromLeftInches?: number;
-  distanceFromRightInches?: number;
-  wallWidthInches?: number;
-};
-
-type DoorSelectionDetail = {
-  id: string;
-  widthInches: number;
-  heightInches: number;
-  distanceFromFloorInches: number;
-  distanceFromLeftInches?: number;
-  distanceFromRightInches?: number;
-  wallWidthInches?: number;
-};
-
-type WallSelectionDetail = {
-  id: string;
-  kind: WallKind;
-  elevationViewMode: WallElevationViewMode;
-  cabinetPlacementMode: WallCabinetPlacementMode;
-};
-
-type CabinetSelectionDetail = {
-  id: string;
-  catalogId?: string;
-  widthInches: number;
-  depthInches: number;
-  heightInches: number;
-  distanceFromFloorInches?: number;
-  distanceFromLeftInches?: number;
-  distanceFromRightInches?: number;
-  wallWidthInches?: number;
-  category?: CabinetCategory;
-  image?: CabinetImage;
-  sinkFixture?: boolean;
-  cooktopFixture?: "surface" | "front";
-  cooktopFrontHeightInches?: number;
-  accessoryKind?: AccessoryKind;
-  blindDoorWidthInches?: number;
-  blindFillerWidthInches?: number;
-  ovenCabinetProductLayout?: OvenCabinetProductLayout;
-  ovenCabinetProductHeightInches?: number;
-  ovenCabinetFillerHeightInches?: number;
-  ovenCabinetBottomDrawerHeightInches?: number;
-};
-
-
-type WindowPlacementPreview = {
-  wall: Wall | null;
-  t: number;
-  point: Point;
-  isValid: boolean;
-  invalidReason?: string;
-};
-
-type DoorPlacementPreview = {
-  wall: Wall | null;
-  t: number;
-  point: Point;
-  isValid: boolean;
-  invalidReason?: string;
-};
-
-type StructurePlacementSnapOptions = {
-  windows?: WindowElement[];
-  doors?: DoorElement[];
-  cabinets?: CabinetElement[];
-  excludeWindowId?: string;
-  excludeDoorId?: string;
-  excludeCabinetId?: string;
-};
-
-// CabinetPlacementPreview
-type CabinetPlacementPreview = {
-  center: Point;
-  width: number;
-  depth: number;
-  rotation: number;
-  category?: CabinetCategory;
-  image?: CabinetImage;
-  wall?: Wall | null;
-  wallId?: string;
-  wallFace?: WallFaceSide;
-  isValid: boolean;
-  invalidReason?: string;
-};
-
-// CabinetDragState
-type CabinetDragState = {
-  id: string;
-  pointerId: number;
-  startPointer: Point;
-  startCenter: Point;
-  startCabinets: CabinetElement[];
-  didMove: boolean;
-  snappedRotation?: number | null;
-};
-
-// CabinetRotateState
-type CabinetRotateState = {
-  id: string;
-  pointerId: number;
-  center: Point;
-  startAngle: number;
-  startRotation: number;
-  startCabinets: CabinetElement[];
-  didMove: boolean;
-  snappedRotation: number | null;
-};
-
-
-type WindowDragState = {
-  id: string;
-  pointerId: number;
-  startWindows: WindowElement[];
-  didMove: boolean;
-};
-
-type DoorDragState = {
-  id: string;
-  pointerId: number;
-  startDoors: DoorElement[];
-  didMove: boolean;
-};
-
-type ElevationDragState =
-  | {
-      kind: "window";
-      id: string;
-      pointerId: number;
-      startPointer: Point;
-      startCenterInches: number;
-      startDistanceFromFloorInches: number;
-      grabOffsetCenterXInches: number;
-      grabOffsetBottomYInches: number;
-      widthInches: number;
-      heightInches: number;
-    }
-  | {
-      kind: "door";
-      id: string;
-      pointerId: number;
-      startPointer: Point;
-      startCenterInches: number;
-      startDistanceFromFloorInches: number;
-      grabOffsetCenterXInches: number;
-      grabOffsetBottomYInches: number;
-      widthInches: number;
-      heightInches: number;
-    }
-  | {
-      kind: "penin-wall";
-      id: string;
-      pointerId: number;
-      startPointer: Point;
-      startWall: Wall;
-      hostWallId: string;
-      anchorEndpoint: "start" | "end";
-      normalSign: number;
-      length: number;
-      grabOffsetCenterXInches: number;
-      widthInches: number;
-      startWalls: Wall[];
-    }
-  | {
-      kind: "cabinet";
-      id: string;
-      pointerId: number;
-      startPointer: Point;
-      startCenter: Point;
-      startStartInches: number;
-      startDisplayStartInches: number;
-      depthVisualOffsetInches: number;
-      startDistanceFromFloorInches: number;
-      grabOffsetXInches: number;
-      grabOffsetBottomYInches: number;
-      widthInches: number;
-      heightInches: number;
-      category: CabinetCategory;
-      startCabinets: CabinetElement[];
-    };
-
-type ElevationAlignmentGuide =
-  | {
-      kind: "vertical";
-      x: number;
-      y1: number;
-      y2: number;
-      label?: string;
-      labelX?: number;
-      labelY?: number;
-    }
-  | {
-      kind: "horizontal";
-      y: number;
-      x1: number;
-      x2: number;
-      label?: string;
-      labelX?: number;
-      labelY?: number;
-    };
-
-type ElevationObjectBox = {
-  key: string;
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
-  centerX: number;
-  centerY: number;
-};
-
-
-type EditorSnapshot = {
-  walls: Wall[];
-  windows: WindowElement[];
-  doors: DoorElement[];
-  cabinets?: CabinetElement[];
-};
-
-type GuideInfo = {
-  point: Point;
-  verticalX?: number;
-  horizontalY?: number;
-};
-
-type ArcMode = "full" | "upper" | "lower";
-
-type ConnectionMap = Map<string, number>;
-
-type WallSegmentBlackDotGeometry = {
-  segmentStart: Point;
-  segmentEnd: Point;
-  startLeft: Point;
-  endLeft: Point;
-  endRight: Point;
-  startRight: Point;
-  polygon: Point[];
-  leftEdge: { a: Point; b: Point };
-  rightEdge: { a: Point; b: Point };
-};
-
-type WallBandGeometry = {
-  left: Point[];
-  right: Point[];
-  polygon: Point[];
-  leftEdges: { a: Point; b: Point }[];
-  rightEdges: { a: Point; b: Point }[];
-  // Wall body is now drawn from the same four black-dot anchors used by the
-  // measurement system. Each segment keeps its own four-dot geometry so later
-  // cabinet clamping/selection can reason from the exact visible wall side.
-  segmentGeometries: WallSegmentBlackDotGeometry[];
-};
-
-type MeasurementLayout = {
-  lineStart: Point;
-  lineEnd: Point;
-  labelPoint: Point;
-  rotation: number;
-};
-
-type MenuDragState = {
-  pointerId: number;
-  startClient: Point;
-  startPosition: Point;
-};
-
-type GroupDragState = {
-  pointerId: number;
-  startPoint: Point;
-  startWalls: Wall[];
-  selectedIds: Set<string>;
-  didMove: boolean;
-};
-
-type PeninWallDragState = {
-  id: string;
-  pointerId: number;
-  startPointer: Point;
-  startWall: Wall;
-  startWalls: Wall[];
-  didMove: boolean;
-};
-
-type PeninWallRotateState = {
-  id: string;
-  pointerId: number;
-  anchorEndpoint: "start" | "end";
-  anchorPoint: Point;
-  startAngle: number;
-  startRotation: number;
-  length: number;
-  startWall: Wall;
-  startWalls: Wall[];
-  didMove: boolean;
-  snappedRotation: number | null;
-};
-
-type PeninWallResizeState = {
-  id: string;
-  pointerId: number;
-  fixedEndpoint: "start" | "end";
-  fixedPoint: Point;
-  movingEndpoint: "start" | "end";
-  direction: Point;
-  startWall: Wall;
-  startWalls: Wall[];
-  didMove: boolean;
-};
-
-type SelectionRect = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
-
-type GroupContextMenuState = {
-  position: Point;
-};
-
-type MeasurementSide = "left" | "right" | "length";
-type WallFaceSide = "left" | "right";
-
-type ThickWallCreationMode = "exterior" | "interior";
-
-type MeasurementEditState = {
-  wallId: string;
-  segmentStart: Point;
-  segmentEnd: Point;
-  side: MeasurementSide;
-  currentEdgeLength: number;
-  position: Point;
-  rotation: number;
-  value: string;
-};
-
-type MeasurementClickPayload = {
-  segmentStart: Point;
-  segmentEnd: Point;
-  side: MeasurementSide;
-  currentEdgeLength: number;
-  labelPoint: Point;
-  rotation: number;
-};
+import type {
+  AccessoryKind,
+  ArcMode,
+  CabinetCategory,
+  CabinetCatalogItem,
+  CabinetDimensionSet,
+  CabinetDragState,
+  CabinetElement,
+  CabinetImage,
+  CabinetPlacementPreview,
+  CabinetRotateState,
+  CabinetSelectionDetail,
+  ConnectionMap,
+  DoorDragState,
+  DoorElement,
+  DoorPlacementPreview,
+  DoorSelectionDetail,
+  EditorSnapshot,
+  ElevationAlignmentGuide,
+  ElevationDragState,
+  ElevationObjectBox,
+  GroupContextMenuState,
+  GroupDragState,
+  GuideInfo,
+  MeasurementClickPayload,
+  MeasurementDisplayUnit,
+  MeasurementEditState,
+  MeasurementLayout,
+  MeasurementSide,
+  MenuDragState,
+  ObjectSupportType,
+  OvenCabinetProductLayout,
+  Panel,
+  PeninWallDragState,
+  PeninWallResizeState,
+  PeninWallRotateState,
+  PlanViewMode,
+  Point,
+  ProductCategory,
+  SelectionRect,
+  SidebarItem,
+  StructurePlacementSnapOptions,
+  ThickWallCreationMode,
+  Tool,
+  Wall,
+  WallBandGeometry,
+  WallCabinetPlacementMode,
+  WallElevationViewMode,
+  WallFaceSide,
+  WallKind,
+  WallSegmentBlackDotGeometry,
+  WallSelectionDetail,
+  WindowDragState,
+  WindowElement,
+  WindowPlacementPreview,
+  WindowSelectionDetail,
+} from "./types";
 
 const sidebarItems: SidebarItem[] = [
   { id: "walls", label: "Walls", icon: BrickWall },
