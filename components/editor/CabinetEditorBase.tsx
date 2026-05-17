@@ -44,6 +44,47 @@ import {
 import { cn } from "@/lib/utils";
 import { exportRoomInput } from "@/lib/ai/roomExport";
 import type { AiRoomInput, GeneratedKitchenLayout } from "@/lib/ai/types";
+import {
+  add,
+  cabinetPolarPoint,
+  clamp,
+  closestPointOnSegment,
+  cross,
+  degreesToRadians,
+  distance,
+  dot,
+  getAngleDegrees,
+  getNormal,
+  getRotatedRectBounds,
+  getRotatedRectCorners,
+  getTextRotation,
+  getUnitVector,
+  midpoint,
+  mul,
+  normalize,
+  normalizeDegrees,
+  perp,
+  pointInPolygon,
+  pointOnSegment,
+  pointToSegmentDistance,
+  polarPoint,
+  segmentOrientation,
+  segmentsIntersect,
+  sub,
+  toSvgPoint,
+  vectorLength,
+} from "./geometry";
+import {
+  formatDecimal,
+  formatFeetInches,
+  formatFeetInchesForInput,
+  formatFeetInchesParts,
+  formatMeasurementFromInches,
+  inchesToPixels,
+  parseFeetInchesToPixels,
+  pixelsToInches,
+  roundToQuarter,
+} from "./measurements";
 
 type Panel =
   | "walls"
@@ -21562,22 +21603,6 @@ function getWallRectBounds(wall: Wall) {
 }
 
 // getRotatedRectCorners
-function getRotatedRectCorners(center: Point, width: number, depth: number, rotation: number) {
-  const radians = degreesToRadians(rotation);
-  const cosValue = Math.cos(radians);
-  const sinValue = Math.sin(radians);
-  const localCorners = [
-    { x: -width / 2, y: -depth / 2 },
-    { x: width / 2, y: -depth / 2 },
-    { x: width / 2, y: depth / 2 },
-    { x: -width / 2, y: depth / 2 },
-  ];
-
-  return localCorners.map((corner) => ({
-    x: center.x + corner.x * cosValue - corner.y * sinValue,
-    y: center.y + corner.x * sinValue + corner.y * cosValue,
-  }));
-}
 
 
 
@@ -22246,83 +22271,6 @@ function getCabinetPlanOccupiedBounds(
 }
 
 // getRotatedRectBounds
-function getRotatedRectBounds(center: Point, width: number, depth: number, rotation: number) {
-  const corners = getRotatedRectCorners(center, width, depth, rotation);
-  const xs = corners.map((corner) => corner.x);
-  const ys = corners.map((corner) => corner.y);
-
-  return {
-    minX: Math.min(...xs),
-    maxX: Math.max(...xs),
-    minY: Math.min(...ys),
-    maxY: Math.max(...ys),
-  };
-}
-
-// pointInPolygon
-function pointInPolygon(point: Point, polygon: Point[]) {
-  let inside = false;
-
-  for (let index = 0, previousIndex = polygon.length - 1; index < polygon.length; previousIndex = index++) {
-    const current = polygon[index];
-    const previous = polygon[previousIndex];
-    const intersects =
-      current.y > point.y !== previous.y > point.y &&
-      point.x < ((previous.x - current.x) * (point.y - current.y)) / (previous.y - current.y || 0.000001) + current.x;
-
-    if (intersects) inside = !inside;
-  }
-
-  return inside;
-}
-
-// segmentsIntersect
-function segmentsIntersect(a: Point, b: Point, c: Point, d: Point) {
-  const orientation = (p1: Point, p2: Point, p3: Point) => Math.sign(cross(sub(p2, p1), sub(p3, p1)));
-  const onSegment = (p1: Point, p2: Point, p3: Point) =>
-    Math.min(p1.x, p3.x) - 0.001 <= p2.x &&
-    p2.x <= Math.max(p1.x, p3.x) + 0.001 &&
-    Math.min(p1.y, p3.y) - 0.001 <= p2.y &&
-    p2.y <= Math.max(p1.y, p3.y) + 0.001;
-
-  const o1 = orientation(a, b, c);
-  const o2 = orientation(a, b, d);
-  const o3 = orientation(c, d, a);
-  const o4 = orientation(c, d, b);
-
-  if (o1 !== o2 && o3 !== o4) return true;
-  if (o1 === 0 && onSegment(a, c, b)) return true;
-  if (o2 === 0 && onSegment(a, d, b)) return true;
-  if (o3 === 0 && onSegment(c, a, d)) return true;
-  if (o4 === 0 && onSegment(c, b, d)) return true;
-
-  return false;
-}
-
-// normalizeDegrees
-function normalizeDegrees(angle: number) {
-  return ((angle % 360) + 360) % 360;
-}
-
-// degreesToRadians
-function degreesToRadians(angle: number) {
-  return (angle * Math.PI) / 180;
-}
-
-// getAngleDegrees
-function getAngleDegrees(center: Point, point: Point) {
-  return (Math.atan2(point.y - center.y, point.x - center.x) * 180) / Math.PI;
-}
-
-// polarPoint
-function polarPoint(centerX: number, centerY: number, radius: number, angleDegrees: number) {
-  const radians = degreesToRadians(angleDegrees);
-  return {
-    x: centerX + radius * Math.cos(radians),
-    y: centerY + radius * Math.sin(radians),
-  };
-}
-
 // describeArc
 // cabinetSnapRotationToTick
 const CABINET_ROTATION_SNAP_STEP_DEGREES = 45;
@@ -22740,10 +22688,6 @@ function interpolate(start: Point, end: Point, t: number): Point {
     x: start.x + (end.x - start.x) * t,
     y: start.y + (end.y - start.y) * t,
   };
-}
-
-function inchesToPixels(inches: number) {
-  return (inches / 12) * GRID_SIZE;
 }
 
 function areWindowsEqual(a: WindowElement[], b: WindowElement[]) {
@@ -23513,81 +23457,6 @@ function resizeWallFromMeasurement(
   });
 }
 
-function formatFeetInchesForInput(pixelLength: number) {
-  const totalInches = pixelsToInches(pixelLength);
-  const feet = Math.floor(totalInches / 12);
-  const inches = roundToQuarter(totalInches - feet * 12);
-
-  return `${feet} ${formatDecimal(inches)}`;
-}
-
-function formatFeetInchesParts(pixelLength: number) {
-  const totalInches = pixelsToInches(pixelLength);
-  const feet = Math.floor(totalInches / 12);
-  const inches = roundToQuarter(totalInches - feet * 12);
-
-  return {
-    feet: `${feet}`,
-    inches: formatDecimal(inches),
-  };
-}
-
-function parseFeetInchesToPixels(value: string) {
-  const trimmed = value.trim();
-
-  if (!trimmed) return null;
-
-  const normalized = trimmed
-    .toLowerCase()
-    .replace(/[″”]/g, '"')
-    .replace(/[′’]/g, "'")
-    .replace(/feet|foot|ft\.?/g, "'")
-    .replace(/inches|inch|in\.?/g, '"')
-    .replace(/-/g, " ");
-
-  let feet = 0;
-  let inches = 0;
-
-  const feetMatch = normalized.match(/(-?\d+(?:\.\d+)?)\s*'/);
-  const inchMatch = normalized.match(/(-?\d+(?:\.\d+)?)\s*"/);
-
-  if (feetMatch || inchMatch) {
-    feet = feetMatch ? Number(feetMatch[1]) : 0;
-    inches = inchMatch ? Number(inchMatch[1]) : 0;
-  } else {
-    const parts = normalized.match(/-?\d+(?:\.\d+)?/g) ?? [];
-
-    if (parts.length >= 2) {
-      feet = Number(parts[0]);
-      inches = Number(parts[1]);
-    } else if (parts.length === 1) {
-      feet = Number(parts[0]);
-    } else {
-      return null;
-    }
-  }
-
-  if (!Number.isFinite(feet) || !Number.isFinite(inches)) return null;
-
-  const totalInches = feet * 12 + inches;
-
-  if (totalInches <= 0) return null;
-
-  return (totalInches / 12) * GRID_SIZE;
-}
-
-function pixelsToInches(pixelLength: number) {
-  return (pixelLength / GRID_SIZE) * 12;
-}
-
-function roundToQuarter(value: number) {
-  return Math.round(value * 4) / 4;
-}
-
-function formatDecimal(value: number) {
-  return Number.isInteger(value) ? `${value}` : `${Number(value.toFixed(2))}`;
-}
-
 function areWallsEqual(a: Wall[], b: Wall[]) {
   if (a.length !== b.length) return false;
 
@@ -24328,15 +24197,6 @@ function getPreferredNormal(start: Point, end: Point): Point {
   return normal.y > 0 ? normal : { x: -normal.x, y: -normal.y };
 }
 
-function cabinetPolarPoint(origin: Point, radius: number, angleDegrees: number): Point {
-  const radians = (angleDegrees * Math.PI) / 180;
-
-  return {
-    x: origin.x + Math.cos(radians) * radius,
-    y: origin.y - Math.sin(radians) * radius,
-  };
-}
-
 function getSelectionRect(start: Point, end: Point): SelectionRect {
   const x = Math.min(start.x, end.x);
   const y = Math.min(start.y, end.y);
@@ -24347,18 +24207,6 @@ function getSelectionRect(start: Point, end: Point): SelectionRect {
     width: Math.abs(end.x - start.x),
     height: Math.abs(end.y - start.y),
   };
-}
-
-function pointToSegmentDistance(point: Point, start: Point, end: Point) {
-  const segment = sub(end, start);
-  const lengthSquared = dot(segment, segment);
-
-  if (lengthSquared === 0) return distance(point, start);
-
-  const t = clamp(dot(sub(point, start), segment) / lengthSquared, 0, 1);
-  const projection = add(start, mul(segment, t));
-
-  return distance(point, projection);
 }
 
 function cabinetIntersectsSelectionRect(cabinetItem: CabinetElement, rect: SelectionRect) {
@@ -24413,23 +24261,6 @@ function cabinetSegmentsIntersect(a: Point, b: Point, c: Point, d: Point) {
   if (orientation4 === 0 && pointOnSegment(b, c, d)) return true;
 
   return false;
-}
-
-function segmentOrientation(a: Point, b: Point, c: Point) {
-  const value = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
-
-  if (Math.abs(value) < 0.0001) return 0;
-
-  return value > 0 ? 1 : 2;
-}
-
-function pointOnSegment(point: Point, segmentStart: Point, segmentEnd: Point) {
-  return (
-    point.x <= Math.max(segmentStart.x, segmentEnd.x) + 0.0001 &&
-    point.x >= Math.min(segmentStart.x, segmentEnd.x) - 0.0001 &&
-    point.y <= Math.max(segmentStart.y, segmentEnd.y) + 0.0001 &&
-    point.y >= Math.min(segmentStart.y, segmentEnd.y) - 0.0001
-  );
 }
 
 function getWallAttachPoint(point: Point, walls: Wall[]): Point | null {
@@ -24538,151 +24369,9 @@ function getClosestEndpointPoint(point: Point, walls: Wall[]): Point | null {
   return closestEndpointPoint;
 }
 
-function closestPointOnSegment(point: Point, start: Point, end: Point): Point {
-  const segment = sub(end, start);
-  const segmentLengthSquared = dot(segment, segment);
-
-  if (segmentLengthSquared === 0) return start;
-
-  const t = clamp(dot(sub(point, start), segment) / segmentLengthSquared, 0, 1);
-
-  return {
-    x: start.x + segment.x * t,
-    y: start.y + segment.y * t,
-  };
-}
-
 function snapToGrid(point: Point): Point {
   return {
     x: Math.round(point.x / GRID_SIZE) * GRID_SIZE,
     y: Math.round(point.y / GRID_SIZE) * GRID_SIZE,
   };
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function add(a: Point, b: Point): Point {
-  return {
-    x: a.x + b.x,
-    y: a.y + b.y,
-  };
-}
-
-function sub(a: Point, b: Point): Point {
-  return {
-    x: a.x - b.x,
-    y: a.y - b.y,
-  };
-}
-
-function mul(point: Point, scalar: number): Point {
-  return {
-    x: point.x * scalar,
-    y: point.y * scalar,
-  };
-}
-
-function perp(point: Point): Point {
-  return {
-    x: -point.y,
-    y: point.x,
-  };
-}
-
-function dot(a: Point, b: Point) {
-  return a.x * b.x + a.y * b.y;
-}
-
-function cross(a: Point, b: Point) {
-  return a.x * b.y - a.y * b.x;
-}
-
-function vectorLength(point: Point) {
-  return Math.sqrt(dot(point, point));
-}
-
-function normalize(point: Point): Point {
-  const length = vectorLength(point);
-
-  if (!length) {
-    return { x: 0, y: 0 };
-  }
-
-  return {
-    x: point.x / length,
-    y: point.y / length,
-  };
-}
-
-function distance(a: Point, b: Point) {
-  return Math.hypot(b.x - a.x, b.y - a.y);
-}
-
-function midpoint(a: Point, b: Point): Point {
-  return {
-    x: (a.x + b.x) / 2,
-    y: (a.y + b.y) / 2,
-  };
-}
-
-function getNormal(a: Point, b: Point): Point {
-  const unit = getUnitVector(a, b);
-
-  return {
-    x: -unit.y,
-    y: unit.x,
-  };
-}
-
-function getUnitVector(a: Point, b: Point): Point {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const length = Math.hypot(dx, dy);
-
-  if (length === 0) return { x: 1, y: 0 };
-
-  return {
-    x: dx / length,
-    y: dy / length,
-  };
-}
-
-function getTextRotation(a: Point, b: Point) {
-  const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
-
-  return angle > 90 || angle < -90 ? angle + 180 : angle;
-}
-
-function toSvgPoint(point: Point): string {
-  return `${point.x},${point.y}`;
-}
-
-function formatMeasurementFromInches(
-  totalInchesValue: number,
-  unit: MeasurementDisplayUnit = "feet-inches"
-) {
-  const totalInches = Math.max(1, Math.round(totalInchesValue));
-  if (unit === "inches") return `${totalInches}"`;
-  const feet = Math.floor(totalInches / 12);
-  const inches = totalInches % 12;
-
-  if (feet === 0) return `${inches}"`;
-  if (inches === 0) return `${feet}'`;
-
-  return `${feet}' ${inches}"`;
-}
-
-function formatFeetInches(
-  pixelLength: number,
-  unit: MeasurementDisplayUnit = "feet-inches"
-) {
-  const inchesPerGrid = 12;
-  const totalInches = Math.max(
-    1,
-    Math.round((pixelLength / GRID_SIZE) * inchesPerGrid)
-  );
-
-  return formatMeasurementFromInches(totalInches, unit);
 }
