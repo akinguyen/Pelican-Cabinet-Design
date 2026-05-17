@@ -85,6 +85,45 @@ import {
   pixelsToInches,
   roundToQuarter,
 } from "./measurements";
+import {
+  AI_WALL_MATCH_TOLERANCE,
+  CABINET_ROTATION_SNAP_ENTER_DEGREES,
+  CABINET_ROTATION_SNAP_STEP_DEGREES,
+  CABINET_TOE_KICK_HEIGHT_INCHES,
+  DEFAULT_DOOR_WIDTH,
+  DEFAULT_ELEVATION_WALL_HEIGHT_INCHES,
+  DEFAULT_WINDOW_WIDTH,
+  ELEVATION_VIEWBOX_HEIGHT,
+  ELEVATION_VIEWBOX_WIDTH,
+  FLOOR_SUPPORTED_PANTRY_MIN_HEIGHT_INCHES,
+  GRID_SIZE,
+  JOINT_DOT_RADIUS,
+  JOINT_TICK_LENGTH,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  MOVE_STEP,
+  OVEN_CABINET_DEFAULT_BOTTOM_DRAWER_HEIGHT_INCHES,
+  OVEN_CABINET_DEFAULT_FILLER_HEIGHT_INCHES,
+  PENIN_WALL_ELEVATION_FACE_WIDTH_INCHES,
+  PENIN_WALL_ELEVATION_HEIGHT_INCHES,
+  PENIN_WALL_THICKNESS,
+  SNAP_THRESHOLD,
+  THIN_WALL_STROKE_WIDTH,
+  WALL_ATTACH_THRESHOLD,
+  WALL_STROKE_WIDTH,
+  WALL_THICKNESS,
+  WORKSPACE_HEIGHT,
+  WORKSPACE_WIDTH,
+  ZOOM_BUTTON_STEP,
+  ZOOM_INTENSITY,
+  sidebarItems,
+} from "./constants";
+import {
+  CABINET_NOT_AGAINST_WALL_MESSAGE,
+  CABINET_OVERLAP_MESSAGE,
+  NOT_ENOUGH_VERTICAL_WALL_SPACE_MESSAGE,
+  WALL_CABINET_ELEVATION_OVERLAP_MESSAGE,
+} from "./messages";
 import type {
   AccessoryKind,
   ArcMode,
@@ -142,41 +181,6 @@ import type {
   WindowPlacementPreview,
   WindowSelectionDetail,
 } from "./types";
-
-const sidebarItems: SidebarItem[] = [
-  { id: "walls", label: "Walls", icon: BrickWall },
-  { id: "structures", label: "Structures", icon: DoorOpen },
-  { id: "products", label: "Products", icon: Sofa },
-  { id: "cabinets", label: "Cabinets", icon: Boxes },
-  { id: "objects", label: "Accessories", icon: Square },
-  { id: "text", label: "Text", icon: Type },
-  { id: "lines", label: "Lines", icon: PencilLine },
-];
-
-const MIN_ZOOM = 0.18;
-const MAX_ZOOM = 3;
-const ZOOM_INTENSITY = 0.0045;
-const ZOOM_BUTTON_STEP = 1.18;
-const MOVE_STEP = 48;
-
-const WORKSPACE_WIDTH = 2400;
-const WORKSPACE_HEIGHT = 1600;
-const GRID_SIZE = 28;
-const FLOOR_SUPPORTED_PANTRY_MIN_HEIGHT_INCHES = 54;
-const CABINET_TOE_KICK_HEIGHT_INCHES = 4.5;
-const OVEN_CABINET_DEFAULT_FILLER_HEIGHT_INCHES = 3;
-const OVEN_CABINET_DEFAULT_BOTTOM_DRAWER_HEIGHT_INCHES = 11.6875;
-const SNAP_THRESHOLD = 9;
-const WALL_ATTACH_THRESHOLD = 22;
-const WALL_STROKE_WIDTH = 16;
-const WALL_THICKNESS = WALL_STROKE_WIDTH;
-const PENIN_WALL_THICKNESS = WALL_THICKNESS * 2;
-const PENIN_WALL_ELEVATION_HEIGHT_INCHES = 36;
-const PENIN_WALL_ELEVATION_FACE_WIDTH_INCHES = 24;
-const THIN_WALL_STROKE_WIDTH = 2;
-const DEFAULT_WINDOW_WIDTH = (39.25 / 12) * GRID_SIZE;
-const DEFAULT_DOOR_WIDTH = (36 / 12) * GRID_SIZE;
-const DEFAULT_ELEVATION_WALL_HEIGHT_INCHES = 96;
 
 function getSupportTypeForCategory(
   category: CabinetCategory,
@@ -935,12 +939,6 @@ function withSmartInputCatalog(room: AiRoomInput): AiRoomInput {
   };
 }
 
-const ELEVATION_VIEWBOX_WIDTH = 1200;
-const ELEVATION_VIEWBOX_HEIGHT = 860;
-
-const JOINT_DOT_RADIUS = 5;
-const JOINT_TICK_LENGTH = 16;
-
 function downloadJsonFile(filename: string, payload: unknown) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: "application/json",
@@ -1092,10 +1090,6 @@ function normalizeImportedKitchenPlan(value: unknown): ImportedKitchenPlan | nul
       : [],
   };
 }
-
-
-const AI_WALL_MATCH_TOLERANCE = 0.75;
-
 function pointsAlmostEqualForAiWall(left: Point, right: Point, tolerance = AI_WALL_MATCH_TOLERANCE) {
   return Math.abs(left.x - right.x) <= tolerance && Math.abs(left.y - right.y) <= tolerance;
 }
@@ -9823,7 +9817,7 @@ function stackOverlappingWallCabinetPlacements(
     const availableHeight = Math.max(0, wallHeightInches - bottomLimitInches);
 
     if (totalStackHeight > availableHeight + 0.001) {
-      const message = "Not enough vertical wall space to add another wall cabinet in this stack.";
+      const message = NOT_ENOUGH_VERTICAL_WALL_SPACE_MESSAGE;
       group.forEach((index) => {
         nextPlacements[index].stackOverflow = true;
         nextPlacements[index].stackOverflowMessage = message;
@@ -19699,12 +19693,6 @@ function getCabinetEdgeToEdgeSnappedCenter({
 function getCollisionSafeAdjacentCabinetSnappedCenter(options: CabinetEdgeSnapOptions): Point {
   return getCabinetEdgeToEdgeSnappedCenter(options);
 }
-
-
-const CABINET_NOT_AGAINST_WALL_MESSAGE = "Cabinet should be placed against the wall";
-const CABINET_OVERLAP_MESSAGE = "Cabinet collides with another cabinet";
-const WALL_CABINET_ELEVATION_OVERLAP_MESSAGE = CABINET_OVERLAP_MESSAGE;
-
 function getWallCabinetElevationOverlapMessage(
   cabinetItem: CabinetElement,
   cabinets: CabinetElement[],
@@ -21802,9 +21790,6 @@ function getCabinetPlanOccupiedBounds(
 // getRotatedRectBounds
 // describeArc
 // cabinetSnapRotationToTick
-const CABINET_ROTATION_SNAP_STEP_DEGREES = 45;
-const CABINET_ROTATION_SNAP_ENTER_DEGREES = 4;
-
 function cabinetSnapRotationToTick(
   rawRotation: number,
   currentSnappedRotation: number | null
