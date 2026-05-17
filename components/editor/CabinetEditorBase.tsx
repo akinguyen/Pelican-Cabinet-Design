@@ -119,6 +119,7 @@ import {
   sidebarItems,
 } from "./constants";
 import { CABINET_CATALOG } from "./catalog";
+import { getDefaultBottomDrawerProductLayout } from "./catalogHelpers";
 import { L_SHAPED_CORNER_CABINET_DISPLAY_IMAGE } from "./catalogImages";
 import {
   CABINET_NOT_AGAINST_WALL_MESSAGE,
@@ -399,14 +400,6 @@ function normalizeOvenCabinetHeightSegments(cabinet: CabinetElement) {
 
 function normalizeSpecialCabinetState(cabinet: CabinetElement) {
   return normalizeBlindCabinetSettings(normalizeOvenCabinetHeightSegments(cabinet));
-}
-
-function getDefaultBottomDrawerProductLayout(
-  image?: CabinetImage
-): OvenCabinetProductLayout | undefined {
-  if (image === "base-oven-bottom-drawer") return "single-oven";
-  if (image === "base-microwave-bottom-drawer") return "single-microwave";
-  return undefined;
 }
 
 function buildSmartInputCatalog(): AiRoomInput["catalog"] {
