@@ -119,7 +119,11 @@ import {
   sidebarItems,
 } from "./constants";
 import { CABINET_CATALOG } from "./catalog";
-import { getDefaultBottomDrawerProductLayout } from "./catalogHelpers";
+import {
+  getCabinetCatalogItemByIdentity,
+  getDefaultBottomDrawerProductLayout,
+  getEditorCabinetCatalogItem,
+} from "./catalogHelpers";
 import { L_SHAPED_CORNER_CABINET_DISPLAY_IMAGE } from "./catalogImages";
 import {
   CABINET_NOT_AGAINST_WALL_MESSAGE,
@@ -675,35 +679,6 @@ function getEditorCabinetTopOption(cabinetItem: CabinetElement) {
   if (cabinetItem.cooktopFixture === "surface") return "surface-cooktop" as const;
   if (cabinetItem.cooktopFixture === "front") return "front-control-cooktop" as const;
   return null;
-}
-
-function getCabinetCatalogItemByIdentity(cabinetItem: { catalogId?: string; image?: CabinetImage }) {
-  if (cabinetItem.catalogId) {
-    const catalogMatch = CABINET_CATALOG.find((catalogItem) => catalogItem.id === cabinetItem.catalogId);
-    if (catalogMatch) return catalogMatch;
-
-    // Backward compatibility for drawings saved before the two-door wall cabinet ID was renamed.
-    if (cabinetItem.catalogId === "wall-cabinet") {
-      return CABINET_CATALOG.find((catalogItem) => catalogItem.id === "wall-two-door-cabinet") ?? null;
-    }
-
-    // Backward compatibility for drawings saved before filler was renamed to base filler.
-    if (cabinetItem.catalogId === "accessory-filler") {
-      return CABINET_CATALOG.find((catalogItem) => catalogItem.id === "accessory-base-filler") ?? null;
-    }
-  }
-
-  if (cabinetItem.image === "accessory-filler") {
-    return CABINET_CATALOG.find((catalogItem) => catalogItem.id === "accessory-base-filler") ?? null;
-  }
-
-  return cabinetItem.image
-    ? CABINET_CATALOG.find((catalogItem) => catalogItem.image === cabinetItem.image) ?? null
-    : null;
-}
-
-function getEditorCabinetCatalogItem(cabinetItem: CabinetElement) {
-  return getCabinetCatalogItemByIdentity(cabinetItem);
 }
 
 function formatDimensionOptionNumber(value: number) {
