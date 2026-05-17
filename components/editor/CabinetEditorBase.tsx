@@ -124,6 +124,12 @@ import {
   getDefaultBottomDrawerProductLayout,
   getEditorCabinetCatalogItem,
 } from "./catalogHelpers";
+import {
+  formatDimensionOptionNumber,
+  getCatalogDimensionOptions,
+  getDefaultDimensionFromOptions,
+  matchesDimensionOption,
+} from "./catalogDimensionHelpers";
 import { L_SHAPED_CORNER_CABINET_DISPLAY_IMAGE } from "./catalogImages";
 import {
   CABINET_NOT_AGAINST_WALL_MESSAGE,
@@ -681,44 +687,6 @@ function getEditorCabinetTopOption(cabinetItem: CabinetElement) {
   return null;
 }
 
-function formatDimensionOptionNumber(value: number) {
-  const rounded = Math.round(value * 100) / 100;
-  return Number.isInteger(rounded) ? `${rounded}` : `${rounded}`;
-}
-
-function getCatalogDimensionOptions(catalogItem: CabinetCatalogItem | null | undefined) {
-  if (!catalogItem) {
-    return {
-      widths: [] as number[],
-      heights: [] as number[],
-      depths: [] as number[],
-    };
-  }
-
-  const uniqueSorted = (values: number[]) =>
-    Array.from(new Set(values.map((value) => roundToQuarter(value)))).sort(
-      (left, right) => left - right
-    );
-
-  return {
-    widths: uniqueSorted(
-      catalogItem.standardWidthOptions?.length
-        ? catalogItem.standardWidthOptions
-        : [catalogItem.widthInches]
-    ),
-    heights: uniqueSorted(
-      catalogItem.standardHeightOptions?.length
-        ? catalogItem.standardHeightOptions
-        : [catalogItem.heightInches]
-    ),
-    depths: uniqueSorted(
-      catalogItem.standardDepthOptions?.length
-        ? catalogItem.standardDepthOptions
-        : [catalogItem.depthInches]
-    ),
-  };
-}
-
 function exportAiRoomInputFromEditor(params: {
   walls: Wall[];
   windows: WindowElement[];
@@ -734,29 +702,6 @@ function exportAiRoomInputFromEditor(params: {
     gridSize: GRID_SIZE,
     wallThickness: WALL_THICKNESS,
   });
-}
-
-function matchesDimensionOption(options: number[], value: number) {
-  return options.some((option) => Math.abs(option - value) < 0.01);
-}
-
-function getDefaultDimensionFromOptions(
-  catalogItem: CabinetCatalogItem | null | undefined,
-  axis: "width" | "height" | "depth"
-) {
-  if (!catalogItem) return 0;
-  const options = getCatalogDimensionOptions(catalogItem);
-  const axisOptions =
-    axis === "width" ? options.widths : axis === "height" ? options.heights : options.depths;
-  const currentValue =
-    axis === "width"
-      ? catalogItem.widthInches
-      : axis === "height"
-        ? catalogItem.heightInches
-        : catalogItem.depthInches;
-
-  if (matchesDimensionOption(axisOptions, currentValue)) return currentValue;
-  return axisOptions[0] ?? currentValue;
 }
 
 function getEditorElevationFixedObjectsForWall(
