@@ -40,3 +40,10 @@ export function getCabinetCatalogItemByIdentity(cabinetItem: {
 export function getEditorCabinetCatalogItem(cabinetItem: CabinetElement) {
   return getCabinetCatalogItemByIdentity(cabinetItem);
 }
+
+export function getEditorCabinetTopOption(cabinetItem: CabinetElement) {
+  if (cabinetItem.sinkFixture) return "sink" as const;
+  if (cabinetItem.cooktopFixture === "surface") return "surface-cooktop" as const;
+  if (cabinetItem.cooktopFixture === "front") return "front-control-cooktop" as const;
+  return null;
+}

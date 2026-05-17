@@ -123,6 +123,7 @@ import {
   getCabinetCatalogItemByIdentity,
   getDefaultBottomDrawerProductLayout,
   getEditorCabinetCatalogItem,
+  getEditorCabinetTopOption,
 } from "./catalogHelpers";
 import {
   formatDimensionOptionNumber,
@@ -678,13 +679,6 @@ function findEditorWallForAiWall(
   return editorWalls.find(
     (editorWall) => isThickWall(editorWall) && wallsMatchForAiSelection(editorWall, aiWall)
   ) ?? null;
-}
-
-function getEditorCabinetTopOption(cabinetItem: CabinetElement) {
-  if (cabinetItem.sinkFixture) return "sink" as const;
-  if (cabinetItem.cooktopFixture === "surface") return "surface-cooktop" as const;
-  if (cabinetItem.cooktopFixture === "front") return "front-control-cooktop" as const;
-  return null;
 }
 
 function exportAiRoomInputFromEditor(params: {
