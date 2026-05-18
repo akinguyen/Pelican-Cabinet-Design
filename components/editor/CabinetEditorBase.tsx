@@ -151,6 +151,10 @@ import {
   normalizeSpecialCabinetState,
 } from "./specialCabinetHelpers";
 import {
+  roundSmartObjectInches,
+  roundSmartWallWidthInches,
+} from "./aiExportHelpers";
+import {
   normalizeImportedKitchenPlan,
   normalizeImportedKitchenPlacement,
   toImportedKitchenNumber,
@@ -348,14 +352,6 @@ type AiRoomWallWithEditorElevationData = AiRoomInput["walls"][number] & {
   };
   elevationWidthInches?: number;
 };
-
-function roundSmartWallWidthInches(value: number) {
-  return Math.round(value * 10) / 10;
-}
-
-function roundSmartObjectInches(value: number) {
-  return Math.round(value * 10) / 10;
-}
 
 function getEditorElevationWallWidthInches(
   wall: Wall,
