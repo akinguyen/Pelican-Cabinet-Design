@@ -163,8 +163,13 @@ import {
   getCabinetImage,
   getCabinetPlanBodyFill,
   getDefaultCabinetImageForCategory,
+  canHaveBaseTopFixtureControls,
+  isBuiltInSinkCabinetImage,
+  isFarmSinkCabinetImage,
   isAccessoryCabinetImage,
   isFillerAccessoryCabinetImage,
+  isSpiceRackCabinetImage,
+  isTrashCanCabinetImage,
   isProductCabinetImage,
   isStandaloneBaseProductElevationImage,
 } from "./cabinetImageHelpers";
@@ -242,34 +247,6 @@ import type {
   WindowPlacementPreview,
   WindowSelectionDetail,
 } from "./types";
-
-function isBuiltInSinkCabinetImage(image?: CabinetImage) {
-  return image === "base-sink-cabinet" || image === "base-farm-sink-cabinet";
-}
-
-function isFarmSinkCabinetImage(image?: CabinetImage) {
-  return image === "base-farm-sink-cabinet";
-}
-
-function isSpiceRackCabinetImage(image?: CabinetImage) {
-  return image === "base-spice-rack";
-}
-
-function isTrashCanCabinetImage(image?: CabinetImage) {
-  return image === "base-trash-can";
-}
-
-function canHaveBaseTopFixtureControls(image?: CabinetImage) {
-  return Boolean(
-    image &&
-      !isBuiltInSinkCabinetImage(image) &&
-      !isSpiceRackCabinetImage(image) &&
-      !isTrashCanCabinetImage(image) &&
-      image !== "pantry-one-door" &&
-      image !== "pantry-two-door" &&
-      !isOvenLikeBottomDrawerCabinetImage(image)
-  );
-}
 
 function downloadJsonFile(filename: string, payload: unknown) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], {

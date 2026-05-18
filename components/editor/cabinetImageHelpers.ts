@@ -1,4 +1,5 @@
 import { getCabinetCategoryForImage } from "./catalogHelpers";
+import { isOvenLikeBottomDrawerCabinetImage } from "./specialCabinetHelpers";
 import type { CabinetCategory, CabinetElement, CabinetImage } from "./types";
 
 export function getDefaultCabinetImageForCategory(category: CabinetCategory): CabinetImage {
@@ -34,6 +35,22 @@ export function isAccessoryCabinetImage(image?: CabinetImage) {
       image === "accessory-base-end-panel" ||
       image === "accessory-wall-end-panel"
   );
+}
+
+export function isBuiltInSinkCabinetImage(image?: CabinetImage) {
+  return image === "base-sink-cabinet" || image === "base-farm-sink-cabinet";
+}
+
+export function isFarmSinkCabinetImage(image?: CabinetImage) {
+  return image === "base-farm-sink-cabinet";
+}
+
+export function isSpiceRackCabinetImage(image?: CabinetImage) {
+  return image === "base-spice-rack";
+}
+
+export function isTrashCanCabinetImage(image?: CabinetImage) {
+  return image === "base-trash-can";
 }
 
 export function getCabinetPlanBodyFill(
@@ -73,6 +90,18 @@ export function isFillerAccessoryCabinetImage(image?: CabinetImage) {
       image === "accessory-wall-filler" ||
       image === "accessory-wall-filler-horizontal" ||
       image === "accessory-filler"
+  );
+}
+
+export function canHaveBaseTopFixtureControls(image?: CabinetImage) {
+  return Boolean(
+    image &&
+      !isBuiltInSinkCabinetImage(image) &&
+      !isSpiceRackCabinetImage(image) &&
+      !isTrashCanCabinetImage(image) &&
+      image !== "pantry-one-door" &&
+      image !== "pantry-two-door" &&
+      !isOvenLikeBottomDrawerCabinetImage(image)
   );
 }
 
