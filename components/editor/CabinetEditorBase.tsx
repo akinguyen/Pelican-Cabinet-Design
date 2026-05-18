@@ -131,6 +131,10 @@ import {
   getCabinetSupportType,
   getSupportTypeForCategory,
 } from "./catalogHelpers";
+import {
+  buildSmartInputCatalog,
+  withSmartInputCatalog,
+} from "./smartInputHelpers";
 import type {
   ImportedKitchenPlacement,
   ImportedKitchenPlan,
@@ -255,34 +259,6 @@ function canHaveBaseTopFixtureControls(image?: CabinetImage) {
       image !== "pantry-two-door" &&
       !isOvenLikeBottomDrawerCabinetImage(image)
   );
-}
-
-function buildSmartInputCatalog(): AiRoomInput["catalog"] {
-  return CABINET_CATALOG.map((catalogItem) => ({
-    ...catalogItem,
-    // Keep accessory metadata on the room payload because roomExport currently
-    // normalizes the catalog and can drop fields that the smart-input preview needs.
-    isAccessory: catalogItem.isAccessory ?? false,
-    accessoryKind: catalogItem.accessoryKind ?? undefined,
-    supportType: getSupportTypeForCategory(
-      catalogItem.category,
-      catalogItem.widthInches,
-      catalogItem.heightInches
-    ),
-    hasToeKick: cabinetHasToeKick({
-      category: catalogItem.category,
-      widthInches: catalogItem.widthInches,
-      heightInches: catalogItem.heightInches,
-      image: catalogItem.image,
-    }),
-  })) as AiRoomInput["catalog"];
-}
-
-function withSmartInputCatalog(room: AiRoomInput): AiRoomInput {
-  return {
-    ...room,
-    catalog: buildSmartInputCatalog(),
-  };
 }
 
 function downloadJsonFile(filename: string, payload: unknown) {
