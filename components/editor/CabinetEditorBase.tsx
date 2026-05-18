@@ -47,7 +47,6 @@ import { CabinetToolCard } from "./layout/CabinetToolCard";
 import { StructureToolCard } from "./layout/StructureToolCard";
 import { WindowPropertyInput } from "./layout/WindowPropertyInput";
 import { SelectionAreaBox } from "./layout/SelectionAreaBox";
-import { CabinetArrow } from "./layout/CabinetArrow";
 import { exportRoomInput } from "@/lib/ai/roomExport";
 import type { AiRoomInput, GeneratedKitchenLayout } from "@/lib/ai/types";
 import {
