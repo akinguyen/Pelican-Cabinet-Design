@@ -1,9 +1,11 @@
 import { CABINET_CATALOG } from "./catalog";
 import { FLOOR_SUPPORTED_PANTRY_MIN_HEIGHT_INCHES } from "./constants";
+import { pixelsToInches } from "./measurements";
 import type {
   CabinetCategory,
   CabinetElement,
   CabinetImage,
+  CabinetSelectionDetail,
   ObjectSupportType,
   OvenCabinetProductLayout,
 } from "./types";
@@ -67,4 +69,50 @@ export function getSupportTypeForCategory(
       : "elevated-supported";
   }
   return "floor-supported";
+}
+
+export function getCabinetCategoryForImage(image: CabinetImage): CabinetCategory {
+  if (
+    image === "accessory-wall-filler" ||
+    image === "accessory-wall-filler-horizontal" ||
+    image === "accessory-wall-end-panel"
+  ) return "wall";
+  if (image === "accessory-base-filler" || image === "accessory-filler" || image === "accessory-base-end-panel") return "base";
+  if (image === "pantry-one-door" || image === "pantry-two-door") return "pantry";
+  if (
+    image === "wall-two-doors" ||
+    image === "wall-one-door" ||
+    image === "wall-blind-left" ||
+    image === "wall-blind-right" ||
+    image === "wall-hood" ||
+    image === "wall-microwave" ||
+    image === "wall-oven" ||
+    image === "wall-double-oven" ||
+    image === "wall-microwave-one-door" ||
+    image === "wall-hood-one-door"
+  ) return "wall";
+  return "base";
+}
+
+export function getCabinetSupportType(
+  cabinetItem: Partial<
+    Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
+      Pick<CabinetSelectionDetail, "widthInches" | "heightInches">
+  >
+): ObjectSupportType {
+  const category =
+    cabinetItem.category ??
+    (cabinetItem.image ? getCabinetCategoryForImage(cabinetItem.image) : "base");
+  const widthInches =
+    typeof cabinetItem.widthInches === "number"
+      ? cabinetItem.widthInches
+      : typeof cabinetItem.width === "number"
+        ? pixelsToInches(cabinetItem.width)
+        : undefined;
+  const heightInches =
+    typeof cabinetItem.heightInches === "number"
+      ? cabinetItem.heightInches
+      : undefined;
+
+  return getSupportTypeForCategory(category, widthInches, heightInches);
 }

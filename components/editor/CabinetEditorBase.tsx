@@ -121,9 +121,11 @@ import {
 import { CABINET_CATALOG } from "./catalog";
 import {
   getCabinetCatalogItemByIdentity,
+  getCabinetCategoryForImage,
   getDefaultBottomDrawerProductLayout,
   getEditorCabinetCatalogItem,
   getEditorCabinetTopOption,
+  getCabinetSupportType,
   getSupportTypeForCategory,
 } from "./catalogHelpers";
 import {
@@ -169,7 +171,6 @@ import type {
   MeasurementLayout,
   MeasurementSide,
   MenuDragState,
-  ObjectSupportType,
   OvenCabinetProductLayout,
   Panel,
   PeninWallDragState,
@@ -16635,29 +16636,6 @@ function getCabinetImage(cabinetItem: Partial<Pick<CabinetElement, "image" | "ca
   return cabinetItem.image ?? getDefaultCabinetImageForCategory(cabinetItem.category ?? "base");
 }
 
-function getCabinetCategoryForImage(image: CabinetImage): CabinetCategory {
-  if (
-    image === "accessory-wall-filler" ||
-    image === "accessory-wall-filler-horizontal" ||
-    image === "accessory-wall-end-panel"
-  ) return "wall";
-  if (image === "accessory-base-filler" || image === "accessory-filler" || image === "accessory-base-end-panel") return "base";
-  if (image === "pantry-one-door" || image === "pantry-two-door") return "pantry";
-  if (
-    image === "wall-two-doors" ||
-    image === "wall-one-door" ||
-    image === "wall-blind-left" ||
-    image === "wall-blind-right" ||
-    image === "wall-hood" ||
-    image === "wall-microwave" ||
-    image === "wall-oven" ||
-    image === "wall-double-oven" ||
-    image === "wall-microwave-one-door" ||
-    image === "wall-hood-one-door"
-  ) return "wall";
-  return "base";
-}
-
 function isProductCabinetImage(image?: CabinetImage) {
   return Boolean(
     image === "base-dishwasher" ||
@@ -16702,29 +16680,6 @@ function getCabinetPlanBodyFill(cabinetItem: Pick<CabinetElement, "image">, prev
   }
 
   return "#f1ede4";
-}
-
-function getCabinetSupportType(
-  cabinetItem: Partial<
-    Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
-      Pick<CabinetSelectionDetail, "widthInches" | "heightInches">
-  >
-): ObjectSupportType {
-  const category =
-    cabinetItem.category ??
-    (cabinetItem.image ? getCabinetCategoryForImage(cabinetItem.image) : "base");
-  const widthInches =
-    typeof cabinetItem.widthInches === "number"
-      ? cabinetItem.widthInches
-      : typeof cabinetItem.width === "number"
-        ? pixelsToInches(cabinetItem.width)
-        : undefined;
-  const heightInches =
-    typeof cabinetItem.heightInches === "number"
-      ? cabinetItem.heightInches
-      : undefined;
-
-  return getSupportTypeForCategory(category, widthInches, heightInches);
 }
 
 function isFloorStandingCabinet(
