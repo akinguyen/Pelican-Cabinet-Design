@@ -9,7 +9,18 @@ import type {
   SmartKitchenPlacement,
   SmartKitchenPlan,
   SmartKitchenWallPlan,
-} from "@/lib/ai/types";
+} from "./types.ts";
+import {
+  add,
+  clamp,
+  dot,
+  inchesToPixels,
+  mul,
+  perp,
+  pixelsToInches,
+  pointsMatch,
+  sub,
+} from "./geometry.ts";
 
 type KitchenDesignOptions = Record<string, unknown>;
 type KitchenCabinetCategory = AiCabinetCategory | "pantry";
@@ -64,18 +75,6 @@ type CornerPair = {
   horizontalEndpoint: WallEndpoint;
 };
 
-function add(a: AiPoint, b: AiPoint): AiPoint {
-  return { x: a.x + b.x, y: a.y + b.y };
-}
-
-function sub(a: AiPoint, b: AiPoint): AiPoint {
-  return { x: a.x - b.x, y: a.y - b.y };
-}
-
-function mul(point: AiPoint, scalar: number): AiPoint {
-  return { x: point.x * scalar, y: point.y * scalar };
-}
-
 function length(point: AiPoint) {
   return Math.hypot(point.x, point.y);
 }
@@ -84,30 +83,6 @@ function normalize(point: AiPoint): AiPoint {
   const pointLength = length(point);
   if (pointLength < 0.0001) return { x: 1, y: 0 };
   return { x: point.x / pointLength, y: point.y / pointLength };
-}
-
-function perp(point: AiPoint): AiPoint {
-  return { x: -point.y, y: point.x };
-}
-
-function dot(a: AiPoint, b: AiPoint) {
-  return a.x * b.x + a.y * b.y;
-}
-
-function inchesToPixels(inches: number, gridSize: number) {
-  return (inches / 12) * gridSize;
-}
-
-function pixelsToInches(pixels: number, gridSize: number) {
-  return (pixels / gridSize) * 12;
-}
-
-function pointsMatch(a: AiPoint, b: AiPoint, tolerance = 0.5) {
-  return Math.abs(a.x - b.x) <= tolerance && Math.abs(a.y - b.y) <= tolerance;
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
 }
 
 function getCabinetLockMode(cabinet: AiCabinet) {

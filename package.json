@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:characterization": "node --experimental-strip-types --test tests/**/*.test.mjs"
   },
   "dependencies": {
     "@types/node": "^20.11.30",

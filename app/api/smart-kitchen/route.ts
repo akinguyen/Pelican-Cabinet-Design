@@ -1,19 +1,40 @@
 import { NextResponse } from "next/server";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 
 import {
   filterRoomForKitchenGeneration,
   generateKitchenLayout,
   generateSmartKitchenLayout,
 } from "@/lib/ai/kitchenDesigner";
+import {
+  add,
+  clamp,
+  dot,
+  mul,
+  perp,
+  pixelsToInches,
+  pointKey,
+  pointsMatch,
+  samePoint,
+  sub,
+  uniquePoints,
+} from "@/lib/ai/geometry";
+import {
+  getResponseText,
+  parsePlannerJson,
+  type OpenAIResponsesPayload,
+} from "./plannerOutput";
+import { summarizeCatalog } from "./catalogSummary";
+import { normalizeSmartKitchenPlan } from "./planNormalization";
+import {
+  readRequiredTextFile,
+  readStructuredSmartKitchenPrompt,
+  SMART_KITCHEN_OUTPUT_SHAPE_PATH,
+} from "./promptFiles";
 import type {
   AiPoint,
   AiRoomInput,
-  SmartKitchenPlacement,
   SmartKitchenPlacementWallFace,
   SmartKitchenPlan,
-  SmartKitchenWallPlan,
 } from "@/lib/ai/types";
 
 type SmartKitchenRequestBody = {
@@ -22,229 +43,8 @@ type SmartKitchenRequestBody = {
   previewOnly?: boolean;
 };
 
-type OpenAIResponsesOutputMessage = {
-  type?: string;
-  content?: Array<{
-    type?: string;
-    text?: string;
-  }>;
-};
-
-type OpenAIResponsesPayload = {
-  output?: OpenAIResponsesOutputMessage[];
-};
-
-const SMART_KITCHEN_PROMPT_DIR = path.join(
-  process.cwd(),
-  "prompts",
-  "structured-test"
-);
-const SMART_KITCHEN_PROMPT_OVERVIEW_PATH = path.join(
-  SMART_KITCHEN_PROMPT_DIR,
-  "prompt-overview.txt"
-);
-const SMART_KITCHEN_RULE_FILES = [
-  "rule-input-and-walls.txt",
-  "rule-zone-planning.txt",
-  "rule-corner-and-blind-cabinets.txt",
-  "rule-object-placement.txt",
-  "rule-fillers-and-end-panels.txt",
-  "rule-output-json.txt",
-  "rule-final-self-check.txt",
-] as const;
-const SMART_KITCHEN_OUTPUT_SHAPE_PATH = path.join(
-  SMART_KITCHEN_PROMPT_DIR,
-  "output-shape.txt"
-);
-
-function getResponseText(payload: OpenAIResponsesPayload) {
-  for (const item of payload.output ?? []) {
-    if (item.type !== "message") continue;
-
-    for (const contentItem of item.content ?? []) {
-      if (contentItem.type === "output_text" && contentItem.text) {
-        return contentItem.text;
-      }
-    }
-  }
-
-  return null;
-}
-
-function stripMarkdownCodeFence(value: string) {
-  const trimmed = value.trim();
-  const fencedMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  return fencedMatch ? fencedMatch[1].trim() : trimmed;
-}
-
-function extractBalancedJsonSnippet(value: string) {
-  const source = stripMarkdownCodeFence(value);
-  const startIndex = source.search(/[\{\[]/);
-
-  if (startIndex < 0) return null;
-
-  const stack: string[] = [];
-  let inString = false;
-  let isEscaped = false;
-
-  for (let index = startIndex; index < source.length; index += 1) {
-    const char = source[index];
-
-    if (inString) {
-      if (isEscaped) {
-        isEscaped = false;
-      } else if (char === "\\") {
-        isEscaped = true;
-      } else if (char === "\"") {
-        inString = false;
-      }
-      continue;
-    }
-
-    if (char === "\"") {
-      inString = true;
-      continue;
-    }
-
-    if (char === "{" || char === "[") {
-      stack.push(char);
-      continue;
-    }
-
-    if (char === "}" || char === "]") {
-      const expected = char === "}" ? "{" : "[";
-      if (stack.at(-1) !== expected) return null;
-      stack.pop();
-
-      if (stack.length === 0) {
-        return source.slice(startIndex, index + 1);
-      }
-    }
-  }
-
-  return null;
-}
-
-function parsePlannerJson(value: string) {
-  const directValue = stripMarkdownCodeFence(value);
-
-  try {
-    return JSON.parse(directValue);
-  } catch {
-    const trimmed = directValue.trim();
-
-    if (/^"outputShape"\s*:/.test(trimmed)) {
-      try {
-        return JSON.parse(`{${trimmed}}`);
-      } catch {
-        // Fall through to balanced-snippet recovery below.
-      }
-    }
-
-    const extracted = extractBalancedJsonSnippet(directValue);
-    if (!extracted) throw new Error("No balanced JSON object found in planner output.");
-    return JSON.parse(extracted);
-  }
-}
-
-function toStringArray(value: unknown) {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string")
-    : [];
-}
-
-function toBoolean(value: unknown) {
-  return value === true;
-}
-
 function toNullableNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-async function readRequiredTextFile(filePath: string, label: string) {
-  try {
-    return await readFile(filePath, "utf8");
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : "Unknown file read error.";
-    throw new Error(`Unable to read ${label} at ${filePath}. ${reason}`);
-  }
-}
-
-async function readStructuredSmartKitchenPrompt() {
-  const overviewText = await readRequiredTextFile(
-    SMART_KITCHEN_PROMPT_OVERVIEW_PATH,
-    "smart-kitchen prompt overview"
-  );
-  const ruleTexts = await Promise.all(
-    SMART_KITCHEN_RULE_FILES.map(async (fileName) => ({
-      fileName,
-      text: await readRequiredTextFile(
-        path.join(SMART_KITCHEN_PROMPT_DIR, fileName),
-        `smart-kitchen rule file ${fileName}`
-      ),
-    }))
-  );
-
-  return [
-    overviewText.trim(),
-    ...ruleTexts.map(
-      ({ fileName, text }) => `Reference file: ${fileName}\n\n${text.trim()}`
-    ),
-  ].join("\n\n---\n\n");
-}
-
-function add(a: AiPoint, b: AiPoint): AiPoint {
-  return { x: a.x + b.x, y: a.y + b.y };
-}
-
-function sub(a: AiPoint, b: AiPoint): AiPoint {
-  return { x: a.x - b.x, y: a.y - b.y };
-}
-
-function mul(point: AiPoint, scalar: number): AiPoint {
-  return { x: point.x * scalar, y: point.y * scalar };
-}
-
-function dot(a: AiPoint, b: AiPoint) {
-  return a.x * b.x + a.y * b.y;
-}
-
-function perp(point: AiPoint): AiPoint {
-  return { x: -point.y, y: point.x };
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function pixelsToInches(pixels: number, gridSize: number) {
-  return (pixels / gridSize) * 12;
-}
-
-function pointsMatch(a: AiPoint, b: AiPoint, tolerance = 0.5) {
-  return Math.abs(a.x - b.x) <= tolerance && Math.abs(a.y - b.y) <= tolerance;
-}
-
-function pointKey(point: AiPoint) {
-  return `${Math.round(point.x)}:${Math.round(point.y)}`;
-}
-
-function samePoint(a: AiPoint, b: AiPoint) {
-  return Math.round(a.x) === Math.round(b.x) && Math.round(a.y) === Math.round(b.y);
-}
-
-function uniquePoints(points: AiPoint[]) {
-  const seen = new Set<string>();
-  const result: AiPoint[] = [];
-
-  for (const point of points) {
-    const key = pointKey(point);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(point);
-  }
-
-  return result;
 }
 
 function getWallLabelLookup(room: AiRoomInput) {
@@ -1404,194 +1204,6 @@ function getTopOption(cabinetItem: AiRoomInput["cabinets"][number]) {
   return null;
 }
 
-function normalizePlacement(value: unknown): SmartKitchenPlacement | null {
-  if (!value || typeof value !== "object") return null;
-
-  const candidate = value as Record<string, unknown>;
-  const catalogId = typeof candidate.catalogId === "string" ? candidate.catalogId : null;
-  const leftInches = toNullableNumber(candidate.leftInches);
-  const bottomInches = toNullableNumber(candidate.bottomInches);
-  const wallFace =
-    candidate.wallFace === "interior" || candidate.wallFace === "exterior"
-      ? candidate.wallFace
-      : null;
-  const topOption =
-    candidate.topOption === "sink" ||
-    candidate.topOption === "surface-cooktop" ||
-    candidate.topOption === "front-control-cooktop"
-      ? candidate.topOption
-      : null;
-  const legacyThicknessInches = toNullableNumber(candidate.thicknessInches);
-  const parsedWidthInches = toNullableNumber(candidate.widthInches);
-  const parsedDepthInches = toNullableNumber(candidate.depthInches);
-
-  if (!catalogId || leftInches === null) return null;
-
-  return {
-    catalogId,
-    leftInches,
-    bottomInches,
-    wallFace,
-    widthInches: legacyThicknessInches ?? parsedWidthInches,
-    depthInches:
-      parsedDepthInches ?? (legacyThicknessInches !== null ? parsedWidthInches : null),
-    heightInches: toNullableNumber(candidate.heightInches),
-    builtInFillerWidthInches:
-      toNullableNumber(candidate.builtInFillerWidthInches) ??
-      toNullableNumber(candidate.builtInFillerThicknessInches),
-    topOption,
-    notes: toStringArray(candidate.notes),
-  };
-}
-
-function normalizeWallPlan(
-  room: AiRoomInput,
-  value: unknown
-): SmartKitchenWallPlan | null {
-  if (!value || typeof value !== "object") return null;
-
-  const candidate = value as Record<string, unknown>;
-  const wallLabelLookup = getWallLabelLookup(room);
-  const labelToIdLookup = new Map(
-    Array.from(wallLabelLookup.entries()).map(([resolvedWallId, resolvedWallLabel]) => [
-      resolvedWallLabel.toLowerCase(),
-      resolvedWallId,
-    ])
-  );
-  const wallIdCandidate =
-    typeof candidate.wallId === "string" ? candidate.wallId : null;
-  const wallLabelCandidate =
-    typeof candidate.wallLabel === "string" ? candidate.wallLabel : null;
-  const wallId =
-    wallIdCandidate && room.walls.some((wall) => wall.id === wallIdCandidate && wall.kind !== "thin-wall")
-      ? wallIdCandidate
-      : wallLabelCandidate
-        ? (labelToIdLookup.get(wallLabelCandidate.trim().toLowerCase()) ?? null)
-        : null;
-
-  if (!wallId || !room.walls.some((wall) => wall.id === wallId && wall.kind !== "thin-wall")) {
-    return null;
-  }
-
-  const resolvedWall = room.walls.find(
-    (wall) => wall.id === wallId && wall.kind !== "thin-wall"
-  );
-
-  if (!resolvedWall) return null;
-
-  const role =
-    candidate.role === "primary" ||
-    candidate.role === "secondary" ||
-    candidate.role === "storage" ||
-    candidate.role === "upper-focus"
-      ? candidate.role
-      : "secondary";
-
-  const normalizedPlacements: SmartKitchenPlacement[] = [];
-
-  for (const rawPlacement of Array.isArray(candidate.placements) ? candidate.placements : []) {
-    const placement = normalizePlacement(rawPlacement);
-    if (!placement) continue;
-
-    normalizedPlacements.push({
-      ...placement,
-      resolvedWallFace: resolvePlacementWallFace(
-        room,
-        resolvedWall,
-        placement.wallFace ?? null
-      ),
-    });
-  }
-
-  return {
-    wallId,
-    wallLabel: wallLabelLookup.get(wallId) ?? wallId,
-    needsPlacement: toBoolean(candidate.needCabinetPlacement ?? candidate.needsPlacement),
-    placements: normalizedPlacements,
-    role,
-    placeSink: toBoolean(candidate.placeSink),
-    sinkCatalogId:
-      typeof candidate.sinkCatalogId === "string" ? candidate.sinkCatalogId : null,
-    placePantry: toBoolean(candidate.placePantry),
-    pantryCatalogId:
-      typeof candidate.pantryCatalogId === "string" ? candidate.pantryCatalogId : null,
-    placeHood: toBoolean(candidate.placeHood),
-    upperFeatureCatalogId:
-      typeof candidate.upperFeatureCatalogId === "string"
-        ? candidate.upperFeatureCatalogId
-        : null,
-    upperDistanceFromFloorInches: toNullableNumber(candidate.upperDistanceFromFloorInches),
-    upperFeatureDistanceFromFloorInches: toNullableNumber(
-      candidate.upperFeatureDistanceFromFloorInches
-    ),
-    skipBaseRun:
-      Array.isArray(candidate.basePattern) && toStringArray(candidate.basePattern).length === 0,
-    skipUpperRun:
-      Array.isArray(candidate.upperPattern) && toStringArray(candidate.upperPattern).length === 0,
-    basePattern: toStringArray(candidate.basePattern),
-    upperPattern: toStringArray(candidate.upperPattern),
-    notes: toStringArray(candidate.notes),
-  };
-}
-
-function normalizeSmartKitchenPlan(
-  room: AiRoomInput,
-  rawPlan: unknown,
-  plannerModel: string
-): SmartKitchenPlan {
-  const thickWallIds = room.walls
-    .filter((wall) => wall.kind !== "thin-wall")
-    .map((wall) => wall.id);
-
-  if (!rawPlan || typeof rawPlan !== "object") {
-    return {
-      layoutType: thickWallIds.length <= 1 ? "single-wall" : "galley",
-      wallOrder: thickWallIds,
-      wallPlans: [],
-      notes: [],
-      plannerModel,
-    };
-  }
-
-  const candidate = rawPlan as Record<string, unknown>;
-  const normalizedWallPlans = (
-    Array.isArray(candidate.walls)
-      ? candidate.walls
-      : Array.isArray(candidate.wallPlans)
-        ? candidate.wallPlans
-        : []
-  )
-    .map((wallPlan) => normalizeWallPlan(room, wallPlan))
-    .filter((wallPlan): wallPlan is SmartKitchenWallPlan => Boolean(wallPlan));
-
-  const plannedWallIds = new Set(normalizedWallPlans.map((wallPlan) => wallPlan.wallId));
-  const wallOrder = [
-    ...toStringArray(candidate.wallOrder).filter((wallId) => thickWallIds.includes(wallId)),
-    ...thickWallIds.filter((wallId) => !toStringArray(candidate.wallOrder).includes(wallId)),
-  ];
-
-  const layoutType =
-    candidate.layoutType === "single-wall" ||
-    candidate.layoutType === "galley" ||
-    candidate.layoutType === "l-shape" ||
-    candidate.layoutType === "u-shape" ||
-    candidate.layoutType === "connected-wall-return"
-      ? candidate.layoutType
-      : wallOrder.length <= 1
-        ? "single-wall"
-        : plannedWallIds.size >= 2
-          ? "l-shape"
-          : "galley";
-
-  return {
-    layoutType,
-    wallOrder,
-    wallPlans: normalizedWallPlans,
-    notes: toStringArray(candidate.notes),
-    plannerModel,
-  };
-}
-
 function summarizeWalls(room: AiRoomInput) {
   const wallLabelLookup = getWallLabelLookup(room);
 
@@ -1704,53 +1316,6 @@ function summarizeWalls(room: AiRoomInput) {
         fixedObjects: elevationFixedObjects,
       };
     });
-}
-
-function summarizeCatalog(room: AiRoomInput) {
-  return room.catalog.map((item) => {
-    const catalogItem = item as typeof item & {
-      heightInches?: number;
-      isAccessory?: boolean;
-      accessoryKind?: string;
-      isProduct?: boolean;
-      standardWidthOptions?: number[];
-      standardHeightOptions?: number[];
-      standardDepthOptions?: number[];
-    };
-    const type = catalogItem.isAccessory
-      ? "accessory"
-      : catalogItem.isProduct
-        ? "product"
-        : "cabinet";
-    const isBlindCabinet =
-      type === "cabinet" &&
-      (item.id === "base-blind-left-cabinet" ||
-        item.id === "base-blind-right-cabinet" ||
-        item.id === "wall-blind-left-cabinet" ||
-        item.id === "wall-blind-right-cabinet");
-
-    return {
-      id: item.id,
-      category: item.category,
-      type,
-      title: item.title,
-      standardWidthOptions: type === "accessory"
-        ? []
-        : catalogItem.standardWidthOptions ?? [item.widthInches],
-      standardHeightOptions:
-        type === "accessory"
-          ? []
-          : catalogItem.standardHeightOptions ??
-            (typeof catalogItem.heightInches === "number"
-              ? [catalogItem.heightInches]
-              : []),
-      standardDepthOptions:
-        type === "accessory"
-          ? []
-          : catalogItem.standardDepthOptions ?? [item.depthInches],
-      builtInFillerWidth: isBlindCabinet ? 3 : null,
-    };
-  });
 }
 
 function buildFallbackSmartLayout(params: {
@@ -1961,7 +1526,12 @@ export async function POST(request: Request) {
     }
   }
 
-  const plan = normalizeSmartKitchenPlan(fullRoom, rawPlan, plannerModel);
+  const plan = normalizeSmartKitchenPlan(
+    fullRoom,
+    rawPlan,
+    plannerModel,
+    resolvePlacementWallFace
+  );
   const smartLayout = generateSmartKitchenLayout(fullRoom, plan);
 
   if (smartLayout.cabinets.length > 0) {
