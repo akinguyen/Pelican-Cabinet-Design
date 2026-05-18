@@ -125,6 +125,9 @@ import {
   getDefaultBottomDrawerProductLayout,
   getEditorCabinetCatalogItem,
   getEditorCabinetTopOption,
+  cabinetHasToeKick,
+  isElevationFloatingCabinet,
+  isFloorStandingCabinet,
   getCabinetSupportType,
   getSupportTypeForCategory,
 } from "./catalogHelpers";
@@ -16680,44 +16683,6 @@ function getCabinetPlanBodyFill(cabinetItem: Pick<CabinetElement, "image">, prev
   }
 
   return "#f1ede4";
-}
-
-function isFloorStandingCabinet(
-  cabinetItem: Partial<
-    Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
-      Pick<CabinetSelectionDetail, "widthInches" | "heightInches">
-  >
-) {
-  return getCabinetSupportType(cabinetItem) === "floor-supported";
-}
-
-function isElevationFloatingCabinet(
-  cabinetItem: Partial<
-    Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
-      Pick<CabinetSelectionDetail, "widthInches" | "heightInches">
-  >
-) {
-  return getCabinetSupportType(cabinetItem) === "elevated-supported";
-}
-
-function cabinetHasToeKick(
-  cabinetItem: Partial<
-    Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
-      Pick<CabinetSelectionDetail, "widthInches" | "heightInches">
-  >
-) {
-  const category =
-    cabinetItem.category ??
-    (cabinetItem.image ? getCabinetCategoryForImage(cabinetItem.image) : "base");
-
-  if (isProductCabinetImage(cabinetItem.image) || isAccessoryCabinetImage(cabinetItem.image)) {
-    return false;
-  }
-
-  return (
-    (category === "base" || category === "pantry") &&
-    isFloorStandingCabinet(cabinetItem)
-  );
 }
 
 function isStandaloneBaseProductElevationImage(image?: CabinetImage) {

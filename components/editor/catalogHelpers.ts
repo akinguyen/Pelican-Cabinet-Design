@@ -116,3 +116,55 @@ export function getCabinetSupportType(
 
   return getSupportTypeForCategory(category, widthInches, heightInches);
 }
+
+export function isFloorStandingCabinet(
+  cabinetItem: Partial<
+    Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
+      Pick<CabinetSelectionDetail, "widthInches" | "heightInches">
+  >
+) {
+  return getCabinetSupportType(cabinetItem) === "floor-supported";
+}
+
+export function isElevationFloatingCabinet(
+  cabinetItem: Partial<
+    Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
+      Pick<CabinetSelectionDetail, "widthInches" | "heightInches">
+  >
+) {
+  return getCabinetSupportType(cabinetItem) === "elevated-supported";
+}
+
+export function cabinetHasToeKick(
+  cabinetItem: Partial<
+    Pick<CabinetElement, "category" | "width" | "image" | "heightInches"> &
+      Pick<CabinetSelectionDetail, "widthInches" | "heightInches">
+  >
+) {
+  const category =
+    cabinetItem.category ??
+    (cabinetItem.image ? getCabinetCategoryForImage(cabinetItem.image) : "base");
+
+  if (
+    cabinetItem.image === "base-dishwasher" ||
+    cabinetItem.image === "base-refrigerator" ||
+    cabinetItem.image === "base-range" ||
+    cabinetItem.image === "wall-hood" ||
+    cabinetItem.image === "wall-microwave" ||
+    cabinetItem.image === "wall-oven" ||
+    cabinetItem.image === "wall-double-oven" ||
+    cabinetItem.image === "accessory-base-filler" ||
+    cabinetItem.image === "accessory-wall-filler" ||
+    cabinetItem.image === "accessory-wall-filler-horizontal" ||
+    cabinetItem.image === "accessory-filler" ||
+    cabinetItem.image === "accessory-base-end-panel" ||
+    cabinetItem.image === "accessory-wall-end-panel"
+  ) {
+    return false;
+  }
+
+  return (
+    (category === "base" || category === "pantry") &&
+    isFloorStandingCabinet(cabinetItem)
+  );
+}
