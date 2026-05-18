@@ -51,7 +51,8 @@ import { SimpleDoorShape, SimpleWindowShape } from "./shapes/SimpleStructureShap
 import { ElevationAlignmentGuideOverlay } from "./elevation/ElevationAlignmentGuideOverlay";
 import { ElevationPeninWallFace } from "./elevation/ElevationPeninWallFace";
 import { ElevationDimensionLine } from "./elevation/ElevationDimensionLine";
-import { ElevationSinkFixture } from "./elevation/ElevationSinkFixture";
+import { ElevationCabinetAccessoryDetails } from "./elevation/ElevationCabinetAccessoryDetails";
+import { renderBlindCabinetElevationFront } from "./elevation/blindCabinetElevationFront";
 import { exportRoomInput } from "@/lib/ai/roomExport";
 import type { AiRoomInput, GeneratedKitchenLayout } from "@/lib/ai/types";
 import {
@@ -8257,75 +8258,6 @@ function ElevationBaseCabinetDetails({
     </g>
   );
 }
-
-function renderBlindCabinetElevationFront(params: {
-  cabinet?: CabinetElement;
-  image: CabinetImage;
-  innerX: number;
-  innerY: number;
-  innerWidth: number;
-  innerHeight: number;
-  innerStroke: string;
-  handleStroke: string;
-  handleHeight: number;
-}) {
-  const {
-    cabinet,
-    image,
-    innerX,
-    innerY,
-    innerWidth,
-    innerHeight,
-    innerStroke,
-    handleStroke,
-    handleHeight,
-  } = params;
-  const panelFill = "#fafaf7";
-  const panelStrokeWidth = 1.5;
-  const widthScale = innerWidth / Math.max(1, cabinet?.width ? pixelsToInches(cabinet.width) : innerWidth);
-  const blindWidths = cabinet
-    ? getBlindCabinetWidthSegments(cabinet)
-    : {
-        widthInches: innerWidth,
-        doorWidthInches: innerWidth * 0.36,
-        fillerWidthInches: 3,
-        blindWidthInches: innerWidth * 0.64,
-        side: getBlindCabinetSide(image),
-      };
-  const side = blindWidths.side ?? "left";
-  const doorWidth = blindWidths.doorWidthInches * widthScale;
-  const fillerWidth = blindWidths.fillerWidthInches * widthScale;
-  const blindWidth = Math.max(0, innerWidth - doorWidth - fillerWidth);
-
-  if (side === "right") {
-    const doorX = innerX;
-    const fillerX = doorX + doorWidth;
-    const blindX = fillerX + fillerWidth;
-    const doorHandleX = doorX + Math.max(7, doorWidth * 0.16);
-    return (
-      <g>
-        <rect x={blindX} y={innerY} width={blindWidth} height={innerHeight} fill="#111827" stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
-        <rect x={fillerX} y={innerY} width={fillerWidth} height={innerHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
-        <rect x={doorX} y={innerY} width={doorWidth} height={innerHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
-        <line x1={doorHandleX} y1={innerY + innerHeight * 0.28} x2={doorHandleX} y2={innerY + innerHeight * 0.28 + Math.min(handleHeight, innerHeight * 0.42)} stroke={handleStroke} strokeWidth="1.6" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      </g>
-    );
-  }
-
-  const blindX = innerX;
-  const fillerX = blindX + blindWidth;
-  const doorX = fillerX + fillerWidth;
-  const doorHandleX = doorX + doorWidth - Math.max(7, doorWidth * 0.16);
-  return (
-    <g>
-      <rect x={blindX} y={innerY} width={blindWidth} height={innerHeight} fill="#111827" stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
-      <rect x={fillerX} y={innerY} width={fillerWidth} height={innerHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
-      <rect x={doorX} y={innerY} width={doorWidth} height={innerHeight} fill={panelFill} stroke={innerStroke} strokeWidth={panelStrokeWidth} vectorEffect="non-scaling-stroke" />
-      <line x1={doorHandleX} y1={innerY + innerHeight * 0.28} x2={doorHandleX} y2={innerY + innerHeight * 0.28 + Math.min(handleHeight, innerHeight * 0.42)} stroke={handleStroke} strokeWidth="1.6" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-    </g>
-  );
-}
-
 
 type CabinetWallAttachment = {
   wall: Wall;
@@ -19527,126 +19459,6 @@ function CabinetPlanAccessoryDetails({
 
   if (!items.length) return null;
   return <g opacity={detailOpacity}>{items}</g>;
-}
-
-function ElevationCabinetAccessoryDetails({
-  cabinet,
-  x,
-  y,
-  width,
-  height,
-  innerStroke,
-  handleStroke,
-  frontControlBlockHeight = 0,
-}: {
-  cabinet: CabinetElement;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  innerStroke: string;
-  handleStroke: string;
-  frontControlBlockHeight?: number;
-}) {
-  const children: React.ReactNode[] = [];
-
-  if (cabinet.sinkFixture) {
-    children.push(
-      <ElevationSinkFixture
-        key="elevation-sink-addon"
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        innerStroke={innerStroke}
-        fixtureScale={0.82}
-      />
-    );
-  }
-
-  if (cabinet.cooktopFixture) {
-    const cooktopHeight = Math.max(5, Math.min(12, height * 0.08));
-    const cooktopX = x + width * 0.14;
-    const cooktopWidth = width * 0.72;
-
-    if (cabinet.cooktopFixture === "front") {
-      const blockHeight = Math.max(frontControlBlockHeight, cooktopHeight * 1.6);
-      const blockY = y - blockHeight;
-      const knobY = blockY + blockHeight * 0.52;
-      const knobWidth = Math.max(3, Math.min(6, cooktopWidth * 0.08));
-      const knobHeight = Math.max(4, Math.min(7, blockHeight * 0.24));
-      children.push(
-        <g key="elevation-front-control-cooktop-addon">
-          <rect
-            x={x}
-            y={blockY}
-            width={width}
-            height={blockHeight}
-            fill="#d1d5db"
-            stroke={innerStroke}
-            strokeWidth="1"
-            vectorEffect="non-scaling-stroke"
-          />
-          <rect
-            x={cooktopX}
-            y={blockY - cooktopHeight * 0.35}
-            width={cooktopWidth}
-            height={cooktopHeight}
-            rx="2"
-            fill="#e5e7eb"
-            stroke={innerStroke}
-            strokeWidth="1"
-            vectorEffect="non-scaling-stroke"
-          />
-          {[0.14, 0.38, 0.62, 0.86].map((ratio) => (
-            <rect
-              key={`front-cooktop-knob-${ratio}`}
-              x={cooktopX + cooktopWidth * ratio - knobWidth / 2}
-              y={knobY - knobHeight / 2}
-              width={knobWidth}
-              height={knobHeight}
-              fill={handleStroke}
-              rx="0.6"
-            />
-          ))}
-        </g>
-      );
-    } else {
-      const topBarY = y - cooktopHeight * 0.28;
-      const topBarHeight = Math.max(3, cooktopHeight * 0.38);
-      const tabWidth = Math.max(3.2, Math.min(6, width * 0.07));
-      const tabHeight = Math.max(4, Math.min(8, cooktopHeight * 1.2));
-      const tabTopY = topBarY - tabHeight * 0.72;
-      children.push(
-        <g key="elevation-surface-cooktop-addon">
-          <rect
-            x={x + width * 0.08}
-            y={topBarY}
-            width={width * 0.84}
-            height={topBarHeight}
-            fill="#cbd5e1"
-            stroke={innerStroke}
-            strokeWidth="1"
-            vectorEffect="non-scaling-stroke"
-          />
-          {[0.2, 0.36, 0.52, 0.68].map((ratio) => (
-            <rect
-              key={`surface-cooktop-elevation-tab-${ratio}`}
-              x={x + width * ratio - tabWidth / 2}
-              y={tabTopY}
-              width={tabWidth}
-              height={tabHeight}
-              fill={handleStroke}
-              rx="0.6"
-            />
-          ))}
-        </g>
-      );
-    }
-  }
-
-  if (!children.length) return null;
-  return <g>{children}</g>;
 }
 
 function CabinetPlanVariantDetails({
