@@ -26,7 +26,6 @@ import {
   Home,
   ImagePlus,
   Magnet,
-  PencilLine,
   Ruler,
   Scan,
   Settings,
