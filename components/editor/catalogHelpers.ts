@@ -1,5 +1,12 @@
 import { CABINET_CATALOG } from "./catalog";
-import type { CabinetElement, CabinetImage, OvenCabinetProductLayout } from "./types";
+import { FLOOR_SUPPORTED_PANTRY_MIN_HEIGHT_INCHES } from "./constants";
+import type {
+  CabinetCategory,
+  CabinetElement,
+  CabinetImage,
+  ObjectSupportType,
+  OvenCabinetProductLayout,
+} from "./types";
 
 export function getDefaultBottomDrawerProductLayout(
   image?: CabinetImage
@@ -46,4 +53,18 @@ export function getEditorCabinetTopOption(cabinetItem: CabinetElement) {
   if (cabinetItem.cooktopFixture === "surface") return "surface-cooktop" as const;
   if (cabinetItem.cooktopFixture === "front") return "front-control-cooktop" as const;
   return null;
+}
+
+export function getSupportTypeForCategory(
+  category: CabinetCategory,
+  _widthInches?: number,
+  heightInches?: number
+): ObjectSupportType {
+  if (category === "wall") return "elevated-supported";
+  if (category === "pantry") {
+    return (heightInches ?? 0) >= FLOOR_SUPPORTED_PANTRY_MIN_HEIGHT_INCHES
+      ? "floor-supported"
+      : "elevated-supported";
+  }
+  return "floor-supported";
 }

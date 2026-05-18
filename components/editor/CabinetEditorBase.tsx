@@ -124,6 +124,7 @@ import {
   getDefaultBottomDrawerProductLayout,
   getEditorCabinetCatalogItem,
   getEditorCabinetTopOption,
+  getSupportTypeForCategory,
 } from "./catalogHelpers";
 import {
   formatDimensionOptionNumber,
@@ -195,20 +196,6 @@ import type {
   WindowPlacementPreview,
   WindowSelectionDetail,
 } from "./types";
-
-function getSupportTypeForCategory(
-  category: CabinetCategory,
-  _widthInches?: number,
-  heightInches?: number
-): ObjectSupportType {
-  if (category === "wall") return "elevated-supported";
-  if (category === "pantry") {
-    return (heightInches ?? 0) >= FLOOR_SUPPORTED_PANTRY_MIN_HEIGHT_INCHES
-      ? "floor-supported"
-      : "elevated-supported";
-  }
-  return "floor-supported";
-}
 
 function isOvenLikeBottomDrawerCabinetImage(image?: CabinetImage) {
   return image === "base-oven-bottom-drawer" || image === "base-microwave-bottom-drawer";
