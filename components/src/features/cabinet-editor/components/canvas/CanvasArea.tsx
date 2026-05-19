@@ -571,45 +571,11 @@ export function CanvasArea({
         return;
       }
 
-      try {
-        const response = await fetch("/api/smart-kitchen", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            room,
-            designerFeedback: smartKitchenFeedbackRef.current.trim() || undefined,
-            previewOnly: true,
-          }),
-        });
-
-        const payload = (await response.json()) as {
-          error?: string;
-          plannerInput?: unknown;
-        };
-
-        if (!response.ok || !payload.plannerInput) {
-          showEditorAlert(
-            payload.error ??
-              "The smart kitchen input could not be prepared for download.",
-            "Smart input failed"
-          );
-          return;
-        }
-
-        downloadJsonFile(
-          "pelican-smart-kitchen-ai-input.json",
-          payload.plannerInput
-        );
-      } catch (error) {
-        showEditorAlert(
-          error instanceof Error
-            ? error.message
-            : "The smart kitchen input request failed.",
-          "Smart input failed"
-        );
-      }
+      downloadJsonFile("pelican-smart-kitchen-editor-room-export.json", {
+        room,
+        designerFeedback: smartKitchenFeedbackRef.current.trim() || undefined,
+        exportedFor: "generate-smart-kitchen-workspace",
+      });
     };
 
     window.addEventListener(
@@ -625,145 +591,9 @@ export function CanvasArea({
     };
   }, [showEditorAlert]);
 
-  useEffect(() => {
-    const handleGenerateSmartKitchenRequest = async () => {
-      const room = addEditorElevationWidthsToRoom(
-        withSmartInputCatalog(
-          exportAiRoomInputFromEditor({
-            walls: wallsRef.current,
-            windows: windowsRef.current,
-            doors: doorsRef.current,
-            placements: placementsRef.current,
-          })
-        ),
-        wallsRef.current,
-        placementsRef.current,
-        windowsRef.current,
-        doorsRef.current
-      );
+  // Deprecated: immediate editor-side smart kitchen generation was removed in favor of
+  // navigating from the editor into the Generate Smart Kitchen workspace.
 
-      if (room.walls.length === 0) {
-        showEditorAlert(
-          "Draw thin walls and convert them into thick walls first, then generate a smart kitchen.",
-          "Smart kitchen blocked"
-        );
-        return;
-      }
-
-      window.dispatchEvent(
-        new CustomEvent("pelican-ai-smart-kitchen-status", {
-          detail: { isLoading: true },
-        })
-      );
-
-      try {
-        const response = await fetch("/api/smart-kitchen", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            room,
-            designerFeedback: smartKitchenFeedbackRef.current.trim() || undefined,
-          }),
-        });
-
-        const payload = (await response.json()) as {
-          error?: string;
-          layout?: GeneratedKitchenLayout;
-          aiOutput?: unknown;
-          plan?: unknown;
-        };
-        const downloadableAiOutput = payload.aiOutput ?? payload.plan ?? null;
-
-        if (!response.ok || !payload.layout) {
-          showEditorAlert(
-            payload.error ??
-              "The smart kitchen planner could not generate a layout for this room.",
-            "Smart kitchen failed"
-          );
-          return;
-        }
-
-        if (payload.layout.cabinets.length === 0) {
-          showEditorAlert(
-            "The smart kitchen planner did not produce any placements for the current room.",
-            "No smart kitchen generated"
-          );
-          return;
-        }
-
-        onSmartKitchenOutput?.(downloadableAiOutput);
-
-        if (downloadableAiOutput) {
-          downloadJsonFile(
-            "pelican-smart-kitchen-ai-output.json",
-            downloadableAiOutput
-          );
-        }
-
-        const didImportAiOutput =
-          downloadableAiOutput &&
-          applyImportedKitchenPlan(downloadableAiOutput, {
-            importNote: "Kitchen imported automatically from debug output.",
-            plannerModel: payload.layout.summary.plannerModel ?? "smart-ai-output",
-          });
-
-        if (!didImportAiOutput) {
-          commitPlacementsChange(() =>
-            (payload.layout!.cabinets as PlacementElement[]).map(withPlacementElementType)
-          );
-          setSelectedPlacementId(null);
-          setSelectedWindowId(null);
-          setSelectedDoorId(null);
-          setSelectedWallId(null);
-          setGroupSelectedPlacementIds([]);
-          setGroupSelectedWallIds([]);
-          setGroupContextMenu(null);
-          setMenuPosition(null);
-          updatePlacementPreview(null);
-          updateDoorPreview(null);
-          updateWindowPreview(null);
-
-          window.dispatchEvent(
-            new CustomEvent("pelican-ai-kitchen-generated", { detail: payload.layout })
-          );
-        }
-      } catch (error) {
-        showEditorAlert(
-          error instanceof Error
-            ? error.message
-            : "The smart kitchen planner request failed.",
-          "Smart kitchen failed"
-        );
-      } finally {
-        window.dispatchEvent(
-          new CustomEvent("pelican-ai-smart-kitchen-status", {
-            detail: { isLoading: false },
-          })
-        );
-      }
-    };
-
-    window.addEventListener(
-      "pelican-ai-generate-smart-kitchen-request",
-      handleGenerateSmartKitchenRequest
-    );
-
-    return () => {
-      window.removeEventListener(
-        "pelican-ai-generate-smart-kitchen-request",
-        handleGenerateSmartKitchenRequest
-      );
-    };
-  }, [
-    commitPlacementsChange,
-    onSmartKitchenOutput,
-    showEditorAlert,
-    updatePlacementPreview,
-    updateDoorPreview,
-    updateWindowPreview,
-  ]);
 
   function applyImportedKitchenPlan(
     rawPlan: unknown,

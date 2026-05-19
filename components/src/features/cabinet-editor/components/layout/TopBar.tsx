@@ -10,6 +10,8 @@ export function TopBar({
   onDownloadSmartKitchenInput,
   onDownloadLastSmartKitchenOutput,
   hasLastSmartKitchenOutput = false,
+  onOpenSmartKitchenWorkspace,
+  isOpeningSmartKitchenWorkspace = false,
   onGenerateSmartKitchen,
   isGeneratingSmartKitchen = false,
 }: {
@@ -19,9 +21,20 @@ export function TopBar({
   onDownloadSmartKitchenInput?: () => void;
   onDownloadLastSmartKitchenOutput?: () => void;
   hasLastSmartKitchenOutput?: boolean;
+  onOpenSmartKitchenWorkspace?: () => void;
+  isOpeningSmartKitchenWorkspace?: boolean;
+  /** @deprecated Use onOpenSmartKitchenWorkspace so the button opens the workspace route instead of starting generation. */
   onGenerateSmartKitchen?: () => void;
+  /** @deprecated Immediate editor-side smart generation has been replaced by workspace navigation. */
   isGeneratingSmartKitchen?: boolean;
 }) {
+  const handleSmartKitchenClick = onOpenSmartKitchenWorkspace ?? onGenerateSmartKitchen;
+  const isSmartKitchenButtonDisabled =
+    isOpeningSmartKitchenWorkspace || isGeneratingSmartKitchen;
+  const smartKitchenButtonLabel = isOpeningSmartKitchenWorkspace
+    ? "Opening workspace..."
+    : "Generate smart kitchen";
+
   return (
     <header className="relative flex h-[55px] w-full shrink-0 items-center justify-between border-b border-slate-200 bg-white px-3">
       <div className="flex items-center gap-3">
@@ -65,16 +78,12 @@ export function TopBar({
             disabled={!hasLastSmartKitchenOutput}
           />
         ) : null}
-        {onGenerateSmartKitchen ? (
+        {handleSmartKitchenClick ? (
           <TopAction
             icon={CheckCircle2}
-            label={
-              isGeneratingSmartKitchen
-                ? "Planning smart kitchen..."
-                : "Generate smart kitchen"
-            }
-            onClick={onGenerateSmartKitchen}
-            disabled={isGeneratingSmartKitchen}
+            label={smartKitchenButtonLabel}
+            onClick={handleSmartKitchenClick}
+            disabled={isSmartKitchenButtonDisabled}
           />
         ) : null}
       </div>

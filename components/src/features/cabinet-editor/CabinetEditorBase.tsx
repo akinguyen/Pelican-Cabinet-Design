@@ -14,6 +14,30 @@ import { clamp } from "./engine/geometry";
 import { downloadJsonFile, readJsonFile } from "./services/fileJson";
 import type { PlacementCategory, PlacementSelectionDetail, DoorSelectionDetail, MeasurementDisplayUnit, Panel, PlanViewMode, Point, Tool, WallPlacementMode, WallSelectionDetail, WindowSelectionDetail } from "./types/editorTypes";
 
+export const GENERATE_SMART_KITCHEN_DRAFT_PROJECT_ID = "editor-draft";
+
+export function getGenerateSmartKitchenWorkspacePath(
+  projectId: string = GENERATE_SMART_KITCHEN_DRAFT_PROJECT_ID
+): string {
+  const normalizedProjectId = projectId.trim() || GENERATE_SMART_KITCHEN_DRAFT_PROJECT_ID;
+
+  return `/generate-smart-kitchen/${encodeURIComponent(normalizedProjectId)}`;
+}
+
+export function openGenerateSmartKitchenWorkspace(
+  projectId: string = GENERATE_SMART_KITCHEN_DRAFT_PROJECT_ID,
+  navigate: (url: string) => void = (url) => {
+    if (typeof window !== "undefined") {
+      window.location.assign(url);
+    }
+  }
+): string {
+  const workspacePath = getGenerateSmartKitchenWorkspacePath(projectId);
+  navigate(workspacePath);
+
+  return workspacePath;
+}
+
 export default function CabinetEditorBase() {
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
@@ -37,7 +61,6 @@ export default function CabinetEditorBase() {
   const [canConvertSelectedThinWalls, setCanConvertSelectedThinWalls] = useState(false);
   const [generatedLayout, setGeneratedLayout] = useState<GeneratedKitchenLayout | null>(null);
   const [isDesignerSummaryCollapsed, setIsDesignerSummaryCollapsed] = useState(false);
-  const [isGeneratingSmartKitchen, setIsGeneratingSmartKitchen] = useState(false);
   const [lastSmartKitchenAiOutput, setLastSmartKitchenAiOutput] = useState<unknown | null>(null);
   const [smartKitchenFeedback, setSmartKitchenFeedback] = useState("");
   const [isSmartKitchenFeedbackCollapsed, setIsSmartKitchenFeedbackCollapsed] = useState(false);
@@ -204,21 +227,7 @@ export default function CabinetEditorBase() {
     };
   }, []);
 
-  useEffect(() => {
-    const handleSmartKitchenStatus = (event: Event) => {
-      const customEvent = event as CustomEvent<{ isLoading?: boolean }>;
-      setIsGeneratingSmartKitchen(Boolean(customEvent.detail?.isLoading));
-    };
 
-    window.addEventListener("pelican-ai-smart-kitchen-status", handleSmartKitchenStatus);
-
-    return () => {
-      window.removeEventListener(
-        "pelican-ai-smart-kitchen-status",
-        handleSmartKitchenStatus
-      );
-    };
-  }, []);
 
   const zoomIn = () => {
     setScale((currentScale) =>
@@ -274,6 +283,10 @@ export default function CabinetEditorBase() {
     event.target.value = "";
   };
 
+  const handleOpenSmartKitchenWorkspace = () => {
+    openGenerateSmartKitchenWorkspace();
+  };
+
   return (
     <MeasurementDisplayUnitContext.Provider value={measurementDisplayUnit}>
       <main className="flex h-screen w-screen flex-col overflow-hidden bg-white text-pelican-navy">
@@ -296,12 +309,7 @@ export default function CabinetEditorBase() {
           }
         }
         hasLastSmartKitchenOutput={Boolean(lastSmartKitchenAiOutput)}
-        onGenerateSmartKitchen={() =>
-          window.dispatchEvent(
-            new Event("pelican-ai-generate-smart-kitchen-request")
-          )
-        }
-        isGeneratingSmartKitchen={isGeneratingSmartKitchen}
+        onOpenSmartKitchenWorkspace={handleOpenSmartKitchenWorkspace}
       />
       <input
         ref={importInputRef}
