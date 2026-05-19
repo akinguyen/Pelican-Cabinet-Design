@@ -1,0 +1,51 @@
+Rule file: Input and wall understanding
+
+Use this file to understand the room correctly before cabinet placement.
+
+Input expectations:
+- The input JSON may include `plannerInput.walls`, `plannerInput.catalog`, `plannerInput.catalogVersion`, `designerFeedback`, and `importantRules`.
+- If the input JSON includes `importantRules`, treat them as required constraints.
+- If this file and the input JSON conflict, follow the stricter constraint.
+
+Wall understanding:
+- Each wall is a real wall polygon, not a simplified abstract line.
+- Use `wallDots` and `wallShapeDotPairs` to reconstruct the wall body.
+- Use `interiorSide` and `exteriorSide` as the actual usable wall faces for elevation-style placement logic.
+- `interiorSide.lengthInches` describes the usable elevation width for interior placement.
+- `exteriorSide.lengthInches` describes the usable elevation width for exterior placement.
+- Wall height is assumed to be 96 inches unless another rule explicitly overrides it.
+- Do not assume the room is a simple rectangle, U shape, or closed loop.
+
+Placement-face understanding:
+- Use `cabinetPlacementMode` as the wall-face permission rule:
+  - `none`
+  - `interior`
+  - `exterior`
+  - `both`
+- If a wall is marked for interior placement, use the interior side as the elevation baseline.
+- If a wall is marked for exterior placement, use the exterior side as the elevation baseline.
+- If a wall allows both, each placement must still explicitly choose `wallFace`.
+- `leftInches` starts from the chosen face's start point and increases toward that face's end point.
+
+Geometry discipline:
+- Do not reverse a wall because it seems easier.
+- Do not assume walls connect unless their geometry actually connects.
+- If endpoints do not connect, preserve that opening or gap.
+- Use the real wall geometry to understand corners, turns, and open conditions.
+- The room must not be guessed from wall labels alone.
+
+Wall inclusion rule:
+- Every wall with `cabinetPlacementMode` other than `none` should be considered for placements.
+- An allowed wall should receive placements unless placement is physically impossible or clearly invalid.
+- If an allowed wall must remain empty, explain why in wall notes.
+
+Fixed-object rule:
+- Keep every fixed object exactly where it is.
+- Do not move, resize, replace, delete, or overlap a fixed object.
+- If a fixed object implies a zone, respect that implication.
+
+Before placing cabinets:
+1. Reconstruct the wall structure.
+2. Confirm the usable cabinet faces.
+3. Identify where corners exist from shared geometry.
+4. Identify fixed objects and reserve their space.

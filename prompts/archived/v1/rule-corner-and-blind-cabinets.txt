@@ -132,3 +132,12 @@ Before accepting a blind corner, confirm:
 - no footprints overlap
 - no cabinet/product is trapped in the corner
 - the floor plan forms a realistic L shape
+
+Tier-specific corner setback and backfill rule:
+- Solve base blind corners and wall blind corners independently because their depths are different.
+- Base corner setback is usually based on the base blind cabinet depth plus the planned filler gap.
+- Wall/upper corner setback is usually based on the wall blind cabinet depth plus the planned filler gap.
+- Do not make the wall/upper run copy the deeper base setback unless there is a real reason.
+- After the required wall/upper corner filler and setback are satisfied, any remaining standard-width upper space should be filled with a wall cabinet when possible.
+- Example: a 24-inch-deep base blind condition with a 3-inch filler gap creates a 27-inch base start, while a 12-inch-deep wall blind condition with a 3-inch filler gap creates a 15-inch upper start. The 12-inch difference between 15 and 27 is usable upper space; place a 12-inch wall cabinet there if it fits and does not block the corner.
+- This same logic applies near refrigerators, pantry stacks, hoods, and other tall/main objects: do not leave the usable upper gap between the corner filler and the next object empty if a standard wall cabinet fits.

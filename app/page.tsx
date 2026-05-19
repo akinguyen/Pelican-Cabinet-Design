@@ -1,5 +1,5 @@
-import CabinetEditor from "@/components/editor/CabinetEditor";
+import CabinetEditorBase from "@/components/src/features/cabinet-editor";
 
 export default function Home() {
-  return <CabinetEditor />;
+  return <CabinetEditorBase />;
 }

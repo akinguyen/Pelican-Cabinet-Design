@@ -10,24 +10,31 @@ import type {
   SmartKitchenPlan,
   SmartKitchenWallPlan,
 } from "@/lib/ai/types";
+import { getCatalogVisualId } from "@/components/src/features/cabinet-editor/data/cabinetCatalog";
 
 type KitchenDesignOptions = Record<string, unknown>;
-type KitchenCabinetCategory = AiCabinetCategory | "pantry";
-
-function isPantryCategory(category: unknown): category is "pantry" {
-  return category === "pantry";
-}
 
 function isFloorStandingKitchenCategory(category: unknown) {
-  return category === "base" || isPantryCategory(category);
+  return category === "base";
 }
 
 function isUpperOrPantryKitchenCategory(category: unknown) {
-  return category === "wall" || isPantryCategory(category);
+  return category === "wall";
 }
 
-function catalogItemMatchesCategory(item: AiCatalogItem, category: KitchenCabinetCategory) {
-  return String(item.category) === category && !(item as AiCatalogItem & { isAccessory?: boolean }).isAccessory;
+function getAiCatalogItemImage(item: Pick<AiCatalogItem, "id">) {
+  return getCatalogVisualId(item.id);
+}
+
+function getAiCabinetImage(cabinet: Pick<AiCabinet, "image" | "catalogId">) {
+  return cabinet.image ?? (cabinet.catalogId ? getCatalogVisualId(cabinet.catalogId) ?? undefined : undefined);
+}
+
+function catalogItemMatchesCategory(item: AiCatalogItem, category: AiCabinetCategory) {
+  return (
+    String(item.category) === category &&
+    item.kind !== "accessory"
+  );
 }
 
 type NormalizedWallPlan = SmartKitchenWallPlan & {
@@ -182,7 +189,7 @@ function getCabinetVerticalRange(cabinet: AiCabinet) {
   const bottom = cabinet.distanceFromFloorInches ?? 0;
   const inferredHeight =
     cabinet.heightInches ??
-    (cabinet.category === "wall" ? 30 : isPantryCategory(cabinet.category) ? 84 : 34.5);
+    (cabinet.category === "wall" ? 30 : 34.5);
 
   return {
     bottom,
@@ -213,8 +220,8 @@ function boundsOverlap(
 }
 
 function getCabinetHandleTabBounds(cabinet: AiCabinet) {
-  const image = cabinet.image;
-  if (cabinet.category === "wall" || isPantryCategory(cabinet.category)) return [];
+  const image = getAiCabinetImage(cabinet);
+  if (cabinet.category === "wall") return [];
 
   const tabWidth = Math.min(22, Math.max(10, cabinet.width * 0.18));
   const tabHeight = Math.min(8, Math.max(5, cabinet.depth * 0.18));
@@ -332,18 +339,28 @@ function cabinetsOverlap(first: AiCabinet, second: AiCabinet) {
   return !sameWall || verticalRangesOverlap(first, second);
 }
 
-function getCabinetElevationCategory(cabinet: AiCabinet): KitchenCabinetCategory {
+function getCabinetElevationCategory(cabinet: AiCabinet): AiCabinetCategory {
   if (cabinet.category) return cabinet.category;
-  if (cabinet.isProduct && cabinet.distanceFromFloorInches && cabinet.distanceFromFloorInches >= 36) {
+  const image = getAiCabinetImage(cabinet);
+  if (
+    (image === "wall-hood" ||
+      image === "wall-microwave" ||
+      image === "wall-oven" ||
+      image === "wall-double-oven") &&
+    cabinet.distanceFromFloorInches &&
+    cabinet.distanceFromFloorInches >= 36
+  ) {
     return "wall";
   }
-  if ((cabinet.heightInches ?? 0) >= 80) return "pantry";
+  if ((image === "pantry-one-door" || image === "pantry-two-door") && (cabinet.distanceFromFloorInches ?? 0) > 0) {
+    return "wall";
+  }
   return "base";
 }
 
 function getCatalogItem(
   catalog: AiCatalogItem[],
-  category: KitchenCabinetCategory,
+  category: AiCabinetCategory,
   preferredIds: string[]
 ) {
   for (const preferredId of preferredIds) {
@@ -427,13 +444,14 @@ function placeCabinetOnWall(params: {
 
   return {
     id: `ai-cabinet-${crypto.randomUUID()}`,
+    kind: params.catalogItem.kind,
     center,
     width: widthPixels,
     depth: depthPixels,
     rotation,
     category: params.catalogItem.category,
     catalogId: params.catalogItem.id,
-    image: params.catalogItem.image,
+    image: getAiCatalogItemImage(params.catalogItem) ?? undefined,
     heightInches: params.heightInches,
     distanceFromFloorInches: params.distanceFromFloorInches,
     wallId: params.wall.id,
@@ -452,20 +470,19 @@ function getBlindDoorWidthInches(cabinet: Pick<AiCabinet, "category" | "image">,
 }
 
 function isStandardRunCatalogItem(item: AiCatalogItem) {
+  const image = getAiCatalogItemImage(item);
+  if (item.kind !== "cabinet") return false;
   if (item.category === "wall") return true;
 
   return !(
-    item.image === "base-corner" ||
-    item.image === "base-blind-left" ||
-    item.image === "base-blind-right" ||
-    item.image === "base-sink-cabinet" ||
-    item.image === "base-farm-sink-cabinet" ||
-    item.image === "base-sink" ||
-    item.image === "base-sink-one-door-panel" ||
-    item.image === "base-sink-two-door-panel" ||
-    item.image === "base-appliance" ||
-    item.image === "base-oven-bottom-drawer" ||
-    item.image === "base-microwave-bottom-drawer"
+    image === "base-corner" ||
+    image === "base-blind-left" ||
+    image === "base-blind-right" ||
+    image === "base-sink-cabinet" ||
+    image === "base-farm-sink-cabinet" ||
+    image === "base-appliance" ||
+    image === "base-oven-bottom-drawer" ||
+    image === "base-microwave-bottom-drawer"
   );
 }
 
@@ -1449,13 +1466,14 @@ export function generateKitchenLayout(
 }
 
 function isStandardUpperRunCatalogItem(item: AiCatalogItem) {
-  return item.category === "wall" && (item.image === "wall-two-doors" || item.image === "wall-one-door");
+  const image = getAiCatalogItemImage(item);
+  return item.kind === "cabinet" && item.category === "wall" && (image === "wall-two-doors" || image === "wall-one-door");
 }
 
 function getCatalogItemById(
   catalog: AiCatalogItem[],
   catalogId: string | null | undefined,
-  category: KitchenCabinetCategory
+  category: AiCabinetCategory
 ) {
   if (!catalogId) return null;
 
@@ -1520,14 +1538,13 @@ function getNormalizedWallPlans(
       placements: Array.isArray(wallPlan.placements)
         ? wallPlan.placements.filter((placement) =>
             Boolean(getCatalogItemById(room.catalog, placement.catalogId, "base")) ||
-            Boolean(getCatalogItemById(room.catalog, placement.catalogId, "wall")) ||
-            Boolean(getCatalogItemById(room.catalog, placement.catalogId, "pantry"))
+            Boolean(getCatalogItemById(room.catalog, placement.catalogId, "wall"))
           )
         : undefined,
       sinkCatalogId:
         getCatalogItemById(room.catalog, wallPlan.sinkCatalogId, "base")?.id ?? null,
       pantryCatalogId:
-        getCatalogItemById(room.catalog, wallPlan.pantryCatalogId, "pantry")?.id ?? null,
+        getCatalogItemById(room.catalog, wallPlan.pantryCatalogId, "base")?.id ?? null,
       upperFeatureCatalogId:
         getCatalogItemById(room.catalog, wallPlan.upperFeatureCatalogId, "wall")?.id ?? null,
       upperDistanceFromFloorInches:
@@ -1586,7 +1603,7 @@ function sortWallsByPlanOrder(
 
 function getDefaultHeightInches(item: AiCatalogItem) {
   const catalogItem = item as AiCatalogItem & { heightInches?: number };
-  return catalogItem.heightInches ?? (item.category === "wall" ? 30 : isPantryCategory(item.category) ? 84 : 34.5);
+  return catalogItem.heightInches ?? (item.category === "wall" ? 30 : 34.5);
 }
 
 type AiWallWithElevationWidth = AiWall & {
@@ -1646,7 +1663,7 @@ function addCabinetReservations(
   wallId: string,
   centerOffsetInches: number,
   widthInches: number,
-  category: KitchenCabinetCategory
+  category: AiCabinetCategory
 ) {
   if (isFloorStandingKitchenCategory(category)) {
     reserveCabinetFootprint(baseReservations, wallId, centerOffsetInches, widthInches, 1);
@@ -1804,7 +1821,6 @@ export function generateSmartKitchenLayout(
         });
         plannedCabinet = {
           ...applyPlacementTopOption(plannedCabinet, placement),
-          isProduct: catalogItem.isProduct ?? false,
         };
 
         if (
@@ -1885,7 +1901,7 @@ export function generateSmartKitchenLayout(
       getCatalogItemById(filteredRoom.catalog, wallPlan?.sinkCatalogId, "base") ??
       defaultSinkBase;
     const pantryCabinet =
-      getCatalogItemById(filteredRoom.catalog, wallPlan?.pantryCatalogId, "pantry") ??
+      getCatalogItemById(filteredRoom.catalog, wallPlan?.pantryCatalogId, "base") ??
       defaultPantryCabinet;
     const availableSegments = getAvailableBaseSegments(
       wallEntry,
@@ -2161,3 +2177,4 @@ export function generateSmartKitchenLayout(
     })),
   };
 }
+

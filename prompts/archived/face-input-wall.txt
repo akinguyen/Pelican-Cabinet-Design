@@ -1,0 +1,68 @@
+Rule file: Input and wall understanding
+
+Use this file to understand the room correctly before cabinet placement.
+
+Input expectations:
+- The input JSON may include `plannerInput.walls`, `plannerInput.catalog`, `plannerInput.catalogVersion`, `designerFeedback`, and `importantRules`.
+- If the input JSON includes `importantRules`, treat them as required constraints.
+- If this file and the input JSON conflict, follow the stricter constraint.
+
+Wall understanding:
+- Each wall is a real wall polygon, not a simplified abstract line.
+- Use `wallDots` and `wallShapeDotPairs` to reconstruct the wall body.
+- Use `interiorSide` and `exteriorSide` as the actual usable wall faces for elevation-style placement logic.
+- `interiorSide.lengthInches` describes the usable elevation width for interior placement.
+- `exteriorSide.lengthInches` describes the usable elevation width for exterior placement.
+- Wall height is assumed to be 96 inches unless another rule explicitly overrides it.
+- Do not assume the room is a simple rectangle, U shape, or closed loop.
+
+Placement-face understanding:
+- Use `cabinetPlacementMode` as the wall-face permission rule:
+  - `none`
+  - `interior`
+  - `exterior`
+  - `both`
+- If a wall is marked for interior placement, use the interior side as the elevation baseline.
+- If a wall is marked for exterior placement, use the exterior side as the elevation baseline.
+- If a wall allows both, each placement must still explicitly choose `wallFace`.
+
+Projected wall face / elevation direction rule:
+- Elevation direction is viewer-based, not raw wall-start-based.
+- For any selected wall face, imagine standing in front of that face and looking directly into it.
+- `FACE-START` is the endpoint from which `leftInches` is measured for that wall face.
+- In other words, if an object is placed on a wall face, its `leftInches` value is the distance from that face's `FACE-START`.
+- The endpoint that appears on the viewer's left is `FACE-START`.
+- The endpoint that appears on the viewer's right is `FACE-END`.
+- In the exported `wallDots`, use viewer-based names such as `interior-face-start`, `interior-face-end`, `exterior-face-start`, and `exterior-face-end`.
+- In editor debugging, the purple wall dot represents `FACE-START` for the selected face. The other endpoint on that same face is `FACE-END`.
+- `interiorSide.dotPair` and `exteriorSide.dotPair` follow that same viewer-based `FACE-START -> FACE-END` order.
+- `FACE-START` may correspond to the wall's physical start point or physical end point depending on which side of the wall is being projected.
+- Do not assume `FACE-START` equals wall-start.
+- Do not assume `FACE-END` equals wall-end.
+- `wallShapeDotPairs` still traces the actual wall polygon/body order, so it may connect one face's end to the opposite face's end or start.
+- When the projected face direction must be derived from the wall dots, derive it from the viewer-facing elevation direction above, not from the raw wall-dot order.
+- `leftInches` starts at `FACE-START` and increases toward `FACE-END`.
+
+Geometry discipline:
+- Do not reverse a wall because it seems easier.
+- Do not assume walls connect unless their geometry actually connects.
+- If endpoints do not connect, preserve that opening or gap.
+- Use the real wall geometry to understand corners, turns, and open conditions.
+- The room must not be guessed from wall labels alone.
+
+Wall inclusion rule:
+- Every wall with `cabinetPlacementMode` other than `none` should be considered for placements.
+- An allowed wall should receive placements unless placement is physically impossible or clearly invalid.
+- If an allowed wall must remain empty, explain why in wall notes.
+
+Fixed-object rule:
+- Keep every fixed object exactly where it is.
+- Do not move, resize, replace, delete, or overlap a fixed object.
+- If a fixed object implies a zone, respect that implication.
+
+Before placing cabinets:
+1. Reconstruct the wall structure.
+2. Confirm the usable cabinet faces.
+3. Resolve each selected wall face into `FACE-START` and `FACE-END` from the straight-on elevation viewpoint.
+4. Identify where corners exist from shared geometry.
+5. Identify fixed objects and reserve their space.

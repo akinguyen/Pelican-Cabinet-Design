@@ -1,0 +1,100 @@
+Rule file: Fillers and end panels
+
+Use this file only after the main layout is stable.
+
+Core principle:
+- Fillers and end panels are not the same thing.
+- Use them only when the condition truly calls for them.
+- Keep runs closed and intentional. Do not leave random gaps.
+
+Fillers:
+- Use fillers to close actual gaps.
+
+End panels:
+- Use end panels to finish an exposed visible side.
+
+Important separation:
+- If the issue is a gap, use a filler.
+- If the issue is a visible exposed side with no gap, use an end panel.
+- Do not use an end panel as a gap filler.
+- Do not place both a filler and an end panel for the exact same condition unless there is a real separate need.
+- Do not use end panels at shared inside corners where a filler or corner-clearance condition is required.
+
+Exposed-side priority rule:
+- If a cabinet or product side is visibly exposed to open air, prioritize an end panel on that exposed side.
+- Do not solve a visibly exposed cabinet side by placing a filler first and then placing an end panel outside that filler.
+- Do not place an end panel first and then attach a filler directly to that end panel on the same side condition.
+- A filler directly connected to an end panel, or an end panel directly connected to a filler, on the same exposed side condition is not allowed.
+- If the side is exposed, the finish logic should be driven by the end panel, not by a filler chain.
+
+Specific invalid example:
+- cabinet -> filler -> end panel on the same exposed side is invalid
+- cabinet -> end panel -> filler on the same exposed side is invalid
+
+How to resolve that condition:
+- If the cabinet side is exposed, use the end panel as the side finish.
+- If there is also a separate true gap somewhere else, solve that gap independently without chaining filler and end panel directly together on the same exposed side.
+- If a side condition seems to require both, reconsider the cabinet position, run length, or adjacent object strategy before allowing a filler/end-panel chain.
+
+Accessory selection reminders:
+- Use `accessory-base-filler` for base/floor gaps.
+- Use `accessory-wall-filler` for wall/upper gaps.
+- Use `accessory-base-end-panel` for exposed base-category side faces.
+- Use `accessory-wall-end-panel` for exposed wall-category side faces.
+- If a dishwasher sits at the end of a base run with no cabinet beside it, a base end panel may be needed for finish/support conditions.
+
+Accessory dimensions:
+- Accessories should still use `widthInches`, `heightInches`, and `depthInches`.
+- For fillers and end panels:
+  - `widthInches` = wall-span width
+  - `depthInches` = projection
+  - `heightInches` = vertical height
+
+Flexibility:
+- They do not have to be restricted to standard cabinet dimension sets.
+
+Cabinet-sized gap rule:
+- Fillers should not replace cabinet-sized storage opportunities.
+- Before using a filler or leaving a gap, check whether the remaining space can accept a standard cabinet for that tier.
+- If the gap is a standard cabinet width, such as 9, 12, 15, 18, 21, or 24 inches, use a matching cabinet whenever it fits without violating corner, appliance, fixed-object, or opening constraints.
+- Use fillers for protected corner clearances, installation/scribe adjustment, appliance clearance, or small non-standard remainders after cabinet options have been tried.
+- Do not leave an empty space between a filler and the next cabinet/product if a standard cabinet can fit there.
+
+Adjacent filler consolidation rule:
+- Do not place two fillers directly next to each other on the same wall face, same tier, and same vertical height range.
+- Consecutive filler placements are invalid output, even if one is described as a scribe filler and the other is described as a required corner filler.
+- If a small scribe/fit remainder touches a required filler, absorb that remainder into the required filler and output only one filler placement.
+- The single filler should start at the earliest `leftInches` of the adjacent filler group and use the combined `widthInches`.
+- Its notes should explain the combined purpose, for example: "Combined filler includes the required 3 inch corner filler plus a small fit adjustment."
+- Do not create a separate "small scribe filler" immediately before or after a corner filler, appliance filler, wall-end filler, or another installation filler.
+- If two fillers would be adjacent, merge them before finalizing the JSON.
+
+Strict filler-use rule:
+Use fillers only when the condition falls under one of these three cases:
+
+1. Against a wall:
+   - Use a filler when a cabinet run stops against a wall or fixed vertical boundary.
+   - Typical wall-end filler width is about 1.5 to 2 inches for normal cabinet doors/drawers.
+   - Near refrigerators, use about 3 to 4 inches when needed so handles, doors, drawers, and the refrigerator door can operate without hitting the wall or trim.
+   - Do not use a wall-end filler when the run end is open to the room; use an end panel if the side is exposed.
+
+2. Blind-corner clearance:
+   - Keep the required 3 inch separate filler for blind-corner L-shape conditions.
+   - This 3 inch filler is separate from the blind cabinet's built-in filler.
+   - Its purpose is to let drawers and cabinet doors open without colliding with hardware on the perpendicular run.
+   - Do not add extra non-standard fit or scribe filler beside this corner filler.
+   - If the wall span has a small decimal remainder near a blind corner, solve it by adjusting nearby cabinet widths/combination when possible, or leave the non-standard remainder unfilled and explain it. Do not create a separate filler just for that remainder.
+
+3. Next to appliances:
+   - Use fillers beside dishwashers, slide-in ranges, or refrigerators only when needed for appliance installation clearance, slide-in/slide-out service, door swing, handle clearance, or to prevent scratching cabinet finishes.
+   - When fillers are used on both sides of an appliance, keep them visually even whenever possible.
+   - Do not add appliance fillers as generic alignment spacers if the appliance already has proper clearance and adjacent cabinets can be placed directly.
+
+Forbidden filler uses:
+- Do not use fillers as generic center-span fit pieces.
+- Do not use fillers only because the remaining wall span is a decimal or non-standard remainder.
+- Do not place "small scribe filler", "fit adjustment filler", "center-span fit filler", or "upper fit adjustment" unless it also satisfies one of the three allowed filler cases above.
+- Do not place a filler between two normal cabinets just to absorb leftover math.
+- Do not place a filler immediately before a blind cabinet unless it is the required 3 inch blind-corner clearance filler.
+- Do not place a filler immediately before or after a normal wall/base cabinet solely to align with a base filler.
+- If a space is cabinet-sized, use a cabinet. If it is not cabinet-sized and does not meet one of the three filler rules, leave it as a planned non-filled remainder and explain why.

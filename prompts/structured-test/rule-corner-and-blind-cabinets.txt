@@ -8,14 +8,15 @@ Purpose:
 - Create realistic L-shaped cabinet corners without blocked doors, blocked drawers, exposed blind areas, or footprint overlap.
 
 Corner-first rule:
-- Do not place normal cabinets, drawer bases, pantry cabinets, refrigerators, appliances, or products tight into an inside corner if a perpendicular run would block their opening or access.
+- Solve usable inside corners before placing the rest of the run.
+- Do not place normal cabinets, drawer bases, pantry cabinets, refrigerators, appliances, or products tight into an inside corner if a perpendicular run would block opening or access.
 - If cabinetry continues around a usable inside corner, use a blind cabinet unless another solution is clearly better.
 - Do not use a random empty gap as a substitute for a real corner strategy.
 
 Invalid corner conditions:
 A corner is invalid if:
 - a perpendicular run blocks the usable face of a cabinet
-- a cabinet/product cannot open because it is trapped in the corner
+- a cabinet/product is trapped and cannot open
 - two footprints overlap in floor plan
 - the blind part of a blind cabinet is exposed
 - the visible/usable part of a blind cabinet is blocked
@@ -35,15 +36,13 @@ Blind side meaning:
 Blind cabinet parts:
 - Visible part = door width + built-in filler width.
 - Blind part = total blind cabinet width - visible part.
-- The target is always:
-
-  blind part width = perpendicular cabinet depth
+- Target condition: blind part width = perpendicular cabinet depth.
 
 Standard blind sizes:
-- Base blind widths 36, 37, 38, 39 use a 12-inch door.
-- Base blind widths 42, 43, 44, 45 use an 18-inch door.
-- Wall blind widths 36, 37, 38, 39 use a 21-inch door.
-- Wall blind widths 42, 43, 44, 45 use a 27-inch door.
+- Base blind widths 36, 37, 38, and 39 use a 12-inch door.
+- Base blind widths 42, 43, 44, and 45 use an 18-inch door.
+- Wall blind widths 36, 37, 38, and 39 use a 21-inch door.
+- Wall blind widths 42, 43, 44, and 45 use a 27-inch door.
 
 With the standard 3-inch built-in filler:
 - 36-inch base blind = 15 inches visible, 21 inches blind
@@ -59,35 +58,78 @@ Built-in blind filler:
 - Decreasing `builtInFillerWidthInches` reduces the visible part and increases the blind part.
 - Adjust built-in filler only within realistic standard-feeling limits.
 
-Blind Corner L-Shape Alignment Rule:
-To create a valid L-shaped blind corner with a filler gap:
+Blind-cabinet selection order:
+1. Test all standard blind cabinet widths with the default built-in filler.
+2. For each option, calculate:
+   - visible part = door width + built-in filler width
+   - blind part = total blind cabinet width - visible part
+3. Compare the blind part width to the perpendicular cabinet depth.
+4. Use a standard blind cabinet width when it creates a matching blind part.
+5. If no standard blind width matches, try a perpendicular cabinet/product with a different standard depth from the catalog.
+6. If no available perpendicular depth works, adjust `builtInFillerWidthInches` within a realistic range so the blind part width matches the perpendicular depth.
+7. Do not use the perpendicular run start position or filler gap to hide a blind-part/depth mismatch.
 
+Blind-corner adjacent-fit rule:
+- A valid blind corner should also help the adjacent same-tier run fit cleanly when possible.
+- If a standard run leaves a leftover gap next to or near a blind cabinet, do not accept the gap immediately.
+- Try alternate standard blind widths and realistic `builtInFillerWidthInches` values that preserve the target blind part width.
+- The goal is to keep the blind part matched to the perpendicular depth while also letting the neighboring cabinet touch the blind cabinet directly.
+- A blind cabinet may be shifted only when the visible side, blind side, required separate corner filler, true cornerOffset, floor-plan footprint, and wall-span fit all remain valid.
+- Do not use a separate filler or empty gap to solve leftover math next to a blind cabinet unless the filler is the required 3-to-5-inch blind-corner clearance.
+
+Blind Corner L-shape alignment:
+To create a valid L-shaped blind corner with a filler gap:
 1. Place the blind cabinet first.
 2. Calculate the blind part width.
 3. Choose a perpendicular cabinet whose depth matches the blind part width whenever possible.
-4. Hold the perpendicular run back from the inside corner by:
+4. Choose the separate blind-corner filler clearance width.
+   - Use 3 inches first.
+   - Use 4 or 5 inches only when it makes standard catalog objects fit cleaner, improves buildability, or avoids awkward leftover gaps.
+   - Do not exceed 5 inches unless a project-specific rule explicitly allows it.
+5. Hold the perpendicular run back from the inside corner by:
 
-   blind cabinet depth + 3 inches
+   blind cabinet depth + planned separate filler clearance
 
-5. Use the extra 3 inches as a separate filler gap between the blind cabinet and the perpendicular run.
+6. The planned separate filler clearance must be output as an actual filler placement object, not only as a note and not only as empty space.
+7. The filler placement belongs to the same tier as the blind-corner condition:
+   - `accessory-base-filler` for base blind-corner clearance
+   - `accessory-wall-filler` for wall/upper blind-corner clearance
+8. Place the filler in the held-back perpendicular run between the blind cabinet depth setback and the first perpendicular cabinet/product.
 
 Examples:
-- Base blind cabinet depth = 24 inches  
-  Perpendicular base run starts 27 inches from the inside corner.  
-  24-inch blind depth + 3-inch filler gap = 27 inches.
+- Base blind cabinet depth = 24 inches and planned filler clearance = 3 inches.
+  Perpendicular base run starts 27 inches from the inside corner.
+  Output an `accessory-base-filler` occupying the 3-inch clearance before the first perpendicular base cabinet/product.
 
-- Wall blind cabinet depth = 12 inches  
-  Perpendicular wall run starts 15 inches from the inside corner.  
-  12-inch blind depth + 3-inch filler gap = 15 inches.
+- Base blind cabinet depth = 24 inches and planned filler clearance = 4 inches.
+  Perpendicular base run starts 28 inches from the inside corner.
+  Use 4 inches only when it helps standard objects fit cleaner.
 
-Important:
-- The 3-inch corner filler gap is separate from the blind cabinet’s built-in filler.
-- The built-in filler belongs inside the blind cabinet placement.
-- The separate 3-inch filler gap may be represented with:
+- Wall blind cabinet depth = 12 inches and planned filler clearance = 3 inches.
+  Perpendicular wall run starts 15 inches from the inside corner.
+  Output an `accessory-wall-filler` occupying the 3-inch clearance before the first perpendicular wall cabinet/product.
+
+Corner filler clearance output rule:
+- Every blind cabinet that connects to a perpendicular run requires a separate blind-corner filler clearance.
+- The clearance is usually 3 inches, but may be 4 or 5 inches when that improves standard cabinet fit or buildability.
+- This separate clearance is different from the blind cabinet's built-in filler.
+- The built-in filler belongs inside the blind cabinet placement as `builtInFillerWidthInches`.
+- The separate clearance must be represented by an actual placement object:
   - `accessory-base-filler` for base corners
-  - `accessory-wall-filler` for wall corners
-- The filler gap solves spacing and overlap.
-- The filler gap does not solve a mismatch between blind part width and perpendicular cabinet depth.
+  - `accessory-wall-filler` for wall/upper corners
+- Do not satisfy this rule with a note, an unexplained empty space, or only by moving the first perpendicular cabinet.
+- The filler placement must include `catalogId`, `wallFace`, `leftInches`, `bottomInches`, `widthInches`, `depthInches`, `heightInches`, `topOption`, and `notes`.
+- The filler placement width must equal the planned separate filler clearance.
+- The filler placement depth and height must match the tier it protects.
+- The filler clearance solves spacing and opening clearance.
+- The filler clearance does not solve a mismatch between blind part width and perpendicular cabinet depth.
+
+Corner filler position rule:
+- The first perpendicular cabinet/product starts at true cornerOffset = blind cabinet depth + planned separate filler clearance.
+- The actual filler placement occupies the planned clearance immediately before that first perpendicular cabinet/product.
+- If the connected corner is at the face start, filler leftInches usually equals the blind cabinet depth.
+- If the connected corner is at the face end, filler leftInches usually equals wall face length - blind cabinet depth - planned separate filler clearance.
+- Always calculate this from the actual shared corner endpoint and selected wall-face direction.
 
 Valid blind-corner geometry:
 A blind corner is valid only when:
@@ -95,40 +137,43 @@ A blind corner is valid only when:
 - the blind part faces the perpendicular run
 - the perpendicular cabinet sits in front of the blind part
 - the perpendicular cabinet depth matches the blind part width whenever possible
-- the perpendicular run starts at blind cabinet depth + 3 inches from the inside corner when using a filler gap
-- the filler gap is real and intentional
+- the perpendicular run starts at blind cabinet depth + planned separate filler clearance from the inside corner
+- the filler clearance is real, intentional, and output as an actual filler placement
 - no footprints overlap
+- no cabinet/product is trapped in the corner
 - the final floor plan reads as a clean L shape
-
-Blind-cabinet selection order:
-1. Test all standard blind cabinet widths with the default built-in filler.
-2. For each blind cabinet option, calculate:
-   - visible part = door width + built-in filler width
-   - blind part = total blind cabinet width - visible part
-3. Compare the blind part width to the depth of the perpendicular cabinet.
-4. The goal is always: blind part width = perpendicular cabinet depth
-
-5. If one standard blind cabinet width creates a blind part width that matches the perpendicular cabinet depth, use that option.
-6. If no standard blind cabinet width matches the current perpendicular cabinet depth, try another perpendicular cabinet/product with a different standard depth from the catalog.
-7. If no available perpendicular cabinet depth works, then adjust `builtInFillerWidthInches` within a realistic range to make the blind part width match the perpendicular cabinet depth.
-8. Do not use the perpendicular run start position or filler gap to solve a blind-part/depth mismatch. Those only control spacing and overlap. The blind part width should still match the perpendicular cabinet depth whenever possible.
 
 Default target logic:
 - Base corners usually work best when the blind part is close to 24 inches and the perpendicular base cabinet is 24 inches deep.
 - Wall corners usually work best when the blind part is close to 12 inches and the perpendicular wall cabinet is 12 inches deep.
-- With a 3-inch filler gap:
+- Use the smallest workable separate filler clearance:
+  - 3 inches is first priority.
+  - 4 inches is allowed when it makes standard cabinet sizes fit cleaner.
+  - 5 inches is allowed only when 3 or 4 inches does not create a clean buildable fit.
+- With a 3-inch separate filler clearance:
   - 24-inch-deep base blind condition usually means the perpendicular base run starts about 27 inches from the corner.
   - 12-inch-deep wall blind condition usually means the perpendicular wall run starts about 15 inches from the corner.
+- With a 4-inch separate filler clearance, those starts become about 28 inches and 16 inches.
+- With a 5-inch separate filler clearance, those starts become about 29 inches and 17 inches.
 
-Final validation checklist:
+Tier-specific corner setback and backfill:
+- Solve base blind corners and wall blind corners independently because their depths are different.
+- Base corner setback is usually based on the base blind cabinet depth plus the planned separate filler clearance.
+- Wall/upper corner setback is usually based on the wall blind cabinet depth plus the planned separate filler clearance.
+- Do not make the wall/upper run copy the deeper base setback unless there is a real reason.
+- After the required wall/upper corner filler placement and setback are satisfied, fill any remaining standard-width upper space with a wall cabinet when possible.
+- Example: a 24-inch-deep base blind condition with a 3-inch filler clearance creates a 27-inch base start, while a 12-inch-deep wall blind condition with a 3-inch filler clearance creates a 15-inch upper start. The 12-inch difference between 15 and 27 is usable upper space; place a 12-inch wall cabinet if it fits and does not block the corner. The 3-inch upper filler must still be output as its own `accessory-wall-filler` placement.
+- Apply the same logic near refrigerators, pantry stacks, hoods, and other tall/main objects. Do not leave a usable upper gap empty when a standard wall cabinet fits.
+
+Final blind-corner check:
 Before accepting a blind corner, confirm:
 - the corner was solved before the rest of the run
-- blind side faces the perpendicular run
-- visible side is usable
-- blind part width matches perpendicular cabinet depth whenever possible
-- perpendicular run starts at blind cabinet depth + 3 inches when using a filler gap
-- built-in blind filler and separate corner filler are not confused
-- run start position and filler gap are not being used to hide a blind-part/depth mismatch
+- the blind side faces the perpendicular run
+- the visible side is usable
+- the blind part width matches the perpendicular cabinet depth whenever possible
+- the required separate corner filler is not confused with the built-in blind filler
+- the required separate corner filler exists as an actual `accessory-base-filler` or `accessory-wall-filler` placement, not only as a note or empty space
+- the required separate corner filler width is 3, 4, or 5 inches, using the smallest workable width
 - no footprints overlap
 - no cabinet/product is trapped in the corner
 - the floor plan forms a realistic L shape

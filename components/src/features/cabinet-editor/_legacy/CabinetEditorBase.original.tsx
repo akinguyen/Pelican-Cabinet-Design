@@ -123,8 +123,6 @@ type CabinetDimensionSet = {
   depthInches: number;
 };
 
-type AccessoryKind = "base-filler" | "wall-filler" | "filler" | "base-end-panel" | "wall-end-panel";
-
 type CabinetCatalogItem = {
   id: string;
   category: CabinetCategory;
@@ -137,9 +135,6 @@ type CabinetCatalogItem = {
   standardWidthOptions?: number[];
   standardHeightOptions?: number[];
   standardDepthOptions?: number[];
-  isAccessory?: boolean;
-  accessoryKind?: AccessoryKind;
-  isProduct?: boolean;
   productCategory?: ProductCategory;
   defaultDistanceFromFloorInches?: number;
 };
@@ -212,7 +207,6 @@ type CabinetElement = {
   wallId?: string;
   wallFace?: WallFaceSide;
   lockMode?: "locked" | "required" | "suggested";
-  accessoryKind?: AccessoryKind;
   blindDoorWidthInches?: number;
   blindFillerWidthInches?: number;
   ovenCabinetProductLayout?: OvenCabinetProductLayout;
@@ -264,7 +258,6 @@ type CabinetSelectionDetail = {
   sinkFixture?: boolean;
   cooktopFixture?: "surface" | "front";
   cooktopFrontHeightInches?: number;
-  accessoryKind?: AccessoryKind;
   blindDoorWidthInches?: number;
   blindFillerWidthInches?: number;
   ovenCabinetProductLayout?: OvenCabinetProductLayout;
@@ -890,7 +883,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     heightInches: 34,
     depthInches: 24,
     image: "base-dishwasher",
-    isProduct: true,
     productCategory: "base",
   },
   {
@@ -902,7 +894,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     heightInches: 84,
     depthInches: 30,
     image: "base-refrigerator",
-    isProduct: true,
     productCategory: "base",
   },
   {
@@ -914,7 +905,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     heightInches: 36,
     depthInches: 24,
     image: "base-range",
-    isProduct: true,
     productCategory: "base",
   },
   {
@@ -1229,7 +1219,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     heightInches: 24,
     depthInches: 12,
     image: "wall-hood",
-    isProduct: true,
     productCategory: "wall",
     defaultDistanceFromFloorInches: 60,
   },
@@ -1242,7 +1231,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     heightInches: 18,
     depthInches: 15,
     image: "wall-microwave",
-    isProduct: true,
     productCategory: "wall",
     defaultDistanceFromFloorInches: 54,
   },
@@ -1255,7 +1243,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     heightInches: 30,
     depthInches: 24,
     image: "wall-oven",
-    isProduct: true,
     productCategory: "wall",
     defaultDistanceFromFloorInches: 42,
   },
@@ -1268,7 +1255,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     heightInches: 54,
     depthInches: 24,
     image: "wall-double-oven",
-    isProduct: true,
     productCategory: "wall",
     defaultDistanceFromFloorInches: 18,
   },
@@ -1281,8 +1267,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     heightInches: 34.5,
     depthInches: 24,
     image: "accessory-base-filler",
-    isAccessory: true,
-    accessoryKind: "base-filler",
   },
   {
     id: "accessory-wall-filler",
@@ -1293,8 +1277,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     heightInches: 30,
     depthInches: 12,
     image: "accessory-wall-filler",
-    isAccessory: true,
-    accessoryKind: "wall-filler",
     defaultDistanceFromFloorInches: 54,
   },
   {
@@ -1306,8 +1288,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     heightInches: 3,
     depthInches: 24,
     image: "accessory-wall-filler-horizontal",
-    isAccessory: true,
-    accessoryKind: "wall-filler",
     defaultDistanceFromFloorInches: 54,
   },
   {
@@ -1319,8 +1299,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     heightInches: 34.5,
     depthInches: 36,
     image: "accessory-base-end-panel",
-    isAccessory: true,
-    accessoryKind: "base-end-panel",
   },
   {
     id: "accessory-wall-end-panel",
@@ -1331,8 +1309,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
     heightInches: 30,
     depthInches: 12,
     image: "accessory-wall-end-panel",
-    isAccessory: true,
-    accessoryKind: "wall-end-panel",
     defaultDistanceFromFloorInches: 54,
   },
  ];
@@ -1340,10 +1316,6 @@ const CABINET_CATALOG: CabinetCatalogItem[] = [
 function buildSmartInputCatalog(): AiRoomInput["catalog"] {
   return CABINET_CATALOG.map((catalogItem) => ({
     ...catalogItem,
-    // Keep accessory metadata on the room payload because roomExport currently
-    // normalizes the catalog and can drop fields that the smart-input preview needs.
-    isAccessory: catalogItem.isAccessory ?? false,
-    accessoryKind: catalogItem.accessoryKind ?? undefined,
     supportType: getSupportTypeForCategory(
       catalogItem.category,
       catalogItem.widthInches,
@@ -1555,7 +1527,6 @@ type SmartElevationFixedObject = {
   image?: CabinetImage | null;
   topOption?: "sink" | "surface-cooktop" | "front-control-cooktop" | null;
   lockMode?: "locked" | "required" | "suggested";
-  accessoryKind?: AccessoryKind;
 };
 
 type AiRoomWallWithEditorElevationData = AiRoomInput["walls"][number] & {
@@ -1800,10 +1771,10 @@ function getEditorElevationFixedObjectsForWall(
         catalogItem?.category ??
         "base";
       const isAccessory = Boolean(
-        catalogItem?.isAccessory || isAccessoryCabinetImage(cabinetItem.image)
+        isAccessoryCabinetImage(cabinetItem.image ?? catalogItem?.image)
       );
-      const isProduct = Boolean(
-        catalogItem?.isProduct || isProductCabinetImage(cabinetItem.image)
+      const isProduct = isProductCabinetImage(
+        cabinetItem.image ?? catalogItem?.image
       );
       const bottomInches =
         category === "wall"
@@ -1821,7 +1792,6 @@ function getEditorElevationFixedObjectsForWall(
         category,
         image: cabinetItem.image ?? catalogItem?.image ?? null,
         topOption: getEditorCabinetTopOption(cabinetItem),
-        accessoryKind: cabinetItem.accessoryKind ?? catalogItem?.accessoryKind,
         leftInches: roundSmartObjectInches(metrics.distanceFromLeftInches),
         rightInches: roundSmartObjectInches(metrics.distanceFromRightInches),
         bottomInches: roundSmartObjectInches(bottomInches),
@@ -1887,23 +1857,13 @@ function addEditorElevationWidthsToRoom(
   };
 }
 
-type CabinetEditorBaseMode = "default" | "ai-prototype" | "ai-viewer";
-
 const MeasurementDisplayUnitContext = createContext<MeasurementDisplayUnit>("feet-inches");
 
 function useMeasurementDisplayUnit() {
   return useContext(MeasurementDisplayUnitContext);
 }
 
-type CabinetEditorBaseProps = {
-  mode?: CabinetEditorBaseMode;
-};
-
-export default function CabinetEditorBase({
-  mode = "default",
-}: CabinetEditorBaseProps) {
-  const isAiPrototype = mode === "ai-prototype";
-  const isAiViewer = mode === "ai-viewer";
+export default function CabinetEditorBase() {
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
   const [activeTool, setActiveTool] = useState<Tool>(null);
@@ -2079,8 +2039,6 @@ export default function CabinetEditorBase({
   }, []);
 
   useEffect(() => {
-    if (!isAiPrototype) return undefined;
-
     const handleKitchenGenerated = (event: Event) => {
       const customEvent = event as CustomEvent<GeneratedKitchenLayout>;
       setGeneratedLayout(customEvent.detail);
@@ -2093,11 +2051,9 @@ export default function CabinetEditorBase({
     return () => {
       window.removeEventListener("pelican-ai-kitchen-generated", handleKitchenGenerated);
     };
-  }, [isAiPrototype]);
+  }, []);
 
   useEffect(() => {
-    if (!isAiPrototype) return undefined;
-
     const handleSmartKitchenStatus = (event: Event) => {
       const customEvent = event as CustomEvent<{ isLoading?: boolean }>;
       setIsGeneratingSmartKitchen(Boolean(customEvent.detail?.isLoading));
@@ -2111,7 +2067,7 @@ export default function CabinetEditorBase({
         handleSmartKitchenStatus
       );
     };
-  }, [isAiPrototype]);
+  }, []);
 
   const zoomIn = () => {
     setScale((currentScale) =>
@@ -2171,77 +2127,52 @@ export default function CabinetEditorBase({
     <MeasurementDisplayUnitContext.Provider value={measurementDisplayUnit}>
       <main className="flex h-screen w-screen flex-col overflow-hidden bg-white text-pelican-navy">
       <TopBar
-        title={
-          isAiPrototype
-            ? "AI kitchen prototype"
-            : isAiViewer
-              ? "AI kitchen viewer"
-              : undefined
-        }
-        onImportRoom={
-          isAiPrototype || isAiViewer ? handleImportRoomClick : undefined
-        }
-        onImportKitchen={isAiPrototype ? handleImportKitchenClick : undefined}
-        onExportRoom={
-          isAiPrototype
-            ? () => window.dispatchEvent(new Event("pelican-ai-export-room-request"))
-            : undefined
-        }
-        onDownloadSmartKitchenInput={
-          isAiPrototype
-            ? () =>
-                window.dispatchEvent(
-                  new Event("pelican-ai-download-smart-kitchen-input-request")
-                )
-            : undefined
+        onImportRoom={handleImportRoomClick}
+        onImportKitchen={handleImportKitchenClick}
+        onExportRoom={() => window.dispatchEvent(new Event("pelican-ai-export-room-request"))}
+        onDownloadSmartKitchenInput={() =>
+          window.dispatchEvent(
+            new Event("pelican-ai-download-smart-kitchen-input-request")
+          )
         }
         onDownloadLastSmartKitchenOutput={
-          isAiPrototype
-            ? () => {
-                if (!lastSmartKitchenAiOutput) return;
-                downloadJsonFile(
-                  "pelican-smart-kitchen-ai-output.json",
-                  lastSmartKitchenAiOutput
-                );
-              }
-            : undefined
+          () => {
+            if (!lastSmartKitchenAiOutput) return;
+            downloadJsonFile(
+              "pelican-smart-kitchen-ai-output.json",
+              lastSmartKitchenAiOutput
+            );
+          }
         }
         hasLastSmartKitchenOutput={Boolean(lastSmartKitchenAiOutput)}
-        onGenerateSmartKitchen={
-          isAiPrototype
-            ? () =>
-                window.dispatchEvent(
-                  new Event("pelican-ai-generate-smart-kitchen-request")
-                )
-            : undefined
+        onGenerateSmartKitchen={() =>
+          window.dispatchEvent(
+            new Event("pelican-ai-generate-smart-kitchen-request")
+          )
         }
         isGeneratingSmartKitchen={isGeneratingSmartKitchen}
       />
-      {(isAiPrototype || isAiViewer) && (
-        <input
-          ref={importInputRef}
-          type="file"
-          accept="application/json,.json"
-          className="hidden"
-          onChange={handleImportedRoom}
-        />
-      )}
-      {isAiPrototype && (
-        <input
-          ref={importKitchenInputRef}
-          type="file"
-          accept="application/json,.json"
-          className="hidden"
-          onChange={handleImportedKitchen}
-        />
-      )}
+      <input
+        ref={importInputRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={handleImportedRoom}
+      />
+      <input
+        ref={importKitchenInputRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={handleImportedKitchen}
+      />
 
-      {isAiPrototype && generatedLayout && (
+      {generatedLayout && (
         <section className="border-b border-slate-200 bg-slate-50 px-4 py-3">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-pelican-navy">
-                AI kitchen concept: {generatedLayout.summary.layoutType}
+                Debug kitchen concept: {generatedLayout.summary.layoutType}
               </h2>
               <p className="mt-1 text-xs text-slate-600">
                 {generatedLayout.summary.generationMethod === "smart-ai"
@@ -2261,8 +2192,8 @@ export default function CabinetEditorBase({
                 className="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
               >
                 {isSmartKitchenFeedbackCollapsed
-                  ? "Expand AI feedback"
-                  : "Collapse AI feedback"}
+                  ? "Expand debug feedback"
+                  : "Collapse debug feedback"}
               </button>
               <button
                 type="button"
@@ -2278,7 +2209,7 @@ export default function CabinetEditorBase({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-semibold text-pelican-navy">
-                    AI feedback for the next smart generation
+                    Debug feedback for the next smart generation
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-slate-600">
                     Use wall labels like{" "}
@@ -2322,7 +2253,6 @@ export default function CabinetEditorBase({
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <section className="flex min-w-0 flex-1 flex-col">
           <ModeBar
-            isAiPrototype={isAiPrototype}
             onZoomIn={zoomIn}
             onZoomOut={zoomOut}
             onResetView={resetCanvasView}
@@ -2365,10 +2295,9 @@ export default function CabinetEditorBase({
             selectedCabinetCategory={selectedCabinetCatalogItem.category}
             selectedCabinetCatalogItem={selectedCabinetCatalogItem}
             showElevationMeasurements={showElevationMeasurements}
-            enableAiPrototype={isAiPrototype}
             smartKitchenFeedback={smartKitchenFeedback}
             onSmartKitchenOutput={setLastSmartKitchenAiOutput}
-            loadedRoom={isAiPrototype || isAiViewer ? loadedRoom : null}
+            loadedRoom={loadedRoom}
           />
         </section>
 
@@ -2421,7 +2350,6 @@ export default function CabinetEditorBase({
 }
 
 function TopBar({
-  title,
   onImportRoom,
   onImportKitchen,
   onExportRoom,
@@ -2431,7 +2359,6 @@ function TopBar({
   onGenerateSmartKitchen,
   isGeneratingSmartKitchen = false,
 }: {
-  title?: string;
   onImportRoom?: () => void;
   onImportKitchen?: () => void;
   onExportRoom?: () => void;
@@ -2447,9 +2374,6 @@ function TopBar({
         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pelican-teal text-2xl font-bold italic text-white shadow-sm">
           df
         </div>
-        {title ? (
-          <div className="text-sm font-semibold text-pelican-navy">{title}</div>
-        ) : null}
       </div>
 
       <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-3">
@@ -2482,7 +2406,7 @@ function TopBar({
         {onDownloadLastSmartKitchenOutput ? (
           <TopAction
             icon={Download}
-            label="Download last AI output"
+            label="Download last debug output"
             onClick={onDownloadLastSmartKitchenOutput}
             disabled={!hasLastSmartKitchenOutput}
           />
@@ -2550,7 +2474,6 @@ function TopAction({
 }
 
 function ModeBar({
-  isAiPrototype,
   onZoomIn,
   onZoomOut,
   onResetView,
@@ -2566,7 +2489,6 @@ function ModeBar({
   onCreateWallInterior,
   onToggleSelectionMode,
 }: {
-  isAiPrototype: boolean;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetView: () => void;
@@ -2681,18 +2603,16 @@ function ModeBar({
           </span>
           Measurement
         </button>
-        {isAiPrototype ? (
-          <button
-            type="button"
-            onClick={onToggleMeasurementDisplayUnit}
-            className="inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-md border border-slate-200 bg-slate-50 px-3 text-[13px] font-semibold text-pelican-navy hover:bg-slate-100"
-          >
-            <Ruler className="h-4 w-4" />
-            {measurementDisplayUnit === "inches"
-              ? "Show ft/in"
-              : "Convert to inches"}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={onToggleMeasurementDisplayUnit}
+          className="inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-md border border-slate-200 bg-slate-50 px-3 text-[13px] font-semibold text-pelican-navy hover:bg-slate-100"
+        >
+          <Ruler className="h-4 w-4" />
+          {measurementDisplayUnit === "inches"
+            ? "Show ft/in"
+            : "Convert to inches"}
+        </button>
         <ModeIconButton icon={Settings} label="Canvas settings" />
       </div>
     </div>
@@ -2802,7 +2722,6 @@ function CanvasArea({
   selectedCabinetCategory,
   selectedCabinetCatalogItem,
   showElevationMeasurements,
-  enableAiPrototype,
   smartKitchenFeedback,
   onSmartKitchenOutput,
   loadedRoom = null,
@@ -2821,7 +2740,6 @@ function CanvasArea({
   selectedCabinetCategory: CabinetCategory;
   selectedCabinetCatalogItem: CabinetCatalogItem;
   showElevationMeasurements: boolean;
-  enableAiPrototype: boolean;
   smartKitchenFeedback: string;
   onSmartKitchenOutput?: (payload: unknown | null) => void;
   loadedRoom?: AiRoomInput | null;
@@ -2852,47 +2770,62 @@ function CanvasArea({
   const [selectedCabinetId, setSelectedCabinetId] = useState<string | null>(null);
   const selectedCabinetIdRef = useRef<string | null>(null);
   const smartKitchenFeedbackRef = useRef(smartKitchenFeedback);
+  const resolveImportedPlacementMeasurementSide = useCallback(
+    (
+      wall: Wall,
+      importedWallFace: ImportedKitchenPlacement["wallFace"]
+    ): Exclude<MeasurementSide, "length"> => {
+      const thickWalls = wallsRef.current.filter(isThickWall);
+      const interiorSide = getInteriorMeasurementGuideSide(wall, thickWalls);
+      return importedWallFace === "exterior"
+        ? interiorSide === "left"
+          ? "right"
+          : "left"
+        : interiorSide;
+    },
+    []
+  );
   const resolveImportedPlacementWallFace = useCallback(
     (
       wall: Wall,
       importedWallFace: ImportedKitchenPlacement["wallFace"]
     ): WallFaceSide => {
-      const thickWalls = wallsRef.current.filter(isThickWall);
-      const interiorSide = getInteriorMeasurementGuideSide(wall, thickWalls);
-      const measurementSide =
-        importedWallFace === "exterior"
-          ? interiorSide === "left"
-            ? "right"
-            : "left"
-          : interiorSide;
-
-      return measurementSideToWallFaceSide(wall, measurementSide);
+      return measurementSideToWallFaceSide(
+        wall,
+        resolveImportedPlacementMeasurementSide(wall, importedWallFace)
+      );
     },
-    []
+    [resolveImportedPlacementMeasurementSide]
   );
   const getImportedWallFacePlacementGeometry = useCallback(
-    (wall: Wall, wallFace: WallFaceSide) => {
+    (
+      wall: Wall,
+      importedWallFace: ImportedKitchenPlacement["wallFace"],
+      wallFace: WallFaceSide
+    ) => {
       const thickWalls = wallsRef.current.filter(isThickWall);
       const geometry = getWallSegmentBlackDotGeometry(
         wall.start,
         wall.end,
         thickWalls
       );
-      const faceStartAnchor =
-        wallFace === "left" ? geometry.startLeft : geometry.startRight;
-      const faceEndAnchor =
-        wallFace === "left" ? geometry.endLeft : geometry.endRight;
-      const faceVector = sub(faceEndAnchor, faceStartAnchor);
+      const measurementSide = resolveImportedPlacementMeasurementSide(
+        wall,
+        importedWallFace
+      );
+      const rawFaceStartAnchor =
+        measurementSide === "left" ? geometry.startLeft : geometry.startRight;
+      const rawFaceEndAnchor =
+        measurementSide === "left" ? geometry.endLeft : geometry.endRight;
+      const faceVector = sub(rawFaceEndAnchor, rawFaceStartAnchor);
       const faceLength = vectorLength(faceVector);
-      const faceDirection =
-        faceLength > 0.001 ? normalize(faceVector) : normalize(sub(wall.end, wall.start));
       const faceNormal = wallFace === "left" ? getElevationWallAxis(wall).normal : mul(getElevationWallAxis(wall).normal, -1);
       const viewDirection = mul(faceNormal, -1);
       const viewerRight = normalize(perp(viewDirection));
-      const startProjection = dot(faceStartAnchor, viewerRight);
-      const endProjection = dot(faceEndAnchor, viewerRight);
+      const startProjection = dot(rawFaceStartAnchor, viewerRight);
+      const endProjection = dot(rawFaceEndAnchor, viewerRight);
       const displayOrigin =
-        startProjection <= endProjection ? faceStartAnchor : faceEndAnchor;
+        startProjection <= endProjection ? rawFaceStartAnchor : rawFaceEndAnchor;
 
       return {
         displayOrigin,
@@ -2901,7 +2834,7 @@ function CanvasArea({
         faceLength,
       };
     },
-    []
+    [resolveImportedPlacementMeasurementSide]
   );
   const [cabinetPreview, setCabinetPreview] = useState<CabinetPlacementPreview | null>(null);
   const cabinetPreviewRef = useRef<CabinetPlacementPreview | null>(null);
@@ -2985,8 +2918,6 @@ function CanvasArea({
   }, [loadedRoom]);
 
   useEffect(() => {
-    if (!enableAiPrototype) return undefined;
-
     const handleExportRoomRequest = () => {
       const room = withSmartInputCatalog(
         exportAiRoomInputFromEditor({
@@ -3013,7 +2944,7 @@ function CanvasArea({
     return () => {
       window.removeEventListener("pelican-ai-export-room-request", handleExportRoomRequest);
     };
-  }, [enableAiPrototype, showEditorAlert]);
+  }, [showEditorAlert]);
 
   const thickWalls = useMemo(() => walls.filter(isThickWall), [walls]);
   const structuralThickWalls = useMemo(() => thickWalls.filter((wall) => !isDetachedPanelWall(wall)), [thickWalls]);
@@ -3196,7 +3127,7 @@ function CanvasArea({
     ): CabinetElement => {
       const wallFace = resolveImportedPlacementWallFace(wall, placement.wallFace);
       const { displayOrigin, viewerRight, faceNormal, faceLength } =
-        getImportedWallFacePlacementGeometry(wall, wallFace);
+        getImportedWallFacePlacementGeometry(wall, placement.wallFace, wallFace);
       const spanWidthInches = placement.widthInches ?? catalogItem.widthInches;
       const projectionDepthInches =
         placement.depthInches ?? catalogItem.depthInches;
@@ -3259,7 +3190,6 @@ function CanvasArea({
         category: catalogItem.category,
         catalogId: catalogItem.id,
         image: catalogItem.image,
-        accessoryKind: catalogItem.accessoryKind,
         heightInches,
         distanceFromFloorInches: bottomInches,
         wallId: preview.wallId ?? wall.id,
@@ -3298,8 +3228,6 @@ function CanvasArea({
   );
 
   useEffect(() => {
-    if (!enableAiPrototype) return undefined;
-
     const handleDownloadSmartKitchenInputRequest = async () => {
       const room = addEditorElevationWidthsToRoom(
         withSmartInputCatalog(
@@ -3376,11 +3304,9 @@ function CanvasArea({
         handleDownloadSmartKitchenInputRequest
       );
     };
-  }, [enableAiPrototype, showEditorAlert]);
+  }, [showEditorAlert]);
 
   useEffect(() => {
-    if (!enableAiPrototype) return undefined;
-
     const handleGenerateSmartKitchenRequest = async () => {
       const room = addEditorElevationWidthsToRoom(
         withSmartInputCatalog(
@@ -3460,7 +3386,7 @@ function CanvasArea({
         const didImportAiOutput =
           downloadableAiOutput &&
           applyImportedKitchenPlan(downloadableAiOutput, {
-            importNote: "Kitchen imported automatically from smart AI output.",
+            importNote: "Kitchen imported automatically from debug output.",
             plannerModel: payload.layout.summary.plannerModel ?? "smart-ai-output",
           });
 
@@ -3510,7 +3436,6 @@ function CanvasArea({
       );
     };
   }, [
-    enableAiPrototype,
     commitCabinetsChange,
     onSmartKitchenOutput,
     showEditorAlert,
@@ -3614,7 +3539,7 @@ function CanvasArea({
             summary: {
               layoutType: importedPlan.layoutType ?? "single-wall",
               notes: [
-                options?.importNote ?? "Kitchen imported from AI output JSON.",
+                options?.importNote ?? "Kitchen imported from debug output JSON.",
                 ...(importedPlan.notes ?? []),
               ],
               selectedWallIds: thickWalls.map((wall) => wall.id),
@@ -3639,7 +3564,7 @@ function CanvasArea({
     async (file: File) => {
       const rawPlan = await readUnknownJsonFile(file);
       const didImport = applyImportedKitchenPlan(rawPlan, {
-        importNote: "Kitchen imported from AI output JSON.",
+        importNote: "Kitchen imported from debug output JSON.",
         plannerModel: "imported-ai-output",
       });
 
@@ -3676,8 +3601,6 @@ function CanvasArea({
   );
 
   useEffect(() => {
-    if (!enableAiPrototype) return undefined;
-
     const handleImportKitchenOutputRequest = async (event: Event) => {
       const customEvent = event as CustomEvent<{ file?: File }>;
       const file = customEvent.detail?.file;
@@ -3706,7 +3629,7 @@ function CanvasArea({
         handleImportKitchenOutputRequest
       );
     };
-  }, [enableAiPrototype, importKitchenFromOutputPlan, showEditorAlert]);
+  }, [importKitchenFromOutputPlan, showEditorAlert]);
 
   const undoWallChange = useCallback(() => {
     const previousSnapshot = undoStackRef.current.pop();
@@ -3910,7 +3833,6 @@ function CanvasArea({
           sinkFixture: selectedCabinet.sinkFixture,
           cooktopFixture: selectedCabinet.cooktopFixture,
           cooktopFrontHeightInches: selectedCabinet.cooktopFrontHeightInches,
-          accessoryKind: selectedCabinet.accessoryKind ?? catalogItem?.accessoryKind,
           blindDoorWidthInches: isBlindCabinetImage(selectedCabinet.image)
             ? getBlindCabinetWidthSegments(selectedCabinet).doorWidthInches
             : undefined,
@@ -5887,7 +5809,6 @@ useEffect(() => {
       category: selectedCabinetCategory,
       catalogId: selectedCabinetCatalogItem.id,
       image: selectedCabinetCatalogItem.image,
-      accessoryKind: selectedCabinetCatalogItem.accessoryKind,
       heightInches: selectedCabinetCatalogItem.heightInches ?? (selectedCabinetCategory === "wall" ? 30 : 36),
       distanceFromFloorInches:
         getSupportTypeForCategory(
@@ -6851,6 +6772,7 @@ useEffect(() => {
           <MeasurementGuideAnchorDebugDots
             walls={structuralThickWalls}
             chains={wallChains}
+            selectedWall={selectedWall}
           />
 
           {getOpenEndpoints(thinWalls, thinConnectionMap).map((point) => (
@@ -14784,9 +14706,11 @@ function WallChain({
 function MeasurementGuideAnchorDebugDots({
   walls,
   chains,
+  selectedWall,
 }: {
   walls: Wall[];
   chains: { points: Point[] }[];
+  selectedWall?: Wall | null;
 }) {
   const debugDots: Point[] = [];
 
@@ -14818,6 +14742,34 @@ function MeasurementGuideAnchorDebugDots({
   }
 
   const uniqueDots = uniqueDebugPointsByDistance(debugDots, 1);
+  const highlightedPointKeys = new Set<string>();
+
+  if (selectedWall && isThickWall(selectedWall)) {
+    const geometry = getWallSegmentBlackDotGeometry(
+      selectedWall.start,
+      selectedWall.end,
+      walls
+    );
+    const highlightedSides = getWallCabinetPlacementGuideSides(selectedWall, walls);
+    const elevationAxis = getElevationWallAxis(selectedWall);
+
+    highlightedSides.forEach((side) => {
+      const projectedFace = measurementSideToWallFaceSide(selectedWall, side);
+      const rawStartAnchor = side === "left" ? geometry.startLeft : geometry.startRight;
+      const rawEndAnchor = side === "left" ? geometry.endLeft : geometry.endRight;
+      const faceNormal =
+        projectedFace === "left"
+          ? elevationAxis.normal
+          : mul(elevationAxis.normal, -1);
+      const viewDirection = mul(faceNormal, -1);
+      const viewerRight = normalize(perp(viewDirection));
+      const startProjection = dot(rawStartAnchor, viewerRight);
+      const endProjection = dot(rawEndAnchor, viewerRight);
+      const faceStartPoint =
+        startProjection <= endProjection ? rawStartAnchor : rawEndAnchor;
+      highlightedPointKeys.add(pointKey(faceStartPoint));
+    });
+  }
 
   if (uniqueDots.length === 0) return null;
 
@@ -14829,8 +14781,8 @@ function MeasurementGuideAnchorDebugDots({
           cx={point.x}
           cy={point.y}
           r={3.25}
-          fill="#000000"
-          stroke="#000000"
+          fill={highlightedPointKeys.has(pointKey(point)) ? "#7c3aed" : "#000000"}
+          stroke={highlightedPointKeys.has(pointKey(point)) ? "#7c3aed" : "#000000"}
           strokeWidth={1}
           vectorEffect="non-scaling-stroke"
         />
@@ -17076,7 +17028,10 @@ function ContextPanel({
 
   if (activePanel === "cabinets") {
     const visibleCabinets = CABINET_CATALOG.filter(
-      (item) => item.category === cabinetCategoryTab && !item.isProduct && !item.isAccessory
+      (item) =>
+        item.category === cabinetCategoryTab &&
+        !isProductCabinetImage(item.image) &&
+        !isAccessoryCabinetImage(item.image)
     );
 
     return (
@@ -17138,7 +17093,8 @@ function ContextPanel({
 
   if (activePanel === "products") {
     const visibleProducts = CABINET_CATALOG.filter(
-      (item) => item.isProduct && item.productCategory === productCategoryTab
+      (item) =>
+        isProductCabinetImage(item.image) && item.category === productCategoryTab
     );
 
     return (
@@ -17199,7 +17155,9 @@ function ContextPanel({
 
 
   if (activePanel === "objects") {
-    const visibleAccessories = CABINET_CATALOG.filter((item) => item.isAccessory);
+    const visibleAccessories = CABINET_CATALOG.filter((item) =>
+      isAccessoryCabinetImage(item.image)
+    );
 
     return (
       <aside className="h-full w-[280px] overflow-y-auto border-r border-slate-200 bg-white">
@@ -18168,7 +18126,6 @@ function CabinetOnFloor({
         category: dragPreview.category,
         image: dragPreview.image ?? cabinetItem.image,
         wallId: dragPreview.wallId ?? cabinetItem.wallId,
-        accessoryKind: cabinetItem.accessoryKind,
       }
     : cabinetItem;
 
@@ -18256,7 +18213,6 @@ function CabinetSelectionOverlay({
         category: dragPreview.category,
         image: dragPreview.image ?? cabinetItem.image,
         wallId: dragPreview.wallId ?? cabinetItem.wallId,
-        accessoryKind: cabinetItem.accessoryKind,
       }
     : cabinetItem;
   const metrics = getCabinetWallDistanceMetrics(overlayCabinet, walls);

@@ -1,0 +1,77 @@
+Rule file: Main object placement
+
+Use this file after wall understanding and corner resolution are complete.
+
+Kitchen design process detail:
+1. Identify the kitchen shape from real wall geometry.
+2. Establish the main work triangle and zones.
+3. Solve inside corners first.
+4. Place main appliances and zone anchors.
+5. Work outward to complete the cabinet runs.
+6. Add fillers intentionally.
+7. Add end panels intentionally.
+8. Perform final refinement and validation.
+
+Catalog discipline:
+- Use only catalog IDs from the provided catalog.
+- Respect item type: cabinet, product, or accessory.
+- Respect category: base or wall.
+- Respect available standard width, height, and depth options when dimensions are not flexible.
+- Do not invent random cabinet or product sizes when catalog options can solve the placement.
+
+General placement rules:
+- Keep runs closed and intentional.
+- Avoid random gaps.
+- Keep objects aligned in a visually clean way.
+- Avoid blocked doors, blocked drawers, and unusable corners.
+- Keep upper cabinets visually aligned with base cabinets and products when appropriate.
+- Use matching or visually similar widths around important focal objects when that improves balance.
+- Keep cabinets directly next to each other unless a filler, panel, appliance, or required clearance condition is the reason for separation.
+
+Placement requirements:
+- Every normal cabinet/product placement should include:
+  - `catalogId`
+  - `wallFace`
+  - `leftInches`
+  - `bottomInches`
+  - `widthInches`
+  - `depthInches`
+  - `heightInches`
+  - `topOption`
+  - `notes`
+- Every filler/end-panel placement should also use the same width/height/depth naming.
+- Every blind cabinet placement should include the built-in filler width field.
+- Floor-standing items normally use `bottomInches: 0`.
+- Wall-mounted items should use a consistent mounting height, typically around `bottomInches: 54`.
+- Use the term pantry cabinet, not tall cabinet.
+- Pantry cabinets may be stacked by repeating pantry catalog IDs at different `bottomInches`.
+
+Face-direction placement rule:
+- Before assigning `leftInches`, resolve the chosen `wallFace` into `FACE-START` and `FACE-END` using the projected wall face rule from `rule-input-and-walls.txt`.
+- `leftInches` is always measured from `FACE-START` toward `FACE-END`.
+- `leftInches` is not automatically measured from the wall's physical start point.
+- `widthInches` spans left-to-right in the projected elevation view.
+- If a face's projected direction is opposite the wall's physical start/end direction, keep cabinet order based on the projected elevation direction.
+
+Dimension naming:
+- `widthInches` means wall-span width.
+- `depthInches` means projection away from the wall.
+- `heightInches` means vertical height from `bottomInches`.
+
+Appliance workflow reminders:
+- Keep hood or microwave aligned and centered with the cooking appliance unless a fixed condition prevents it.
+- Keep dishwasher beside the sink when possible.
+- Avoid awkward narrow base cabinets beside refrigerators.
+- Use pantry cabinets, fillers, panels, or over-refrigerator storage instead of forcing awkward refrigerator-side cabinets.
+
+Special object notes:
+- Base cabinets usually have toe-kick behavior.
+- Base products do not automatically behave like base cabinets just because they are in the base category.
+- Base accessories do not automatically behave like base cabinets either.
+- Wall objects rely on `bottomInches` for vertical placement.
+
+Validation:
+- Check wall span before placing each object.
+- Check floor-plan overlap, not only elevation fit.
+- Keep fixed objects untouched.
+- If a placement breaks function or geometry, change the layout instead of forcing it.

@@ -34,9 +34,9 @@ export type AiDoor = {
   distanceFromFloorInches: number;
 };
 
-export type AiCabinetCategory = "base" | "tall" | "wall";
+export type AiCabinetCategory = "base" | "wall";
 export type AiObjectLockMode = "locked" | "required" | "suggested";
-export type AiObjectSupportType = "floor-supported" | "elevated-supported";
+export type AiCatalogItemKind = "cabinet" | "product" | "accessory";
 export type AiOvenCabinetProductLayout =
   | "none"
   | "single-oven"
@@ -95,38 +95,35 @@ export type AiCabinetImage =
 export type AiCatalogItem = {
   id: string;
   category: AiCabinetCategory;
+  kind: AiCatalogItemKind;
   title: string;
-  subtitle: string;
   widthInches: number;
+  heightInches: number;
   depthInches: number;
-  image: AiCabinetImage;
-  isProduct?: boolean;
-  productCategory?: "base" | "wall";
   defaultHeightInches?: number;
   defaultDistanceFromFloorInches?: number;
-  supportType?: AiObjectSupportType;
   hasToeKick?: boolean;
 };
 
-export type AiCabinet = {
+type BaseAiPlacementElement = {
   id: string;
+  kind: AiCatalogItemKind;
   center: AiPoint;
   width: number;
   depth: number;
   rotation: number;
   category?: AiCabinetCategory;
-  catalogId?: string;
+  catalogId: string;
+  // Derived visual id for rendering/debug summaries only. catalogId is the source of truth.
   image?: AiCabinetImage;
   heightInches?: number;
   distanceFromFloorInches?: number;
   wallId?: string;
+  hasToeKick?: boolean;
+  wallFace?: "left" | "right";
   sinkFixture?: boolean;
   cooktopFixture?: "surface" | "front";
   cooktopFrontHeightInches?: number;
-  isProduct?: boolean;
-  supportType?: AiObjectSupportType;
-  hasToeKick?: boolean;
-  wallFace?: "left" | "right";
   blindDoorWidthInches?: number;
   blindFillerWidthInches?: number;
   ovenCabinetProductLayout?: AiOvenCabinetProductLayout;
@@ -135,6 +132,26 @@ export type AiCabinet = {
   ovenCabinetBottomDrawerHeightInches?: number;
   lockMode?: AiObjectLockMode;
 };
+
+export type AiCabinetPlacementElement = BaseAiPlacementElement & {
+  kind: "cabinet";
+};
+
+export type AiProduct = BaseAiPlacementElement & {
+  kind: "product";
+};
+
+export type AiAccessory = BaseAiPlacementElement & {
+  kind: "accessory";
+};
+
+export type AiPlacementElement =
+  | AiCabinetPlacementElement
+  | AiProduct
+  | AiAccessory;
+
+// Legacy alias retained while planner code migrates from cabinet-centric naming.
+export type AiCabinet = AiPlacementElement;
 
 export type AiWallChain = {
   id: string;
@@ -145,7 +162,7 @@ export type AiRoomInput = {
   walls: AiWall[];
   windows: AiWindow[];
   doors: AiDoor[];
-  cabinets: AiCabinet[];
+  cabinets: AiPlacementElement[];
   catalog: AiCatalogItem[];
   wallChains: AiWallChain[];
   meta: {

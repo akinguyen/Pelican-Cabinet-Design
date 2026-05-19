@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { getCatalogVisualId } from "@/components/src/features/cabinet-editor/data/cabinetCatalog";
 import {
   filterRoomForKitchenGeneration,
   generateKitchenLayout,
   generateSmartKitchenLayout,
 } from "@/lib/ai/kitchenDesigner";
 import type {
+  AiPlacementElement,
   AiPoint,
   AiRoomInput,
   SmartKitchenPlacement,
@@ -33,6 +35,14 @@ type OpenAIResponsesOutputMessage = {
 type OpenAIResponsesPayload = {
   output?: OpenAIResponsesOutputMessage[];
 };
+
+function getOpenAiErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Unknown OpenAI request failure.";
+}
 
 const SMART_KITCHEN_PROMPT_DIR = path.join(
   process.cwd(),
@@ -75,6 +85,18 @@ function stripMarkdownCodeFence(value: string) {
   const trimmed = value.trim();
   const fencedMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
   return fencedMatch ? fencedMatch[1].trim() : trimmed;
+}
+
+function isProductImage(image?: string | null) {
+  return Boolean(
+    image === "base-dishwasher" ||
+      image === "base-refrigerator" ||
+      image === "base-range" ||
+      image === "wall-hood" ||
+      image === "wall-microwave" ||
+      image === "wall-oven" ||
+      image === "wall-double-oven"
+  );
 }
 
 function extractBalancedJsonSnippet(value: string) {
@@ -1278,51 +1300,96 @@ function summarizeWallFaceDots(
   const cornerDots = getWallCornerDots(room, wall);
   const interiorMeasurementSide = getInteriorMeasurementGuideSide(room, wall);
   const exteriorMeasurementSide = interiorMeasurementSide === "left" ? "right" : "left";
-  const pairForSide = (side: "left" | "right") =>
-    side === "left"
-      ? {
-          dotPair: ["left-start", "left-end"] as [string, string],
-          start: cornerDots.startLeft,
-          end: cornerDots.endLeft,
-        }
-      : {
-          dotPair: ["right-start", "right-end"] as [string, string],
-          start: cornerDots.startRight,
-          end: cornerDots.endRight,
-        };
-  const interiorPair = pairForSide(interiorMeasurementSide);
-  const exteriorPair = pairForSide(exteriorMeasurementSide);
+  const elevationAxis = getElevationWallAxis(wall);
+  const dotIdByRawKey: Partial<Record<"startLeft" | "endLeft" | "endRight" | "startRight", string>> = {};
+  const resolveFaceEndpointsByDisplayRule = (
+    side: "left" | "right"
+  ): {
+    rawStartKey: "startLeft" | "startRight";
+    rawEndKey: "endLeft" | "endRight";
+    faceStart: AiPoint;
+    faceEnd: AiPoint;
+    isRawStartFaceStart: boolean;
+  } => {
+    const rawStartKey = side === "left" ? "startLeft" : "startRight";
+    const rawEndKey = side === "left" ? "endLeft" : "endRight";
+    const rawStart =
+      side === "left" ? cornerDots.startLeft : cornerDots.startRight;
+    const rawEnd =
+      side === "left" ? cornerDots.endLeft : cornerDots.endRight;
+    const projectedFace = measurementSideToWallFaceSide(wall, side);
+    const faceNormal =
+      projectedFace === "left"
+        ? elevationAxis.normal
+        : mul(elevationAxis.normal, -1);
+    const viewDirection = mul(faceNormal, -1);
+    const viewerRight = normalize(perp(viewDirection));
+    const startProjection = dot(rawStart, viewerRight);
+    const endProjection = dot(rawEnd, viewerRight);
+
+    return {
+      rawStartKey,
+      rawEndKey,
+      faceStart: startProjection <= endProjection ? rawStart : rawEnd,
+      faceEnd: startProjection <= endProjection ? rawEnd : rawStart,
+      isRawStartFaceStart: startProjection <= endProjection,
+    };
+  };
+  const pairForSide = (
+    side: "left" | "right",
+    faceLabel: "interior" | "exterior"
+  ) => {
+    const resolved = resolveFaceEndpointsByDisplayRule(side);
+    const startId = `${faceLabel}-face-start`;
+    const endId = `${faceLabel}-face-end`;
+
+    if (resolved.isRawStartFaceStart) {
+      dotIdByRawKey[resolved.rawStartKey] = startId;
+      dotIdByRawKey[resolved.rawEndKey] = endId;
+    } else {
+      dotIdByRawKey[resolved.rawStartKey] = endId;
+      dotIdByRawKey[resolved.rawEndKey] = startId;
+    }
+
+    return {
+      dotPair: [startId, endId] as [string, string],
+      start: resolved.faceStart,
+      end: resolved.faceEnd,
+    };
+  };
+  const interiorPair = pairForSide(interiorMeasurementSide, "interior");
+  const exteriorPair = pairForSide(exteriorMeasurementSide, "exterior");
 
   return {
     elevationViewMode,
     elevationViewSide: elevationViewMode,
     dots: [
       {
-        dotId: "left-start",
+        dotId: dotIdByRawKey.startLeft ?? "start-left",
         x: cornerDots.startLeft.x,
         y: cornerDots.startLeft.y,
       },
       {
-        dotId: "left-end",
+        dotId: dotIdByRawKey.endLeft ?? "end-left",
         x: cornerDots.endLeft.x,
         y: cornerDots.endLeft.y,
       },
       {
-        dotId: "right-end",
+        dotId: dotIdByRawKey.endRight ?? "end-right",
         x: cornerDots.endRight.x,
         y: cornerDots.endRight.y,
       },
       {
-        dotId: "right-start",
+        dotId: dotIdByRawKey.startRight ?? "start-right",
         x: cornerDots.startRight.x,
         y: cornerDots.startRight.y,
       },
     ],
     wallShapeDotPairs: [
-      ["left-start", "left-end"],
-      ["left-end", "right-end"],
-      ["right-end", "right-start"],
-      ["right-start", "left-start"],
+      [dotIdByRawKey.startLeft ?? "start-left", dotIdByRawKey.endLeft ?? "end-left"],
+      [dotIdByRawKey.endLeft ?? "end-left", dotIdByRawKey.endRight ?? "end-right"],
+      [dotIdByRawKey.endRight ?? "end-right", dotIdByRawKey.startRight ?? "start-right"],
+      [dotIdByRawKey.startRight ?? "start-right", dotIdByRawKey.startLeft ?? "start-left"],
     ],
     interiorSide: {
       dotPair: interiorPair.dotPair,
@@ -1397,7 +1464,14 @@ function getElevationOffsets(params: {
   };
 }
 
+function isAiCabinetPlacement(
+  cabinetItem: AiPlacementElement
+): cabinetItem is Extract<AiPlacementElement, { kind: "cabinet" }> {
+  return cabinetItem.kind === "cabinet";
+}
+
 function getTopOption(cabinetItem: AiRoomInput["cabinets"][number]) {
+  if (!isAiCabinetPlacement(cabinetItem)) return null;
   if (cabinetItem.sinkFixture) return "sink";
   if (cabinetItem.cooktopFixture === "surface") return "surface-cooktop";
   if (cabinetItem.cooktopFixture === "front") return "front-control-cooktop";
@@ -1667,11 +1741,13 @@ function summarizeWalls(room: AiRoomInput) {
               bottomInches: distanceFromFloorInches,
             });
 
+            const catalogImage =
+              (cabinetItem.catalogId ? getCatalogVisualId(cabinetItem.catalogId) : null) ??
+              (catalogItem ? getCatalogVisualId(catalogItem.id) : null);
             const isAccessory = Boolean(
-              (cabinetItem as typeof cabinetItem & { accessoryKind?: string }).accessoryKind ||
-              (catalogItem as typeof catalogItem & { isAccessory?: boolean } | null)?.isAccessory
+              String(catalogImage ?? "").startsWith("accessory-")
             );
-            const isProduct = Boolean(cabinetItem.isProduct ?? catalogItem?.isProduct);
+            const isProduct = isProductImage(catalogImage);
 
             return {
               id: cabinetItem.id,
@@ -1710,18 +1786,11 @@ function summarizeCatalog(room: AiRoomInput) {
   return room.catalog.map((item) => {
     const catalogItem = item as typeof item & {
       heightInches?: number;
-      isAccessory?: boolean;
-      accessoryKind?: string;
-      isProduct?: boolean;
       standardWidthOptions?: number[];
       standardHeightOptions?: number[];
       standardDepthOptions?: number[];
     };
-    const type = catalogItem.isAccessory
-      ? "accessory"
-      : catalogItem.isProduct
-        ? "product"
-        : "cabinet";
+    const type = item.kind ?? "cabinet";
     const isBlindCabinet =
       type === "cabinet" &&
       (item.id === "base-blind-left-cabinet" ||
@@ -1889,14 +1958,31 @@ export async function POST(request: Request) {
     });
   }
 
-  const plannerResponse = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(aiPlannerRequestPayload),
-  });
+  let plannerResponse: Response;
+
+  try {
+    plannerResponse = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(aiPlannerRequestPayload),
+    });
+  } catch (error) {
+    const plannerError = getOpenAiErrorMessage(error);
+
+    return NextResponse.json({
+      layout: buildFallbackSmartLayout({
+        room: roomForGeneration,
+        plannerModel,
+        designerFeedback,
+        plannerFailureReason: `The smart planner request timed out or failed before a response was returned. ${plannerError}`,
+      }),
+      usedFallback: true,
+      plannerError: `The smart planner request timed out or failed before a response was returned. ${plannerError}`,
+    });
+  }
 
   if (!plannerResponse.ok) {
     const errorText = await plannerResponse.text();
@@ -2007,3 +2093,4 @@ export async function POST(request: Request) {
     usedFallback: true,
   });
 }
+
