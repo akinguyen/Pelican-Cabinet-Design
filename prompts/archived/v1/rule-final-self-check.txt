@@ -1,0 +1,66 @@
+Rule file: Final self-check
+
+Use this checklist before returning the final JSON.
+
+Geometry and wall checks:
+- Kitchen shape/layoutType comes from actual wall geometry, not from labels alone.
+- Wall structure is understood from `wallDots` and `wallShapeDotPairs`.
+- Interior and exterior sides are identified correctly.
+- Cabinet projection direction is correct for each chosen wall face.
+- `leftInches` follows the chosen face start-to-end direction.
+- Openings/gaps between non-connecting wall endpoints remain open.
+
+Wall-use checks:
+- Walls with `cabinetPlacementMode: "none"` have no placements.
+- Every wall allowed for placement has at least one valid placement unless notes clearly explain why placement is impossible or invalid there.
+- No allowed wall is accidentally ignored because the layout focused only on other walls.
+
+Zone and workflow checks:
+- Storage/cold, prep/washing, and cooking zones are established.
+- Refrigerator, sink/dishwasher, and range/cooktop form a practical workflow when the room allows it.
+- Work-triangle logic is respected when feasible without harming buildability.
+
+Corner and blind checks:
+- Inside corners are solved before the rest of the run is finalized.
+- No normal cabinet/product is left blocked by a perpendicular run.
+- Blind cabinets are used when needed at usable inside cabinet corners.
+- Every blind cabinet has clear visible range, aligned/covered blind range, and no footprint overlap.
+- No blind range is left visibly exposed.
+- Perpendicular objects align with blind ranges by adjacency, not by overlap.
+- If a blind range and perpendicular depth mismatch, the layout adjusts pull, built-in filler width, blind size, perpendicular depth, run position, or corner strategy.
+
+Placement checks:
+- All placements fit inside the selected wall-face span.
+- No same-wall placements overlap.
+- No floor-plan footprint overlap exists anywhere.
+- No fixed object is moved, changed, or overlapped.
+- End panels are used only for exposed visible sides.
+- No filler and end panel are used for the same exact condition unless there is a real separate reason.
+
+Output checks:
+- JSON is valid.
+- JSON matches the required output shape exactly.
+- Notes briefly explain important constraints or design tradeoffs when needed.
+
+Empty-space and refinement checks:
+- After all placements are made, check each wall face separately for base-tier gaps and wall/upper-tier gaps.
+- Confirm there is no empty usable gap that could accept a standard cabinet from the catalog.
+- Confirm every standard-width gap, including 9, 12, 15, 18, 21, or 24 inches, has been tested against the catalog before leaving it empty.
+- Confirm upper/wall cabinets are not forced to follow base-cabinet setbacks when the upper tier has a smaller valid corner setback and can accept another wall cabinet.
+- Confirm any remaining empty space is smaller than the smallest usable cabinet option, is a required clearance/protected area, is an intentional opening, or is clearly explained in notes.
+
+Adjacent filler self-check:
+- Sort placements by wall, wallFace, tier, bottomInches, heightInches, and leftInches.
+- Check whether any filler ends exactly where another filler begins on the same tier.
+- If two fillers are adjacent, merge them into one filler unless a real non-filler object, fixed object, opening, or different vertical tier separates them.
+- Confirm the final output has no pattern like `accessory-base-filler` followed immediately by `accessory-base-filler`, or `accessory-wall-filler` followed immediately by `accessory-wall-filler`, on the same wall face and tier.
+- Scribe remainders should not be separate filler objects when they touch a required filler; they should be included in that required filler width.
+
+Strict filler self-check:
+- Every filler in the final JSON must have a valid reason: wall-end clearance, blind-corner clearance, or appliance clearance.
+- Delete any filler whose only purpose is described as scribe, fit adjustment, center-span fit, decimal remainder, or alignment with another tier.
+- Check that no filler is placed between two normal cabinets unless it is clearly required for appliance clearance or a real wall/fixed-boundary condition.
+- Check that blind-corner fillers are exactly the intentional corner-clearance fillers; do not add separate tiny fillers beside them.
+- Check that appliance fillers, when used on both sides of an appliance, look visually even whenever possible.
+- Check that open run ends use end panels for exposed sides, not fillers.
+- If a non-standard leftover space does not meet the three filler rules and cannot accept a standard cabinet, leave it unfilled and explain the limitation in notes instead of creating an invalid filler.

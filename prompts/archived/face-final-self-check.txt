@@ -1,0 +1,47 @@
+Rule file: Final self-check
+
+Use this checklist before returning the final JSON.
+
+Geometry and wall checks:
+- Kitchen shape/layoutType comes from actual wall geometry, not from labels alone.
+- Wall structure is understood from `wallDots` and `wallShapeDotPairs`.
+- Interior and exterior sides are identified correctly.
+- For each chosen wall face, `FACE-START` and `FACE-END` are resolved from the straight-on viewer perspective.
+- The endpoint seen on the viewer's left is `FACE-START`; the endpoint seen on the viewer's right is `FACE-END`.
+- `FACE-START` may be the wall's physical start or physical end depending on which wall face is projected.
+- Cabinet projection direction is correct for each chosen wall face.
+- `leftInches` is measured from `FACE-START` toward `FACE-END`, not automatically from wall-start toward wall-end.
+- Openings/gaps between non-connecting wall endpoints remain open.
+
+Wall-use checks:
+- Walls with `cabinetPlacementMode: "none"` have no placements.
+- Every wall allowed for placement has at least one valid placement unless notes clearly explain why placement is impossible or invalid there.
+- No allowed wall is accidentally ignored because the layout focused only on other walls.
+
+Zone and workflow checks:
+- Storage/cold, prep/washing, and cooking zones are established.
+- Refrigerator, sink/dishwasher, and range/cooktop form a practical workflow when the room allows it.
+- Work-triangle logic is respected when feasible without harming buildability.
+
+Corner and blind checks:
+- Inside corners are solved before the rest of the run is finalized.
+- No normal cabinet/product is left blocked by a perpendicular run.
+- Blind cabinets are used when needed at usable inside cabinet corners.
+- Every blind cabinet has clear visible range, aligned/covered blind range, and no footprint overlap.
+- No blind range is left visibly exposed.
+- Perpendicular objects align with blind ranges by adjacency, not by overlap.
+- If a blind range and perpendicular depth mismatch, the layout adjusts pull, built-in filler width, blind size, perpendicular depth, run position, or corner strategy.
+
+Placement checks:
+- All placements fit inside the selected wall-face span.
+- No same-wall placements overlap.
+- No floor-plan footprint overlap exists anywhere.
+- No fixed object is moved, changed, or overlapped.
+- Fillers are used only for gaps or clearance.
+- End panels are used only for exposed visible sides.
+- No filler and end panel are used for the same exact condition unless there is a real separate reason.
+
+Output checks:
+- JSON is valid.
+- JSON matches the required output shape exactly.
+- Notes briefly explain important constraints or design tradeoffs when needed.

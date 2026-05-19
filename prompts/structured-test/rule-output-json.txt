@@ -1,41 +1,39 @@
 Rule file: Output JSON requirements
 
-Use this file to make sure the final answer is shaped correctly.
+Use this when preparing the final answer.
 
-Output rules:
+Output format:
 - Return JSON only.
-- Return only the inner object that matches the output shape.
-- Do not wrap the answer inside an extra `outputShape` property.
-- Do not include markdown, prose, or images.
-- Keep the JSON valid, compact, and complete.
+- Return only the inner object that matches output-shape.txt.
+- Do not wrap the answer in an extra outputShape property.
+- Do not include markdown, prose, comments, images, or explanations outside JSON.
+- Keep JSON valid, compact, and complete.
 
-Wall-plan expectations:
-- Return walls in the structure defined by `output-shape.txt`.
-- Each designed wall should include its placements, notes, and zone type as required by the shape.
-- Use the correct wall ID or wall label as expected by the output shape.
-- Every allowed wall should receive placements unless placement is physically impossible or clearly invalid, in which case notes should explain why.
+Wall output:
+- Include walls in the required structure.
+- Use the correct wallId and wallLabel from the input.
+- Use the correct cabinetPlacementMode from the input.
+- Every allowed wall should have placements unless notes explain why it cannot.
+- Each wall should include placements, notes, and zoneType.
 
-Placement expectations:
-- Each placement should describe the chosen catalog item and where it goes on the selected wall face.
-- Use consistent `leftInches`, `bottomInches`, `widthInches`, `depthInches`, and `heightInches`.
-- For blind cabinets, include the built-in filler width field.
-- Use `wallFace` explicitly when needed.
+Placement output:
+- Each placement must describe the catalog item and position.
+- Use consistent leftInches, bottomInches, widthInches, depthInches, and heightInches.
+- Include wallFace on every placement.
+- Include builtInFillerWidthInches for blind cabinet placements.
+- Use topOption as null unless the placement needs sink, surface-cooktop, or front-control-cooktop.
+- Notes should be brief and explain only meaningful constraints or design decisions.
 
-Notes should briefly explain important design decisions such as:
-- zone decisions
-- fixed-object constraints
-- filler usage
-- connected corner conditions
-- blocked-cabinet corrections
-- blind cabinet logic
-- end panels
-- pantry stacking
-- symmetry
-- catalog limitations
+Overall output:
+- Include layoutType, wallOrder, notes, walls, dimensionNaming, and zonePlan as required by the output shape.
+- dimensionNaming should preserve the meaning of widthInches, depthInches, and heightInches.
+- zonePlan should briefly explain why each zone is placed where it is.
 
-Before finalizing:
-1. Confirm every placement fits the selected wall face span.
-2. Confirm no floor-plan overlap exists.
-3. Confirm fixed objects were preserved.
-4. Confirm fillers and end panels are used for the correct reasons.
-5. Confirm the result matches the required output JSON shape exactly.
+Before returning:
+1. Confirm every catalogId exists in the input catalog.
+2. Confirm every placement fits its selected wall face.
+3. Confirm no same-wall overlap exists.
+4. Confirm no floor-plan corner overlap exists.
+5. Confirm fixed objects are preserved.
+6. Confirm fillers and end panels follow their rule file.
+7. Confirm the JSON parses successfully.

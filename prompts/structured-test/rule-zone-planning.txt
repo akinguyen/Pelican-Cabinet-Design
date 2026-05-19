@@ -1,43 +1,41 @@
 Rule file: Zone planning and work triangle
 
-Use this file to decide how the kitchen should function.
+Use this after wall geometry is understood and before detailed placement.
 
-Core zoning idea:
-- The kitchen should be organized into meaningful zones instead of placing cabinets wall by wall with no workflow.
+Goal:
+- Organize the kitchen into useful zones instead of filling walls randomly.
 
-Important zones:
-- Cooking
-- Cold storage
-- Wet-cleaning
-- Prep-storage
-- Pantry-storage
-- Mixed
-- Empty
+Allowed zone types:
+- cooking
+- cold-storage
+- wet-cleaning
+- prep-storage
+- pantry-storage
+- mixed
+- empty
 
-Zone planning rules:
+Zone rules:
+- Choose zones from geometry, wall length, appliance fit, fixed objects, corners, workflow, and visual balance.
 - Do not force zones to follow wall number order.
-- Choose zones based on wall length, corners, fixed objects, appliance fit, workflow, visual balance, and storage needs.
-- If a fixed object strongly implies a zone, respect it.
-- Keep the refrigerator, sink/dishwasher, and range reasonably connected.
-- Keep dishwasher directly beside sink when possible.
-- Keep hood or microwave aligned with the cooking appliance when possible.
-- If a zone idea creates blocked corners, unusable doors/drawers, or awkward appliance clearances, redesign the zone plan.
-- If a wall works better as prep/storage than pantry/cold storage, use it creatively.
+- Respect fixed objects that imply a zone.
+- Redesign the zone plan if it creates blocked corners, unusable doors/drawers, appliance conflicts, or awkward access.
 
-Work-triangle mindset:
-- The refrigerator, sink, and cooking zone should usually feel connected.
-- When feasible, aim for practical work-triangle legs in the general range of about 48 to 108 inches.
-- If the room, catalog, or fixed objects prevent an ideal triangle, choose the best workable flow and explain the limitation in notes.
-- Do not chase a perfect triangle if it breaks buildability, access, or corner correctness.
+Workflow rules:
+- Refrigerator, sink/dishwasher, and range/cooktop should feel connected.
+- Keep the dishwasher directly beside the sink when possible.
+- Keep the hood or microwave centered on the range/cooktop when possible.
+- Aim for practical work-triangle legs around 48 to 108 inches when the room allows.
+- Do not chase a perfect work triangle if it harms buildability, access, or corner correctness.
 
-Appliance workflow reminders:
-- Range/cooktop walls should feel visually balanced when possible.
-- Refrigerator walls should avoid awkward narrow leftover cabinets.
-- Sink/dishwasher zones should stay compact.
-- Upper cabinets should align visually with the base/product layout when practical.
+Appliance-zone reminders:
+- Cooking zones should look balanced around the range/cooktop.
+- Wet-cleaning zones should keep sink, dishwasher, trash, and prep space close.
+- Cold-storage zones should avoid awkward narrow base cabinets beside refrigerators.
+- Pantry-storage can use pantry cabinet stacks when space and access allow.
+- Upper cabinets should align with base cabinets and products when practical.
 
-Order of planning:
+Planning order:
 1. Identify fixed-object constraints.
 2. Choose likely zone walls.
-3. Check whether corners can support those zone choices.
-4. Adjust if needed before detailed cabinet placement.
+3. Check whether corners support those zone choices.
+4. Adjust zones before placing detailed cabinet runs.

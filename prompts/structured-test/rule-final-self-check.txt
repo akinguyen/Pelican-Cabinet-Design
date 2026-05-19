@@ -1,44 +1,73 @@
 Rule file: Final self-check
 
-Use this checklist before returning the final JSON.
+Use this immediately before returning the final JSON.
 
-Geometry and wall checks:
-- Kitchen shape/layoutType comes from actual wall geometry, not from labels alone.
-- Wall structure is understood from `wallDots` and `wallShapeDotPairs`.
-- Interior and exterior sides are identified correctly.
-- Cabinet projection direction is correct for each chosen wall face.
-- `leftInches` follows the chosen face start-to-end direction.
-- Openings/gaps between non-connecting wall endpoints remain open.
+Geometry checks:
+- Layout type comes from real wall geometry, not wall labels alone.
+- Wall dots, wall shape, interior/exterior faces, and face direction were understood.
+- leftInches follows the selected face start-to-end direction.
+- True cornerOffset was used for perpendicular corner validation.
+- Openings between non-connecting endpoints remain open.
 
 Wall-use checks:
-- Walls with `cabinetPlacementMode: "none"` have no placements.
-- Every wall allowed for placement has at least one valid placement unless notes clearly explain why placement is impossible or invalid there.
-- No allowed wall is accidentally ignored because the layout focused only on other walls.
+- No placements exist on cabinetPlacementMode none walls.
+- Every allowed wall was considered.
+- Empty allowed walls have clear notes explaining why placement is invalid or impossible.
 
-Zone and workflow checks:
-- Storage/cold, prep/washing, and cooking zones are established.
-- Refrigerator, sink/dishwasher, and range/cooktop form a practical workflow when the room allows it.
-- Work-triangle logic is respected when feasible without harming buildability.
+Zone/workflow checks:
+- Main zones are identified.
+- Refrigerator, sink/dishwasher, and cooking area form the best practical workflow for the room.
+- Dishwasher is beside sink when possible.
+- Hood/microwave is aligned with cooking appliance when possible.
+- Work-triangle logic did not override buildability.
 
-Corner and blind checks:
-- Inside corners are solved before the rest of the run is finalized.
-- No normal cabinet/product is left blocked by a perpendicular run.
-- Blind cabinets are used when needed at usable inside cabinet corners.
-- Every blind cabinet has clear visible range, aligned/covered blind range, and no footprint overlap.
-- No blind range is left visibly exposed.
-- Perpendicular objects align with blind ranges by adjacency, not by overlap.
-- If a blind range and perpendicular depth mismatch, the layout adjusts pull, built-in filler width, blind size, perpendicular depth, run position, or corner strategy.
+Corner/blind checks:
+- Inside corners were solved before normal run filling.
+- No normal cabinet/product is trapped in a corner.
+- Every blind cabinet has correct orientation.
+- Visible blind range is usable.
+- Blind range is covered/aligned and not exposed.
+- Blind part matches perpendicular depth whenever possible.
+- Perpendicular run uses true cornerOffset = blind depth + planned separate filler clearance when a corner filler is used.
+- Planned separate blind-corner filler clearance is 3 to 5 inches, using the smallest workable width first.
+- Built-in blind filler and separate corner filler are not confused.
+- Every blind cabinet connected to a perpendicular run has an actual matching `accessory-base-filler` or `accessory-wall-filler` placement.
+- No required blind-corner filler clearance is represented only as a note or empty space.
+- No floor-plan footprints overlap.
 
 Placement checks:
-- All placements fit inside the selected wall-face span.
-- No same-wall placements overlap.
-- No floor-plan footprint overlap exists anywhere.
-- No fixed object is moved, changed, or overlapped.
-- Fillers are used only for gaps or clearance.
-- End panels are used only for exposed visible sides.
-- No filler and end panel are used for the same exact condition unless there is a real separate reason.
+- Every placement fits within its selected wall-face length.
+- Same-wall placements do not overlap within the same tier.
+- Fixed objects were not moved, changed, removed, or overlapped.
+- Cabinet/product sizes follow catalog options unless accessory flexibility applies.
+- Doors, drawers, appliances, and pantry cabinets remain usable.
+
+Empty-space checks:
+- Base and upper tiers were checked separately for usable gaps.
+- Every usable 9, 12, 15, 18, 21, or 24 inch gap was tested for a standard cabinet.
+- Upper cabinets were not forced to copy deeper base setbacks when usable upper space exists.
+- Any remaining gap is protected clearance, appliance clearance, an intentional opening, too small for a cabinet, or explained in notes.
+
+Filler/end-panel checks:
+- Every filler has a valid reason: wall-end clearance, blind-corner clearance, or appliance clearance.
+- Every blind-corner clearance filler is output as a real filler placement with correct tier, wallFace, leftInches, widthInches, depthInches, heightInches, and notes.
+- No filler exists only for scribe, fit adjustment, decimal remainder, center-span alignment, or matching another tier.
+- No adjacent filler pair remains unmerged on the same face/tier/range.
+- No filler replaces a cabinet-sized storage opportunity.
+- Open run ends use end panels for exposed sides, not fillers.
+- No filler/end-panel chain is used for the same exposed side condition.
+
+No-leftover-gap checks:
+- Same-tier cabinets/products were checked for direct adjacency wherever buildable.
+- No note accepts a "sub-standard gap", "leftover gap", "fit gap", or "small gap" unless all reasonable standard redesign options were tested and failed.
+- For each leftover between two placements, confirm the design tried standard width recombinations, suitable catalog type swaps, adjacent width changes, and valid blind-cabinet width / `builtInFillerWidthInches` adjustments.
+- If a blind cabinet is near the gap, confirm the design tried alternate standard blind widths and realistic built-in-filler adjustments while preserving the required blind-part-to-perpendicular-depth match.
+- No filler was used to hide leftover math between normal cabinets.
+- Any remaining gap is either required protected clearance, appliance clearance, wall-end clearance, intentional opening, smaller than all usable catalog options after recomposition, or clearly explained in notes.
 
 Output checks:
 - JSON is valid.
-- JSON matches the required output shape exactly.
-- Notes briefly explain important constraints or design tradeoffs when needed.
+- JSON matches output-shape.txt exactly.
+- Required top-level fields are present.
+- All walls, placements, notes, dimensionNaming, and zonePlan are complete.
+- Notes are short and explain only real constraints or tradeoffs.

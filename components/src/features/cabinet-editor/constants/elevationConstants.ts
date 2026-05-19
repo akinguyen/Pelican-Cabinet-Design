@@ -1,0 +1,11 @@
+
+
+export const DEFAULT_ELEVATION_WALL_HEIGHT_INCHES = 96;
+
+export const ELEVATION_VIEWBOX_WIDTH = 1200;
+
+export const ELEVATION_VIEWBOX_HEIGHT = 860;
+
+export const JOINT_DOT_RADIUS = 5;
+
+export const JOINT_TICK_LENGTH = 16;

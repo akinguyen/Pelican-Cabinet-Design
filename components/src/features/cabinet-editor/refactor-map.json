@@ -1,0 +1,2433 @@
+{
+  "generatedAt": "2026-05-19T05:36:03.899Z",
+  "files": [
+    {
+      "file": "CabinetEditorBase.tsx",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "CabinetEditorBase"
+        }
+      ]
+    },
+    {
+      "file": "components/canvas/CanvasArea.tsx",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "CanvasArea"
+        }
+      ]
+    },
+    {
+      "file": "components/elevation/ElevationPlanView.tsx",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "getElevationWallAxis"
+        },
+        {
+          "kind": "function",
+          "name": "getElevationWallElementCenterInches"
+        },
+        {
+          "kind": "function",
+          "name": "getInteriorMeasurementGuideSide"
+        },
+        {
+          "kind": "function",
+          "name": "getWallElevationViewMode"
+        },
+        {
+          "kind": "function",
+          "name": "getWallPlacementMode"
+        },
+        {
+          "kind": "function",
+          "name": "getWallPlacementGuideSides"
+        },
+        {
+          "kind": "function",
+          "name": "getWallPlacementDebugLines"
+        },
+        {
+          "kind": "function",
+          "name": "getWallElevationGuideSide"
+        },
+        {
+          "kind": "function",
+          "name": "getWallElevationDebugGuideSide"
+        },
+        {
+          "kind": "function",
+          "name": "measurementSideToWallFaceSide"
+        },
+        {
+          "kind": "function",
+          "name": "getWallProjectedFaceForElevation"
+        },
+        {
+          "kind": "function",
+          "name": "getElevationViewRightDirection"
+        },
+        {
+          "kind": "function",
+          "name": "shouldMirrorElevationDisplay"
+        },
+        {
+          "kind": "function",
+          "name": "getElevationDisplayStartInches"
+        },
+        {
+          "kind": "function",
+          "name": "getElevationActualStartInches"
+        },
+        {
+          "kind": "function",
+          "name": "getElevationWallDistanceContext"
+        },
+        {
+          "kind": "function",
+          "name": "getElevationObjectDistanceMetricsFromStart"
+        },
+        {
+          "kind": "function",
+          "name": "getOpeningElevationDistanceMetrics"
+        },
+        {
+          "kind": "function",
+          "name": "getWallTFromElevationAxisScalarInches"
+        },
+        {
+          "kind": "function",
+          "name": "getOpeningTFromElevationDistance"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementDistanceWall"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementElevationDistanceMetrics"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementCenterFromElevationDistance"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementWallFaceOnWall"
+        },
+        {
+          "kind": "function",
+          "name": "getWallSideGuideRunLength"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementFacingMeasurementGuideSide"
+        },
+        {
+          "kind": "function",
+          "name": "getElevationWallInteriorSpan"
+        },
+        {
+          "kind": "function",
+          "name": "getPeninWallAttachmentToWall"
+        },
+        {
+          "kind": "function",
+          "name": "getPeninWallEndpointAttachment"
+        },
+        {
+          "kind": "function",
+          "name": "getPeninWallVisibleSegment"
+        },
+        {
+          "kind": "function",
+          "name": "getClosestPeninWallEndpointAttachment"
+        },
+        {
+          "kind": "function",
+          "name": "getPeninWallMovePreview"
+        },
+        {
+          "kind": "function",
+          "name": "getPeninWallAttachmentPointForElevationWall"
+        },
+        {
+          "kind": "function",
+          "name": "getPeninWallElevationPlacementsForWall"
+        },
+        {
+          "kind": "function",
+          "name": "getElevationOpeningLayoutFromCenter"
+        },
+        {
+          "kind": "function",
+          "name": "ElevationPeninWallFace"
+        },
+        {
+          "kind": "function",
+          "name": "ElevationPlacementOnWall"
+        },
+        {
+          "kind": "function",
+          "name": "ElevationWallPlacementDetails"
+        },
+        {
+          "kind": "function",
+          "name": "ElevationSinkFixture"
+        },
+        {
+          "kind": "function",
+          "name": "ElevationBasePlacementDetails"
+        },
+        {
+          "kind": "function",
+          "name": "renderBlindCabinetElevationFront"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementWallAttachments"
+        },
+        {
+          "kind": "function",
+          "name": "getBestPlacementWallAttachment"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementElevationItemsForWall"
+        },
+        {
+          "kind": "function",
+          "name": "stackOverlappingWallPlacements"
+        },
+        {
+          "kind": "function",
+          "name": "getWallPlacementStackOverflowMessage"
+        },
+        {
+          "kind": "function",
+          "name": "applyWallPlacementStackSpacingOnPlacement"
+        },
+        {
+          "kind": "function",
+          "name": "resolveWallPlacementStackPlacement"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementElevationCategory"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementFloorVisualLayerPriority"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementPreviewFloorVisualLayerPriority"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementElevationSpec"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementTopAccessoryExtraHeightInches"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementDisplayTitle"
+        },
+        {
+          "kind": "function",
+          "name": "isLShapedCornerCabinet"
+        },
+        {
+          "kind": "function",
+          "name": "placementProjectionRangeRelativeToWallAxis"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementPlanBodyPolygon"
+        },
+        {
+          "kind": "function",
+          "name": "rangesOverlapOrTouchInches"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementAttachedWallForElevationFootprint"
+        },
+        {
+          "kind": "function",
+          "name": "getCoveredSameWallCornerPlacementIdsForElevation"
+        },
+        {
+          "kind": "function",
+          "name": "wallsShareEndpoint"
+        },
+        {
+          "kind": "function",
+          "name": "getSharedWallEndpoint"
+        },
+        {
+          "kind": "function",
+          "name": "getReservationBoundaryForWall"
+        },
+        {
+          "kind": "function",
+          "name": "getReservationBoundaryDistanceInches"
+        },
+        {
+          "kind": "function",
+          "name": "compareElevationCornerReservations"
+        },
+        {
+          "kind": "function",
+          "name": "dedupeElevationCornerReservationsByClosestPlacement"
+        },
+        {
+          "kind": "function",
+          "name": "getElevationCornerReservationsForWall"
+        },
+        {
+          "kind": "function",
+          "name": "ElevationPlanView"
+        },
+        {
+          "kind": "function",
+          "name": "ElevationDimensionLine"
+        },
+        {
+          "kind": "function",
+          "name": "ElevationAlignmentGuideOverlay"
+        }
+      ]
+    },
+    {
+      "file": "components/layout/ModeBar.tsx",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "ModeBar"
+        },
+        {
+          "kind": "function",
+          "name": "ModeIconButton"
+        }
+      ]
+    },
+    {
+      "file": "components/layout/TopBar.tsx",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "TopBar"
+        },
+        {
+          "kind": "function",
+          "name": "TopAction"
+        }
+      ]
+    },
+    {
+      "file": "components/openings/Openings.tsx",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "SelectionAreaBox"
+        },
+        {
+          "kind": "function",
+          "name": "DoorOnWall"
+        },
+        {
+          "kind": "function",
+          "name": "DoorShapeOnWall"
+        },
+        {
+          "kind": "function",
+          "name": "FreeStructurePlacementPreview"
+        },
+        {
+          "kind": "function",
+          "name": "DoorPreview"
+        },
+        {
+          "kind": "function",
+          "name": "SelectedDoorContextMenu"
+        },
+        {
+          "kind": "function",
+          "name": "WindowOnWall"
+        },
+        {
+          "kind": "function",
+          "name": "WindowShapeOnWall"
+        },
+        {
+          "kind": "function",
+          "name": "WindowPreview"
+        },
+        {
+          "kind": "function",
+          "name": "WindowPlacementMeasurements"
+        },
+        {
+          "kind": "function",
+          "name": "getStructureGuideEndpointsFromSideAnchors"
+        },
+        {
+          "kind": "function",
+          "name": "getStructureGuideEndpointsFromMeasurementRun"
+        },
+        {
+          "kind": "function",
+          "name": "getOppositeMeasurementSide"
+        },
+        {
+          "kind": "function",
+          "name": "getStructureGuideAnchorScalars"
+        },
+        {
+          "kind": "function",
+          "name": "BracketSegment"
+        },
+        {
+          "kind": "function",
+          "name": "SelectedWindowContextMenu"
+        },
+        {
+          "kind": "function",
+          "name": "WallAttachIndicator"
+        },
+        {
+          "kind": "function",
+          "name": "RoomInteriorFill"
+        }
+      ]
+    },
+    {
+      "file": "components/panels/PropertiesPanels.tsx",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "DoorPropertiesPanel"
+        },
+        {
+          "kind": "function",
+          "name": "WindowPropertiesPanel"
+        },
+        {
+          "kind": "function",
+          "name": "WallPropertiesPanel"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementPropertiesPanel"
+        },
+        {
+          "kind": "function",
+          "name": "WindowPropertyInput"
+        },
+        {
+          "kind": "function",
+          "name": "FinishCard"
+        }
+      ]
+    },
+    {
+      "file": "components/placements/PlacementViews.tsx",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "PlacementToolCard"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleBaseCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleWallCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementPlanBodyFill"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementCatalogPreviewFrame"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementCatalogImage"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleCornerBaseCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleOneDoorBaseCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleSinkBaseCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleDrawerBaseCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleApplianceBaseCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleBaseCabinetWithDrawerImage"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleDrawerStackCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleSinkPanelCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleBlindLeftOneDrawerBaseCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleBlindRightOneDrawerBaseCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleBlindLeftBaseCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementOnFloor"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementFloorInteractionTarget"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementSelectionOverlay"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementPlanSelectionOverlay"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementPreviewShape"
+        },
+        {
+          "kind": "function",
+          "name": "getBaseCornerPlanPath"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementPlanShape"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementMoveRotateControl"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementArrow"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementDistanceGuides"
+        },
+        {
+          "kind": "function",
+          "name": "SelectedPlacementContextMenu"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementPreview"
+        },
+        {
+          "kind": "function",
+          "name": "getWallOverlapResolvedPlacementCenter"
+        },
+        {
+          "kind": "function",
+          "name": "getWallFaceSnappedPlacementCenter"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementWallSideGuideLine"
+        },
+        {
+          "kind": "function",
+          "name": "getWallEndStoppedPlacementCenter"
+        },
+        {
+          "kind": "function",
+          "name": "getThickWallProjectionInterval"
+        },
+        {
+          "kind": "function",
+          "name": "getRotatedRectProjectionInterval"
+        },
+        {
+          "kind": "function",
+          "name": "getWallCollisionPolygon"
+        },
+        {
+          "kind": "function",
+          "name": "polygonsOverlapForPlacementBlocking"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementPlanHandleTabPolygons"
+        },
+        {
+          "kind": "function",
+          "name": "placementHandleTabsIntersectAnyWall"
+        },
+        {
+          "kind": "function",
+          "name": "resolvePlacementWithHandlesFacingOut"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementRotationsParallelToWall"
+        },
+        {
+          "kind": "function",
+          "name": "getWallFaceSnappedPlacementCentersForWall"
+        },
+        {
+          "kind": "function",
+          "name": "getWallFaceSnappedPlacementCenterForWall"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementAutoFacingRotationForWallFace"
+        },
+        {
+          "kind": "function",
+          "name": "getNearestPlacementWallFaceNormal"
+        },
+        {
+          "kind": "function",
+          "name": "getAdjacentPlacementSnappedCenter"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementEdgeToEdgeSnappedCenter"
+        },
+        {
+          "kind": "function",
+          "name": "getCollisionSafeAdjacentPlacementSnappedCenter"
+        },
+        {
+          "kind": "function",
+          "name": "getWallPlacementElevationOverlapMessage"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementElevationOverlapMessage"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementRuleViolationMessage"
+        },
+        {
+          "kind": "function",
+          "name": "getDisallowedPlacementBodyOverlap"
+        },
+        {
+          "kind": "function",
+          "name": "placementsBelongToSameWall"
+        },
+        {
+          "kind": "function",
+          "name": "placementsShareWallButDifferentFaces"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementVerticalRangeInches"
+        },
+        {
+          "kind": "function",
+          "name": "placementVerticalRangesOverlap"
+        },
+        {
+          "kind": "function",
+          "name": "isSameWallWallPlacementStackOverlapAllowed"
+        },
+        {
+          "kind": "function",
+          "name": "isSameWallCrossLayerPlacementOverlapAllowed"
+        },
+        {
+          "kind": "function",
+          "name": "isPlacementAttachedToWallFace"
+        },
+        {
+          "kind": "function",
+          "name": "getWallPlacementSupportedWall"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementProjectionOnWallAxis"
+        },
+        {
+          "kind": "function",
+          "name": "placementIntersectsAnyPlacement"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementElevationPairOverlap"
+        },
+        {
+          "kind": "function",
+          "name": "resolvePlacementDragCenterAgainstPlacementCollisions"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementPlanHandleTabWorldBounds"
+        },
+        {
+          "kind": "function",
+          "name": "rectContainsRect"
+        },
+        {
+          "kind": "function",
+          "name": "placementOpenSegmentsIntersect"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementMenuPosition"
+        },
+        {
+          "kind": "function",
+          "name": "arePlacementsEqual"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementWallDistanceMetrics"
+        },
+        {
+          "kind": "function",
+          "name": "placementIntersectsAnyWall"
+        },
+        {
+          "kind": "function",
+          "name": "polygonsIntersect"
+        },
+        {
+          "kind": "function",
+          "name": "getDetachedPanelWallCollisionCorners"
+        },
+        {
+          "kind": "function",
+          "name": "detachedPanelWallIntersectsFloorPlacement"
+        },
+        {
+          "kind": "function",
+          "name": "detectPlacementAttachmentSides"
+        },
+        {
+          "kind": "function",
+          "name": "keepPlacementResizeAnchoredToAttachments"
+        },
+        {
+          "kind": "function",
+          "name": "resolvePlacementDimensionChange"
+        },
+        {
+          "kind": "function",
+          "name": "resolvePlacementDimensionChangeAgainstWalls"
+        },
+        {
+          "kind": "function",
+          "name": "keepPlacementOnTouchedWallFaces"
+        },
+        {
+          "kind": "function",
+          "name": "pushPlacementOutsideWallOverlaps"
+        },
+        {
+          "kind": "function",
+          "name": "getWallRectBounds"
+        },
+        {
+          "kind": "function",
+          "name": "getRotatedRectCorners"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementPlanAccessoryDetails"
+        },
+        {
+          "kind": "function",
+          "name": "ElevationPlacementAccessoryDetails"
+        },
+        {
+          "kind": "function",
+          "name": "PlacementPlanVariantDetails"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementPlanHandleTabRects"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementPlanOccupiedCorners"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementPlanOccupiedBounds"
+        },
+        {
+          "kind": "function",
+          "name": "getRotatedRectBounds"
+        }
+      ]
+    },
+    {
+      "file": "components/shared/EditorAlertModal.tsx",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "EditorAlertModal"
+        },
+        {
+          "kind": "function",
+          "name": "shouldSuppressEditorAlert"
+        }
+      ]
+    },
+    {
+      "file": "components/sidebar/ContextPanel.tsx",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "ContextPanel"
+        },
+        {
+          "kind": "function",
+          "name": "StructureToolCard"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleDoorShape"
+        },
+        {
+          "kind": "function",
+          "name": "SimpleWindowShape"
+        },
+        {
+          "kind": "function",
+          "name": "WallToolCard"
+        },
+        {
+          "kind": "function",
+          "name": "WallLineShape"
+        },
+        {
+          "kind": "function",
+          "name": "ThinWallToolCard"
+        },
+        {
+          "kind": "function",
+          "name": "ThinWallLineShape"
+        },
+        {
+          "kind": "function",
+          "name": "PeninWallToolCard"
+        },
+        {
+          "kind": "function",
+          "name": "PeninWallLineShape"
+        },
+        {
+          "kind": "function",
+          "name": "IslandWallToolCard"
+        },
+        {
+          "kind": "function",
+          "name": "IslandWallLineShape"
+        },
+        {
+          "kind": "function",
+          "name": "MainToolbar"
+        },
+        {
+          "kind": "function",
+          "name": "ThinWallGroupContextMenu"
+        }
+      ]
+    },
+    {
+      "file": "components/walls/Walls.tsx",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "ThinWallLine"
+        },
+        {
+          "kind": "function",
+          "name": "PeninWallLine"
+        },
+        {
+          "kind": "function",
+          "name": "PeninWallSelectionOverlay"
+        },
+        {
+          "kind": "function",
+          "name": "WallChain"
+        },
+        {
+          "kind": "function",
+          "name": "MeasurementGuideAnchorDebugDots"
+        },
+        {
+          "kind": "function",
+          "name": "uniqueDebugPointsByDistance"
+        },
+        {
+          "kind": "function",
+          "name": "attachWallDebugDotsForExport"
+        },
+        {
+          "kind": "function",
+          "name": "getWallSideMeasurementAnchor"
+        },
+        {
+          "kind": "function",
+          "name": "WallMeasurementRuns"
+        },
+        {
+          "kind": "function",
+          "name": "JointIndicators"
+        },
+        {
+          "kind": "function",
+          "name": "CornerJointMarker"
+        },
+        {
+          "kind": "function",
+          "name": "MultiConnectionJointIndicators"
+        },
+        {
+          "kind": "function",
+          "name": "getConnectedWallArmsAtPoint"
+        },
+        {
+          "kind": "function",
+          "name": "getJunctionEdgeMarkerSegments"
+        },
+        {
+          "kind": "function",
+          "name": "getJunctionMarkerCandidates"
+        },
+        {
+          "kind": "function",
+          "name": "getVisibleJunctionMarkerSegment"
+        },
+        {
+          "kind": "function",
+          "name": "pointIsInsideWallBody"
+        },
+        {
+          "kind": "function",
+          "name": "isDuplicateJunctionMarkerSegment"
+        },
+        {
+          "kind": "function",
+          "name": "SelectedWallOverlay"
+        },
+        {
+          "kind": "function",
+          "name": "WallSelectionHitAreas"
+        },
+        {
+          "kind": "function",
+          "name": "SelectedWallContextMenu"
+        },
+        {
+          "kind": "function",
+          "name": "getWallMenuPosition"
+        },
+        {
+          "kind": "function",
+          "name": "MeasurementLine"
+        },
+        {
+          "kind": "function",
+          "name": "MeasurementEndCap"
+        },
+        {
+          "kind": "function",
+          "name": "MeasurementLabelOnly"
+        },
+        {
+          "kind": "function",
+          "name": "MeasurementEditModal"
+        },
+        {
+          "kind": "function",
+          "name": "WallDrawingOverlay"
+        },
+        {
+          "kind": "function",
+          "name": "ThinWallDrawingOverlay"
+        },
+        {
+          "kind": "function",
+          "name": "OpenEndpoint"
+        },
+        {
+          "kind": "function",
+          "name": "ThinOpenEndpoint"
+        },
+        {
+          "kind": "function",
+          "name": "ThinJointDot"
+        },
+        {
+          "kind": "function",
+          "name": "SvgTextHalo"
+        },
+        {
+          "kind": "function",
+          "name": "PointHandle"
+        },
+        {
+          "kind": "function",
+          "name": "ThinPointHandle"
+        },
+        {
+          "kind": "function",
+          "name": "MoveControl"
+        }
+      ]
+    },
+    {
+      "file": "constants/editorConstants.ts",
+      "exports": [
+        {
+          "kind": "const",
+          "name": "MIN_ZOOM"
+        },
+        {
+          "kind": "const",
+          "name": "MAX_ZOOM"
+        },
+        {
+          "kind": "const",
+          "name": "ZOOM_INTENSITY"
+        },
+        {
+          "kind": "const",
+          "name": "ZOOM_BUTTON_STEP"
+        },
+        {
+          "kind": "const",
+          "name": "MOVE_STEP"
+        },
+        {
+          "kind": "const",
+          "name": "WORKSPACE_WIDTH"
+        },
+        {
+          "kind": "const",
+          "name": "WORKSPACE_HEIGHT"
+        },
+        {
+          "kind": "const",
+          "name": "GRID_SIZE"
+        },
+        {
+          "kind": "const",
+          "name": "SNAP_THRESHOLD"
+        }
+      ]
+    },
+    {
+      "file": "constants/elevationConstants.ts",
+      "exports": [
+        {
+          "kind": "const",
+          "name": "DEFAULT_ELEVATION_WALL_HEIGHT_INCHES"
+        },
+        {
+          "kind": "const",
+          "name": "ELEVATION_VIEWBOX_WIDTH"
+        },
+        {
+          "kind": "const",
+          "name": "ELEVATION_VIEWBOX_HEIGHT"
+        },
+        {
+          "kind": "const",
+          "name": "JOINT_DOT_RADIUS"
+        },
+        {
+          "kind": "const",
+          "name": "JOINT_TICK_LENGTH"
+        }
+      ]
+    },
+    {
+      "file": "constants/messages.ts",
+      "exports": [
+        {
+          "kind": "const",
+          "name": "PLACEMENT_NOT_AGAINST_WALL_MESSAGE"
+        },
+        {
+          "kind": "const",
+          "name": "PLACEMENT_OVERLAP_MESSAGE"
+        },
+        {
+          "kind": "const",
+          "name": "WALL_PLACEMENT_ELEVATION_OVERLAP_MESSAGE"
+        }
+      ]
+    },
+    {
+      "file": "constants/openingConstants.ts",
+      "exports": [
+        {
+          "kind": "const",
+          "name": "DEFAULT_WINDOW_WIDTH"
+        },
+        {
+          "kind": "const",
+          "name": "DEFAULT_DOOR_WIDTH"
+        }
+      ]
+    },
+    {
+      "file": "constants/placementConstants.ts",
+      "exports": [
+        {
+          "kind": "const",
+          "name": "FLOOR_SUPPORTED_PANTRY_MIN_HEIGHT_INCHES"
+        },
+        {
+          "kind": "const",
+          "name": "CABINET_TOE_KICK_HEIGHT_INCHES"
+        },
+        {
+          "kind": "const",
+          "name": "OVEN_CABINET_DEFAULT_FILLER_HEIGHT_INCHES"
+        },
+        {
+          "kind": "const",
+          "name": "OVEN_CABINET_DEFAULT_BOTTOM_DRAWER_HEIGHT_INCHES"
+        },
+        {
+          "kind": "const",
+          "name": "L_SHAPED_CORNER_PLACEMENT_DISPLAY_IMAGE"
+        },
+        {
+          "kind": "const",
+          "name": "PLACEMENT_ROTATION_SNAP_STEP_DEGREES"
+        },
+        {
+          "kind": "const",
+          "name": "PLACEMENT_ROTATION_SNAP_ENTER_DEGREES"
+        }
+      ]
+    },
+    {
+      "file": "constants/sidebarItems.ts",
+      "exports": [
+        {
+          "kind": "const",
+          "name": "sidebarItems"
+        }
+      ]
+    },
+    {
+      "file": "constants/wallConstants.ts",
+      "exports": [
+        {
+          "kind": "const",
+          "name": "WALL_ATTACH_THRESHOLD"
+        },
+        {
+          "kind": "const",
+          "name": "WALL_STROKE_WIDTH"
+        },
+        {
+          "kind": "const",
+          "name": "WALL_THICKNESS"
+        },
+        {
+          "kind": "const",
+          "name": "PENIN_WALL_THICKNESS"
+        },
+        {
+          "kind": "const",
+          "name": "PENIN_WALL_ELEVATION_HEIGHT_INCHES"
+        },
+        {
+          "kind": "const",
+          "name": "PENIN_WALL_ELEVATION_FACE_WIDTH_INCHES"
+        },
+        {
+          "kind": "const",
+          "name": "THIN_WALL_STROKE_WIDTH"
+        }
+      ]
+    },
+    {
+      "file": "context/MeasurementDisplayUnitContext.ts",
+      "exports": [
+        {
+          "kind": "const",
+          "name": "MeasurementDisplayUnitContext"
+        },
+        {
+          "kind": "function",
+          "name": "useMeasurementDisplayUnit"
+        }
+      ]
+    },
+    {
+      "file": "data/placementCatalog.ts",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "parseDimensionOptionList"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_WIDE_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_NARROW_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_SINK_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_FARM_SINK_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_THREE_DRAWER_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_TWO_DRAWER_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_SPICE_RACK_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_TRASH_CAN_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_BLIND_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_OVEN_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_MICROWAVE_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_ONE_DOOR_PANTRY_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_TWO_DOOR_PANTRY_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_STANDARD_HEIGHT_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_STANDARD_DEPTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_OVEN_HEIGHT_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_OVEN_DEPTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_MICROWAVE_HEIGHT_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_MICROWAVE_DEPTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_PANTRY_HEIGHT_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "BASE_PANTRY_DEPTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "WALL_ONE_DOOR_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "WALL_TWO_DOOR_WIDTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "WALL_STANDARD_HEIGHT_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "WALL_PANTRY_HEIGHT_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "WALL_STANDARD_DEPTH_OPTIONS"
+        },
+        {
+          "kind": "const",
+          "name": "WALL_PANTRY_DEPTH_OPTIONS"
+        },
+        {
+          "kind": "function",
+          "name": "isOvenLikeBottomDrawerCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "isBlindCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "getBlindCabinetSide"
+        },
+        {
+          "kind": "function",
+          "name": "isBuiltInSinkCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "isFarmSinkCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "isSpiceRackCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "isTrashCanCabinetImage"
+        },
+        {
+          "kind": "function",
+          "name": "canHaveBaseTopFixtureControls"
+        },
+        {
+          "kind": "function",
+          "name": "getDefaultBlindCabinetDoorWidthInches"
+        },
+        {
+          "kind": "function",
+          "name": "getBlindCabinetWidthSegments"
+        },
+        {
+          "kind": "function",
+          "name": "normalizeBlindCabinetSettings"
+        },
+        {
+          "kind": "function",
+          "name": "getDefaultOvenCabinetProductHeightInches"
+        },
+        {
+          "kind": "function",
+          "name": "getOvenCabinetHeightSegments"
+        },
+        {
+          "kind": "function",
+          "name": "normalizeOvenCabinetHeightSegments"
+        },
+        {
+          "kind": "function",
+          "name": "normalizeSpecialCabinetState"
+        },
+        {
+          "kind": "function",
+          "name": "getDefaultBottomDrawerProductLayout"
+        },
+        {
+          "kind": "const",
+          "name": "PLACEMENT_CATALOG"
+        }
+      ]
+    },
+    {
+      "file": "engine/geometry.ts",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "pointInPolygon"
+        },
+        {
+          "kind": "function",
+          "name": "segmentsIntersect"
+        },
+        {
+          "kind": "function",
+          "name": "normalizeDegrees"
+        },
+        {
+          "kind": "function",
+          "name": "degreesToRadians"
+        },
+        {
+          "kind": "function",
+          "name": "getAngleDegrees"
+        },
+        {
+          "kind": "function",
+          "name": "polarPoint"
+        },
+        {
+          "kind": "function",
+          "name": "placementSnapRotationToTick"
+        },
+        {
+          "kind": "function",
+          "name": "placementShortestAngleDistance"
+        },
+        {
+          "kind": "function",
+          "name": "describeArc"
+        },
+        {
+          "kind": "function",
+          "name": "interpolate"
+        },
+        {
+          "kind": "function",
+          "name": "inchesToPixels"
+        },
+        {
+          "kind": "function",
+          "name": "pixelsToInches"
+        },
+        {
+          "kind": "function",
+          "name": "roundToQuarter"
+        },
+        {
+          "kind": "function",
+          "name": "formatDecimal"
+        },
+        {
+          "kind": "function",
+          "name": "pointKey"
+        },
+        {
+          "kind": "function",
+          "name": "samePoint"
+        },
+        {
+          "kind": "function",
+          "name": "getPreferredNormal"
+        },
+        {
+          "kind": "function",
+          "name": "placementPolarPoint"
+        },
+        {
+          "kind": "function",
+          "name": "getSelectionRect"
+        },
+        {
+          "kind": "function",
+          "name": "pointToSegmentDistance"
+        },
+        {
+          "kind": "function",
+          "name": "placementIntersectsSelectionRect"
+        },
+        {
+          "kind": "function",
+          "name": "wallIntersectsSelectionRect"
+        },
+        {
+          "kind": "function",
+          "name": "pointInSelectionRect"
+        },
+        {
+          "kind": "function",
+          "name": "placementSegmentsIntersect"
+        },
+        {
+          "kind": "function",
+          "name": "segmentOrientation"
+        },
+        {
+          "kind": "function",
+          "name": "pointOnSegment"
+        },
+        {
+          "kind": "function",
+          "name": "getWallAttachPoint"
+        },
+        {
+          "kind": "function",
+          "name": "clamp"
+        },
+        {
+          "kind": "function",
+          "name": "add"
+        },
+        {
+          "kind": "function",
+          "name": "sub"
+        },
+        {
+          "kind": "function",
+          "name": "mul"
+        },
+        {
+          "kind": "function",
+          "name": "perp"
+        },
+        {
+          "kind": "function",
+          "name": "dot"
+        },
+        {
+          "kind": "function",
+          "name": "cross"
+        },
+        {
+          "kind": "function",
+          "name": "vectorLength"
+        },
+        {
+          "kind": "function",
+          "name": "normalize"
+        },
+        {
+          "kind": "function",
+          "name": "distance"
+        },
+        {
+          "kind": "function",
+          "name": "midpoint"
+        },
+        {
+          "kind": "function",
+          "name": "getNormal"
+        },
+        {
+          "kind": "function",
+          "name": "getUnitVector"
+        },
+        {
+          "kind": "function",
+          "name": "getTextRotation"
+        },
+        {
+          "kind": "function",
+          "name": "toSvgPoint"
+        },
+        {
+          "kind": "function",
+          "name": "formatMeasurementFromInches"
+        },
+        {
+          "kind": "function",
+          "name": "formatFeetInches"
+        }
+      ]
+    },
+    {
+      "file": "engine/openingEngine.ts",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "getDoorPlacementOnWall"
+        },
+        {
+          "kind": "function",
+          "name": "getDoorGeometry"
+        },
+        {
+          "kind": "function",
+          "name": "getDoorMenuPosition"
+        },
+        {
+          "kind": "function",
+          "name": "snapStructureCenterDistanceToNeighbor"
+        },
+        {
+          "kind": "function",
+          "name": "getWindowPlacementOnWall"
+        },
+        {
+          "kind": "function",
+          "name": "getWindowPlacementPreviewForPoint"
+        },
+        {
+          "kind": "function",
+          "name": "getDoorPlacementPreviewForPoint"
+        },
+        {
+          "kind": "function",
+          "name": "getWindowPlacementFromWall"
+        },
+        {
+          "kind": "function",
+          "name": "getWindowGeometry"
+        },
+        {
+          "kind": "function",
+          "name": "getWindowTabSideFacingMeasurementGuide"
+        },
+        {
+          "kind": "function",
+          "name": "getWindowMenuPosition"
+        },
+        {
+          "kind": "function",
+          "name": "getStructureGuideSideForWall"
+        },
+        {
+          "kind": "function",
+          "name": "measurementSideMatchesStructureGuide"
+        },
+        {
+          "kind": "function",
+          "name": "segmentMatchesWall"
+        },
+        {
+          "kind": "function",
+          "name": "areWindowsEqual"
+        },
+        {
+          "kind": "function",
+          "name": "areDoorsEqual"
+        }
+      ]
+    },
+    {
+      "file": "engine/placementClassification.ts",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "getSupportTypeForCategory"
+        },
+        {
+          "kind": "function",
+          "name": "getDefaultPlacementImageForCategory"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementImage"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementCategoryForImage"
+        },
+        {
+          "kind": "function",
+          "name": "isProductPlacementImage"
+        },
+        {
+          "kind": "function",
+          "name": "isAccessoryPlacementImage"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementElementTypeForImage"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementElementTypeForCatalogItem"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementElementType"
+        },
+        {
+          "kind": "function",
+          "name": "withPlacementElementType"
+        },
+        {
+          "kind": "function",
+          "name": "isCabinetElement"
+        },
+        {
+          "kind": "function",
+          "name": "isProductElement"
+        },
+        {
+          "kind": "function",
+          "name": "isAccessoryElement"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementSupportType"
+        },
+        {
+          "kind": "function",
+          "name": "isFloorStandingPlacement"
+        },
+        {
+          "kind": "function",
+          "name": "isElevationFloatingPlacement"
+        },
+        {
+          "kind": "function",
+          "name": "placementHasToeKick"
+        },
+        {
+          "kind": "function",
+          "name": "isStandaloneBaseProductElevationImage"
+        },
+        {
+          "kind": "function",
+          "name": "isFillerAccessoryPlacementImage"
+        }
+      ]
+    },
+    {
+      "file": "engine/wallEngine.ts",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "isPeninWall"
+        },
+        {
+          "kind": "function",
+          "name": "isIslandWall"
+        },
+        {
+          "kind": "function",
+          "name": "isDetachedPanelWall"
+        },
+        {
+          "kind": "function",
+          "name": "isThinWall"
+        },
+        {
+          "kind": "function",
+          "name": "isThickWall"
+        },
+        {
+          "kind": "function",
+          "name": "isDrawingTool"
+        },
+        {
+          "kind": "function",
+          "name": "canConvertThinWallSelection"
+        },
+        {
+          "kind": "function",
+          "name": "getConnectedWallComponents"
+        },
+        {
+          "kind": "function",
+          "name": "convertThinWallsToThickWalls"
+        },
+        {
+          "kind": "function",
+          "name": "tuneConvertedWallsToThinGuideLengths"
+        },
+        {
+          "kind": "function",
+          "name": "fitConvertedComponentToThinGuideLengths"
+        },
+        {
+          "kind": "function",
+          "name": "rebuildConvertedComponentWithDesiredLengths"
+        },
+        {
+          "kind": "function",
+          "name": "chooseConvertedRebuildRoot"
+        },
+        {
+          "kind": "function",
+          "name": "getConvertedTargetMeasurementSide"
+        },
+        {
+          "kind": "function",
+          "name": "moveSharedPoint"
+        },
+        {
+          "kind": "function",
+          "name": "getThickWallCenterlineFromThinGuide"
+        },
+        {
+          "kind": "function",
+          "name": "getWallSideMeasurementLayout"
+        },
+        {
+          "kind": "function",
+          "name": "getMeasurementGuideAnchor"
+        },
+        {
+          "kind": "function",
+          "name": "getConnectedDirectionsAtPoint"
+        },
+        {
+          "kind": "function",
+          "name": "findMatchingDirectionIndex"
+        },
+        {
+          "kind": "function",
+          "name": "getMiterAnchorForDirectionPair"
+        },
+        {
+          "kind": "function",
+          "name": "getRayExitDistanceFromPolygon"
+        },
+        {
+          "kind": "function",
+          "name": "isPointInPolygon"
+        },
+        {
+          "kind": "function",
+          "name": "getConvertedWallDisplayLength"
+        },
+        {
+          "kind": "function",
+          "name": "getConvertedMeasurementRunDisplayLength"
+        },
+        {
+          "kind": "function",
+          "name": "getMergedMeasurementLayout"
+        },
+        {
+          "kind": "function",
+          "name": "shouldMergeMeasurementRun"
+        },
+        {
+          "kind": "function",
+          "name": "isMultiWallMeasurementJunction"
+        },
+        {
+          "kind": "function",
+          "name": "getExteriorMeasurementSide"
+        },
+        {
+          "kind": "function",
+          "name": "resizeWallFromMeasurement"
+        },
+        {
+          "kind": "function",
+          "name": "formatFeetInchesForInput"
+        },
+        {
+          "kind": "function",
+          "name": "formatFeetInchesParts"
+        },
+        {
+          "kind": "function",
+          "name": "parseFeetInchesToPixels"
+        },
+        {
+          "kind": "function",
+          "name": "areWallsEqual"
+        },
+        {
+          "kind": "function",
+          "name": "buildWallChains"
+        },
+        {
+          "kind": "function",
+          "name": "getWallSegmentBlackDotGeometry"
+        },
+        {
+          "kind": "function",
+          "name": "buildBlackDotWallBand"
+        },
+        {
+          "kind": "function",
+          "name": "buildWallBand"
+        },
+        {
+          "kind": "function",
+          "name": "buildOffsetSide"
+        },
+        {
+          "kind": "function",
+          "name": "lineIntersection"
+        },
+        {
+          "kind": "function",
+          "name": "getEdgeMeasurementLayout"
+        },
+        {
+          "kind": "function",
+          "name": "getThinWallMeasurementLayout"
+        },
+        {
+          "kind": "function",
+          "name": "getMeasurementLayout"
+        },
+        {
+          "kind": "function",
+          "name": "getAngleGuideLayout"
+        },
+        {
+          "kind": "function",
+          "name": "describeHalfArc"
+        },
+        {
+          "kind": "function",
+          "name": "normalizeWallJunctions"
+        },
+        {
+          "kind": "function",
+          "name": "snapEndpointsToNearbyInteriorSegments"
+        },
+        {
+          "kind": "function",
+          "name": "pointIsInteriorToSegment"
+        },
+        {
+          "kind": "function",
+          "name": "areWallsEqualLoose"
+        },
+        {
+          "kind": "function",
+          "name": "getMultiConnectedEndpoints"
+        },
+        {
+          "kind": "function",
+          "name": "getConnectedWallDirectionsAtPoint"
+        },
+        {
+          "kind": "function",
+          "name": "buildConnectionMap"
+        },
+        {
+          "kind": "function",
+          "name": "getOpenEndpoints"
+        },
+        {
+          "kind": "function",
+          "name": "touchesAnotherWallInterior"
+        },
+        {
+          "kind": "function",
+          "name": "getConnectedEndpoints"
+        },
+        {
+          "kind": "function",
+          "name": "getWallEndpoints"
+        },
+        {
+          "kind": "function",
+          "name": "uniquePoints"
+        },
+        {
+          "kind": "function",
+          "name": "isConnected"
+        },
+        {
+          "kind": "function",
+          "name": "splitConnectedWallsAndAddWall"
+        },
+        {
+          "kind": "function",
+          "name": "splitWallsAtInteriorPoint"
+        },
+        {
+          "kind": "function",
+          "name": "pointIsInsideWallSegment"
+        },
+        {
+          "kind": "function",
+          "name": "getClosestEndpointPoint"
+        },
+        {
+          "kind": "function",
+          "name": "closestPointOnSegment"
+        },
+        {
+          "kind": "function",
+          "name": "snapToGrid"
+        }
+      ]
+    },
+    {
+      "file": "services/fileJson.ts",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "downloadJsonFile"
+        },
+        {
+          "kind": "function",
+          "name": "readJsonFile"
+        },
+        {
+          "kind": "function",
+          "name": "readUnknownJsonFile"
+        }
+      ]
+    },
+    {
+      "file": "services/importedKitchenPlan.ts",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "toImportedKitchenNumber"
+        },
+        {
+          "kind": "function",
+          "name": "normalizeImportedKitchenPlacement"
+        },
+        {
+          "kind": "function",
+          "name": "normalizeImportedKitchenPlan"
+        }
+      ]
+    },
+    {
+      "file": "services/smartKitchenExport.ts",
+      "exports": [
+        {
+          "kind": "function",
+          "name": "buildSmartInputCatalog"
+        },
+        {
+          "kind": "function",
+          "name": "withSmartInputCatalog"
+        },
+        {
+          "kind": "const",
+          "name": "AI_WALL_MATCH_TOLERANCE"
+        },
+        {
+          "kind": "function",
+          "name": "pointsAlmostEqualForAiWall"
+        },
+        {
+          "kind": "function",
+          "name": "wallsMatchForAiSelection"
+        },
+        {
+          "kind": "function",
+          "name": "roundSmartWallWidthInches"
+        },
+        {
+          "kind": "function",
+          "name": "roundSmartObjectInches"
+        },
+        {
+          "kind": "function",
+          "name": "getEditorElevationWallWidthInches"
+        },
+        {
+          "kind": "function",
+          "name": "findEditorWallForAiWall"
+        },
+        {
+          "kind": "function",
+          "name": "getEditorPlacementTopOption"
+        },
+        {
+          "kind": "function",
+          "name": "getPlacementCatalogItemByIdentity"
+        },
+        {
+          "kind": "function",
+          "name": "getEditorPlacementCatalogItem"
+        },
+        {
+          "kind": "function",
+          "name": "formatDimensionOptionNumber"
+        },
+        {
+          "kind": "function",
+          "name": "getCatalogDimensionOptions"
+        },
+        {
+          "kind": "function",
+          "name": "exportAiRoomInputFromEditor"
+        },
+        {
+          "kind": "function",
+          "name": "matchesDimensionOption"
+        },
+        {
+          "kind": "function",
+          "name": "getDefaultDimensionFromOptions"
+        },
+        {
+          "kind": "function",
+          "name": "getEditorElevationFixedObjectsForWall"
+        },
+        {
+          "kind": "function",
+          "name": "addEditorElevationWidthsToRoom"
+        }
+      ]
+    },
+    {
+      "file": "types/editorTypes.ts",
+      "exports": [
+        {
+          "kind": "type",
+          "name": "Panel"
+        },
+        {
+          "kind": "type",
+          "name": "Tool"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementCategory"
+        },
+        {
+          "kind": "type",
+          "name": "ProductCategory"
+        },
+        {
+          "kind": "type",
+          "name": "ObjectSupportType"
+        },
+        {
+          "kind": "type",
+          "name": "OvenCabinetProductLayout"
+        },
+        {
+          "kind": "type",
+          "name": "MeasurementDisplayUnit"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementImage"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementDimensionSet"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementCatalogItem"
+        },
+        {
+          "kind": "type",
+          "name": "PlanViewMode"
+        },
+        {
+          "kind": "type",
+          "name": "WallElevationViewMode"
+        },
+        {
+          "kind": "type",
+          "name": "WallPlacementMode"
+        },
+        {
+          "kind": "type",
+          "name": "SidebarItem"
+        },
+        {
+          "kind": "type",
+          "name": "Point"
+        },
+        {
+          "kind": "type",
+          "name": "WallKind"
+        },
+        {
+          "kind": "type",
+          "name": "Wall"
+        },
+        {
+          "kind": "type",
+          "name": "WindowElement"
+        },
+        {
+          "kind": "type",
+          "name": "DoorElement"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementElementKind"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementElementBase"
+        },
+        {
+          "kind": "type",
+          "name": "CabinetElement"
+        },
+        {
+          "kind": "type",
+          "name": "ProductElement"
+        },
+        {
+          "kind": "type",
+          "name": "AccessoryElement"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementElement"
+        },
+        {
+          "kind": "type",
+          "name": "WindowSelectionDetail"
+        },
+        {
+          "kind": "type",
+          "name": "DoorSelectionDetail"
+        },
+        {
+          "kind": "type",
+          "name": "WallSelectionDetail"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementSelectionDetail"
+        },
+        {
+          "kind": "type",
+          "name": "WindowPlacementPreview"
+        },
+        {
+          "kind": "type",
+          "name": "DoorPlacementPreview"
+        },
+        {
+          "kind": "type",
+          "name": "StructurePlacementSnapOptions"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementPreview"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementDragState"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementRotateState"
+        },
+        {
+          "kind": "type",
+          "name": "WindowDragState"
+        },
+        {
+          "kind": "type",
+          "name": "DoorDragState"
+        },
+        {
+          "kind": "type",
+          "name": "ElevationDragState"
+        },
+        {
+          "kind": "type",
+          "name": "ElevationAlignmentGuide"
+        },
+        {
+          "kind": "type",
+          "name": "ElevationObjectBox"
+        },
+        {
+          "kind": "type",
+          "name": "EditorSnapshot"
+        },
+        {
+          "kind": "type",
+          "name": "GuideInfo"
+        },
+        {
+          "kind": "type",
+          "name": "ArcMode"
+        },
+        {
+          "kind": "type",
+          "name": "ConnectionMap"
+        },
+        {
+          "kind": "type",
+          "name": "WallSegmentBlackDotGeometry"
+        },
+        {
+          "kind": "type",
+          "name": "WallBandGeometry"
+        },
+        {
+          "kind": "type",
+          "name": "MeasurementLayout"
+        },
+        {
+          "kind": "type",
+          "name": "MenuDragState"
+        },
+        {
+          "kind": "type",
+          "name": "GroupDragState"
+        },
+        {
+          "kind": "type",
+          "name": "PeninWallDragState"
+        },
+        {
+          "kind": "type",
+          "name": "PeninWallRotateState"
+        },
+        {
+          "kind": "type",
+          "name": "PeninWallResizeState"
+        },
+        {
+          "kind": "type",
+          "name": "SelectionRect"
+        },
+        {
+          "kind": "type",
+          "name": "GroupContextMenuState"
+        },
+        {
+          "kind": "type",
+          "name": "MeasurementSide"
+        },
+        {
+          "kind": "type",
+          "name": "WallFaceSide"
+        },
+        {
+          "kind": "type",
+          "name": "ThickWallCreationMode"
+        },
+        {
+          "kind": "type",
+          "name": "MeasurementEditState"
+        },
+        {
+          "kind": "type",
+          "name": "MeasurementClickPayload"
+        },
+        {
+          "kind": "type",
+          "name": "ImportedKitchenPlacement"
+        },
+        {
+          "kind": "type",
+          "name": "ImportedKitchenWallPlan"
+        },
+        {
+          "kind": "type",
+          "name": "ImportedKitchenPlan"
+        },
+        {
+          "kind": "type",
+          "name": "SmartElevationFixedObject"
+        },
+        {
+          "kind": "type",
+          "name": "AiRoomWallWithEditorElevationData"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementElevationItem"
+        },
+        {
+          "kind": "type",
+          "name": "ElevationOpeningLayout"
+        },
+        {
+          "kind": "type",
+          "name": "PeninWallElevationPlacement"
+        },
+        {
+          "kind": "type",
+          "name": "ElevationWallAxis"
+        },
+        {
+          "kind": "type",
+          "name": "ElevationWallDistanceContext"
+        },
+        {
+          "kind": "type",
+          "name": "ElevationObjectDistanceMetrics"
+        },
+        {
+          "kind": "type",
+          "name": "ElevationWallInteriorSpan"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementWallAttachment"
+        },
+        {
+          "kind": "type",
+          "name": "WallPlacementStackPlacementResult"
+        },
+        {
+          "kind": "type",
+          "name": "ElevationCornerReservationSeverity"
+        },
+        {
+          "kind": "type",
+          "name": "ElevationCornerReservation"
+        },
+        {
+          "kind": "type",
+          "name": "JunctionArm"
+        },
+        {
+          "kind": "type",
+          "name": "JunctionMarkerSegment"
+        },
+        {
+          "kind": "type",
+          "name": "JunctionMarkerCandidate"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementDistanceMetric"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementWallSideGuideLine"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementWallFacingResolution"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementEdgeSnapOptions"
+        },
+        {
+          "kind": "type",
+          "name": "PlacementElevationPairOverlap"
+        }
+      ]
+    }
+  ]
+}

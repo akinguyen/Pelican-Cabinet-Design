@@ -1,70 +1,103 @@
 Rule file: Main object placement
 
-Use this file after wall understanding and corner resolution are complete.
+Use this after wall understanding, zone planning, and corner resolution.
 
-Kitchen design process detail:
-1. Identify the kitchen shape from real wall geometry.
-2. Establish the main work triangle and zones.
-3. Solve inside corners first.
-4. Place main appliances and zone anchors.
-5. Work outward to complete the cabinet runs.
-6. Add fillers intentionally.
-7. Add end panels intentionally.
-8. Perform final refinement and validation.
+Process:
+1. Place required blind-corner cabinets and their actual filler placement objects first. Do not leave required blind-corner filler clearance as notes or empty space.
+2. Place main appliances and zone anchors: refrigerator, sink/dishwasher, range/cooktop, hood/microwave, pantry stacks.
+3. Work outward from corners, appliances, and focal points.
+4. Fill remaining usable cabinet-sized spaces with standard catalog cabinets.
+5. Add end panels and allowed fillers only after the main layout is stable.
+6. Validate elevation fit and floor-plan fit.
 
 Catalog discipline:
 - Use only catalog IDs from the provided catalog.
-- Respect item type: cabinet, product, or accessory.
+- Respect catalog item type: cabinet, product, or accessory.
 - Respect category: base or wall.
-- Respect available standard width, height, and depth options when dimensions are not flexible.
-- Do not invent random cabinet or product sizes when catalog options can solve the placement.
+- Respect standard width, height, and depth options for normal cabinets/products.
+- Do not invent random cabinet/product dimensions when a catalog option can solve the space.
 
 General placement rules:
-- Keep runs closed and intentional.
-- Avoid random gaps.
-- Keep objects aligned in a visually clean way.
-- Avoid blocked doors, blocked drawers, and unusable corners.
-- Keep upper cabinets visually aligned with base cabinets and products when appropriate.
-- Use matching or visually similar widths around important focal objects when that improves balance.
-- Keep cabinets directly next to each other unless a filler, panel, appliance, or required clearance condition is the reason for separation.
+- Keep runs intentional and visually clean.
+- Keep cabinets directly next to each other unless a real filler, panel, appliance, protected clearance, or fixed object separates them.
+No leftover-gap-first rule:
+- Cabinets/products in the same tier should stay directly next to each other whenever buildable.
+- Do not accept a leftover, sub-standard, or non-cabinet-sized gap between two cabinets/products just because the first size combination does not fit.
+- Before leaving any leftover gap between two placements, exhaust reasonable standard redesign options:
+  1. Recombine adjacent standard cabinet widths.
+  2. Swap one-door, two-door, drawer, sink, trash, spice, pantry, or other suitable standard cabinet types when the zone still works.
+  3. Change nearby standard cabinet widths while keeping appliances and corner rules valid.
+  4. For a blind-corner run, try every valid standard blind cabinet width and realistic `builtInFillerWidthInches` adjustment that keeps the blind part matched to the perpendicular depth.
+  5. Shift a blind cabinet start only when the full corner geometry, filler clearance, visible range, blind range, and wall-span fit remain valid.
+  6. Try a different available perpendicular cabinet/product depth if that helps the blind part and the adjacent run fit cleanly.
+  7. Rebalance the whole run from the corner, appliance, or focal anchor instead of patching the leftover with an invalid filler.
+- A remaining gap is allowed only after every buildable standard option fails, the gap is not a cabinet-sized opportunity, and wall notes explain the exact reason it must remain.
+- Do not write notes such as "sub-standard gap remains" unless the final self-check proves no valid standard-width or blind-width redesign can remove it.
 
-Placement requirements:
-- Every normal cabinet/product placement should include:
-  - `catalogId`
-  - `wallFace`
-  - `leftInches`
-  - `bottomInches`
-  - `widthInches`
-  - `depthInches`
-  - `heightInches`
-  - `topOption`
-  - `notes`
-- Every filler/end-panel placement should also use the same width/height/depth naming.
-- Every blind cabinet placement should include the built-in filler width field.
-- Floor-standing items normally use `bottomInches: 0`.
-- Wall-mounted items should use a consistent mounting height, typically around `bottomInches: 54`.
+- Avoid blocked doors, blocked drawers, blocked appliances, and unusable corners.
+- Align upper cabinets with base cabinets/products when practical, but do not waste usable upper space just to match a deeper base setback.
+- Use visually balanced widths around focal objects such as range/hood groups when possible.
+
+Required placement fields:
+Every placement should include:
+- catalogId
+- wallFace
+- leftInches
+- bottomInches
+- widthInches
+- depthInches
+- heightInches
+- topOption
+- notes
+
+Additional placement rules:
+- Blind cabinets must include builtInFillerWidthInches.
+- Every blind cabinet that connects to a perpendicular run must have a separate actual filler placement object for blind-corner clearance in the same tier: `accessory-base-filler` for base and `accessory-wall-filler` for wall/upper.
+- Floor-standing items normally use bottomInches: 0.
+- Wall-mounted items usually use bottomInches: 54 unless another height is required.
 - Use the term pantry cabinet, not tall cabinet.
-- Pantry cabinets may be stacked by repeating pantry catalog IDs at different `bottomInches`.
+- Pantry cabinets may be stacked by repeating pantry catalog IDs at different bottomInches.
 
-Dimension naming:
-- `widthInches` means wall-span width.
-- `depthInches` means projection away from the wall.
-- `heightInches` means vertical height from `bottomInches`.
+Dimension meanings:
+- widthInches = left-to-right span along the selected wall face.
+- depthInches = projection away from the wall.
+- heightInches = vertical height from bottomInches upward.
 
-Appliance workflow reminders:
-- Keep hood or microwave aligned and centered with the cooking appliance unless a fixed condition prevents it.
-- Keep dishwasher beside the sink when possible.
-- Avoid awkward narrow base cabinets beside refrigerators.
-- Use pantry cabinets, fillers, panels, or over-refrigerator storage instead of forcing awkward refrigerator-side cabinets.
+Appliance workflow:
+- Place dishwasher directly beside sink when possible.
+- Center hood or microwave over the range/cooktop when possible.
+- Avoid narrow awkward base cabinets beside refrigerators.
+- Use pantry cabinets, panels, or over-refrigerator storage instead of forcing bad refrigerator-side fillers or tiny cabinets.
 
-Special object notes:
-- Base cabinets usually have toe-kick behavior.
-- Base products do not automatically behave like base cabinets just because they are in the base category.
-- Base accessories do not automatically behave like base cabinets either.
-- Wall objects rely on `bottomInches` for vertical placement.
-
-Validation:
-- Check wall span before placing each object.
-- Check floor-plan overlap, not only elevation fit.
+Floor-plan validation:
+- Check wall span before each placement.
+- Check same-wall elevation overlap.
+- Check floor-plan footprint overlap at corners and perpendicular runs.
+- Check that every blind-corner filler clearance is represented by an actual filler placement before filling normal cabinet gaps.
 - Keep fixed objects untouched.
-- If a placement breaks function or geometry, change the layout instead of forcing it.
+- If a placement breaks function or geometry, redesign the layout instead of forcing it.
+
+Usable empty-space fill pass:
+After corners, appliances, fillers, and main cabinets are placed, check each wall face and each vertical tier separately.
+
+How to fill empty spaces:
+- Sort placements by leftInches for the tier.
+- Identify gaps between cabinets, products, appliances, protected corner areas, fixed objects, panels, and run ends.
+- A gap is usable if it does not belong to protected corner clearance, appliance clearance, fixed-object clearance, or an intentional opening.
+- If a usable gap is at least the smallest standard cabinet width for that tier, fill it with a cabinet whenever possible.
+- For wall gaps, prefer wall-one-door-cabinet or wall-two-door-cabinet.
+- For base gaps, prefer base-one-door-cabinet, base-two-door-cabinet, base-drawer-cabinet, base-spice-rack-cabinet, or another suitable base cabinet.
+- Choose combinations that use standard sizes and keep the run visually clean.
+
+When a gap may remain empty:
+- It is smaller than any usable catalog cabinet.
+- It is required protected blind-corner clearance.
+- It is required appliance clearance.
+- It is an intentional room opening or non-connecting wall endpoint.
+- Filling it would block a cabinet, drawer, appliance, fixed object, or access path.
+- Wall notes explain why it remains empty.
+
+Invalid empty-space choices:
+- Leaving a 9, 12, 15, 18, 21, or 24 inch wall/upper gap empty when a standard wall cabinet fits.
+- Leaving a standard-width base gap empty when a standard base cabinet fits.
+- Using a filler or empty gap as a substitute for a cabinet-sized storage opportunity.
