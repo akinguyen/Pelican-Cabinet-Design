@@ -8,6 +8,7 @@ export interface SmartKitchenImagePromptInput {
   readonly conceptIndex?: number;
   readonly conceptCount?: number;
   readonly imagesPerConcept?: number;
+  readonly imageIndex?: number;
 }
 
 export const SMART_KITCHEN_IMAGE_SYSTEM_PROMPT = [
@@ -30,17 +31,21 @@ export function buildSmartKitchenImagePrompt({
   conceptIndex,
   conceptCount = 5,
   imagesPerConcept = 3,
+  imageIndex,
 }: SmartKitchenImagePromptInput): string {
   const instructionText = userInstructions.trim();
   const hasConceptContext = typeof conceptIndex === 'number';
+  const hasImageContext = typeof imageIndex === 'number';
 
   return [
     'Smart Kitchen generation brief:',
     `Project ID: ${projectId}`,
     `Attached file: ${attachedFileName}`,
     hasConceptContext ? `Concept focus: Concept ${conceptIndex + 1} of ${conceptCount}` : `Concepts requested: ${conceptCount}`,
-    hasConceptContext
-      ? `Generate exactly ${imagesPerConcept} standalone images for this concept.`
+    hasImageContext
+      ? `Image focus: Image ${imageIndex + 1} of ${imagesPerConcept} for this concept.`
+      : hasConceptContext
+        ? `Generate exactly ${imagesPerConcept} standalone images for this concept.`
       : `Generate exactly ${conceptCount * imagesPerConcept} standalone images grouped as ${conceptCount} concepts with ${imagesPerConcept} images per concept.`,
     '',
     'System guidance:',

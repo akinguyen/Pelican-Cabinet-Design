@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import type { AiRoomInput } from '../../../lib/ai/types';
+import type { AiRoomInput, GeneratedKitchenLayout } from '../../../lib/ai/types';
 import {
   buildSmartKitchenImagePrompt,
   SMART_KITCHEN_IMAGE_SYSTEM_PROMPT,
@@ -29,12 +29,19 @@ type OpenAiImagesGenerationResponse = {
   };
 };
 
+type SmartKitchenLayoutResponse = {
+  readonly layout?: GeneratedKitchenLayout;
+  readonly error?: string;
+};
+
 interface GeneratedSmartKitchenImageResponseItem {
   readonly id: string;
   readonly imageUrl: string;
   readonly mimeType: string;
   readonly conceptIndex: number;
   readonly conceptLabel: string;
+  readonly imageIndex: number;
+  readonly imageLabel: string;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -50,6 +57,8 @@ function normalizeImageItem(
   index: number,
   conceptIndex: number,
   conceptLabel: string,
+  imageIndex: number,
+  imageLabel: string,
 ): GeneratedSmartKitchenImageResponseItem & { readonly revisedPrompt?: string } {
   const mimeType = item.mime_type ?? 'image/png';
   const imageUrl = item.b64_json ? toDataUrl(item.b64_json, mimeType) : item.url ?? '';
@@ -60,6 +69,8 @@ function normalizeImageItem(
     mimeType,
     conceptIndex,
     conceptLabel,
+    imageIndex,
+    imageLabel,
     revisedPrompt: item.revised_prompt,
   };
 }
@@ -69,6 +80,8 @@ async function generateImagesForConcept(
   prompt: string,
   conceptIndex: number,
   conceptLabel: string,
+  imageIndex: number,
+  imageLabel: string,
 ): Promise<readonly GeneratedSmartKitchenImageResponseItem[]> {
   const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
@@ -79,7 +92,7 @@ async function generateImagesForConcept(
     body: JSON.stringify({
       model: process.env.OPENAI_SMART_KITCHEN_IMAGE_MODEL ?? 'gpt-image-2',
       prompt,
-      n: 3,
+      n: 1,
       size: '1024x1024',
     }),
   });
@@ -102,8 +115,47 @@ async function generateImagesForConcept(
   const data = payload.data ?? [];
 
   return data
-    .map((item, index) => normalizeImageItem(item, index, conceptIndex, conceptLabel))
+    .map((item, index) => normalizeImageItem(item, index, conceptIndex, conceptLabel, imageIndex, imageLabel))
     .filter((image) => image.imageUrl.length > 0);
+}
+
+async function generateSmartKitchenLayoutFromRoom(
+  requestUrl: string,
+  room: AiRoomInput,
+  userInstructions: string,
+): Promise<GeneratedKitchenLayout> {
+  const response = await fetch(new URL('/api/smart-kitchen', requestUrl), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      room,
+      designerFeedback: userInstructions,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    const errorPayload = (() => {
+      try {
+        return JSON.parse(errorText) as SmartKitchenLayoutResponse;
+      } catch {
+        return null;
+      }
+    })();
+    const errorMessage = errorPayload?.error ?? (errorText || 'Smart kitchen layout generation failed.');
+
+    throw new Error(errorMessage);
+  }
+
+  const payload = (await response.json()) as SmartKitchenLayoutResponse;
+
+  if (!payload.layout) {
+    throw new Error('Smart kitchen layout generation failed.');
+  }
+
+  return payload.layout;
 }
 
 export async function POST(request: Request) {
@@ -144,10 +196,12 @@ export async function POST(request: Request) {
     );
   }
 
+  const generatedLayout = await generateSmartKitchenLayoutFromRoom(request.url, room, userInstructions);
+  const generatedRoom = generatedLayout.room;
   const prompt = buildSmartKitchenImagePrompt({
     projectId,
     attachedFileName,
-    room,
+    room: generatedRoom,
     userInstructions,
     conceptCount: 5,
     imagesPerConcept: 3,
@@ -158,18 +212,29 @@ export async function POST(request: Request) {
 
   for (let conceptIndex = 0; conceptIndex < conceptCount; conceptIndex += 1) {
     const conceptLabel = `Concept ${conceptIndex + 1}`;
-    const conceptPrompt = buildSmartKitchenImagePrompt({
-      projectId,
-      attachedFileName,
-      room,
-      userInstructions,
-      conceptIndex,
-      conceptCount,
-      imagesPerConcept,
-    });
+    for (let imageIndex = 0; imageIndex < imagesPerConcept; imageIndex += 1) {
+      const imageLabel = `Image ${imageIndex + 1}`;
+      const conceptPrompt = buildSmartKitchenImagePrompt({
+        projectId,
+        attachedFileName,
+        room: generatedRoom,
+        userInstructions,
+        conceptIndex,
+        conceptCount,
+        imagesPerConcept,
+        imageIndex,
+      });
 
-    const conceptImages = await generateImagesForConcept(apiKey, conceptPrompt, conceptIndex, conceptLabel);
-    images.push(...conceptImages);
+      const conceptImages = await generateImagesForConcept(
+        apiKey,
+        conceptPrompt,
+        conceptIndex,
+        conceptLabel,
+        imageIndex,
+        imageLabel,
+      );
+      images.push(...conceptImages);
+    }
   }
 
   return NextResponse.json({
@@ -177,6 +242,9 @@ export async function POST(request: Request) {
     attachedFileName,
     prompt,
     systemPrompt: SMART_KITCHEN_IMAGE_SYSTEM_PROMPT,
+    generatedLayout,
+    generatedRoom,
+    generatedRoomFileName: 'generated-smart-kitchen-room.json',
     images,
   });
 }

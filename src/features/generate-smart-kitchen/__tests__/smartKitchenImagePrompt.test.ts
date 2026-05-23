@@ -56,6 +56,6 @@ describe('Smart kitchen image prompt', () => {
     });
 
     expect(prompt).toContain('Concept focus: Concept 1 of 5');
-    expect(prompt).toContain('Generate exactly 3 standalone images for this concept.');
+    expect(prompt).toContain('Image focus: Image 1 of 3 for this concept.');
   });
 });

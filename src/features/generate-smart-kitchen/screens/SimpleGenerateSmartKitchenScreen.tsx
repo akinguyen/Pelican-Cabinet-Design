@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { PrimaryButton } from '../components/shared/PrimaryButton';
 import { KitchenImageCard } from '../components/shared/KitchenImageCard';
+import { SectionCard } from '../components/shared/SectionCard';
+import type { AiRoomInput } from '../../../../lib/ai/types';
 import {
   loadSmartKitchenWorkspaceDraft,
   type SmartKitchenWorkspaceDraft,
@@ -42,6 +44,21 @@ interface WorkspaceNavItem {
 
 function joinClassNames(...classNames: readonly (string | false | null | undefined)[]): string {
   return classNames.filter(Boolean).join(' ');
+}
+
+function downloadJsonFile(filename: string, payload: unknown): void {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.style.display = 'none';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
 }
 
 export function formatInstructionCharacterCounter(value: string): string {
@@ -260,7 +277,7 @@ function GeneratedConceptImageRow({
         </div>
       </div>
 
-      <div className="grid gap-4 p-4 pb-5 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="flex flex-row gap-4 overflow-x-auto p-4 pb-5">
         {group.images.map((image, imageIndex) => {
           const generatedImageIndex = generatedImages.findIndex((generatedImage) => generatedImage.id === image.id);
           const safeImageIndex = generatedImageIndex >= 0 ? generatedImageIndex : group.startIndex + imageIndex;
@@ -270,16 +287,16 @@ function GeneratedConceptImageRow({
               key={image.id}
               type="button"
               onClick={() => onImageClick(safeImageIndex)}
-              className="group/image overflow-hidden rounded-[18px] border border-slate-200 bg-white text-left shadow-[0_10px_24px_rgba(15,23,42,0.08)] outline-none transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.14)] focus-visible:ring-4 focus-visible:ring-[#b9f1ec]"
+              className="group/image min-w-[260px] flex-1 overflow-hidden rounded-[18px] border border-slate-200 bg-white text-left shadow-[0_10px_24px_rgba(15,23,42,0.08)] outline-none transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.14)] focus-visible:ring-4 focus-visible:ring-[#b9f1ec]"
               aria-label={`Open ${group.label} image ${imageIndex + 1}`}
             >
               <KitchenImageCard
                 imageUrl={image.imageUrl}
                 alt={`${group.label} image ${imageIndex + 1}`}
-                title={`Image ${imageIndex + 1}`}
-                subtitle={group.label}
+                title={image.imageLabel ?? `Image ${imageIndex + 1}`}
+                subtitle={image.conceptLabel ?? group.label}
                 className="border-none shadow-none"
-                imageClassName="transition duration-300 group-hover/image:scale-[1.02]"
+                imageClassName="h-auto w-full transition duration-300 group-hover/image:scale-[1.02]"
                 imgProps={{
                   loading: 'lazy',
                 }}
@@ -300,6 +317,8 @@ export function SimpleGenerateSmartKitchenScreen({
   const [draft, setDraft] = useState<SmartKitchenWorkspaceDraft | null>(initialDraft);
   const [instructions, setInstructions] = useState('');
   const [generatedImages, setGeneratedImages] = useState<readonly GeneratedSmartKitchenImage[]>([]);
+  const [generatedRoom, setGeneratedRoom] = useState<AiRoomInput | null>(null);
+  const [generatedRoomFileName, setGeneratedRoomFileName] = useState('generated-smart-kitchen-room.json');
   const [selectedGeneratedImageIndex, setSelectedGeneratedImageIndex] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -402,6 +421,7 @@ export function SimpleGenerateSmartKitchenScreen({
     setIsGenerating(true);
     setErrorMessage(null);
     setGeneratedImages([]);
+    setGeneratedRoom(null);
     setSelectedGeneratedImageIndex(null);
     startGenerationProgress();
 
@@ -417,6 +437,8 @@ export function SimpleGenerateSmartKitchenScreen({
       setGenerationProgress(100);
       await new Promise((resolve) => window.setTimeout(resolve, 250));
       setGeneratedImages(result.images);
+      setGeneratedRoom(result.generatedRoom ?? result.generatedLayout?.room ?? null);
+      setGeneratedRoomFileName(result.generatedRoomFileName ?? 'generated-smart-kitchen-room.json');
     } catch (error) {
       clearProgressInterval();
       setGenerationProgress(0);
@@ -553,10 +575,22 @@ export function SimpleGenerateSmartKitchenScreen({
                 </div>
 
                 {attachment ? (
-                  <p className="mt-4 text-xs font-medium text-slate-500">
-                    Automatically attached from the editor export for project{' '}
-                    {SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID}.
-                  </p>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs font-medium text-slate-500">
+                      Automatically attached from the editor export for project{' '}
+                      {SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID}.
+                    </p>
+                    <PrimaryButton
+                      variant="secondary"
+                      onClick={() => downloadJsonFile(attachment.fileName, attachment.room)}
+                      className="h-11 rounded-xl border-slate-200 px-4 text-sm font-semibold !text-slate-700 !flex-row !items-center"
+                    >
+                      <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap">
+                        <FileText className="h-4 w-4" />
+                        <span>Download Attached File</span>
+                      </span>
+                    </PrimaryButton>
+                  </div>
                 ) : null}
               </div>
             </div>
@@ -643,6 +677,34 @@ export function SimpleGenerateSmartKitchenScreen({
                 <Sparkles className="h-4 w-4 text-[#0e8e87]" />
                 <span>These designs are AI-generated concepts based on your instructions and floor plan.</span>
               </p>
+            </section>
+          ) : null}
+
+          {generatedRoom ? (
+            <section className="mt-8 w-full max-w-[820px]">
+              <SectionCard
+                title="Generated JSON"
+                description="Download the AI-generated room data with the cabinet locations and layout summary."
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">Generated room file ready</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      This JSON can be downloaded and reused as the next AI kitchen input.
+                    </p>
+                  </div>
+                  <PrimaryButton
+                    variant="secondary"
+                    onClick={() => downloadJsonFile(generatedRoomFileName, generatedRoom)}
+                    className="h-11 rounded-xl border-slate-200 px-4 text-sm font-semibold !text-slate-700 !flex-row !items-center"
+                  >
+                    <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap">
+                      <FileText className="h-4 w-4" />
+                      <span>Download JSON</span>
+                    </span>
+                  </PrimaryButton>
+                </div>
+              </SectionCard>
             </section>
           ) : null}
         </div>
