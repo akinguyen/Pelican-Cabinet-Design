@@ -12,10 +12,9 @@ import { PLACEMENT_CATALOG } from "./data/placementCatalog";
 import { isAccessoryPlacementImage, isProductPlacementImage } from "./engine/placementClassification";
 import { clamp } from "./engine/geometry";
 import { downloadJsonFile, readJsonFile } from "./services/fileJson";
-import { SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID } from "../../../../src/features/generate-smart-kitchen/utils/workspaceDraftStorage";
 import type { PlacementCategory, PlacementSelectionDetail, DoorSelectionDetail, MeasurementDisplayUnit, Panel, PlanViewMode, Point, Tool, WallPlacementMode, WallSelectionDetail, WindowSelectionDetail } from "./types/editorTypes";
 
-export const GENERATE_SMART_KITCHEN_DRAFT_PROJECT_ID = SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID;
+export const GENERATE_SMART_KITCHEN_DRAFT_PROJECT_ID = "editor-draft";
 
 export function getGenerateSmartKitchenWorkspacePath(
   projectId: string = GENERATE_SMART_KITCHEN_DRAFT_PROJECT_ID
@@ -285,15 +284,7 @@ export default function CabinetEditorBase() {
   };
 
   const handleOpenSmartKitchenWorkspace = () => {
-    const requestDetail = { didStore: false };
-    window.dispatchEvent(
-      new CustomEvent("pelican-ai-store-smart-kitchen-workspace-draft-request", {
-        detail: requestDetail,
-      })
-    );
-    if (requestDetail.didStore) {
-      openGenerateSmartKitchenWorkspace();
-    }
+    openGenerateSmartKitchenWorkspace();
   };
 
   return (

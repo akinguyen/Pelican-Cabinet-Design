@@ -22,11 +22,6 @@ import { areWallsEqual, buildConnectionMap, buildWallChains, canConvertThinWallS
 import { downloadJsonFile, readUnknownJsonFile } from "../../services/fileJson";
 import { normalizeImportedKitchenPlan } from "../../services/importedKitchenPlan";
 import { addEditorElevationWidthsToRoom, exportAiRoomInputFromEditor, getEditorPlacementCatalogItem, withSmartInputCatalog } from "../../services/smartKitchenExport";
-import {
-  SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID,
-  createSmartKitchenWorkspaceDraft,
-  saveSmartKitchenWorkspaceDraft,
-} from "../../../../../../src/features/generate-smart-kitchen/utils/workspaceDraftStorage";
 import type { PlacementCatalogItem, PlacementCategory, PlacementDimensionSet, PlacementDragState, PlacementElement, PlacementPreview, PlacementRotateState, DoorDragState, DoorElement, DoorPlacementPreview, EditorSnapshot, GroupContextMenuState, GroupDragState, GuideInfo, ImportedKitchenPlacement, MeasurementClickPayload, MeasurementEditState, MeasurementSide, MenuDragState, OvenCabinetProductLayout, PeninWallDragState, PeninWallResizeState, PeninWallRotateState, PlanViewMode, Point, ThickWallCreationMode, Tool, Wall, WallPlacementMode, WallPlacementStackPlacementResult, WallElevationViewMode, WallFaceSide, WindowDragState, WindowElement, WindowPlacementPreview } from "../../types/editorTypes";
 
 export function CanvasArea({
@@ -199,23 +194,6 @@ export function CanvasArea({
     setEditorAlert({ title, message });
   }, []);
 
-  const buildSmartKitchenRoomExport = useCallback(() => {
-    return addEditorElevationWidthsToRoom(
-      withSmartInputCatalog(
-        exportAiRoomInputFromEditor({
-          walls: wallsRef.current,
-          windows: windowsRef.current,
-          doors: doorsRef.current,
-          placements: placementsRef.current,
-        })
-      ),
-      wallsRef.current,
-      placementsRef.current,
-      windowsRef.current,
-      doorsRef.current
-    );
-  }, []);
-
   useEffect(() => {
     smartKitchenFeedbackRef.current = smartKitchenFeedback;
   }, [smartKitchenFeedback]);
@@ -258,7 +236,14 @@ export function CanvasArea({
 
   useEffect(() => {
     const handleExportRoomRequest = () => {
-      const room = buildSmartKitchenRoomExport();
+      const room = withSmartInputCatalog(
+        exportAiRoomInputFromEditor({
+          walls: wallsRef.current,
+          windows: windowsRef.current,
+          doors: doorsRef.current,
+          placements: placementsRef.current,
+        })
+      );
 
       if (room.walls.length === 0) {
         showEditorAlert(
@@ -276,47 +261,7 @@ export function CanvasArea({
     return () => {
       window.removeEventListener("pelican-ai-export-room-request", handleExportRoomRequest);
     };
-  }, [buildSmartKitchenRoomExport, showEditorAlert]);
-
-  useEffect(() => {
-    const handleStoreSmartKitchenWorkspaceDraftRequest = (
-      event: Event
-    ) => {
-      const customEvent = event as CustomEvent<{ didStore: boolean }>;
-      const room = buildSmartKitchenRoomExport();
-
-      if (room.walls.length === 0) {
-        showEditorAlert(
-          "Draw thin walls and convert them into thick walls first, then open the Smart Kitchen workspace.",
-          "Workspace handoff blocked"
-        );
-        return;
-      }
-
-      saveSmartKitchenWorkspaceDraft(
-        createSmartKitchenWorkspaceDraft(room, {
-          projectId: SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID,
-          fileName: "pelican-smart-kitchen-editor-room-export.json",
-        })
-      );
-
-      if (customEvent.detail) {
-        customEvent.detail.didStore = true;
-      }
-    };
-
-    window.addEventListener(
-      "pelican-ai-store-smart-kitchen-workspace-draft-request",
-      handleStoreSmartKitchenWorkspaceDraftRequest
-    );
-
-    return () => {
-      window.removeEventListener(
-        "pelican-ai-store-smart-kitchen-workspace-draft-request",
-        handleStoreSmartKitchenWorkspaceDraftRequest
-      );
-    };
-  }, [buildSmartKitchenRoomExport, showEditorAlert]);
+  }, [showEditorAlert]);
 
   const thickWalls = useMemo(() => walls.filter(isThickWall), [walls]);
   const structuralThickWalls = useMemo(() => thickWalls.filter((wall) => !isDetachedPanelWall(wall)), [thickWalls]);
