@@ -46,6 +46,7 @@ describe('Simple Generate Smart Kitchen screen', () => {
     expect(markup).toContain('Download Attached File');
     expect(markup).toContain('Instructions');
     expect(markup).toContain('0 / 1000');
+    expect(markup).toContain('Placeholder image mode');
     expect(markup).toContain('Generate Images');
   });
 

@@ -10,6 +10,7 @@ import {
   FileText,
   FolderOpen,
   Heart,
+  ImageIcon,
   House,
   LogOut,
   Settings2,
@@ -18,9 +19,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { PrimaryButton } from '../components/shared/PrimaryButton';
-import { KitchenImageCard } from '../components/shared/KitchenImageCard';
-import { SectionCard } from '../components/shared/SectionCard';
-import type { AiRoomInput } from '../../../../lib/ai/types';
 import {
   loadSmartKitchenWorkspaceDraft,
   type SmartKitchenWorkspaceDraft,
@@ -44,21 +42,6 @@ interface WorkspaceNavItem {
 
 function joinClassNames(...classNames: readonly (string | false | null | undefined)[]): string {
   return classNames.filter(Boolean).join(' ');
-}
-
-function downloadJsonFile(filename: string, payload: unknown): void {
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.style.display = 'none';
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => {
-    URL.revokeObjectURL(url);
-  }, 1000);
 }
 
 export function formatInstructionCharacterCounter(value: string): string {
@@ -90,18 +73,6 @@ function WorkspaceNavLink({ label, icon: Icon, isActive = false }: WorkspaceNavI
   );
 }
 
-function GeneratedImageSkeletonCard() {
-  return (
-    <figure className="flex min-h-[112px] flex-col items-center justify-center rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-5 py-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm">
-        <FileText className="h-5 w-5" />
-      </div>
-      <div className="mt-5 h-1.5 w-20 overflow-hidden rounded-full bg-slate-200">
-        <div className="h-full w-2/3 animate-pulse rounded-full bg-gradient-to-r from-[#13bbb3] via-[#8ee8df] to-transparent" />
-      </div>
-    </figure>
-  );
-}
 
 interface GeneratedImageConceptGroup {
   readonly key: string;
@@ -110,10 +81,7 @@ interface GeneratedImageConceptGroup {
   readonly startIndex: number;
 }
 
-const SMART_KITCHEN_CONCEPT_COUNT = 5;
-const SMART_KITCHEN_IMAGES_PER_CONCEPT = 3;
-
-export function buildGeneratedImageConceptGroups(
+function buildGeneratedImageConceptGroups(
   images: readonly GeneratedSmartKitchenImage[],
 ): readonly GeneratedImageConceptGroup[] {
   if (images.length === 0) {
@@ -124,28 +92,34 @@ export function buildGeneratedImageConceptGroups(
     Partial<{
       conceptId: string;
       conceptLabel: string;
+      conceptName: string;
       conceptIndex: number;
+      conceptNumber: number;
     }>;
 
   const imagesWithMetadata = images as readonly ImageWithConceptMetadata[];
   const conceptGroups = new Map<string, GeneratedImageConceptGroup>();
-  let sawConceptMetadata = false;
+  let foundConceptMetadata = false;
 
-  for (const [index, image] of imagesWithMetadata.entries()) {
+  imagesWithMetadata.forEach((image, index) => {
     const conceptKey =
       image.conceptId ??
-      (typeof image.conceptIndex === 'number' ? `concept-${image.conceptIndex}` : undefined);
+      (typeof image.conceptIndex === 'number' ? `concept-${image.conceptIndex}` : undefined) ??
+      (typeof image.conceptNumber === 'number' ? `concept-${image.conceptNumber}` : undefined);
 
     if (!conceptKey) {
-      continue;
+      return;
     }
 
-    sawConceptMetadata = true;
+    foundConceptMetadata = true;
     const conceptLabel =
       image.conceptLabel ??
-      (typeof image.conceptIndex === 'number'
-        ? `Concept ${image.conceptIndex + 1}`
-        : `Concept ${conceptGroups.size + 1}`);
+      image.conceptName ??
+      (typeof image.conceptNumber === 'number'
+        ? `Concept ${image.conceptNumber}`
+        : typeof image.conceptIndex === 'number'
+          ? `Concept ${image.conceptIndex + 1}`
+          : `Concept ${conceptGroups.size + 1}`);
 
     const existingGroup = conceptGroups.get(conceptKey);
     if (existingGroup) {
@@ -153,7 +127,7 @@ export function buildGeneratedImageConceptGroups(
         ...existingGroup,
         images: [...existingGroup.images, image],
       });
-      continue;
+      return;
     }
 
     conceptGroups.set(conceptKey, {
@@ -162,17 +136,28 @@ export function buildGeneratedImageConceptGroups(
       images: [image],
       startIndex: index,
     });
+  });
+
+  if (foundConceptMetadata && conceptGroups.size > 0) {
+    return Array.from(conceptGroups.values());
   }
 
-  if (sawConceptMetadata && conceptGroups.size > 0) {
-    return Array.from(conceptGroups.values()).sort((left, right) => left.startIndex - right.startIndex);
+  if (images.length <= 5) {
+    return images.map((image, index) => ({
+      key: image.id,
+      label: `Concept ${index + 1}`,
+      images: [image],
+      startIndex: index,
+    }));
   }
 
+  const conceptCount = 5;
+  const chunkSize = Math.ceil(images.length / conceptCount);
   const groupedImages: GeneratedImageConceptGroup[] = [];
 
-  for (let conceptIndex = 0; conceptIndex < SMART_KITCHEN_CONCEPT_COUNT; conceptIndex += 1) {
-    const startIndex = conceptIndex * SMART_KITCHEN_IMAGES_PER_CONCEPT;
-    const conceptImages = images.slice(startIndex, startIndex + SMART_KITCHEN_IMAGES_PER_CONCEPT);
+  for (let conceptIndex = 0; conceptIndex < conceptCount; conceptIndex += 1) {
+    const startIndex = conceptIndex * chunkSize;
+    const conceptImages = images.slice(startIndex, startIndex + chunkSize);
 
     if (conceptImages.length === 0) {
       continue;
@@ -189,52 +174,91 @@ export function buildGeneratedImageConceptGroups(
   return groupedImages;
 }
 
+function GeneratedImageSkeletonCard() {
+  return (
+    <figure
+      className="flex flex-col items-center justify-center border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-5 py-6 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
+      style={{
+        minHeight: '190px',
+        borderRadius: '18px',
+        boxShadow: '0 12px 30px rgba(15, 23, 42, 0.06)',
+      }}
+    >
+      <div
+        className="flex items-center justify-center rounded-full border border-slate-100 bg-white text-slate-400 shadow-sm"
+        style={{
+          width: '76px',
+          height: '76px',
+          boxShadow: '0 12px 28px rgba(15, 23, 42, 0.06)',
+        }}
+      >
+        <ImageIcon className="h-8 w-8" />
+      </div>
+      <div
+        className="overflow-hidden rounded-full bg-slate-200"
+        style={{
+          marginTop: '34px',
+          width: '104px',
+          height: '7px',
+        }}
+      >
+        <div className="h-full w-2/3 animate-pulse rounded-full bg-gradient-to-r from-[#13bbb3] via-[#8ee8df] to-transparent" />
+      </div>
+    </figure>
+  );
+}
+
 function GeneratingImagesProgressPanel({ progress }: { readonly progress: number }) {
   const safeProgress = Math.min(Math.max(progress, 0), 100);
 
   return (
-    <section className="mt-6 rounded-[24px] border border-[#dfeeea] bg-[#f8fcfb] px-4 py-4 sm:px-5 sm:py-5">
+    <section className="mt-6 rounded-[24px] border border-[#dfeeea] bg-[#f8fcfb] px-4 py-5 sm:px-5 sm:py-6">
       <div className="flex items-start gap-4">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#ccefe9] bg-[#e9fbf8] text-[#0e8e87] shadow-[0_10px_24px_rgba(14,142,135,0.14)]">
           <Sparkles className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1 pt-1">
-          <div className="flex items-center justify-between gap-4">
-            <h3 className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
-              Generating Images
-            </h3>
-            <span className="text-xs font-semibold text-slate-500">{safeProgress}%</span>
-          </div>
+          <h3 className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+            Generating Images
+          </h3>
           <p className="mt-1 text-sm text-slate-500">
-            Creating five kitchen concepts with three separate images each from the attached project file...
+            Creating five kitchen concepts from the attached project file...
           </p>
+
           <div
-            className="mt-4 h-3 w-full overflow-hidden rounded-full border border-[#cfd9e8] bg-[#d9e1ef] shadow-inner"
+            className="overflow-hidden rounded-full shadow-inner"
             role="progressbar"
             aria-label="Image generation progress"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={safeProgress}
+            style={{
+              width: '100%',
+              height: '8px',
+              marginTop: '18px',
+              backgroundColor: '#d9e1ef',
+            }}
           >
             <div
-              className="h-full rounded-full bg-[#16b8b0] shadow-[0_0_18px_rgba(22,184,176,0.36)] transition-[width] duration-500 ease-out"
-              style={{ width: `${safeProgress}%` }}
+              className="rounded-full shadow-[0_0_18px_rgba(22,184,176,0.36)] transition-[width] duration-500 ease-out"
+              style={{
+                width: `${safeProgress}%`,
+                height: '100%',
+                backgroundColor: '#16b8b0',
+              }}
             />
           </div>
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <GeneratedImageSkeletonCard />
-        <GeneratedImageSkeletonCard />
-        <GeneratedImageSkeletonCard />
-        <GeneratedImageSkeletonCard />
-        <GeneratedImageSkeletonCard />
-        <GeneratedImageSkeletonCard />
-        <GeneratedImageSkeletonCard />
-        <GeneratedImageSkeletonCard />
-        <GeneratedImageSkeletonCard />
-        <GeneratedImageSkeletonCard />
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+          gap: '1.25rem',
+          marginTop: '42px',
+        }}
+      >
         <GeneratedImageSkeletonCard />
         <GeneratedImageSkeletonCard />
         <GeneratedImageSkeletonCard />
@@ -244,7 +268,7 @@ function GeneratingImagesProgressPanel({ progress }: { readonly progress: number
 
       <p className="mt-5 flex items-center justify-center gap-2 text-center text-sm text-slate-500">
         <Sparkles className="h-4 w-4 text-[#0e8e87]" />
-        <span>This may take a few moments. You will see five concepts with three separate images each when ready.</span>
+        <span>This may take a few moments. You will see five kitchen concepts here when ready.</span>
       </p>
     </section>
   );
@@ -259,6 +283,15 @@ function GeneratedConceptImageRow({
   readonly generatedImages: readonly GeneratedSmartKitchenImage[];
   readonly onImageClick: (imageIndex: number) => void;
 }) {
+  const rowRef = useRef<HTMLDivElement | null>(null);
+
+  function scrollRow(direction: 'left' | 'right'): void {
+    rowRef.current?.scrollBy({
+      left: direction === 'left' ? -420 : 420,
+      behavior: 'smooth',
+    });
+  }
+
   return (
     <article className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
@@ -266,7 +299,7 @@ function GeneratedConceptImageRow({
           <h4 className="text-sm font-semibold text-slate-950">{group.label}</h4>
           <p className="mt-1 text-xs text-slate-500">
             {group.images.length > 1
-              ? `${group.images.length} separate images for this concept.`
+              ? `${group.images.length} generated image views for this concept.`
               : 'Generated kitchen concept image.'}
           </p>
         </div>
@@ -274,10 +307,30 @@ function GeneratedConceptImageRow({
           <span className="inline-flex items-center rounded-full bg-[#eefaf8] px-3 py-1 text-xs font-semibold text-[#0e8e87]">
             {group.images.length} image{group.images.length === 1 ? '' : 's'}
           </span>
+          {group.images.length > 1 ? (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => scrollRow('left')}
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
+                aria-label={`Scroll ${group.label} images left`}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollRow('right')}
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
+                aria-label={`Scroll ${group.label} images right`}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <div className="flex flex-row gap-4 overflow-x-auto p-4 pb-5">
+      <div ref={rowRef} className="flex gap-4 overflow-x-auto p-4 pb-5">
         {group.images.map((image, imageIndex) => {
           const generatedImageIndex = generatedImages.findIndex((generatedImage) => generatedImage.id === image.id);
           const safeImageIndex = generatedImageIndex >= 0 ? generatedImageIndex : group.startIndex + imageIndex;
@@ -287,20 +340,19 @@ function GeneratedConceptImageRow({
               key={image.id}
               type="button"
               onClick={() => onImageClick(safeImageIndex)}
-              className="group/image min-w-[260px] flex-1 overflow-hidden rounded-[18px] border border-slate-200 bg-white text-left shadow-[0_10px_24px_rgba(15,23,42,0.08)] outline-none transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.14)] focus-visible:ring-4 focus-visible:ring-[#b9f1ec]"
+              className="group/image min-w-[280px] overflow-hidden rounded-[18px] border border-slate-200 bg-white text-left shadow-[0_10px_24px_rgba(15,23,42,0.08)] outline-none transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.14)] focus-visible:ring-4 focus-visible:ring-[#b9f1ec] sm:min-w-[360px] lg:min-w-[430px]"
               aria-label={`Open ${group.label} image ${imageIndex + 1}`}
             >
-              <KitchenImageCard
-                imageUrl={image.imageUrl}
-                alt={`${group.label} image ${imageIndex + 1}`}
-                title={image.imageLabel ?? `Image ${imageIndex + 1}`}
-                subtitle={image.conceptLabel ?? group.label}
-                className="border-none shadow-none"
-                imageClassName="h-auto w-full transition duration-300 group-hover/image:scale-[1.02]"
-                imgProps={{
-                  loading: 'lazy',
-                }}
-              />
+              <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                <img
+                  src={image.imageUrl}
+                  alt={`${group.label} image ${imageIndex + 1}`}
+                  className="h-full w-full object-cover transition duration-300 group-hover/image:scale-[1.02]"
+                />
+                <span className="absolute bottom-3 left-3 rounded-full bg-slate-950/70 px-3 py-1 text-xs font-medium text-white opacity-0 backdrop-blur-sm transition group-hover/image:opacity-100">
+                  Click to view larger
+                </span>
+              </div>
             </button>
           );
         })}
@@ -309,20 +361,19 @@ function GeneratedConceptImageRow({
   );
 }
 
-
 export function SimpleGenerateSmartKitchenScreen({
   projectId,
   initialDraft = null,
 }: SimpleGenerateSmartKitchenScreenProps) {
   const [draft, setDraft] = useState<SmartKitchenWorkspaceDraft | null>(initialDraft);
   const [instructions, setInstructions] = useState('');
+  const [usePlaceholderImages, setUsePlaceholderImages] = useState(true);
   const [generatedImages, setGeneratedImages] = useState<readonly GeneratedSmartKitchenImage[]>([]);
-  const [generatedRoom, setGeneratedRoom] = useState<AiRoomInput | null>(null);
-  const [generatedRoomFileName, setGeneratedRoomFileName] = useState('generated-smart-kitchen-room.json');
   const [selectedGeneratedImageIndex, setSelectedGeneratedImageIndex] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [generationNotice, setGenerationNotice] = useState<string | null>(null);
   const progressIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -345,6 +396,23 @@ export function SimpleGenerateSmartKitchenScreen({
     () => buildGeneratedImageConceptGroups(generatedImages),
     [generatedImages],
   );
+  const selectedGeneratedImageConceptGroup = useMemo(() => {
+    if (!selectedGeneratedImage) {
+      return null;
+    }
+
+    return (
+      conceptGroups.find((group) =>
+        group.images.some((image) => image.id === selectedGeneratedImage.id),
+      ) ?? null
+    );
+  }, [conceptGroups, selectedGeneratedImage]);
+  const selectedGeneratedImagePositionInConcept =
+    selectedGeneratedImageConceptGroup && selectedGeneratedImage
+      ? selectedGeneratedImageConceptGroup.images.findIndex(
+          (image) => image.id === selectedGeneratedImage.id,
+        )
+      : -1;
 
   useEffect(() => {
     return () => {
@@ -364,7 +432,6 @@ export function SimpleGenerateSmartKitchenScreen({
   function startGenerationProgress(): void {
     clearProgressInterval();
     setGenerationProgress(8);
-
     progressIntervalRef.current = window.setInterval(() => {
       setGenerationProgress((currentProgress) => {
         if (currentProgress >= 92) {
@@ -392,23 +459,60 @@ export function SimpleGenerateSmartKitchenScreen({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedGeneratedImage]);
 
-  function showPreviousGeneratedImage(): void {
-    setSelectedGeneratedImageIndex((currentIndex) => {
-      if (currentIndex === null || generatedImages.length === 0) {
-        return currentIndex;
-      }
+  function getAdjacentGeneratedImageIndex(
+    currentIndex: number,
+    direction: 'previous' | 'next',
+  ): number {
+    const currentImage = generatedImages[currentIndex];
+    if (!currentImage) {
+      return currentIndex;
+    }
 
-      return currentIndex === 0 ? generatedImages.length - 1 : currentIndex - 1;
-    });
+    const currentGroup = conceptGroups.find((group) =>
+      group.images.some((image) => image.id === currentImage.id),
+    );
+
+    if (!currentGroup || currentGroup.images.length <= 1) {
+      return currentIndex;
+    }
+
+    const currentLocalIndex = currentGroup.images.findIndex((image) => image.id === currentImage.id);
+    if (currentLocalIndex < 0) {
+      return currentIndex;
+    }
+
+    const nextLocalIndex =
+      direction === 'previous'
+        ? (currentLocalIndex - 1 + currentGroup.images.length) % currentGroup.images.length
+        : (currentLocalIndex + 1) % currentGroup.images.length;
+
+    const nextImage = currentGroup.images[nextLocalIndex];
+    const nextGlobalIndex = generatedImages.findIndex((image) => image.id === nextImage.id);
+
+    return nextGlobalIndex >= 0 ? nextGlobalIndex : currentIndex;
+  }
+
+  function showPreviousGeneratedImage(): void {
+    setSelectedGeneratedImageIndex((currentIndex) =>
+      currentIndex === null ? currentIndex : getAdjacentGeneratedImageIndex(currentIndex, 'previous'),
+    );
   }
 
   function showNextGeneratedImage(): void {
-    setSelectedGeneratedImageIndex((currentIndex) => {
-      if (currentIndex === null || generatedImages.length === 0) {
-        return currentIndex;
-      }
+    setSelectedGeneratedImageIndex((currentIndex) =>
+      currentIndex === null ? currentIndex : getAdjacentGeneratedImageIndex(currentIndex, 'next'),
+    );
+  }
 
-      return currentIndex === generatedImages.length - 1 ? 0 : currentIndex + 1;
+  function handleDownloadAll(): void {
+    generatedImages.forEach((image, index) => {
+      const downloadLink = document.createElement('a');
+      downloadLink.href = image.imageUrl;
+      downloadLink.download = `smart-kitchen-concept-${index + 1}.png`;
+      downloadLink.rel = 'noopener';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
     });
   }
 
@@ -421,7 +525,6 @@ export function SimpleGenerateSmartKitchenScreen({
     setIsGenerating(true);
     setErrorMessage(null);
     setGeneratedImages([]);
-    setGeneratedRoom(null);
     setSelectedGeneratedImageIndex(null);
     startGenerationProgress();
 
@@ -431,21 +534,19 @@ export function SimpleGenerateSmartKitchenScreen({
         attachedFileName: attachment.fileName,
         room: attachment.room,
         userInstructions: instructions.trim(),
+        usePlaceholderImages,
       });
 
       clearProgressInterval();
       setGenerationProgress(100);
       await new Promise((resolve) => window.setTimeout(resolve, 250));
       setGeneratedImages(result.images);
-      setGeneratedRoom(result.generatedRoom ?? result.generatedLayout?.room ?? null);
-      setGeneratedRoomFileName(result.generatedRoomFileName ?? 'generated-smart-kitchen-room.json');
     } catch (error) {
       clearProgressInterval();
       setGenerationProgress(0);
       const message = error instanceof Error ? error.message : 'Image generation failed.';
       setErrorMessage(message);
     } finally {
-      clearProgressInterval();
       setIsGenerating(false);
     }
   }
@@ -533,7 +634,12 @@ export function SimpleGenerateSmartKitchenScreen({
         </header>
 
         <div className="flex flex-1 flex-col items-center px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
-          <section className="w-full max-w-[820px] rounded-[24px] border border-slate-200 bg-white px-6 py-8 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:px-8 sm:py-10">
+          <section
+            className={joinClassNames(
+              'w-full rounded-[24px] border border-slate-200 bg-white px-6 py-8 shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:px-8 sm:py-10',
+              isGenerating || conceptGroups.length > 0 ? 'max-w-[1280px]' : 'max-w-[820px]',
+            )}
+          >
             <div className="flex justify-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e7faf7] text-[#0e8e87] shadow-[0_8px_24px_rgba(14,142,135,0.18)]">
                 <Sparkles className="h-6 w-6" />
@@ -575,22 +681,10 @@ export function SimpleGenerateSmartKitchenScreen({
                 </div>
 
                 {attachment ? (
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xs font-medium text-slate-500">
-                      Automatically attached from the editor export for project{' '}
-                      {SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID}.
-                    </p>
-                    <PrimaryButton
-                      variant="secondary"
-                      onClick={() => downloadJsonFile(attachment.fileName, attachment.room)}
-                      className="h-11 rounded-xl border-slate-200 px-4 text-sm font-semibold !text-slate-700 !flex-row !items-center"
-                    >
-                      <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap">
-                        <FileText className="h-4 w-4" />
-                        <span>Download Attached File</span>
-                      </span>
-                    </PrimaryButton>
-                  </div>
+                  <p className="mt-4 text-xs font-medium text-slate-500">
+                    Automatically attached from the editor export for project{' '}
+                    {SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID}.
+                  </p>
                 ) : null}
               </div>
             </div>
@@ -644,138 +738,283 @@ export function SimpleGenerateSmartKitchenScreen({
             ) : null}
 
             {isGenerating ? <GeneratingImagesProgressPanel progress={generationProgress} /> : null}
-          </section>
 
-          {conceptGroups.length > 0 ? (
-            <section className="mt-8 w-full max-w-[1200px] rounded-[24px] border border-[#dfeeea] bg-[#f8fcfb] px-4 py-4 sm:px-5 sm:py-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#ccefe0] bg-white text-[#2ea86f] shadow-[0_10px_24px_rgba(46,168,111,0.14)]">
-                    <Check className="h-5 w-5" />
+            {conceptGroups.length > 0 ? (
+              <section className="mt-6 rounded-[24px] border border-[#dfeeea] bg-[#f8fcfb] px-4 py-4 sm:px-5 sm:py-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#ccefe0] bg-white text-[#2ea86f] shadow-[0_10px_24px_rgba(46,168,111,0.14)]">
+                      <Check className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-[15px] font-semibold text-[#2d9f68]">Generation Complete!</h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Here are your five AI-generated kitchen concepts.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-[15px] font-semibold text-[#2d9f68]">Generation Complete!</h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Here are your five AI-generated kitchen concepts.
-                    </p>
-                  </div>
-                </div>
-              </div>
 
-              <div className="mt-5 space-y-5">
-                {conceptGroups.map((group) => (
-                  <GeneratedConceptImageRow
-                    key={group.key}
-                    group={group}
-                    generatedImages={generatedImages}
-                    onImageClick={setSelectedGeneratedImageIndex}
-                  />
-                ))}
-              </div>
-
-              <p className="mt-5 flex items-center justify-center gap-2 text-center text-sm text-slate-500">
-                <Sparkles className="h-4 w-4 text-[#0e8e87]" />
-                <span>These designs are AI-generated concepts based on your instructions and floor plan.</span>
-              </p>
-            </section>
-          ) : null}
-
-          {generatedRoom ? (
-            <section className="mt-8 w-full max-w-[820px]">
-              <SectionCard
-                title="Generated JSON"
-                description="Download the AI-generated room data with the cabinet locations and layout summary."
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-950">Generated room file ready</p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      This JSON can be downloaded and reused as the next AI kitchen input.
-                    </p>
-                  </div>
-                  <PrimaryButton
-                    variant="secondary"
-                    onClick={() => downloadJsonFile(generatedRoomFileName, generatedRoom)}
-                    className="h-11 rounded-xl border-slate-200 px-4 text-sm font-semibold !text-slate-700 !flex-row !items-center"
+                  <button
+                    type="button"
+                    onClick={handleDownloadAll}
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-[#d6ece6] bg-white px-4 text-sm font-semibold text-[#2d9f68] shadow-sm transition hover:bg-[#f2fbf7]"
                   >
-                    <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap">
-                      <FileText className="h-4 w-4" />
-                      <span>Download JSON</span>
-                    </span>
-                  </PrimaryButton>
+                    Download All
+                  </button>
                 </div>
-              </SectionCard>
-            </section>
-          ) : null}
+
+                <div className="mt-5 space-y-5">
+                  {conceptGroups.map((group) => (
+                    <GeneratedConceptImageRow
+                      key={group.key}
+                      group={group}
+                      generatedImages={generatedImages}
+                      onImageClick={setSelectedGeneratedImageIndex}
+                    />
+                  ))}
+                </div>
+
+                <p className="mt-5 flex items-center justify-center gap-2 text-center text-sm text-slate-500">
+                  <Sparkles className="h-4 w-4 text-[#0e8e87]" />
+                  <span>These designs are AI-generated concepts based on your instructions and floor plan.</span>
+                </p>
+              </section>
+            ) : null}
+          </section>
         </div>
       </main>
 
       {selectedGeneratedImage ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 py-6 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-label={`Generated Smart Kitchen concept ${(selectedGeneratedImageIndex ?? 0) + 1} preview`}
+          aria-label={`${selectedGeneratedImageConceptGroup?.label ?? 'Generated concept'} image preview`}
           onClick={() => setSelectedGeneratedImageIndex(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '28px',
+            backgroundColor: 'rgba(2, 13, 28, 0.78)',
+            backdropFilter: 'blur(6px)',
+          }}
         >
           <div
-            className="relative flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_30px_90px_rgba(0,0,0,0.35)]"
             onClick={(event) => event.stopPropagation()}
+            style={{
+              width: 'min(100%, 1080px)',
+              maxHeight: '92vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              borderRadius: '22px',
+              border: '1px solid rgba(255, 255, 255, 0.22)',
+              background: 'linear-gradient(180deg, #061b2e 0%, #031426 100%)',
+              boxShadow: '0 30px 90px rgba(0, 0, 0, 0.4)',
+            }}
           >
-            <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4">
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: '16px',
+                padding: '22px 28px 14px',
+              }}
+            >
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Generated Concept
-                </p>
-                <h3 className="mt-1 text-lg font-semibold text-slate-950">
-                  Concept {(selectedGeneratedImageIndex ?? 0) + 1} of {generatedImages.length}
+                <h3 style={{ color: '#ffffff', fontSize: '22px', fontWeight: 700, lineHeight: 1.2 }}>
+                  {selectedGeneratedImageConceptGroup?.label ?? 'Generated Concept'}
                 </h3>
+                <p
+                  style={{
+                    marginTop: '8px',
+                    color: '#42d7c8',
+                    fontSize: '15px',
+                    fontWeight: 700,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Image {selectedGeneratedImagePositionInConcept >= 0 ? selectedGeneratedImagePositionInConcept + 1 : 1} of{' '}
+                  {selectedGeneratedImageConceptGroup?.images.length ?? 1}
+                </p>
               </div>
 
               <button
                 type="button"
                 onClick={() => setSelectedGeneratedImageIndex(null)}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#b9f1ec]"
                 aria-label="Close generated image preview"
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.32)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                }}
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </button>
             </div>
 
-            <div className="relative flex min-h-0 flex-1 items-center justify-center bg-slate-100 p-4 sm:p-6">
-              {generatedImages.length > 1 ? (
+            <div
+              style={{
+                position: 'relative',
+                minHeight: 0,
+                flex: '1 1 auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '10px 28px 20px',
+              }}
+            >
+              {(selectedGeneratedImageConceptGroup?.images.length ?? 0) > 1 ? (
                 <button
                   type="button"
                   onClick={showPreviousGeneratedImage}
-                  className="absolute left-4 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.16)] transition hover:bg-white hover:text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#b9f1ec]"
-                  aria-label="View previous generated image"
+                  aria-label="View previous image in this concept"
+                  style={{
+                    position: 'absolute',
+                    left: '14px',
+                    top: '50%',
+                    zIndex: 10,
+                    width: '54px',
+                    height: '54px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transform: 'translateY(-50%)',
+                    borderRadius: '9999px',
+                    border: '1px solid rgba(255, 255, 255, 0.16)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.78)',
+                    color: '#ffffff',
+                    boxShadow: '0 12px 30px rgba(0, 0, 0, 0.28)',
+                    cursor: 'pointer',
+                  }}
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft className="h-7 w-7" />
                 </button>
               ) : null}
 
-              <img
-                src={selectedGeneratedImage.imageUrl}
-                alt={`Generated Smart Kitchen concept ${(selectedGeneratedImageIndex ?? 0) + 1}`}
-                className="max-h-[72vh] w-full rounded-[20px] object-contain shadow-[0_18px_50px_rgba(15,23,42,0.18)]"
-              />
+              <div
+                style={{
+                  width: '100%',
+                  maxHeight: '60vh',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  borderRadius: '14px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                }}
+              >
+                <img
+                  src={selectedGeneratedImage.imageUrl}
+                  alt={`${selectedGeneratedImageConceptGroup?.label ?? 'Generated concept'} image ${
+                    selectedGeneratedImagePositionInConcept >= 0 ? selectedGeneratedImagePositionInConcept + 1 : 1
+                  }`}
+                  style={{
+                    display: 'block',
+                    maxWidth: '100%',
+                    maxHeight: '60vh',
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain',
+                    borderRadius: '14px',
+                  }}
+                />
+              </div>
 
-              {generatedImages.length > 1 ? (
+              {(selectedGeneratedImageConceptGroup?.images.length ?? 0) > 1 ? (
                 <button
                   type="button"
                   onClick={showNextGeneratedImage}
-                  className="absolute right-4 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.16)] transition hover:bg-white hover:text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#b9f1ec]"
-                  aria-label="View next generated image"
+                  aria-label="View next image in this concept"
+                  style={{
+                    position: 'absolute',
+                    right: '14px',
+                    top: '50%',
+                    zIndex: 10,
+                    width: '54px',
+                    height: '54px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transform: 'translateY(-50%)',
+                    borderRadius: '9999px',
+                    border: '2px solid #34d7ca',
+                    backgroundColor: 'rgba(15, 23, 42, 0.78)',
+                    color: '#ffffff',
+                    boxShadow: '0 12px 30px rgba(0, 0, 0, 0.28)',
+                    cursor: 'pointer',
+                  }}
                 >
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronRight className="h-7 w-7" />
                 </button>
               ) : null}
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-500">
-              <span>{selectedGeneratedImage.mimeType}</span>
-              <span>Click outside the image or press Escape to close.</span>
-            </div>
+            {(selectedGeneratedImageConceptGroup?.images.length ?? 0) > 1 ? (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: '16px',
+                  padding: '0 28px 24px',
+                }}
+              >
+                {selectedGeneratedImageConceptGroup?.images.map((image, imageIndex) => {
+                  const thumbnailGlobalIndex = generatedImages.findIndex(
+                    (generatedImage) => generatedImage.id === image.id,
+                  );
+                  const isSelected = image.id === selectedGeneratedImage.id;
+
+                  return (
+                    <button
+                      key={image.id}
+                      type="button"
+                      onClick={() => {
+                        if (thumbnailGlobalIndex >= 0) {
+                          setSelectedGeneratedImageIndex(thumbnailGlobalIndex);
+                        }
+                      }}
+                      aria-label={`View image ${imageIndex + 1} in ${selectedGeneratedImageConceptGroup?.label ?? 'this concept'}`}
+                      style={{
+                        width: '112px',
+                        height: '72px',
+                        overflow: 'hidden',
+                        borderRadius: '8px',
+                        border: isSelected ? '2px solid #34d7ca' : '2px solid rgba(255, 255, 255, 0.22)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                        opacity: isSelected ? 1 : 0.78,
+                        boxShadow: isSelected ? '0 0 0 2px rgba(52, 215, 202, 0.24)' : 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <img
+                        src={image.imageUrl}
+                        alt={`${selectedGeneratedImageConceptGroup?.label ?? 'Generated concept'} thumbnail ${
+                          imageIndex + 1
+                        }`}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
