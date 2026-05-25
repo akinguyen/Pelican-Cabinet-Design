@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleHelp,
+  Download,
   FileText,
   FolderOpen,
   Heart,
@@ -332,12 +333,12 @@ function GeneratedConceptImageRow({
 
       <div ref={rowRef} className="flex gap-4 overflow-x-auto p-4 pb-5">
         {group.images.map((image, imageIndex) => {
-          const generatedImageIndex = generatedImages.findIndex((generatedImage) => generatedImage.id === image.id);
-          const safeImageIndex = generatedImageIndex >= 0 ? generatedImageIndex : group.startIndex + imageIndex;
+          const generatedImageIndex = group.startIndex + imageIndex;
+          const safeImageIndex = generatedImageIndex;
 
           return (
             <button
-              key={image.id}
+              key={`${group.key}-image-${imageIndex}`}
               type="button"
               onClick={() => onImageClick(safeImageIndex)}
               className="group/image min-w-[280px] overflow-hidden rounded-[18px] border border-slate-200 bg-white text-left shadow-[0_10px_24px_rgba(15,23,42,0.08)] outline-none transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.14)] focus-visible:ring-4 focus-visible:ring-[#b9f1ec] sm:min-w-[360px] lg:min-w-[430px]"
@@ -367,7 +368,7 @@ export function SimpleGenerateSmartKitchenScreen({
 }: SimpleGenerateSmartKitchenScreenProps) {
   const [draft, setDraft] = useState<SmartKitchenWorkspaceDraft | null>(initialDraft);
   const [instructions, setInstructions] = useState('');
-  const [usePlaceholderImages, setUsePlaceholderImages] = useState(true);
+  const [usePlaceholderImages, setUsePlaceholderImages] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<readonly GeneratedSmartKitchenImage[]>([]);
   const [selectedGeneratedImageIndex, setSelectedGeneratedImageIndex] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -397,21 +398,21 @@ export function SimpleGenerateSmartKitchenScreen({
     [generatedImages],
   );
   const selectedGeneratedImageConceptGroup = useMemo(() => {
-    if (!selectedGeneratedImage) {
+    if (selectedGeneratedImageIndex === null) {
       return null;
     }
 
     return (
-      conceptGroups.find((group) =>
-        group.images.some((image) => image.id === selectedGeneratedImage.id),
+      conceptGroups.find(
+        (group) =>
+          selectedGeneratedImageIndex >= group.startIndex &&
+          selectedGeneratedImageIndex < group.startIndex + group.images.length,
       ) ?? null
     );
-  }, [conceptGroups, selectedGeneratedImage]);
+  }, [conceptGroups, selectedGeneratedImageIndex]);
   const selectedGeneratedImagePositionInConcept =
-    selectedGeneratedImageConceptGroup && selectedGeneratedImage
-      ? selectedGeneratedImageConceptGroup.images.findIndex(
-          (image) => image.id === selectedGeneratedImage.id,
-        )
+    selectedGeneratedImageConceptGroup && selectedGeneratedImageIndex !== null
+      ? selectedGeneratedImageIndex - selectedGeneratedImageConceptGroup.startIndex
       : -1;
 
   useEffect(() => {
@@ -468,15 +469,17 @@ export function SimpleGenerateSmartKitchenScreen({
       return currentIndex;
     }
 
-    const currentGroup = conceptGroups.find((group) =>
-      group.images.some((image) => image.id === currentImage.id),
+    const currentGroup = conceptGroups.find(
+      (group) =>
+        currentIndex >= group.startIndex &&
+        currentIndex < group.startIndex + group.images.length,
     );
 
     if (!currentGroup || currentGroup.images.length <= 1) {
       return currentIndex;
     }
 
-    const currentLocalIndex = currentGroup.images.findIndex((image) => image.id === currentImage.id);
+    const currentLocalIndex = currentIndex - currentGroup.startIndex;
     if (currentLocalIndex < 0) {
       return currentIndex;
     }
@@ -486,10 +489,10 @@ export function SimpleGenerateSmartKitchenScreen({
         ? (currentLocalIndex - 1 + currentGroup.images.length) % currentGroup.images.length
         : (currentLocalIndex + 1) % currentGroup.images.length;
 
-    const nextImage = currentGroup.images[nextLocalIndex];
-    const nextGlobalIndex = generatedImages.findIndex((image) => image.id === nextImage.id);
+    const nextGlobalIndex = currentGroup.startIndex + nextLocalIndex;
+    const nextImage = generatedImages[nextGlobalIndex];
 
-    return nextGlobalIndex >= 0 ? nextGlobalIndex : currentIndex;
+    return nextImage ? nextGlobalIndex : currentIndex;
   }
 
   function showPreviousGeneratedImage(): void {
@@ -502,6 +505,31 @@ export function SimpleGenerateSmartKitchenScreen({
     setSelectedGeneratedImageIndex((currentIndex) =>
       currentIndex === null ? currentIndex : getAdjacentGeneratedImageIndex(currentIndex, 'next'),
     );
+  }
+
+  function handleDownloadAttachedFile(): void {
+    if (!attachment) {
+      return;
+    }
+
+    const attachedFilePayload = {
+      projectId,
+      fileName: attachment.fileName,
+      room: attachment.room,
+    };
+    const attachedFileBlob = new Blob([JSON.stringify(attachedFilePayload, null, 2)], {
+      type: 'application/json',
+    });
+    const attachedFileUrl = URL.createObjectURL(attachedFileBlob);
+    const downloadLink = document.createElement('a');
+
+    downloadLink.href = attachedFileUrl;
+    downloadLink.download = attachment.fileName || 'pelican-smart-kitchen-editor-room-export.json';
+    downloadLink.rel = 'noopener';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(attachedFileUrl);
   }
 
   function handleDownloadAll(): void {
@@ -668,16 +696,30 @@ export function SimpleGenerateSmartKitchenScreen({
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-[#fbfdff] px-4 py-4 shadow-[0_1px_0_rgba(15,23,42,0.02)]">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eff8ff] text-[#1f5f8d]">
-                    <FileText className="h-5 w-5" />
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex min-w-0 items-start gap-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eff8ff] text-[#1f5f8d]">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-950">
+                        Current Floor Plan / Project Data
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">Project file • 2.4 MB</p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-950">
-                      Current Floor Plan / Project Data
-                    </p>
-                    <p className="mt-1 text-sm text-slate-500">Project file • 2.4 MB</p>
-                  </div>
+
+                  {attachment ? (
+                    <button
+                      type="button"
+                      onClick={handleDownloadAttachedFile}
+                      className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#b9f1ec]"
+                      aria-label="Download attached project file"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download Attached File
+                    </button>
+                  ) : null}
                 </div>
 
                 {attachment ? (
@@ -764,9 +806,9 @@ export function SimpleGenerateSmartKitchenScreen({
                 </div>
 
                 <div className="mt-5 space-y-5">
-                  {conceptGroups.map((group) => (
+                  {conceptGroups.map((group, groupIndex) => (
                     <GeneratedConceptImageRow
-                      key={group.key}
+                      key={`${group.key}-${groupIndex}`}
                       group={group}
                       generatedImages={generatedImages}
                       onImageClick={setSelectedGeneratedImageIndex}
@@ -972,14 +1014,12 @@ export function SimpleGenerateSmartKitchenScreen({
                 }}
               >
                 {selectedGeneratedImageConceptGroup?.images.map((image, imageIndex) => {
-                  const thumbnailGlobalIndex = generatedImages.findIndex(
-                    (generatedImage) => generatedImage.id === image.id,
-                  );
-                  const isSelected = image.id === selectedGeneratedImage.id;
+                  const thumbnailGlobalIndex = selectedGeneratedImageConceptGroup.startIndex + imageIndex;
+                  const isSelected = thumbnailGlobalIndex === selectedGeneratedImageIndex;
 
                   return (
                     <button
-                      key={image.id}
+                      key={`${selectedGeneratedImageConceptGroup.key}-thumbnail-${imageIndex}`}
                       type="button"
                       onClick={() => {
                         if (thumbnailGlobalIndex >= 0) {
