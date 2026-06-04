@@ -1,24 +1,23 @@
-# Generate Smart Kitchen Step 8 Handoff
+# Step 8 Handoff
 
-## Files changed
-- `src/features/generate-smart-kitchen/__tests__/smartKitchenFlow.integration.test.tsx`
-- `components/src/features/cabinet-editor/components/canvas/CanvasArea.tsx`
-- `components/src/features/cabinet-editor/__tests__/editorWorkspaceNavigation.test.ts`
-- `artifacts/generate-smart-kitchen/step-8-handoff.md`
+Files changed:
+- `src/features/generate-smart-kitchen/screens/SimpleGenerateSmartKitchenScreen.tsx`
+- `src/features/generate-smart-kitchen/__tests__/simpleGenerateSmartKitchenSessionRestore.test.tsx`
+- `next.config.mjs`
 - `artifacts/generate-smart-kitchen/step-8-report.md`
 
-## Tests run
-- TypeScript strict check for workspace files and the editor migration test file.
-- `npx vitest run src/features/generate-smart-kitchen/__tests__/smartKitchenFlow.integration.test.tsx components/src/features/cabinet-editor/__tests__/editorWorkspaceNavigation.test.ts`
-- `npx vitest run src/features/generate-smart-kitchen/__tests__ components/src/features/cabinet-editor/__tests__`
+What was completed:
+- Fixed the initial Smart Kitchen draft restore so the original attached file is shown again when the workspace opens.
+- Kept the original file visible before generation, with a non-zero size and `Download Attached File`.
+- Preserved the Step 4 generated-attachment behavior after `Generate Images`.
+- Added a regression test to ensure a missing saved session does not blank the restored draft attachment.
+- Enabled the local dev origin so the live 127.0.0.1 browser session hydrates correctly during verification.
 
-## What was completed
-- Added an integration test that exercises the workspace flow from review through final export using the fake API and mock data.
-- Verified generation completes deterministically and returns 10 designs.
-- Verified the studio, comparison, estimate, presentation, and final export screens render with the expected workflow data.
-- Removed the remaining editor-side `/api/smart-kitchen` call from the smart input download path.
-- Updated the editor migration test to confirm the old immediate generation event and backend generation call are absent from `CanvasArea`.
+Tests / checks run:
+- Targeted strict TypeScript compile for the touched runtime files.
+- Live browser verification on `127.0.0.1:3000`.
+- `npm run lint` was attempted but failed because the repo’s `next lint` invocation is not valid in this Next.js setup.
 
-## What the next step should do
-- Move from tested foundation to design polish or real route-level orchestration if the workspace screens should be mounted into a single production page flow.
-- If a backend is introduced later, keep it behind the `SmartKitchenApi` interface instead of calling generation endpoints directly from editor components.
+Next step:
+- No code change is required unless a future browser run reproduces the attachment restore issue again.
+- If that happens, inspect the workspace session restore path first.

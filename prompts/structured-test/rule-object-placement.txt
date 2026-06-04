@@ -4,7 +4,7 @@ Use this after wall understanding, zone planning, and corner resolution.
 
 Process:
 1. Place required blind-corner cabinets and their actual filler placement objects first. Do not leave required blind-corner filler clearance as notes or empty space.
-2. Place main appliances and zone anchors: refrigerator, sink/dishwasher, range/cooktop, hood/microwave, pantry stacks.
+2. Place main appliances and zone anchors only when the required catalog items or fixed objects exist in the input: refrigerator, sink/dishwasher, range/cooktop, hood/microwave, pantry cabinets.
 3. Work outward from corners, appliances, and focal points.
 4. Fill remaining usable cabinet-sized spaces with standard catalog cabinets.
 5. Add end panels and allowed fillers only after the main layout is stable.
@@ -16,6 +16,8 @@ Catalog discipline:
 - Respect category: base or wall.
 - Respect standard width, height, and depth options for normal cabinets/products.
 - Do not invent random cabinet/product dimensions when a catalog option can solve the space.
+- Do not place a product, appliance, filler, panel, cabinet, or decorative feature unless its catalogId exists in the input catalog or it is an explicitly preserved fixed object.
+- Do not change catalog dimensions, wall lengths, fixed-object sizes, or fixed-object positions to make a preferred design fit.
 
 General placement rules:
 - Keep runs intentional and visually clean.

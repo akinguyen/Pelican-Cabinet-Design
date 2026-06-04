@@ -3,6 +3,7 @@ import type { GeneratedKitchenLayout } from '../../../../lib/ai/types';
 
 export interface GeneratedSmartKitchenImage {
   readonly id: string;
+  readonly generationId?: string;
   readonly imageUrl: string;
   readonly mimeType: string;
   readonly conceptIndex?: number;
@@ -24,6 +25,7 @@ export type SmartKitchenImageGenerationMode = 'openai' | 'placeholder';
 export interface GenerateSmartKitchenImagesResponse {
   readonly projectId: string;
   readonly attachedFileName: string;
+  readonly generationId: string;
   readonly prompt?: string;
   readonly systemPrompt?: string;
   readonly generatedLayout?: GeneratedKitchenLayout;
@@ -36,6 +38,14 @@ export interface GenerateSmartKitchenImagesResponse {
 
 const SMART_KITCHEN_CONCEPT_COUNT = 5;
 const SMART_KITCHEN_IMAGES_PER_CONCEPT = 3;
+
+function createGeneratedImageBatchId(): string {
+  if (typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `generated-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 function escapeSvgText(value: string): string {
   return value.replace(/[&<>'"]/g, (character) => {
@@ -100,7 +110,10 @@ function createPlaceholderImageDataUrl(params: {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
-function buildPlaceholderImages(input: GenerateSmartKitchenImagesInput): readonly GeneratedSmartKitchenImage[] {
+function buildPlaceholderImages(
+  input: GenerateSmartKitchenImagesInput,
+  generationId: string,
+): readonly GeneratedSmartKitchenImage[] {
   const images: GeneratedSmartKitchenImage[] = [];
 
   for (let conceptIndex = 0; conceptIndex < SMART_KITCHEN_CONCEPT_COUNT; conceptIndex += 1) {
@@ -110,6 +123,7 @@ function buildPlaceholderImages(input: GenerateSmartKitchenImagesInput): readonl
       const imageLabel = `Image ${imageIndex + 1}`;
       images.push({
         id: `placeholder-${conceptIndex + 1}-${imageIndex + 1}`,
+        generationId,
         imageUrl: createPlaceholderImageDataUrl({
           conceptLabel,
           imageLabel,
@@ -130,14 +144,16 @@ function buildPlaceholderImages(input: GenerateSmartKitchenImagesInput): readonl
 
 function buildPlaceholderResponse(
   input: GenerateSmartKitchenImagesInput,
+  generationId: string,
   placeholderReason?: string,
 ): GenerateSmartKitchenImagesResponse {
   return {
     projectId: input.projectId,
     attachedFileName: input.attachedFileName,
+    generationId,
     generationMode: 'placeholder',
     placeholderReason: placeholderReason ?? 'Placeholder mode enabled.',
-    images: buildPlaceholderImages(input),
+    images: buildPlaceholderImages(input, generationId),
   };
 }
 
@@ -153,16 +169,16 @@ function isQuotaFailureMessage(message: string): boolean {
 export async function generateSmartKitchenImages(
   input: GenerateSmartKitchenImagesInput,
 ): Promise<GenerateSmartKitchenImagesResponse> {
-  if (input.usePlaceholderImages) {
-    return buildPlaceholderResponse(input);
-  }
-
+  const fallbackGenerationId = createGeneratedImageBatchId();
   const response = await fetch('/api/generate-smart-kitchen-images', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      ...input,
+      usePlaceholderImages: Boolean(input.usePlaceholderImages),
+    }),
   });
 
   if (!response.ok) {
@@ -170,18 +186,36 @@ export async function generateSmartKitchenImages(
     const errorMessage = errorPayload?.error ?? 'Image generation failed.';
 
     if (isQuotaFailureMessage(errorMessage)) {
-      return buildPlaceholderResponse(input, errorMessage);
+      return buildPlaceholderResponse(input, fallbackGenerationId, errorMessage);
     }
 
     throw new Error(errorMessage);
   }
 
   const payload = (await response.json()) as Partial<GenerateSmartKitchenImagesResponse>;
+  const generationId =
+    typeof payload.generationId === 'string' && payload.generationId.trim().length > 0
+      ? payload.generationId
+      : fallbackGenerationId;
+  const images = Array.isArray(payload.images)
+    ? payload.images.map((image) =>
+        image && typeof image === 'object'
+          ? {
+              ...(image as GeneratedSmartKitchenImage),
+              generationId:
+                typeof (image as GeneratedSmartKitchenImage).generationId === 'string'
+                  ? (image as GeneratedSmartKitchenImage).generationId
+                  : generationId,
+            }
+          : image,
+      )
+    : [];
 
   return {
     projectId: typeof payload.projectId === 'string' ? payload.projectId : input.projectId,
     attachedFileName:
       typeof payload.attachedFileName === 'string' ? payload.attachedFileName : input.attachedFileName,
+    generationId,
     prompt: typeof payload.prompt === 'string' ? payload.prompt : undefined,
     systemPrompt: typeof payload.systemPrompt === 'string' ? payload.systemPrompt : undefined,
     generatedLayout:
@@ -200,6 +234,6 @@ export async function generateSmartKitchenImages(
         : 'openai',
     placeholderReason:
       typeof payload.placeholderReason === 'string' ? payload.placeholderReason : undefined,
-    images: Array.isArray(payload.images) ? payload.images : [],
+    images,
   };
 }

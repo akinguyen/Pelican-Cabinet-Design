@@ -28,6 +28,10 @@ Thumbs.db
 *.temp
 *.cache
 *.tsbuildinfo
+/AI screen/
+/AI screen.zip
+/artifacts/debug-image-generation/
+/artifacts/debug-smart-kitchen-planner/
 
 # Large local sample assets
 *.pdf

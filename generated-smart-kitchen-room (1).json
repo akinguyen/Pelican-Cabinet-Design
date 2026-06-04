@@ -1,0 +1,4143 @@
+{
+  "projectId": "editor-draft",
+  "source": "generate-smart-kitchen",
+  "generationId": "afc93168-3227-415a-b807-04abe8913515",
+  "generatedAtIso": "2026-06-01T14:46:11.034Z",
+  "instructions": "",
+  "fileName": "generated-smart-kitchen-room.json",
+  "room": {
+    "walls": [
+      {
+        "id": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "start": {
+          "x": 980,
+          "y": 700
+        },
+        "end": {
+          "x": 1761.3287048339844,
+          "y": 700
+        },
+        "kind": "wall",
+        "debugDots": {
+          "left": {
+            "start": {
+              "x": 980,
+              "y": 708
+            },
+            "end": {
+              "x": 1753.3287048339844,
+              "y": 708
+            }
+          },
+          "right": {
+            "start": {
+              "x": 980,
+              "y": 692
+            },
+            "end": {
+              "x": 1769.3287048339844,
+              "y": 692
+            }
+          }
+        },
+        "needPlacement": true,
+        "elevationPlan": {
+          "widthInches": 331.4,
+          "fixedObjects": [
+            {
+              "id": "d8fd1059-ea8b-4ef8-b9b6-25ac0c0d10f4",
+              "type": "cabinet",
+              "coordinateSpace": "elevationPlan",
+              "catalogId": "base-corner-cabinet",
+              "title": "L-Shaped Corner Base Cabinet",
+              "category": "base",
+              "image": "base-corner",
+              "topOption": null,
+              "leftInches": 295.4,
+              "rightInches": 0,
+              "bottomInches": 0,
+              "widthInches": 36,
+              "depthInches": 36,
+              "heightInches": 36,
+              "lockMode": "locked"
+            },
+            {
+              "id": "5dd085da-b6ae-46d2-b19a-747a9253ae09",
+              "type": "product",
+              "coordinateSpace": "elevationPlan",
+              "catalogId": "product-refrigerator",
+              "title": "Refrigerator",
+              "category": "base",
+              "image": "base-refrigerator",
+              "topOption": null,
+              "leftInches": 259.4,
+              "rightInches": 36,
+              "bottomInches": 0,
+              "widthInches": 36,
+              "depthInches": 30,
+              "heightInches": 84,
+              "lockMode": "locked"
+            }
+          ]
+        },
+        "elevationWidthInches": 331.4
+      },
+      {
+        "id": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "start": {
+          "x": 1761.3287048339844,
+          "y": 700
+        },
+        "end": {
+          "x": 1761.3287048339844,
+          "y": 1229.8545761108398
+        },
+        "kind": "wall",
+        "debugDots": {
+          "left": {
+            "start": {
+              "x": 1753.3287048339844,
+              "y": 708
+            },
+            "end": {
+              "x": 1753.3287048339844,
+              "y": 1221.8545761108398
+            }
+          },
+          "right": {
+            "start": {
+              "x": 1769.3287048339844,
+              "y": 692
+            },
+            "end": {
+              "x": 1769.3287048339844,
+              "y": 1237.8545761108398
+            }
+          }
+        },
+        "needPlacement": true,
+        "elevationPlan": {
+          "widthInches": 220.2,
+          "fixedObjects": [
+            {
+              "id": "f4fef5aa-0026-4516-9c5d-73e60954bd38",
+              "type": "cabinet",
+              "coordinateSpace": "elevationPlan",
+              "catalogId": "base-sink-cabinet",
+              "title": "Sink Base Cabinet",
+              "category": "base",
+              "image": "base-sink-cabinet",
+              "topOption": "sink",
+              "leftInches": 36,
+              "rightInches": 160.2,
+              "bottomInches": 0,
+              "widthInches": 24,
+              "depthInches": 24,
+              "heightInches": 34.5,
+              "lockMode": "locked"
+            }
+          ]
+        },
+        "elevationWidthInches": 220.2
+      },
+      {
+        "id": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "start": {
+          "x": 1761.3287048339844,
+          "y": 1229.8545761108398
+        },
+        "end": {
+          "x": 980,
+          "y": 1229.8545761108398
+        },
+        "kind": "wall",
+        "debugDots": {
+          "left": {
+            "start": {
+              "x": 1753.3287048339844,
+              "y": 1221.8545761108398
+            },
+            "end": {
+              "x": 980,
+              "y": 1221.8545761108398
+            }
+          },
+          "right": {
+            "start": {
+              "x": 1769.3287048339844,
+              "y": 1237.8545761108398
+            },
+            "end": {
+              "x": 980,
+              "y": 1237.8545761108398
+            }
+          }
+        },
+        "needPlacement": true,
+        "elevationPlan": {
+          "widthInches": 331.4,
+          "fixedObjects": []
+        },
+        "elevationWidthInches": 331.4
+      }
+    ],
+    "windows": [],
+    "doors": [],
+    "cabinets": [
+      {
+        "id": "d8fd1059-ea8b-4ef8-b9b6-25ac0c0d10f4",
+        "center": {
+          "x": 1711.3287048339844,
+          "y": 750
+        },
+        "width": 84,
+        "depth": 84,
+        "rotation": 0,
+        "placementType": "cabinet",
+        "category": "base",
+        "catalogId": "base-corner-cabinet",
+        "image": "base-corner",
+        "heightInches": 36,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left",
+        "hasToeKick": false
+      },
+      {
+        "id": "5dd085da-b6ae-46d2-b19a-747a9253ae09",
+        "center": {
+          "x": 1627.3287048339844,
+          "y": 743
+        },
+        "width": 84,
+        "depth": 70,
+        "rotation": 0,
+        "placementType": "product",
+        "category": "base",
+        "productCategory": "base",
+        "catalogId": "product-refrigerator",
+        "image": "base-refrigerator",
+        "heightInches": 84,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left",
+        "hasToeKick": false
+      },
+      {
+        "id": "f4fef5aa-0026-4516-9c5d-73e60954bd38",
+        "center": {
+          "x": 1725.3287048339844,
+          "y": 820
+        },
+        "width": 56,
+        "depth": 56,
+        "rotation": 90,
+        "placementType": "cabinet",
+        "category": "base",
+        "catalogId": "base-sink-cabinet",
+        "image": "base-sink-cabinet",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left",
+        "sinkFixture": true,
+        "hasToeKick": false
+      }
+    ],
+    "catalog": [
+      {
+        "id": "base-corner-cabinet",
+        "category": "base",
+        "title": "L-Shaped Corner Base Cabinet",
+        "subtitle": "36\" W x 36\" H x 36\" D",
+        "widthInches": 36,
+        "heightInches": 36,
+        "depthInches": 36,
+        "image": "base-corner",
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "product-dishwasher",
+        "category": "base",
+        "title": "Dishwashing Machine",
+        "subtitle": "24\" W x 34\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 34,
+        "depthInches": 24,
+        "image": "base-dishwasher",
+        "productCategory": "base",
+        "supportType": "floor-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "product-refrigerator",
+        "category": "base",
+        "title": "Refrigerator",
+        "subtitle": "36\" W x 84\" H x 30\" D",
+        "widthInches": 36,
+        "heightInches": 84,
+        "depthInches": 30,
+        "image": "base-refrigerator",
+        "productCategory": "base",
+        "supportType": "floor-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "product-range",
+        "category": "base",
+        "title": "Range",
+        "subtitle": "30\" W x 36\" H x 24\" D",
+        "widthInches": 30,
+        "heightInches": 36,
+        "depthInches": 24,
+        "image": "base-range",
+        "productCategory": "base",
+        "supportType": "floor-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "base-two-door-cabinet",
+        "category": "base",
+        "title": "2 Door Base Cabinet",
+        "subtitle": "24\" W x 34.5\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-one-door-cabinet",
+        "category": "base",
+        "title": "1 Door Base Cabinet",
+        "subtitle": "9\" W x 34.5\" H x 24\" D",
+        "widthInches": 9,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-one-door",
+        "standardWidthOptions": [
+          9,
+          12,
+          15,
+          18,
+          21,
+          24
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-drawer-cabinet",
+        "category": "base",
+        "title": "3 Drawers Base Cabinet",
+        "subtitle": "9\" W x 34.5\" H x 24\" D",
+        "widthInches": 9,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-drawer",
+        "standardWidthOptions": [
+          12,
+          15,
+          18,
+          21,
+          24,
+          30,
+          33,
+          36
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-sink-cabinet",
+        "category": "base",
+        "title": "Sink Base Cabinet",
+        "subtitle": "24\" W x 34.5\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-sink-cabinet",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-farm-sink-cabinet",
+        "category": "base",
+        "title": "Sink Farm Base Cabinet",
+        "subtitle": "30\" W x 34.5\" H x 24\" D",
+        "widthInches": 30,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-farm-sink-cabinet",
+        "standardWidthOptions": [
+          30,
+          33,
+          36,
+          39,
+          42
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-blind-left-cabinet",
+        "category": "base",
+        "title": "1 Door Blind (Left) Base Cabinet",
+        "subtitle": "36\" W x 34.5\" H x 24\" D",
+        "widthInches": 36,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-blind-left",
+        "standardWidthOptions": [
+          36,
+          37,
+          38,
+          39,
+          42,
+          43,
+          44,
+          45
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-blind-right-cabinet",
+        "category": "base",
+        "title": "1 Door Blind (Right) Base Cabinet",
+        "subtitle": "36\" W x 34.5\" H x 24\" D",
+        "widthInches": 36,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-blind-right",
+        "standardWidthOptions": [
+          36,
+          37,
+          38,
+          39,
+          42,
+          43,
+          44,
+          45
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-two-door-one-drawer-cabinet",
+        "category": "base",
+        "title": "1 Top Drawer, 2 Doors Base Cabinet",
+        "subtitle": "24\" W x 34.5\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-two-door-one-drawer",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-one-door-one-drawer-cabinet",
+        "category": "base",
+        "title": "1 Top Drawer, 1 Door Base Cabinet",
+        "subtitle": "9\" W x 34.5\" H x 24\" D",
+        "widthInches": 9,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-one-door-one-drawer",
+        "standardWidthOptions": [
+          9,
+          12,
+          15,
+          18,
+          21,
+          24
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-two-door-two-drawer-cabinet",
+        "category": "base",
+        "title": "2 Top Drawers, 2 Doors Base Cabinet",
+        "subtitle": "24\" W x 34.5\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-two-door-two-drawer",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-two-drawer-cabinet",
+        "category": "base",
+        "title": "2 Drawer Base Cabinet",
+        "subtitle": "9\" W x 34.5\" H x 24\" D",
+        "widthInches": 9,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-two-drawer",
+        "standardWidthOptions": [
+          15,
+          18,
+          21,
+          24,
+          30,
+          33,
+          36
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-spice-rack-cabinet",
+        "category": "base",
+        "title": "Spice Rack Base Cabinet",
+        "subtitle": "6\" W x 34.5\" H x 24\" D",
+        "widthInches": 6,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-spice-rack",
+        "standardWidthOptions": [
+          6,
+          9,
+          12,
+          15
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-trash-can-cabinet",
+        "category": "base",
+        "title": "Trash Can Base Cabinet",
+        "subtitle": "12\" W x 34.5\" H x 24\" D",
+        "widthInches": 12,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-trash-can",
+        "standardWidthOptions": [
+          12,
+          15,
+          18,
+          21,
+          24,
+          29
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-oven-bottom-drawer-cabinet",
+        "category": "base",
+        "title": "Oven with 1 Bottom Drawer Base Cabinet",
+        "subtitle": "30\" W x 69\" H x 26\" D",
+        "widthInches": 30,
+        "heightInches": 69,
+        "depthInches": 26,
+        "image": "base-oven-bottom-drawer",
+        "standardWidthOptions": [
+          30,
+          33,
+          36,
+          39,
+          42
+        ],
+        "standardHeightOptions": [
+          69
+        ],
+        "standardDepthOptions": [
+          24,
+          26
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-microwave-bottom-drawer-cabinet",
+        "category": "base",
+        "title": "Microwave with 1 Bottom Drawer Base Cabinet",
+        "subtitle": "24\" W x 34.5\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-microwave-bottom-drawer",
+        "standardWidthOptions": [
+          24,
+          30
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24,
+          26
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-pantry-one-door-cabinet",
+        "category": "base",
+        "title": "1 Door Pantry Cabinet (Base)",
+        "subtitle": "9\" W x 54\" H x 24\" D",
+        "widthInches": 9,
+        "heightInches": 54,
+        "depthInches": 24,
+        "image": "pantry-one-door",
+        "standardWidthOptions": [
+          9,
+          12,
+          15,
+          18,
+          21,
+          24
+        ],
+        "standardHeightOptions": [
+          54,
+          57
+        ],
+        "standardDepthOptions": [
+          24,
+          26
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-pantry-two-door-cabinet",
+        "category": "base",
+        "title": "2 Door Pantry Cabinet (Base)",
+        "subtitle": "24\" W x 54\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 54,
+        "depthInches": 24,
+        "image": "pantry-two-door",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48
+        ],
+        "standardHeightOptions": [
+          54,
+          57
+        ],
+        "standardDepthOptions": [
+          24,
+          26
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "wall-two-door-cabinet",
+        "category": "wall",
+        "title": "2 Door Wall Cabinet",
+        "subtitle": "24\" W x 12\" H x 12\" D",
+        "widthInches": 24,
+        "heightInches": 12,
+        "depthInches": 12,
+        "image": "wall-two-doors",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48
+        ],
+        "standardHeightOptions": [
+          12,
+          15,
+          18,
+          24,
+          30,
+          36,
+          42
+        ],
+        "standardDepthOptions": [
+          12,
+          14,
+          15,
+          16
+        ],
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "wall-one-door-cabinet",
+        "category": "wall",
+        "title": "1 Door Wall Cabinet",
+        "subtitle": "9\" W x 12\" H x 12\" D",
+        "widthInches": 9,
+        "heightInches": 12,
+        "depthInches": 12,
+        "image": "wall-one-door",
+        "standardWidthOptions": [
+          9,
+          12,
+          15,
+          18,
+          21,
+          24
+        ],
+        "standardHeightOptions": [
+          12,
+          15,
+          18,
+          24,
+          30,
+          36,
+          42
+        ],
+        "standardDepthOptions": [
+          12,
+          14,
+          15,
+          16
+        ],
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "wall-blind-left-cabinet",
+        "category": "wall",
+        "title": "1 Door Blind (Left) Wall Cabinet",
+        "subtitle": "36\" W x 12\" H x 12\" D",
+        "widthInches": 36,
+        "heightInches": 12,
+        "depthInches": 12,
+        "image": "wall-blind-left",
+        "standardWidthOptions": [
+          36,
+          37,
+          38,
+          39,
+          42,
+          43,
+          44,
+          45
+        ],
+        "standardHeightOptions": [
+          12,
+          15,
+          18,
+          24,
+          30,
+          36,
+          42
+        ],
+        "standardDepthOptions": [
+          12,
+          14,
+          15,
+          16
+        ],
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "wall-blind-right-cabinet",
+        "category": "wall",
+        "title": "1 Door Blind (Right) Wall Cabinet",
+        "subtitle": "36\" W x 12\" H x 12\" D",
+        "widthInches": 36,
+        "heightInches": 12,
+        "depthInches": 12,
+        "image": "wall-blind-right",
+        "standardWidthOptions": [
+          36,
+          37,
+          38,
+          39,
+          42,
+          43,
+          44,
+          45
+        ],
+        "standardHeightOptions": [
+          12,
+          15,
+          18,
+          24,
+          30,
+          36,
+          42
+        ],
+        "standardDepthOptions": [
+          12,
+          14,
+          15,
+          16
+        ],
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "wall-pantry-one-door-cabinet",
+        "category": "wall",
+        "title": "1 Door Pantry Cabinet (Wall)",
+        "subtitle": "9\" W x 12\" H x 24\" D",
+        "widthInches": 9,
+        "heightInches": 12,
+        "depthInches": 24,
+        "image": "pantry-one-door",
+        "standardWidthOptions": [
+          9,
+          12,
+          15,
+          18,
+          21,
+          24
+        ],
+        "standardHeightOptions": [
+          12,
+          15,
+          18,
+          24,
+          30,
+          36,
+          39,
+          42,
+          45
+        ],
+        "standardDepthOptions": [
+          24,
+          26
+        ],
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "wall-pantry-two-door-cabinet",
+        "category": "wall",
+        "title": "2 Doors Pantry Cabinet (Wall)",
+        "subtitle": "24\" W x 12\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 12,
+        "depthInches": 24,
+        "image": "pantry-two-door",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48
+        ],
+        "standardHeightOptions": [
+          12,
+          15,
+          18,
+          24,
+          30,
+          36,
+          39,
+          42,
+          45
+        ],
+        "standardDepthOptions": [
+          24,
+          26
+        ],
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "product-wall-hood",
+        "category": "wall",
+        "title": "Hood",
+        "subtitle": "30\" W x 24\" H x 12\" D",
+        "widthInches": 30,
+        "heightInches": 24,
+        "depthInches": 12,
+        "image": "wall-hood",
+        "productCategory": "wall",
+        "defaultDistanceFromFloorInches": 60,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "product-wall-microwave",
+        "category": "wall",
+        "title": "Microwave",
+        "subtitle": "30\" W x 18\" H x 15\" D",
+        "widthInches": 30,
+        "heightInches": 18,
+        "depthInches": 15,
+        "image": "wall-microwave",
+        "productCategory": "wall",
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "product-wall-oven",
+        "category": "wall",
+        "title": "Single Oven",
+        "subtitle": "30\" W x 30\" H x 24\" D",
+        "widthInches": 30,
+        "heightInches": 30,
+        "depthInches": 24,
+        "image": "wall-oven",
+        "productCategory": "wall",
+        "defaultDistanceFromFloorInches": 42,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "product-wall-double-oven",
+        "category": "wall",
+        "title": "Double Oven",
+        "subtitle": "30\" W x 54\" H x 24\" D",
+        "widthInches": 30,
+        "heightInches": 54,
+        "depthInches": 24,
+        "image": "wall-double-oven",
+        "productCategory": "wall",
+        "defaultDistanceFromFloorInches": 18,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "accessory-base-filler",
+        "category": "base",
+        "title": "Base Filler",
+        "subtitle": "4\" W x 34.5\" H x 24\" D",
+        "widthInches": 4,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "accessory-base-filler",
+        "supportType": "floor-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "accessory-wall-filler",
+        "category": "wall",
+        "title": "Wall Filler (Vertical)",
+        "subtitle": "4\" W x 30\" H x 12\" D",
+        "widthInches": 4,
+        "heightInches": 30,
+        "depthInches": 12,
+        "image": "accessory-wall-filler",
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "accessory-wall-filler-horizontal",
+        "category": "wall",
+        "title": "Wall Filler (Horizontal)",
+        "subtitle": "36\" W x 3\" H x 24\" D",
+        "widthInches": 36,
+        "heightInches": 3,
+        "depthInches": 24,
+        "image": "accessory-wall-filler-horizontal",
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "accessory-base-end-panel",
+        "category": "base",
+        "title": "Base End Panel",
+        "subtitle": "4\" W x 34.5\" H x 36\" D",
+        "widthInches": 4,
+        "heightInches": 34.5,
+        "depthInches": 36,
+        "image": "accessory-base-end-panel",
+        "supportType": "floor-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "accessory-wall-end-panel",
+        "category": "wall",
+        "title": "Wall End Panel",
+        "subtitle": "4\" W x 30\" H x 12\" D",
+        "widthInches": 4,
+        "heightInches": 30,
+        "depthInches": 12,
+        "image": "accessory-wall-end-panel",
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      }
+    ],
+    "wallChains": [
+      {
+        "id": "chain-1",
+        "wallIds": [
+          "922a2053-e090-4f69-b805-1261558f3ac0",
+          "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+          "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2"
+        ]
+      }
+    ],
+    "meta": {
+      "source": "CabinetEditorBase",
+      "unit": "inches",
+      "coordinateUnit": "pixels",
+      "measurementUnit": "inches",
+      "gridSize": 28,
+      "gridSizePixelsPerFoot": 28,
+      "wallThickness": 16,
+      "wallThicknessPixels": 16,
+      "generatedAt": "2026-05-26T13:52:32.573Z"
+    }
+  },
+  "generatedRoom": {
+    "walls": [
+      {
+        "id": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "start": {
+          "x": 980,
+          "y": 700
+        },
+        "end": {
+          "x": 1761.3287048339844,
+          "y": 700
+        },
+        "kind": "wall",
+        "debugDots": {
+          "left": {
+            "start": {
+              "x": 980,
+              "y": 708
+            },
+            "end": {
+              "x": 1753.3287048339844,
+              "y": 708
+            }
+          },
+          "right": {
+            "start": {
+              "x": 980,
+              "y": 692
+            },
+            "end": {
+              "x": 1769.3287048339844,
+              "y": 692
+            }
+          }
+        },
+        "needPlacement": true,
+        "elevationPlan": {
+          "widthInches": 331.4,
+          "fixedObjects": [
+            {
+              "id": "d8fd1059-ea8b-4ef8-b9b6-25ac0c0d10f4",
+              "type": "cabinet",
+              "coordinateSpace": "elevationPlan",
+              "catalogId": "base-corner-cabinet",
+              "title": "L-Shaped Corner Base Cabinet",
+              "category": "base",
+              "image": "base-corner",
+              "topOption": null,
+              "leftInches": 295.4,
+              "rightInches": 0,
+              "bottomInches": 0,
+              "widthInches": 36,
+              "depthInches": 36,
+              "heightInches": 36,
+              "lockMode": "locked"
+            },
+            {
+              "id": "5dd085da-b6ae-46d2-b19a-747a9253ae09",
+              "type": "product",
+              "coordinateSpace": "elevationPlan",
+              "catalogId": "product-refrigerator",
+              "title": "Refrigerator",
+              "category": "base",
+              "image": "base-refrigerator",
+              "topOption": null,
+              "leftInches": 259.4,
+              "rightInches": 36,
+              "bottomInches": 0,
+              "widthInches": 36,
+              "depthInches": 30,
+              "heightInches": 84,
+              "lockMode": "locked"
+            }
+          ]
+        },
+        "elevationWidthInches": 331.4
+      },
+      {
+        "id": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "start": {
+          "x": 1761.3287048339844,
+          "y": 700
+        },
+        "end": {
+          "x": 1761.3287048339844,
+          "y": 1229.8545761108398
+        },
+        "kind": "wall",
+        "debugDots": {
+          "left": {
+            "start": {
+              "x": 1753.3287048339844,
+              "y": 708
+            },
+            "end": {
+              "x": 1753.3287048339844,
+              "y": 1221.8545761108398
+            }
+          },
+          "right": {
+            "start": {
+              "x": 1769.3287048339844,
+              "y": 692
+            },
+            "end": {
+              "x": 1769.3287048339844,
+              "y": 1237.8545761108398
+            }
+          }
+        },
+        "needPlacement": true,
+        "elevationPlan": {
+          "widthInches": 220.2,
+          "fixedObjects": [
+            {
+              "id": "f4fef5aa-0026-4516-9c5d-73e60954bd38",
+              "type": "cabinet",
+              "coordinateSpace": "elevationPlan",
+              "catalogId": "base-sink-cabinet",
+              "title": "Sink Base Cabinet",
+              "category": "base",
+              "image": "base-sink-cabinet",
+              "topOption": "sink",
+              "leftInches": 36,
+              "rightInches": 160.2,
+              "bottomInches": 0,
+              "widthInches": 24,
+              "depthInches": 24,
+              "heightInches": 34.5,
+              "lockMode": "locked"
+            }
+          ]
+        },
+        "elevationWidthInches": 220.2
+      },
+      {
+        "id": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "start": {
+          "x": 1761.3287048339844,
+          "y": 1229.8545761108398
+        },
+        "end": {
+          "x": 980,
+          "y": 1229.8545761108398
+        },
+        "kind": "wall",
+        "debugDots": {
+          "left": {
+            "start": {
+              "x": 1753.3287048339844,
+              "y": 1221.8545761108398
+            },
+            "end": {
+              "x": 980,
+              "y": 1221.8545761108398
+            }
+          },
+          "right": {
+            "start": {
+              "x": 1769.3287048339844,
+              "y": 1237.8545761108398
+            },
+            "end": {
+              "x": 980,
+              "y": 1237.8545761108398
+            }
+          }
+        },
+        "needPlacement": true,
+        "elevationPlan": {
+          "widthInches": 331.4,
+          "fixedObjects": []
+        },
+        "elevationWidthInches": 331.4
+      }
+    ],
+    "windows": [],
+    "doors": [],
+    "cabinets": [
+      {
+        "id": "d8fd1059-ea8b-4ef8-b9b6-25ac0c0d10f4",
+        "center": {
+          "x": 1711.3287048339844,
+          "y": 750
+        },
+        "width": 84,
+        "depth": 84,
+        "rotation": 0,
+        "placementType": "cabinet",
+        "category": "base",
+        "catalogId": "base-corner-cabinet",
+        "image": "base-corner",
+        "heightInches": 36,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left",
+        "hasToeKick": false
+      },
+      {
+        "id": "5dd085da-b6ae-46d2-b19a-747a9253ae09",
+        "center": {
+          "x": 1627.3287048339844,
+          "y": 743
+        },
+        "width": 84,
+        "depth": 70,
+        "rotation": 0,
+        "placementType": "product",
+        "category": "base",
+        "productCategory": "base",
+        "catalogId": "product-refrigerator",
+        "image": "base-refrigerator",
+        "heightInches": 84,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left",
+        "hasToeKick": false
+      },
+      {
+        "id": "f4fef5aa-0026-4516-9c5d-73e60954bd38",
+        "center": {
+          "x": 1725.3287048339844,
+          "y": 820
+        },
+        "width": 56,
+        "depth": 56,
+        "rotation": 90,
+        "placementType": "cabinet",
+        "category": "base",
+        "catalogId": "base-sink-cabinet",
+        "image": "base-sink-cabinet",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left",
+        "sinkFixture": true,
+        "hasToeKick": false
+      }
+    ],
+    "catalog": [
+      {
+        "id": "base-corner-cabinet",
+        "category": "base",
+        "title": "L-Shaped Corner Base Cabinet",
+        "subtitle": "36\" W x 36\" H x 36\" D",
+        "widthInches": 36,
+        "heightInches": 36,
+        "depthInches": 36,
+        "image": "base-corner",
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "product-dishwasher",
+        "category": "base",
+        "title": "Dishwashing Machine",
+        "subtitle": "24\" W x 34\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 34,
+        "depthInches": 24,
+        "image": "base-dishwasher",
+        "productCategory": "base",
+        "supportType": "floor-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "product-refrigerator",
+        "category": "base",
+        "title": "Refrigerator",
+        "subtitle": "36\" W x 84\" H x 30\" D",
+        "widthInches": 36,
+        "heightInches": 84,
+        "depthInches": 30,
+        "image": "base-refrigerator",
+        "productCategory": "base",
+        "supportType": "floor-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "product-range",
+        "category": "base",
+        "title": "Range",
+        "subtitle": "30\" W x 36\" H x 24\" D",
+        "widthInches": 30,
+        "heightInches": 36,
+        "depthInches": 24,
+        "image": "base-range",
+        "productCategory": "base",
+        "supportType": "floor-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "base-two-door-cabinet",
+        "category": "base",
+        "title": "2 Door Base Cabinet",
+        "subtitle": "24\" W x 34.5\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-one-door-cabinet",
+        "category": "base",
+        "title": "1 Door Base Cabinet",
+        "subtitle": "9\" W x 34.5\" H x 24\" D",
+        "widthInches": 9,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-one-door",
+        "standardWidthOptions": [
+          9,
+          12,
+          15,
+          18,
+          21,
+          24
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-drawer-cabinet",
+        "category": "base",
+        "title": "3 Drawers Base Cabinet",
+        "subtitle": "9\" W x 34.5\" H x 24\" D",
+        "widthInches": 9,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-drawer",
+        "standardWidthOptions": [
+          12,
+          15,
+          18,
+          21,
+          24,
+          30,
+          33,
+          36
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-sink-cabinet",
+        "category": "base",
+        "title": "Sink Base Cabinet",
+        "subtitle": "24\" W x 34.5\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-sink-cabinet",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-farm-sink-cabinet",
+        "category": "base",
+        "title": "Sink Farm Base Cabinet",
+        "subtitle": "30\" W x 34.5\" H x 24\" D",
+        "widthInches": 30,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-farm-sink-cabinet",
+        "standardWidthOptions": [
+          30,
+          33,
+          36,
+          39,
+          42
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-blind-left-cabinet",
+        "category": "base",
+        "title": "1 Door Blind (Left) Base Cabinet",
+        "subtitle": "36\" W x 34.5\" H x 24\" D",
+        "widthInches": 36,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-blind-left",
+        "standardWidthOptions": [
+          36,
+          37,
+          38,
+          39,
+          42,
+          43,
+          44,
+          45
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-blind-right-cabinet",
+        "category": "base",
+        "title": "1 Door Blind (Right) Base Cabinet",
+        "subtitle": "36\" W x 34.5\" H x 24\" D",
+        "widthInches": 36,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-blind-right",
+        "standardWidthOptions": [
+          36,
+          37,
+          38,
+          39,
+          42,
+          43,
+          44,
+          45
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-two-door-one-drawer-cabinet",
+        "category": "base",
+        "title": "1 Top Drawer, 2 Doors Base Cabinet",
+        "subtitle": "24\" W x 34.5\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-two-door-one-drawer",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-one-door-one-drawer-cabinet",
+        "category": "base",
+        "title": "1 Top Drawer, 1 Door Base Cabinet",
+        "subtitle": "9\" W x 34.5\" H x 24\" D",
+        "widthInches": 9,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-one-door-one-drawer",
+        "standardWidthOptions": [
+          9,
+          12,
+          15,
+          18,
+          21,
+          24
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-two-door-two-drawer-cabinet",
+        "category": "base",
+        "title": "2 Top Drawers, 2 Doors Base Cabinet",
+        "subtitle": "24\" W x 34.5\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-two-door-two-drawer",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-two-drawer-cabinet",
+        "category": "base",
+        "title": "2 Drawer Base Cabinet",
+        "subtitle": "9\" W x 34.5\" H x 24\" D",
+        "widthInches": 9,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-two-drawer",
+        "standardWidthOptions": [
+          15,
+          18,
+          21,
+          24,
+          30,
+          33,
+          36
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-spice-rack-cabinet",
+        "category": "base",
+        "title": "Spice Rack Base Cabinet",
+        "subtitle": "6\" W x 34.5\" H x 24\" D",
+        "widthInches": 6,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-spice-rack",
+        "standardWidthOptions": [
+          6,
+          9,
+          12,
+          15
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-trash-can-cabinet",
+        "category": "base",
+        "title": "Trash Can Base Cabinet",
+        "subtitle": "12\" W x 34.5\" H x 24\" D",
+        "widthInches": 12,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-trash-can",
+        "standardWidthOptions": [
+          12,
+          15,
+          18,
+          21,
+          24,
+          29
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-oven-bottom-drawer-cabinet",
+        "category": "base",
+        "title": "Oven with 1 Bottom Drawer Base Cabinet",
+        "subtitle": "30\" W x 69\" H x 26\" D",
+        "widthInches": 30,
+        "heightInches": 69,
+        "depthInches": 26,
+        "image": "base-oven-bottom-drawer",
+        "standardWidthOptions": [
+          30,
+          33,
+          36,
+          39,
+          42
+        ],
+        "standardHeightOptions": [
+          69
+        ],
+        "standardDepthOptions": [
+          24,
+          26
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-microwave-bottom-drawer-cabinet",
+        "category": "base",
+        "title": "Microwave with 1 Bottom Drawer Base Cabinet",
+        "subtitle": "24\" W x 34.5\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "base-microwave-bottom-drawer",
+        "standardWidthOptions": [
+          24,
+          30
+        ],
+        "standardHeightOptions": [
+          34.5
+        ],
+        "standardDepthOptions": [
+          24,
+          26
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-pantry-one-door-cabinet",
+        "category": "base",
+        "title": "1 Door Pantry Cabinet (Base)",
+        "subtitle": "9\" W x 54\" H x 24\" D",
+        "widthInches": 9,
+        "heightInches": 54,
+        "depthInches": 24,
+        "image": "pantry-one-door",
+        "standardWidthOptions": [
+          9,
+          12,
+          15,
+          18,
+          21,
+          24
+        ],
+        "standardHeightOptions": [
+          54,
+          57
+        ],
+        "standardDepthOptions": [
+          24,
+          26
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "base-pantry-two-door-cabinet",
+        "category": "base",
+        "title": "2 Door Pantry Cabinet (Base)",
+        "subtitle": "24\" W x 54\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 54,
+        "depthInches": 24,
+        "image": "pantry-two-door",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48
+        ],
+        "standardHeightOptions": [
+          54,
+          57
+        ],
+        "standardDepthOptions": [
+          24,
+          26
+        ],
+        "supportType": "floor-supported",
+        "hasToeKick": true
+      },
+      {
+        "id": "wall-two-door-cabinet",
+        "category": "wall",
+        "title": "2 Door Wall Cabinet",
+        "subtitle": "24\" W x 12\" H x 12\" D",
+        "widthInches": 24,
+        "heightInches": 12,
+        "depthInches": 12,
+        "image": "wall-two-doors",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48
+        ],
+        "standardHeightOptions": [
+          12,
+          15,
+          18,
+          24,
+          30,
+          36,
+          42
+        ],
+        "standardDepthOptions": [
+          12,
+          14,
+          15,
+          16
+        ],
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "wall-one-door-cabinet",
+        "category": "wall",
+        "title": "1 Door Wall Cabinet",
+        "subtitle": "9\" W x 12\" H x 12\" D",
+        "widthInches": 9,
+        "heightInches": 12,
+        "depthInches": 12,
+        "image": "wall-one-door",
+        "standardWidthOptions": [
+          9,
+          12,
+          15,
+          18,
+          21,
+          24
+        ],
+        "standardHeightOptions": [
+          12,
+          15,
+          18,
+          24,
+          30,
+          36,
+          42
+        ],
+        "standardDepthOptions": [
+          12,
+          14,
+          15,
+          16
+        ],
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "wall-blind-left-cabinet",
+        "category": "wall",
+        "title": "1 Door Blind (Left) Wall Cabinet",
+        "subtitle": "36\" W x 12\" H x 12\" D",
+        "widthInches": 36,
+        "heightInches": 12,
+        "depthInches": 12,
+        "image": "wall-blind-left",
+        "standardWidthOptions": [
+          36,
+          37,
+          38,
+          39,
+          42,
+          43,
+          44,
+          45
+        ],
+        "standardHeightOptions": [
+          12,
+          15,
+          18,
+          24,
+          30,
+          36,
+          42
+        ],
+        "standardDepthOptions": [
+          12,
+          14,
+          15,
+          16
+        ],
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "wall-blind-right-cabinet",
+        "category": "wall",
+        "title": "1 Door Blind (Right) Wall Cabinet",
+        "subtitle": "36\" W x 12\" H x 12\" D",
+        "widthInches": 36,
+        "heightInches": 12,
+        "depthInches": 12,
+        "image": "wall-blind-right",
+        "standardWidthOptions": [
+          36,
+          37,
+          38,
+          39,
+          42,
+          43,
+          44,
+          45
+        ],
+        "standardHeightOptions": [
+          12,
+          15,
+          18,
+          24,
+          30,
+          36,
+          42
+        ],
+        "standardDepthOptions": [
+          12,
+          14,
+          15,
+          16
+        ],
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "wall-pantry-one-door-cabinet",
+        "category": "wall",
+        "title": "1 Door Pantry Cabinet (Wall)",
+        "subtitle": "9\" W x 12\" H x 24\" D",
+        "widthInches": 9,
+        "heightInches": 12,
+        "depthInches": 24,
+        "image": "pantry-one-door",
+        "standardWidthOptions": [
+          9,
+          12,
+          15,
+          18,
+          21,
+          24
+        ],
+        "standardHeightOptions": [
+          12,
+          15,
+          18,
+          24,
+          30,
+          36,
+          39,
+          42,
+          45
+        ],
+        "standardDepthOptions": [
+          24,
+          26
+        ],
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "wall-pantry-two-door-cabinet",
+        "category": "wall",
+        "title": "2 Doors Pantry Cabinet (Wall)",
+        "subtitle": "24\" W x 12\" H x 24\" D",
+        "widthInches": 24,
+        "heightInches": 12,
+        "depthInches": 24,
+        "image": "pantry-two-door",
+        "standardWidthOptions": [
+          24,
+          27,
+          30,
+          33,
+          36,
+          39,
+          42,
+          45,
+          48
+        ],
+        "standardHeightOptions": [
+          12,
+          15,
+          18,
+          24,
+          30,
+          36,
+          39,
+          42,
+          45
+        ],
+        "standardDepthOptions": [
+          24,
+          26
+        ],
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "product-wall-hood",
+        "category": "wall",
+        "title": "Hood",
+        "subtitle": "30\" W x 24\" H x 12\" D",
+        "widthInches": 30,
+        "heightInches": 24,
+        "depthInches": 12,
+        "image": "wall-hood",
+        "productCategory": "wall",
+        "defaultDistanceFromFloorInches": 60,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "product-wall-microwave",
+        "category": "wall",
+        "title": "Microwave",
+        "subtitle": "30\" W x 18\" H x 15\" D",
+        "widthInches": 30,
+        "heightInches": 18,
+        "depthInches": 15,
+        "image": "wall-microwave",
+        "productCategory": "wall",
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "product-wall-oven",
+        "category": "wall",
+        "title": "Single Oven",
+        "subtitle": "30\" W x 30\" H x 24\" D",
+        "widthInches": 30,
+        "heightInches": 30,
+        "depthInches": 24,
+        "image": "wall-oven",
+        "productCategory": "wall",
+        "defaultDistanceFromFloorInches": 42,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "product-wall-double-oven",
+        "category": "wall",
+        "title": "Double Oven",
+        "subtitle": "30\" W x 54\" H x 24\" D",
+        "widthInches": 30,
+        "heightInches": 54,
+        "depthInches": 24,
+        "image": "wall-double-oven",
+        "productCategory": "wall",
+        "defaultDistanceFromFloorInches": 18,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "accessory-base-filler",
+        "category": "base",
+        "title": "Base Filler",
+        "subtitle": "4\" W x 34.5\" H x 24\" D",
+        "widthInches": 4,
+        "heightInches": 34.5,
+        "depthInches": 24,
+        "image": "accessory-base-filler",
+        "supportType": "floor-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "accessory-wall-filler",
+        "category": "wall",
+        "title": "Wall Filler (Vertical)",
+        "subtitle": "4\" W x 30\" H x 12\" D",
+        "widthInches": 4,
+        "heightInches": 30,
+        "depthInches": 12,
+        "image": "accessory-wall-filler",
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "accessory-wall-filler-horizontal",
+        "category": "wall",
+        "title": "Wall Filler (Horizontal)",
+        "subtitle": "36\" W x 3\" H x 24\" D",
+        "widthInches": 36,
+        "heightInches": 3,
+        "depthInches": 24,
+        "image": "accessory-wall-filler-horizontal",
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "accessory-base-end-panel",
+        "category": "base",
+        "title": "Base End Panel",
+        "subtitle": "4\" W x 34.5\" H x 36\" D",
+        "widthInches": 4,
+        "heightInches": 34.5,
+        "depthInches": 36,
+        "image": "accessory-base-end-panel",
+        "supportType": "floor-supported",
+        "hasToeKick": false
+      },
+      {
+        "id": "accessory-wall-end-panel",
+        "category": "wall",
+        "title": "Wall End Panel",
+        "subtitle": "4\" W x 30\" H x 12\" D",
+        "widthInches": 4,
+        "heightInches": 30,
+        "depthInches": 12,
+        "image": "accessory-wall-end-panel",
+        "defaultDistanceFromFloorInches": 54,
+        "supportType": "elevated-supported",
+        "hasToeKick": false
+      }
+    ],
+    "wallChains": [
+      {
+        "id": "chain-1",
+        "wallIds": [
+          "922a2053-e090-4f69-b805-1261558f3ac0",
+          "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+          "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2"
+        ]
+      }
+    ],
+    "meta": {
+      "source": "CabinetEditorBase",
+      "unit": "inches",
+      "coordinateUnit": "pixels",
+      "measurementUnit": "inches",
+      "gridSize": 28,
+      "gridSizePixelsPerFoot": 28,
+      "wallThickness": 16,
+      "wallThicknessPixels": 16,
+      "generatedAt": "2026-05-26T13:52:32.573Z"
+    }
+  },
+  "generatedLayout": {
+    "room": {
+      "walls": [
+        {
+          "id": "922a2053-e090-4f69-b805-1261558f3ac0",
+          "start": {
+            "x": 980,
+            "y": 700
+          },
+          "end": {
+            "x": 1761.3287048339844,
+            "y": 700
+          },
+          "kind": "wall",
+          "debugDots": {
+            "left": {
+              "start": {
+                "x": 980,
+                "y": 708
+              },
+              "end": {
+                "x": 1753.3287048339844,
+                "y": 708
+              }
+            },
+            "right": {
+              "start": {
+                "x": 980,
+                "y": 692
+              },
+              "end": {
+                "x": 1769.3287048339844,
+                "y": 692
+              }
+            }
+          },
+          "needPlacement": true,
+          "elevationPlan": {
+            "widthInches": 331.4,
+            "fixedObjects": [
+              {
+                "id": "d8fd1059-ea8b-4ef8-b9b6-25ac0c0d10f4",
+                "type": "cabinet",
+                "coordinateSpace": "elevationPlan",
+                "catalogId": "base-corner-cabinet",
+                "title": "L-Shaped Corner Base Cabinet",
+                "category": "base",
+                "image": "base-corner",
+                "topOption": null,
+                "leftInches": 295.4,
+                "rightInches": 0,
+                "bottomInches": 0,
+                "widthInches": 36,
+                "depthInches": 36,
+                "heightInches": 36,
+                "lockMode": "locked"
+              },
+              {
+                "id": "5dd085da-b6ae-46d2-b19a-747a9253ae09",
+                "type": "product",
+                "coordinateSpace": "elevationPlan",
+                "catalogId": "product-refrigerator",
+                "title": "Refrigerator",
+                "category": "base",
+                "image": "base-refrigerator",
+                "topOption": null,
+                "leftInches": 259.4,
+                "rightInches": 36,
+                "bottomInches": 0,
+                "widthInches": 36,
+                "depthInches": 30,
+                "heightInches": 84,
+                "lockMode": "locked"
+              }
+            ]
+          },
+          "elevationWidthInches": 331.4
+        },
+        {
+          "id": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+          "start": {
+            "x": 1761.3287048339844,
+            "y": 700
+          },
+          "end": {
+            "x": 1761.3287048339844,
+            "y": 1229.8545761108398
+          },
+          "kind": "wall",
+          "debugDots": {
+            "left": {
+              "start": {
+                "x": 1753.3287048339844,
+                "y": 708
+              },
+              "end": {
+                "x": 1753.3287048339844,
+                "y": 1221.8545761108398
+              }
+            },
+            "right": {
+              "start": {
+                "x": 1769.3287048339844,
+                "y": 692
+              },
+              "end": {
+                "x": 1769.3287048339844,
+                "y": 1237.8545761108398
+              }
+            }
+          },
+          "needPlacement": true,
+          "elevationPlan": {
+            "widthInches": 220.2,
+            "fixedObjects": [
+              {
+                "id": "f4fef5aa-0026-4516-9c5d-73e60954bd38",
+                "type": "cabinet",
+                "coordinateSpace": "elevationPlan",
+                "catalogId": "base-sink-cabinet",
+                "title": "Sink Base Cabinet",
+                "category": "base",
+                "image": "base-sink-cabinet",
+                "topOption": "sink",
+                "leftInches": 36,
+                "rightInches": 160.2,
+                "bottomInches": 0,
+                "widthInches": 24,
+                "depthInches": 24,
+                "heightInches": 34.5,
+                "lockMode": "locked"
+              }
+            ]
+          },
+          "elevationWidthInches": 220.2
+        },
+        {
+          "id": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+          "start": {
+            "x": 1761.3287048339844,
+            "y": 1229.8545761108398
+          },
+          "end": {
+            "x": 980,
+            "y": 1229.8545761108398
+          },
+          "kind": "wall",
+          "debugDots": {
+            "left": {
+              "start": {
+                "x": 1753.3287048339844,
+                "y": 1221.8545761108398
+              },
+              "end": {
+                "x": 980,
+                "y": 1221.8545761108398
+              }
+            },
+            "right": {
+              "start": {
+                "x": 1769.3287048339844,
+                "y": 1237.8545761108398
+              },
+              "end": {
+                "x": 980,
+                "y": 1237.8545761108398
+              }
+            }
+          },
+          "needPlacement": true,
+          "elevationPlan": {
+            "widthInches": 331.4,
+            "fixedObjects": []
+          },
+          "elevationWidthInches": 331.4
+        }
+      ],
+      "windows": [],
+      "doors": [],
+      "cabinets": [
+        {
+          "id": "d8fd1059-ea8b-4ef8-b9b6-25ac0c0d10f4",
+          "center": {
+            "x": 1711.3287048339844,
+            "y": 750
+          },
+          "width": 84,
+          "depth": 84,
+          "rotation": 0,
+          "placementType": "cabinet",
+          "category": "base",
+          "catalogId": "base-corner-cabinet",
+          "image": "base-corner",
+          "heightInches": 36,
+          "distanceFromFloorInches": 0,
+          "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+          "wallFace": "left",
+          "hasToeKick": false
+        },
+        {
+          "id": "5dd085da-b6ae-46d2-b19a-747a9253ae09",
+          "center": {
+            "x": 1627.3287048339844,
+            "y": 743
+          },
+          "width": 84,
+          "depth": 70,
+          "rotation": 0,
+          "placementType": "product",
+          "category": "base",
+          "productCategory": "base",
+          "catalogId": "product-refrigerator",
+          "image": "base-refrigerator",
+          "heightInches": 84,
+          "distanceFromFloorInches": 0,
+          "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+          "wallFace": "left",
+          "hasToeKick": false
+        },
+        {
+          "id": "f4fef5aa-0026-4516-9c5d-73e60954bd38",
+          "center": {
+            "x": 1725.3287048339844,
+            "y": 820
+          },
+          "width": 56,
+          "depth": 56,
+          "rotation": 90,
+          "placementType": "cabinet",
+          "category": "base",
+          "catalogId": "base-sink-cabinet",
+          "image": "base-sink-cabinet",
+          "heightInches": 34.5,
+          "distanceFromFloorInches": 0,
+          "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+          "wallFace": "left",
+          "sinkFixture": true,
+          "hasToeKick": false
+        }
+      ],
+      "catalog": [
+        {
+          "id": "base-corner-cabinet",
+          "category": "base",
+          "title": "L-Shaped Corner Base Cabinet",
+          "subtitle": "36\" W x 36\" H x 36\" D",
+          "widthInches": 36,
+          "heightInches": 36,
+          "depthInches": 36,
+          "image": "base-corner",
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "product-dishwasher",
+          "category": "base",
+          "title": "Dishwashing Machine",
+          "subtitle": "24\" W x 34\" H x 24\" D",
+          "widthInches": 24,
+          "heightInches": 34,
+          "depthInches": 24,
+          "image": "base-dishwasher",
+          "productCategory": "base",
+          "supportType": "floor-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "product-refrigerator",
+          "category": "base",
+          "title": "Refrigerator",
+          "subtitle": "36\" W x 84\" H x 30\" D",
+          "widthInches": 36,
+          "heightInches": 84,
+          "depthInches": 30,
+          "image": "base-refrigerator",
+          "productCategory": "base",
+          "supportType": "floor-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "product-range",
+          "category": "base",
+          "title": "Range",
+          "subtitle": "30\" W x 36\" H x 24\" D",
+          "widthInches": 30,
+          "heightInches": 36,
+          "depthInches": 24,
+          "image": "base-range",
+          "productCategory": "base",
+          "supportType": "floor-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "base-two-door-cabinet",
+          "category": "base",
+          "title": "2 Door Base Cabinet",
+          "subtitle": "24\" W x 34.5\" H x 24\" D",
+          "widthInches": 24,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base",
+          "standardWidthOptions": [
+            24,
+            27,
+            30,
+            33,
+            36,
+            39,
+            42,
+            45,
+            48
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-one-door-cabinet",
+          "category": "base",
+          "title": "1 Door Base Cabinet",
+          "subtitle": "9\" W x 34.5\" H x 24\" D",
+          "widthInches": 9,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-one-door",
+          "standardWidthOptions": [
+            9,
+            12,
+            15,
+            18,
+            21,
+            24
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-drawer-cabinet",
+          "category": "base",
+          "title": "3 Drawers Base Cabinet",
+          "subtitle": "9\" W x 34.5\" H x 24\" D",
+          "widthInches": 9,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-drawer",
+          "standardWidthOptions": [
+            12,
+            15,
+            18,
+            21,
+            24,
+            30,
+            33,
+            36
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-sink-cabinet",
+          "category": "base",
+          "title": "Sink Base Cabinet",
+          "subtitle": "24\" W x 34.5\" H x 24\" D",
+          "widthInches": 24,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-sink-cabinet",
+          "standardWidthOptions": [
+            24,
+            27,
+            30,
+            33,
+            36,
+            39,
+            42
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-farm-sink-cabinet",
+          "category": "base",
+          "title": "Sink Farm Base Cabinet",
+          "subtitle": "30\" W x 34.5\" H x 24\" D",
+          "widthInches": 30,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-farm-sink-cabinet",
+          "standardWidthOptions": [
+            30,
+            33,
+            36,
+            39,
+            42
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-blind-left-cabinet",
+          "category": "base",
+          "title": "1 Door Blind (Left) Base Cabinet",
+          "subtitle": "36\" W x 34.5\" H x 24\" D",
+          "widthInches": 36,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-blind-left",
+          "standardWidthOptions": [
+            36,
+            37,
+            38,
+            39,
+            42,
+            43,
+            44,
+            45
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-blind-right-cabinet",
+          "category": "base",
+          "title": "1 Door Blind (Right) Base Cabinet",
+          "subtitle": "36\" W x 34.5\" H x 24\" D",
+          "widthInches": 36,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-blind-right",
+          "standardWidthOptions": [
+            36,
+            37,
+            38,
+            39,
+            42,
+            43,
+            44,
+            45
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-two-door-one-drawer-cabinet",
+          "category": "base",
+          "title": "1 Top Drawer, 2 Doors Base Cabinet",
+          "subtitle": "24\" W x 34.5\" H x 24\" D",
+          "widthInches": 24,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-two-door-one-drawer",
+          "standardWidthOptions": [
+            24,
+            27,
+            30,
+            33,
+            36,
+            39,
+            42,
+            45,
+            48
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-one-door-one-drawer-cabinet",
+          "category": "base",
+          "title": "1 Top Drawer, 1 Door Base Cabinet",
+          "subtitle": "9\" W x 34.5\" H x 24\" D",
+          "widthInches": 9,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-one-door-one-drawer",
+          "standardWidthOptions": [
+            9,
+            12,
+            15,
+            18,
+            21,
+            24
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-two-door-two-drawer-cabinet",
+          "category": "base",
+          "title": "2 Top Drawers, 2 Doors Base Cabinet",
+          "subtitle": "24\" W x 34.5\" H x 24\" D",
+          "widthInches": 24,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-two-door-two-drawer",
+          "standardWidthOptions": [
+            24,
+            27,
+            30,
+            33,
+            36,
+            39,
+            42,
+            45,
+            48
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-two-drawer-cabinet",
+          "category": "base",
+          "title": "2 Drawer Base Cabinet",
+          "subtitle": "9\" W x 34.5\" H x 24\" D",
+          "widthInches": 9,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-two-drawer",
+          "standardWidthOptions": [
+            15,
+            18,
+            21,
+            24,
+            30,
+            33,
+            36
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-spice-rack-cabinet",
+          "category": "base",
+          "title": "Spice Rack Base Cabinet",
+          "subtitle": "6\" W x 34.5\" H x 24\" D",
+          "widthInches": 6,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-spice-rack",
+          "standardWidthOptions": [
+            6,
+            9,
+            12,
+            15
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-trash-can-cabinet",
+          "category": "base",
+          "title": "Trash Can Base Cabinet",
+          "subtitle": "12\" W x 34.5\" H x 24\" D",
+          "widthInches": 12,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-trash-can",
+          "standardWidthOptions": [
+            12,
+            15,
+            18,
+            21,
+            24,
+            29
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-oven-bottom-drawer-cabinet",
+          "category": "base",
+          "title": "Oven with 1 Bottom Drawer Base Cabinet",
+          "subtitle": "30\" W x 69\" H x 26\" D",
+          "widthInches": 30,
+          "heightInches": 69,
+          "depthInches": 26,
+          "image": "base-oven-bottom-drawer",
+          "standardWidthOptions": [
+            30,
+            33,
+            36,
+            39,
+            42
+          ],
+          "standardHeightOptions": [
+            69
+          ],
+          "standardDepthOptions": [
+            24,
+            26
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-microwave-bottom-drawer-cabinet",
+          "category": "base",
+          "title": "Microwave with 1 Bottom Drawer Base Cabinet",
+          "subtitle": "24\" W x 34.5\" H x 24\" D",
+          "widthInches": 24,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "base-microwave-bottom-drawer",
+          "standardWidthOptions": [
+            24,
+            30
+          ],
+          "standardHeightOptions": [
+            34.5
+          ],
+          "standardDepthOptions": [
+            24,
+            26
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-pantry-one-door-cabinet",
+          "category": "base",
+          "title": "1 Door Pantry Cabinet (Base)",
+          "subtitle": "9\" W x 54\" H x 24\" D",
+          "widthInches": 9,
+          "heightInches": 54,
+          "depthInches": 24,
+          "image": "pantry-one-door",
+          "standardWidthOptions": [
+            9,
+            12,
+            15,
+            18,
+            21,
+            24
+          ],
+          "standardHeightOptions": [
+            54,
+            57
+          ],
+          "standardDepthOptions": [
+            24,
+            26
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "base-pantry-two-door-cabinet",
+          "category": "base",
+          "title": "2 Door Pantry Cabinet (Base)",
+          "subtitle": "24\" W x 54\" H x 24\" D",
+          "widthInches": 24,
+          "heightInches": 54,
+          "depthInches": 24,
+          "image": "pantry-two-door",
+          "standardWidthOptions": [
+            24,
+            27,
+            30,
+            33,
+            36,
+            39,
+            42,
+            45,
+            48
+          ],
+          "standardHeightOptions": [
+            54,
+            57
+          ],
+          "standardDepthOptions": [
+            24,
+            26
+          ],
+          "supportType": "floor-supported",
+          "hasToeKick": true
+        },
+        {
+          "id": "wall-two-door-cabinet",
+          "category": "wall",
+          "title": "2 Door Wall Cabinet",
+          "subtitle": "24\" W x 12\" H x 12\" D",
+          "widthInches": 24,
+          "heightInches": 12,
+          "depthInches": 12,
+          "image": "wall-two-doors",
+          "standardWidthOptions": [
+            24,
+            27,
+            30,
+            33,
+            36,
+            39,
+            42,
+            45,
+            48
+          ],
+          "standardHeightOptions": [
+            12,
+            15,
+            18,
+            24,
+            30,
+            36,
+            42
+          ],
+          "standardDepthOptions": [
+            12,
+            14,
+            15,
+            16
+          ],
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "wall-one-door-cabinet",
+          "category": "wall",
+          "title": "1 Door Wall Cabinet",
+          "subtitle": "9\" W x 12\" H x 12\" D",
+          "widthInches": 9,
+          "heightInches": 12,
+          "depthInches": 12,
+          "image": "wall-one-door",
+          "standardWidthOptions": [
+            9,
+            12,
+            15,
+            18,
+            21,
+            24
+          ],
+          "standardHeightOptions": [
+            12,
+            15,
+            18,
+            24,
+            30,
+            36,
+            42
+          ],
+          "standardDepthOptions": [
+            12,
+            14,
+            15,
+            16
+          ],
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "wall-blind-left-cabinet",
+          "category": "wall",
+          "title": "1 Door Blind (Left) Wall Cabinet",
+          "subtitle": "36\" W x 12\" H x 12\" D",
+          "widthInches": 36,
+          "heightInches": 12,
+          "depthInches": 12,
+          "image": "wall-blind-left",
+          "standardWidthOptions": [
+            36,
+            37,
+            38,
+            39,
+            42,
+            43,
+            44,
+            45
+          ],
+          "standardHeightOptions": [
+            12,
+            15,
+            18,
+            24,
+            30,
+            36,
+            42
+          ],
+          "standardDepthOptions": [
+            12,
+            14,
+            15,
+            16
+          ],
+          "defaultDistanceFromFloorInches": 54,
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "wall-blind-right-cabinet",
+          "category": "wall",
+          "title": "1 Door Blind (Right) Wall Cabinet",
+          "subtitle": "36\" W x 12\" H x 12\" D",
+          "widthInches": 36,
+          "heightInches": 12,
+          "depthInches": 12,
+          "image": "wall-blind-right",
+          "standardWidthOptions": [
+            36,
+            37,
+            38,
+            39,
+            42,
+            43,
+            44,
+            45
+          ],
+          "standardHeightOptions": [
+            12,
+            15,
+            18,
+            24,
+            30,
+            36,
+            42
+          ],
+          "standardDepthOptions": [
+            12,
+            14,
+            15,
+            16
+          ],
+          "defaultDistanceFromFloorInches": 54,
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "wall-pantry-one-door-cabinet",
+          "category": "wall",
+          "title": "1 Door Pantry Cabinet (Wall)",
+          "subtitle": "9\" W x 12\" H x 24\" D",
+          "widthInches": 9,
+          "heightInches": 12,
+          "depthInches": 24,
+          "image": "pantry-one-door",
+          "standardWidthOptions": [
+            9,
+            12,
+            15,
+            18,
+            21,
+            24
+          ],
+          "standardHeightOptions": [
+            12,
+            15,
+            18,
+            24,
+            30,
+            36,
+            39,
+            42,
+            45
+          ],
+          "standardDepthOptions": [
+            24,
+            26
+          ],
+          "defaultDistanceFromFloorInches": 54,
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "wall-pantry-two-door-cabinet",
+          "category": "wall",
+          "title": "2 Doors Pantry Cabinet (Wall)",
+          "subtitle": "24\" W x 12\" H x 24\" D",
+          "widthInches": 24,
+          "heightInches": 12,
+          "depthInches": 24,
+          "image": "pantry-two-door",
+          "standardWidthOptions": [
+            24,
+            27,
+            30,
+            33,
+            36,
+            39,
+            42,
+            45,
+            48
+          ],
+          "standardHeightOptions": [
+            12,
+            15,
+            18,
+            24,
+            30,
+            36,
+            39,
+            42,
+            45
+          ],
+          "standardDepthOptions": [
+            24,
+            26
+          ],
+          "defaultDistanceFromFloorInches": 54,
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "product-wall-hood",
+          "category": "wall",
+          "title": "Hood",
+          "subtitle": "30\" W x 24\" H x 12\" D",
+          "widthInches": 30,
+          "heightInches": 24,
+          "depthInches": 12,
+          "image": "wall-hood",
+          "productCategory": "wall",
+          "defaultDistanceFromFloorInches": 60,
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "product-wall-microwave",
+          "category": "wall",
+          "title": "Microwave",
+          "subtitle": "30\" W x 18\" H x 15\" D",
+          "widthInches": 30,
+          "heightInches": 18,
+          "depthInches": 15,
+          "image": "wall-microwave",
+          "productCategory": "wall",
+          "defaultDistanceFromFloorInches": 54,
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "product-wall-oven",
+          "category": "wall",
+          "title": "Single Oven",
+          "subtitle": "30\" W x 30\" H x 24\" D",
+          "widthInches": 30,
+          "heightInches": 30,
+          "depthInches": 24,
+          "image": "wall-oven",
+          "productCategory": "wall",
+          "defaultDistanceFromFloorInches": 42,
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "product-wall-double-oven",
+          "category": "wall",
+          "title": "Double Oven",
+          "subtitle": "30\" W x 54\" H x 24\" D",
+          "widthInches": 30,
+          "heightInches": 54,
+          "depthInches": 24,
+          "image": "wall-double-oven",
+          "productCategory": "wall",
+          "defaultDistanceFromFloorInches": 18,
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "accessory-base-filler",
+          "category": "base",
+          "title": "Base Filler",
+          "subtitle": "4\" W x 34.5\" H x 24\" D",
+          "widthInches": 4,
+          "heightInches": 34.5,
+          "depthInches": 24,
+          "image": "accessory-base-filler",
+          "supportType": "floor-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "accessory-wall-filler",
+          "category": "wall",
+          "title": "Wall Filler (Vertical)",
+          "subtitle": "4\" W x 30\" H x 12\" D",
+          "widthInches": 4,
+          "heightInches": 30,
+          "depthInches": 12,
+          "image": "accessory-wall-filler",
+          "defaultDistanceFromFloorInches": 54,
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "accessory-wall-filler-horizontal",
+          "category": "wall",
+          "title": "Wall Filler (Horizontal)",
+          "subtitle": "36\" W x 3\" H x 24\" D",
+          "widthInches": 36,
+          "heightInches": 3,
+          "depthInches": 24,
+          "image": "accessory-wall-filler-horizontal",
+          "defaultDistanceFromFloorInches": 54,
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "accessory-base-end-panel",
+          "category": "base",
+          "title": "Base End Panel",
+          "subtitle": "4\" W x 34.5\" H x 36\" D",
+          "widthInches": 4,
+          "heightInches": 34.5,
+          "depthInches": 36,
+          "image": "accessory-base-end-panel",
+          "supportType": "floor-supported",
+          "hasToeKick": false
+        },
+        {
+          "id": "accessory-wall-end-panel",
+          "category": "wall",
+          "title": "Wall End Panel",
+          "subtitle": "4\" W x 30\" H x 12\" D",
+          "widthInches": 4,
+          "heightInches": 30,
+          "depthInches": 12,
+          "image": "accessory-wall-end-panel",
+          "defaultDistanceFromFloorInches": 54,
+          "supportType": "elevated-supported",
+          "hasToeKick": false
+        }
+      ],
+      "wallChains": [
+        {
+          "id": "chain-1",
+          "wallIds": [
+            "922a2053-e090-4f69-b805-1261558f3ac0",
+            "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+            "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2"
+          ]
+        }
+      ],
+      "meta": {
+        "source": "CabinetEditorBase",
+        "unit": "inches",
+        "coordinateUnit": "pixels",
+        "measurementUnit": "inches",
+        "gridSize": 28,
+        "gridSizePixelsPerFoot": 28,
+        "wallThickness": 16,
+        "wallThicknessPixels": 16,
+        "generatedAt": "2026-05-26T13:52:32.573Z"
+      }
+    },
+    "cabinets": [
+      {
+        "id": "d8fd1059-ea8b-4ef8-b9b6-25ac0c0d10f4",
+        "center": {
+          "x": 1711.3287048339844,
+          "y": 750
+        },
+        "width": 84,
+        "depth": 84,
+        "rotation": 0,
+        "placementType": "cabinet",
+        "category": "base",
+        "catalogId": "base-corner-cabinet",
+        "image": "base-corner",
+        "heightInches": 36,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left",
+        "hasToeKick": false
+      },
+      {
+        "id": "5dd085da-b6ae-46d2-b19a-747a9253ae09",
+        "center": {
+          "x": 1627.3287048339844,
+          "y": 743
+        },
+        "width": 84,
+        "depth": 70,
+        "rotation": 0,
+        "placementType": "product",
+        "category": "base",
+        "productCategory": "base",
+        "catalogId": "product-refrigerator",
+        "image": "base-refrigerator",
+        "heightInches": 84,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left",
+        "hasToeKick": false
+      },
+      {
+        "id": "f4fef5aa-0026-4516-9c5d-73e60954bd38",
+        "center": {
+          "x": 1725.3287048339844,
+          "y": 820
+        },
+        "width": 56,
+        "depth": 56,
+        "rotation": 90,
+        "placementType": "cabinet",
+        "category": "base",
+        "catalogId": "base-sink-cabinet",
+        "image": "base-sink-cabinet",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left",
+        "sinkFixture": true,
+        "hasToeKick": false
+      },
+      {
+        "id": "ai-cabinet-02a9c3d5-1146-48aa-9fc9-796866567048",
+        "center": {
+          "x": 1040.031019083659,
+          "y": 736
+        },
+        "width": 112,
+        "depth": 56,
+        "rotation": 0,
+        "category": "base",
+        "catalogId": "base-two-door-cabinet",
+        "image": "base",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-f8fb10e5-9ac4-4f48-b3df-641a5711e463",
+        "center": {
+          "x": 1138.031019083659,
+          "y": 736
+        },
+        "width": 84,
+        "depth": 56,
+        "rotation": 0,
+        "category": "base",
+        "catalogId": "base-drawer-cabinet",
+        "image": "base-drawer",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-3d43f8d7-7127-462c-b224-2f87183930a7",
+        "center": {
+          "x": 1215.031019083659,
+          "y": 736
+        },
+        "width": 70,
+        "depth": 56,
+        "rotation": 0,
+        "category": "base",
+        "catalogId": "product-range",
+        "image": "base-range",
+        "heightInches": 36,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-525438ec-0672-4994-9f50-3396785e3e1d",
+        "center": {
+          "x": 1292.031019083659,
+          "y": 736
+        },
+        "width": 84,
+        "depth": 56,
+        "rotation": 0,
+        "category": "base",
+        "catalogId": "base-drawer-cabinet",
+        "image": "base-drawer",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-f0207cfa-3306-46c1-84e0-0c34f2d5592b",
+        "center": {
+          "x": 1386.531019083659,
+          "y": 736
+        },
+        "width": 105,
+        "depth": 56,
+        "rotation": 0,
+        "category": "base",
+        "catalogId": "base-two-door-cabinet",
+        "image": "base",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-39354e5a-6137-4b12-bbdc-fc762e51d769",
+        "center": {
+          "x": 1481.031019083659,
+          "y": 736
+        },
+        "width": 84,
+        "depth": 56,
+        "rotation": 0,
+        "category": "base",
+        "catalogId": "base-two-door-cabinet",
+        "image": "base",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-49cc933d-06e0-4574-a5d2-462912c54080",
+        "center": {
+          "x": 1551.031019083659,
+          "y": 736
+        },
+        "width": 56,
+        "depth": 56,
+        "rotation": 0,
+        "category": "base",
+        "catalogId": "base-one-door-cabinet",
+        "image": "base-one-door",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-9e0259cd-5733-443e-8c77-0d2f2ebc8580",
+        "center": {
+          "x": 1040.031019083659,
+          "y": 722
+        },
+        "width": 112,
+        "depth": 28,
+        "rotation": 0,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-5c0687d8-c071-43ac-971b-47f47b9ee963",
+        "center": {
+          "x": 1138.031019083659,
+          "y": 722
+        },
+        "width": 84,
+        "depth": 28,
+        "rotation": 0,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-76b88552-af58-4a58-85a0-d2f88236efd7",
+        "center": {
+          "x": 1215.031019083659,
+          "y": 722
+        },
+        "width": 70,
+        "depth": 28,
+        "rotation": 0,
+        "category": "wall",
+        "catalogId": "product-wall-hood",
+        "image": "wall-hood",
+        "heightInches": 24,
+        "distanceFromFloorInches": 60,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-a9ab0b66-d636-4264-8134-e80dc90763bf",
+        "center": {
+          "x": 1292.031019083659,
+          "y": 722
+        },
+        "width": 84,
+        "depth": 28,
+        "rotation": 0,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-d025d2ad-e201-4eae-b03a-b25107a8fa98",
+        "center": {
+          "x": 1386.531019083659,
+          "y": 722
+        },
+        "width": 105,
+        "depth": 28,
+        "rotation": 0,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-b6b57838-24e3-463a-8f11-1a2554e42e8d",
+        "center": {
+          "x": 1481.031019083659,
+          "y": 722
+        },
+        "width": 84,
+        "depth": 28,
+        "rotation": 0,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-a1d08e77-1714-440d-b542-432561b138de",
+        "center": {
+          "x": 1551.031019083659,
+          "y": 722
+        },
+        "width": 56,
+        "depth": 28,
+        "rotation": 0,
+        "category": "wall",
+        "catalogId": "wall-one-door-cabinet",
+        "image": "wall-one-door",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-0c867f3e-998a-499f-8c93-7015d478822c",
+        "center": {
+          "x": 1725.3287048339844,
+          "y": 876.02728805542
+        },
+        "width": 56,
+        "depth": 56,
+        "rotation": 90,
+        "category": "base",
+        "catalogId": "product-dishwasher",
+        "image": "base-dishwasher",
+        "heightInches": 34,
+        "distanceFromFloorInches": 0,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-a48b0db4-bda2-4a56-8502-a6ff89373134",
+        "center": {
+          "x": 1725.3287048339844,
+          "y": 932.02728805542
+        },
+        "width": 56,
+        "depth": 56,
+        "rotation": 90,
+        "category": "base",
+        "catalogId": "base-trash-can-cabinet",
+        "image": "base-trash-can",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-f97f2688-09d4-4b9c-bb52-c708bf0efc08",
+        "center": {
+          "x": 1725.3287048339844,
+          "y": 1016.02728805542
+        },
+        "width": 112,
+        "depth": 56,
+        "rotation": 90,
+        "category": "base",
+        "catalogId": "base-two-door-cabinet",
+        "image": "base",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-8d5d08a2-1469-40a6-95ec-2cd0e436e385",
+        "center": {
+          "x": 1725.3287048339844,
+          "y": 1103.5272880554198
+        },
+        "width": 63,
+        "depth": 56,
+        "rotation": 90,
+        "category": "base",
+        "catalogId": "base-drawer-cabinet",
+        "image": "base-drawer",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-eba27341-a86b-414f-a7ff-5841ceb1a7d2",
+        "center": {
+          "x": 1711.3287048339844,
+          "y": 1179.82728805542
+        },
+        "width": 84,
+        "depth": 84,
+        "rotation": 90,
+        "category": "base",
+        "catalogId": "base-corner-cabinet",
+        "image": "base-corner",
+        "heightInches": 36,
+        "distanceFromFloorInches": 0,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-7f80a91b-f0c6-42a6-8c82-aabc1d51787b",
+        "center": {
+          "x": 1739.3287048339844,
+          "y": 820.02728805542
+        },
+        "width": 56,
+        "depth": 28,
+        "rotation": 90,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-476d7214-eb83-41a4-a62f-fc0783e15b2f",
+        "center": {
+          "x": 1739.3287048339844,
+          "y": 876.02728805542
+        },
+        "width": 56,
+        "depth": 28,
+        "rotation": 90,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-4a8a2f3e-89ca-45f4-a492-d9317f00bb5c",
+        "center": {
+          "x": 1739.3287048339844,
+          "y": 932.02728805542
+        },
+        "width": 56,
+        "depth": 28,
+        "rotation": 90,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-d817f7a2-9897-4688-bdf0-b9168d6914e1",
+        "center": {
+          "x": 1739.3287048339844,
+          "y": 1016.02728805542
+        },
+        "width": 112,
+        "depth": 28,
+        "rotation": 90,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-ea356467-5657-4ba4-a1d8-76a3f70c7e85",
+        "center": {
+          "x": 1739.3287048339844,
+          "y": 1100.0272880554198
+        },
+        "width": 56,
+        "depth": 28,
+        "rotation": 90,
+        "category": "wall",
+        "catalogId": "wall-one-door-cabinet",
+        "image": "wall-one-door",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "wallFace": "left"
+      },
+      {
+        "id": "ai-cabinet-5c8495ba-9c26-4cda-b92b-0e902d92964f",
+        "center": {
+          "x": 1617.2976857503254,
+          "y": 1265.8545761108398
+        },
+        "width": 112,
+        "depth": 56,
+        "rotation": 180,
+        "category": "base",
+        "catalogId": "base-two-door-cabinet",
+        "image": "base",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-f5c12c37-0710-4b56-a011-438ac781cb82",
+        "center": {
+          "x": 1505.2976857503254,
+          "y": 1265.8545761108398
+        },
+        "width": 112,
+        "depth": 56,
+        "rotation": 180,
+        "category": "base",
+        "catalogId": "base-two-door-cabinet",
+        "image": "base",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-ff51457c-45ce-4442-9ce6-e4caf04332d3",
+        "center": {
+          "x": 1407.2976857503254,
+          "y": 1265.8545761108398
+        },
+        "width": 84,
+        "depth": 56,
+        "rotation": 180,
+        "category": "base",
+        "catalogId": "base-drawer-cabinet",
+        "image": "base-drawer",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-4514ef50-9b18-45df-828a-0697baf3ecd8",
+        "center": {
+          "x": 1309.2976857503254,
+          "y": 1265.8545761108398
+        },
+        "width": 112,
+        "depth": 56,
+        "rotation": 180,
+        "category": "base",
+        "catalogId": "base-two-door-one-drawer-cabinet",
+        "image": "base-two-door-one-drawer",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-da5bafa8-8ea3-412c-9812-acfb8ca5b708",
+        "center": {
+          "x": 1197.2976857503254,
+          "y": 1265.8545761108398
+        },
+        "width": 112,
+        "depth": 56,
+        "rotation": 180,
+        "category": "base",
+        "catalogId": "base-two-door-cabinet",
+        "image": "base",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-7ab1d15a-d8ae-4a89-a51c-719226e26fae",
+        "center": {
+          "x": 1085.2976857503254,
+          "y": 1265.8545761108398
+        },
+        "width": 112,
+        "depth": 56,
+        "rotation": 180,
+        "category": "base",
+        "catalogId": "base-two-door-cabinet",
+        "image": "base",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-3b7b1764-8852-4311-b474-c5b6cb563bf9",
+        "center": {
+          "x": 1011.7976857503254,
+          "y": 1265.8545761108398
+        },
+        "width": 35,
+        "depth": 56,
+        "rotation": 180,
+        "category": "base",
+        "catalogId": "base-spice-rack-cabinet",
+        "image": "base-spice-rack",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-cb5b783b-7af4-4bc7-8c94-4277f8c6f6dd",
+        "center": {
+          "x": 989.6310190836589,
+          "y": 1265.8545761108398
+        },
+        "width": 9.333333333333332,
+        "depth": 56,
+        "rotation": 180,
+        "category": "base",
+        "catalogId": "accessory-base-end-panel",
+        "image": "accessory-base-end-panel",
+        "heightInches": 34.5,
+        "distanceFromFloorInches": 0,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-d9522975-bb41-4d4f-b1e8-9563648d6f7b",
+        "center": {
+          "x": 1617.2976857503254,
+          "y": 1251.8545761108398
+        },
+        "width": 112,
+        "depth": 28,
+        "rotation": 180,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-fc36c4dc-7b1a-4ef5-bc48-432ca0df3e02",
+        "center": {
+          "x": 1505.2976857503254,
+          "y": 1251.8545761108398
+        },
+        "width": 112,
+        "depth": 28,
+        "rotation": 180,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-1241ab01-fab4-4caa-80a6-b55a57f48c92",
+        "center": {
+          "x": 1407.2976857503254,
+          "y": 1251.8545761108398
+        },
+        "width": 84,
+        "depth": 28,
+        "rotation": 180,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-52c7a40a-a84d-49d3-800a-a286582a4b99",
+        "center": {
+          "x": 1309.2976857503254,
+          "y": 1251.8545761108398
+        },
+        "width": 112,
+        "depth": 28,
+        "rotation": 180,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-f4d5f94c-8121-43f3-8d50-7b19af6e85d1",
+        "center": {
+          "x": 1197.2976857503254,
+          "y": 1251.8545761108398
+        },
+        "width": 112,
+        "depth": 28,
+        "rotation": 180,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-aa200c55-9bd2-4804-a961-51b5581a1328",
+        "center": {
+          "x": 1085.2976857503254,
+          "y": 1251.8545761108398
+        },
+        "width": 112,
+        "depth": 28,
+        "rotation": 180,
+        "category": "wall",
+        "catalogId": "wall-two-door-cabinet",
+        "image": "wall-two-doors",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-ce27c484-035d-400c-a2b4-4d9bf1c31b50",
+        "center": {
+          "x": 1011.7976857503254,
+          "y": 1251.8545761108398
+        },
+        "width": 35,
+        "depth": 28,
+        "rotation": 180,
+        "category": "wall",
+        "catalogId": "wall-one-door-cabinet",
+        "image": "wall-one-door",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      },
+      {
+        "id": "ai-cabinet-9ebab541-d8a0-41a1-9cc5-580f54f5621e",
+        "center": {
+          "x": 989.6310190836589,
+          "y": 1251.8545761108398
+        },
+        "width": 9.333333333333332,
+        "depth": 28,
+        "rotation": 180,
+        "category": "wall",
+        "catalogId": "accessory-wall-end-panel",
+        "image": "accessory-wall-end-panel",
+        "heightInches": 36,
+        "distanceFromFloorInches": 54,
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "wallFace": "right"
+      }
+    ],
+    "summary": {
+      "layoutType": "u-shape",
+      "notes": [
+        "Smart planner used 3 wall side(s) for a u-shape kitchen.",
+        "Three connected interior-placement walls form a U-shaped kitchen.",
+        "Locked refrigerator, locked sink base, and locked L-shaped corner base cabinet are preserved at their provided positions.",
+        "The fixed L-shaped corner base at the Wall 1 to Wall 2 corner reserves the first 36 inches of Wall 2 base run.",
+        "Preserved 3 locked cabinet/product object(s) from the available walls and designed around them.",
+        "Wall 1 includes 2 locked object(s), 0 door opening(s), and 0 window opening(s), so those spans were reserved before new cabinet placement.",
+        "Wall 2 includes 1 locked object(s), 0 door opening(s), and 0 window opening(s), so those spans were reserved before new cabinet placement.",
+        "Wall 1: Wall 1 carries cooking, refrigerator, and substantial prep-storage runs.",
+        "Wall 1: Upper cabinets stop before the refrigerator to keep the tall appliance clear.",
+        "Wall 1: skipped base filler because it would overlap an existing object.",
+        "Wall 1: skipped refrigerator because it would overlap an existing object.",
+        "Wall 1: skipped l-shaped corner base cabinet because it would overlap an existing object.",
+        "Wall 2: The first 36 inches are left for the footprint of the locked Wall 1 L-shaped corner base.",
+        "Wall 2: A small non-cabinet-sized tolerance remains before the Wall 2 return corner because the locked sink position and wall length do not divide exactly into standard cabinet widths.",
+        "Wall 2: skipped sink base cabinet because it would overlap an existing object.",
+        "Wall 3: Wall 3 provides a long prep-storage return while respecting the Wall 2 corner footprint.",
+        "Wall 3: Remaining end tolerance after the panel is smaller than the available standard cabinet widths."
+      ],
+      "generationMethod": "smart-ai",
+      "plannerModel": "gpt-5.5"
+    },
+    "elevations": [
+      {
+        "wallId": "922a2053-e090-4f69-b805-1261558f3ac0",
+        "label": "Wall 1",
+        "cabinetCount": 16
+      },
+      {
+        "wallId": "4759d9cb-3997-40a2-89c4-63cd08c8b90c",
+        "label": "Wall 2",
+        "cabinetCount": 11
+      },
+      {
+        "wallId": "dff8d542-d8b2-43df-a0a3-0dcefde5d1b2",
+        "label": "Wall 3",
+        "cabinetCount": 16
+      }
+    ]
+  }
+}

@@ -1,25 +1,21 @@
-# Generate Smart Kitchen Step 7 Handoff
+# Step 7 Handoff
 
-## Files Changed
-- `components/src/features/cabinet-editor/components/layout/TopBar.tsx`
-- `components/src/features/cabinet-editor/CabinetEditorBase.tsx`
-- `components/src/features/cabinet-editor/components/canvas/CanvasArea.tsx`
-- `components/src/features/cabinet-editor/__tests__/editorWorkspaceNavigation.test.ts`
-- `components/src/features/cabinet-editor/__tests__/node-shims.d.ts`
-- `artifacts/generate-smart-kitchen/step-7-handoff.md`
-- `artifacts/generate-smart-kitchen/step-7-report.md`
+Files changed:
+- None in the application codebase.
+- Temporary browser-verification scripts were adjusted outside the repo workspace only.
 
-## Tests Run
-- `tsc --strict --jsx react-jsx --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck ...`
-- `vitest run src/features/generate-smart-kitchen/__tests__ components/src/features/cabinet-editor/__tests__`
+Tests/checks run:
+- Live Chrome headless verification on port `9222` and then on a fresh profile at `9223`.
+- LocalStorage draft seeding and live DOM inspection in the Generate Smart Kitchen workspace.
+- Screenshot capture of the editor canvas after import attempts.
 
-## Completed
-- Kept the editor TopBar `Generate smart kitchen` button visible.
-- Added a new `onOpenSmartKitchenWorkspace` TopBar callback for opening the workspace route.
-- Updated `CabinetEditorBase` so the button opens `/generate-smart-kitchen/editor-draft` instead of dispatching the old immediate generation event.
-- Removed the old `pelican-ai-generate-smart-kitchen-request` event listener from `CanvasArea` so editor-side immediate generation is no longer available through that path.
-- Left the editor focused on floor-plan editing/import/export behavior.
-- Added tests that verify the editor button migration no longer triggers immediate generation.
+What was completed:
+- Verified in the live browser that the workspace route loads.
+- Verified the localStorage draft key exists on the workspace origin.
+- Verified the workspace still renders `Project file • 0 B` instead of the expected attached-file UI after loading the seeded draft.
+- Verified the browser setup itself works and the app is reachable in a real browser-capable environment.
 
-## Next Step
-- Pass the current editor project/floor-plan identity into the workspace route or a persisted draft handoff so Step 1 can review real editor data instead of only mock data.
+What the next step should do:
+- Debug why `SimpleGenerateSmartKitchenScreen` is not restoring `activeAttachment` from the workspace draft in the live browser, even though the localStorage draft exists.
+- Confirm whether the session restore effect is clearing the attachment, or whether `loadSmartKitchenWorkspaceDraft(projectId)` is returning `null` in the browser.
+- Only after that is fixed, rerun the full browser round trip.

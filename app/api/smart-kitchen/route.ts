@@ -1,17 +1,18 @@
-import { NextResponse } from "next/server";
-import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { NextResponse } from "next/server";
 
 import { getCatalogVisualId } from "@/components/src/features/cabinet-editor/data/cabinetCatalog";
 import {
   filterRoomForKitchenGeneration,
-  generateKitchenLayout,
   generateSmartKitchenLayout,
 } from "@/lib/ai/kitchenDesigner";
 import type {
   AiPlacementElement,
   AiPoint,
   AiRoomInput,
+  GeneratedKitchenLayout,
   SmartKitchenPlacement,
   SmartKitchenPlacementWallFace,
   SmartKitchenPlan,
@@ -35,6 +36,136 @@ type OpenAIResponsesOutputMessage = {
 type OpenAIResponsesPayload = {
   output?: OpenAIResponsesOutputMessage[];
 };
+
+interface SmartKitchenPlannerDebugPromptFileRecord {
+  readonly path: string;
+  readonly found: boolean;
+  readonly length: number;
+  readonly hash: string;
+}
+
+interface SmartKitchenPlannerDebugRequestSummary {
+  readonly hasRoom: boolean;
+  readonly wallCount: number;
+  readonly allowedWallCount: number;
+  readonly fixedObjectCount: number;
+  readonly catalogItemCount: number;
+  readonly hasDesignerFeedback: boolean;
+  readonly designerFeedbackLength: number;
+}
+
+interface SmartKitchenSummarizedWall {
+  readonly wallId: string;
+  readonly wallLabel: string;
+  readonly cabinetPlacementMode: string;
+  readonly wallDots: readonly { readonly dotId: string; readonly x: number; readonly y: number }[];
+  readonly wallShapeDotPairs: readonly (readonly [string, string])[];
+  readonly interiorSide: {
+    readonly dotPair: readonly [string, string];
+    readonly start: AiPoint;
+    readonly end: AiPoint;
+    readonly lengthInches: number;
+  };
+  readonly exteriorSide: {
+    readonly dotPair: readonly [string, string];
+    readonly start: AiPoint;
+    readonly end: AiPoint;
+    readonly lengthInches: number;
+  };
+  readonly fixedObjects: readonly unknown[];
+}
+
+interface SmartKitchenPlannerDebugPromptSummary {
+  readonly promptHash: string;
+  readonly promptLength: number;
+  readonly containsDebugVersion: boolean;
+  readonly containsOutputShape: boolean;
+  readonly containsCatalog: boolean;
+  readonly containsWalls: boolean;
+  readonly containsFixedObjects: boolean;
+  readonly promptPreviewStart: string;
+  readonly promptPreviewEnd: string;
+  readonly fullPrompt?: string;
+}
+
+interface SmartKitchenPlannerDebugProviderSummary {
+  readonly model: string;
+  readonly status?: number;
+  readonly responseTextLength?: number;
+  readonly responseTextPreviewStart?: string;
+  readonly responseTextPreviewEnd?: string;
+  readonly fullResponseText?: string;
+  readonly errorMessage?: string;
+}
+
+interface SmartKitchenPlannerDebugParseSummary {
+  readonly parseSucceeded: boolean;
+  readonly errorMessage?: string;
+  readonly topLevelKeys?: readonly string[];
+}
+
+interface SmartKitchenPlannerDebugOutputWallSummary {
+  readonly wallId?: string;
+  readonly wallLabel?: string;
+  readonly cabinetPlacementMode?: string;
+  readonly zoneType?: string;
+  readonly placementCount: number;
+  readonly wallFaceCounts?: {
+    readonly left: number;
+    readonly right: number;
+    readonly unknown: number;
+  };
+  readonly notes?: readonly string[];
+}
+
+interface SmartKitchenPlannerDebugOutputSummary {
+  readonly layoutType?: string;
+  readonly wallCount?: number;
+  readonly totalPlacementCount?: number;
+  readonly cabinetPlacementCount?: number;
+  readonly productPlacementCount?: number;
+  readonly accessoryPlacementCount?: number;
+  readonly emptyWallCount?: number;
+  readonly walls?: readonly SmartKitchenPlannerDebugOutputWallSummary[];
+}
+
+interface SmartKitchenPlannerDebugConversionSummary {
+  readonly conversionAttempted: boolean;
+  readonly conversionSucceeded: boolean;
+  readonly generatedRoomHasLayout?: boolean;
+  readonly generatedLayoutCabinetCount?: number;
+  readonly generatedRoomCabinetCount?: number;
+  readonly placementDecisionCount?: number;
+  readonly acceptedPlacementCount?: number;
+  readonly catalogMissingPlacementCount?: number;
+  readonly exceedsWallWidthPlacementCount?: number;
+  readonly overlapExistingPlacementCount?: number;
+  readonly skippedOpenWallPlacementCount?: number;
+  readonly placementDecisions?: readonly {
+    readonly wallId: string;
+    readonly catalogId: string;
+    readonly outcome:
+      | "accepted"
+      | "catalog-missing"
+      | "exceeds-wall-width"
+      | "overlap-existing"
+      | "skipped-open-wall";
+    readonly note?: string;
+  }[];
+  readonly errorMessage?: string;
+}
+
+interface SmartKitchenPlannerDebugArtifact {
+  readonly createdAtIso: string;
+  readonly debugVersion: string;
+  readonly requestSummary: SmartKitchenPlannerDebugRequestSummary;
+  readonly promptFiles: readonly SmartKitchenPlannerDebugPromptFileRecord[];
+  readonly promptSummary?: SmartKitchenPlannerDebugPromptSummary;
+  readonly providerSummary?: SmartKitchenPlannerDebugProviderSummary;
+  readonly parseSummary?: SmartKitchenPlannerDebugParseSummary;
+  readonly outputSummary?: SmartKitchenPlannerDebugOutputSummary;
+  readonly conversionSummary?: SmartKitchenPlannerDebugConversionSummary;
+}
 
 function getOpenAiErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -66,6 +197,80 @@ const SMART_KITCHEN_OUTPUT_SHAPE_PATH = path.join(
   SMART_KITCHEN_PROMPT_DIR,
   "output-shape.txt"
 );
+const SMART_KITCHEN_PLANNER_DEBUG_VERSION = "smart-kitchen-planner-debug-v1";
+const SMART_KITCHEN_PLANNER_DEBUG_ARTIFACT_PATH = path.join(
+  process.cwd(),
+  "artifacts",
+  "debug-smart-kitchen-planner",
+  "latest-planner-run.json"
+);
+const OPENAI_PLANNER_MAX_ATTEMPTS = 3;
+
+function createSmartKitchenRequestId(request: Request): string {
+  const incomingRequestId = request.headers.get("x-smart-kitchen-request-id")?.trim();
+
+  if (incomingRequestId) {
+    return incomingRequestId;
+  }
+
+  return `sk-planner-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function logSmartKitchenPlannerEvent(
+  requestId: string,
+  message: string,
+  details?: Record<string, unknown>
+): void {
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  if (details) {
+    console.info(`[smart-kitchen-planner:${requestId}] ${message}`, details);
+    return;
+  }
+
+  console.info(`[smart-kitchen-planner:${requestId}] ${message}`);
+}
+
+function isSmartKitchenPlannerDebugEnabled(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.SMART_KITCHEN_PLANNER_DEBUG === "1";
+}
+
+function isSmartKitchenPlannerDebugFullPromptEnabled(): boolean {
+  return process.env.SMART_KITCHEN_PLANNER_DEBUG_FULL_PROMPT === "1";
+}
+
+function isSmartKitchenPlannerDebugFullResponseEnabled(): boolean {
+  return process.env.SMART_KITCHEN_PLANNER_DEBUG_FULL_RESPONSE === "1";
+}
+
+function createPromptHash(prompt: string): string {
+  return createHash("sha256").update(prompt).digest("hex").slice(0, 16);
+}
+
+function createTextPreview(text: string, previewLength = 800): {
+  readonly start: string;
+  readonly end: string;
+} {
+  return {
+    start: text.slice(0, previewLength),
+    end: text.slice(Math.max(0, text.length - previewLength)),
+  };
+}
+
+function isRetryableOpenAiStatus(status: number): boolean {
+  return status === 502 || status === 503 || status === 504;
+}
+
+function buildPlannerFailureResponse(message: string) {
+  return NextResponse.json(
+    {
+      error: message,
+    },
+    { status: 502 }
+  );
+}
 
 function getResponseText(payload: OpenAIResponsesPayload) {
   for (const item of payload.output ?? []) {
@@ -192,27 +397,72 @@ async function readRequiredTextFile(filePath: string, label: string) {
   }
 }
 
+function createPlannerPromptFileRecord(filePath: string, text: string): SmartKitchenPlannerDebugPromptFileRecord {
+  return {
+    path: filePath,
+    found: true,
+    length: text.length,
+    hash: createPromptHash(text),
+  };
+}
+
+async function readRequiredTextFileWithDebug(
+  filePath: string,
+  label: string,
+  promptFileRecords: SmartKitchenPlannerDebugPromptFileRecord[]
+) {
+  try {
+    const text = await readFile(filePath, "utf8");
+    promptFileRecords.push(createPlannerPromptFileRecord(filePath, text));
+    return text;
+  } catch (error) {
+    promptFileRecords.push({
+      path: filePath,
+      found: false,
+      length: 0,
+      hash: "",
+    });
+    const reason = error instanceof Error ? error.message : "Unknown file read error.";
+    throw new Error(`Unable to read ${label} at ${filePath}. ${reason}`);
+  }
+}
+
 async function readStructuredSmartKitchenPrompt() {
-  const overviewText = await readRequiredTextFile(
+  const promptFileRecords: SmartKitchenPlannerDebugPromptFileRecord[] = [];
+  const overviewText = await readRequiredTextFileWithDebug(
     SMART_KITCHEN_PROMPT_OVERVIEW_PATH,
-    "smart-kitchen prompt overview"
+    "smart-kitchen prompt overview",
+    promptFileRecords
   );
   const ruleTexts = await Promise.all(
     SMART_KITCHEN_RULE_FILES.map(async (fileName) => ({
       fileName,
-      text: await readRequiredTextFile(
+      filePath: path.join(SMART_KITCHEN_PROMPT_DIR, fileName),
+      text: await readRequiredTextFileWithDebug(
         path.join(SMART_KITCHEN_PROMPT_DIR, fileName),
-        `smart-kitchen rule file ${fileName}`
+        `smart-kitchen rule file ${fileName}`,
+        promptFileRecords
       ),
     }))
   );
+  const outputShapeText = await readRequiredTextFileWithDebug(
+    SMART_KITCHEN_OUTPUT_SHAPE_PATH,
+    "smart-kitchen output shape",
+    promptFileRecords
+  );
 
-  return [
+  const prompt = [
+    `Planner debug version: ${SMART_KITCHEN_PLANNER_DEBUG_VERSION}`,
     overviewText.trim(),
-    ...ruleTexts.map(
-      ({ fileName, text }) => `Reference file: ${fileName}\n\n${text.trim()}`
-    ),
+    ...ruleTexts.map(({ fileName, text }) => `Reference file: ${fileName}\n\n${text.trim()}`),
+    `Reference file: output-shape.txt\n\n${outputShapeText.trim()}`,
   ].join("\n\n---\n\n");
+
+  return {
+    prompt,
+    promptFileRecords,
+    outputShapeText,
+  };
 }
 
 function add(a: AiPoint, b: AiPoint): AiPoint {
@@ -1218,6 +1468,19 @@ function resolvePlacementWallFace(
   return measurementSideToWallFaceSide(wall, targetGuideSide);
 }
 
+function resolveDefaultPlacementWallFace(
+  room: AiRoomInput,
+  wall: AiRoomInput["walls"][number],
+  cabinetPlacementMode: SmartKitchenWallPlan["cabinetPlacementMode"]
+) {
+  if (cabinetPlacementMode === "none") return null;
+
+  const fallbackWallFace: SmartKitchenPlacementWallFace =
+    cabinetPlacementMode === "exterior" ? "exterior" : "interior";
+
+  return resolvePlacementWallFace(room, wall, fallbackWallFace);
+}
+
 function getElevationWallSpanInches(
   room: AiRoomInput,
   wall: AiRoomInput["walls"][number],
@@ -1518,7 +1781,7 @@ function normalizePlacement(value: unknown): SmartKitchenPlacement | null {
   };
 }
 
-function normalizeWallPlan(
+export function normalizeWallPlan(
   room: AiRoomInput,
   value: unknown
 ): SmartKitchenWallPlan | null {
@@ -1560,6 +1823,27 @@ function normalizeWallPlan(
     candidate.role === "upper-focus"
       ? candidate.role
       : "secondary";
+  const normalizedCabinetPlacementMode =
+    candidate.cabinetPlacementMode === "none" ||
+    candidate.cabinetPlacementMode === "both" ||
+    candidate.cabinetPlacementMode === "interior" ||
+    candidate.cabinetPlacementMode === "exterior"
+      ? candidate.cabinetPlacementMode
+      : null;
+  const explicitNeedsPlacement = candidate.needCabinetPlacement ?? candidate.needsPlacement;
+  const hasPlannerPlacements =
+    Array.isArray(candidate.placements) && candidate.placements.length > 0;
+  const inferredNeedsPlacement =
+    normalizedCabinetPlacementMode === "none"
+      ? false
+      : explicitNeedsPlacement === undefined || explicitNeedsPlacement === null
+        ? hasPlannerPlacements
+        : toBoolean(explicitNeedsPlacement);
+  const defaultResolvedWallFace = resolveDefaultPlacementWallFace(
+    room,
+    resolvedWall,
+    normalizedCabinetPlacementMode
+  );
 
   const normalizedPlacements: SmartKitchenPlacement[] = [];
 
@@ -1569,18 +1853,18 @@ function normalizeWallPlan(
 
     normalizedPlacements.push({
       ...placement,
-      resolvedWallFace: resolvePlacementWallFace(
-        room,
-        resolvedWall,
-        placement.wallFace ?? null
-      ),
+      resolvedWallFace:
+        resolvePlacementWallFace(room, resolvedWall, placement.wallFace ?? null) ??
+        defaultResolvedWallFace,
     });
   }
 
   return {
     wallId,
     wallLabel: wallLabelLookup.get(wallId) ?? wallId,
-    needsPlacement: toBoolean(candidate.needCabinetPlacement ?? candidate.needsPlacement),
+    zoneType: typeof candidate.zoneType === "string" ? candidate.zoneType : null,
+    cabinetPlacementMode: normalizedCabinetPlacementMode,
+    needsPlacement: inferredNeedsPlacement,
     placements: normalizedPlacements,
     role,
     placeSink: toBoolean(candidate.placeSink),
@@ -1666,7 +1950,7 @@ function normalizeSmartKitchenPlan(
   };
 }
 
-function summarizeWalls(room: AiRoomInput) {
+function summarizeWalls(room: AiRoomInput): SmartKitchenSummarizedWall[] {
   const wallLabelLookup = getWallLabelLookup(room);
 
   return room.walls
@@ -1822,36 +2106,219 @@ function summarizeCatalog(room: AiRoomInput) {
   });
 }
 
-function buildFallbackSmartLayout(params: {
-  room: AiRoomInput;
-  plannerModel: string;
-  planNotes?: string[];
-  designerFeedback?: string;
-  plannerFailureReason: string;
-}) {
-  const fallbackLayout = generateKitchenLayout(params.room);
+function createPlannerPromptSummary(prompt: string): SmartKitchenPlannerDebugPromptSummary {
+  const promptPreview = createTextPreview(prompt);
 
   return {
-    ...fallbackLayout,
-    summary: {
-      ...fallbackLayout.summary,
-      generationMethod: "smart-ai" as const,
-      plannerModel: params.plannerModel,
-      notes: [
-        "The smart planner could not produce a usable structured plan, so the rule-based kitchen generator was used as a fallback.",
-        params.plannerFailureReason,
-        ...(params.designerFeedback
-          ? ["Designer feedback was included in the smart-planning request."]
-          : []),
-        ...(params.planNotes ?? []),
-        ...fallbackLayout.summary.notes,
-      ],
-    },
+    promptHash: createPromptHash(prompt),
+    promptLength: prompt.length,
+    containsDebugVersion: prompt.includes(SMART_KITCHEN_PLANNER_DEBUG_VERSION),
+    containsOutputShape: prompt.includes('outputShape'),
+    containsCatalog: prompt.toLowerCase().includes('catalog'),
+    containsWalls: prompt.toLowerCase().includes('wall'),
+    containsFixedObjects: prompt.toLowerCase().includes('fixed object'),
+    promptPreviewStart: promptPreview.start,
+    promptPreviewEnd: promptPreview.end,
+    ...(isSmartKitchenPlannerDebugFullPromptEnabled() ? { fullPrompt: prompt } : {}),
   };
+}
+
+function createPlannerProviderSummary(params: {
+  readonly model: string;
+  readonly status?: number;
+  readonly responseText: string;
+  readonly errorMessage?: string;
+}): SmartKitchenPlannerDebugProviderSummary {
+  const responsePreview = createTextPreview(params.responseText);
+
+  return {
+    model: params.model,
+    status: params.status,
+    responseTextLength: params.responseText.length,
+    responseTextPreviewStart: responsePreview.start,
+    responseTextPreviewEnd: responsePreview.end,
+    ...(isSmartKitchenPlannerDebugFullResponseEnabled()
+      ? { fullResponseText: params.responseText }
+      : {}),
+    ...(params.errorMessage ? { errorMessage: params.errorMessage } : {}),
+  };
+}
+
+function createPlannerParseSummary(params: {
+  readonly parseSucceeded: boolean;
+  readonly rawPlan?: unknown;
+  readonly errorMessage?: string;
+}): SmartKitchenPlannerDebugParseSummary {
+  return {
+    parseSucceeded: params.parseSucceeded,
+    ...(params.errorMessage ? { errorMessage: params.errorMessage } : {}),
+    ...(params.parseSucceeded &&
+    params.rawPlan &&
+    typeof params.rawPlan === 'object' &&
+    !Array.isArray(params.rawPlan)
+      ? { topLevelKeys: Object.keys(params.rawPlan) }
+      : {}),
+  };
+}
+
+function getPlacementTypeFromCatalogId(room: AiRoomInput, catalogId: string): 'cabinet' | 'product' | 'accessory' {
+  return room.catalog.find((item) => item.id === catalogId)?.kind ?? 'cabinet';
+}
+
+function createPlannerOutputSummary(
+  room: AiRoomInput,
+  plan: SmartKitchenPlan,
+  summarizedWalls: readonly SmartKitchenSummarizedWall[]
+): SmartKitchenPlannerDebugOutputSummary {
+  const wallSummaries = plan.wallPlans.map((wallPlan) => {
+    const wallSource = summarizedWalls.find((wall) => wall.wallId === wallPlan.wallId) ?? null;
+    const placements = wallPlan.placements ?? [];
+    const wallFaceCounts = placements.reduce(
+      (counts, placement) => {
+        if (placement.wallFace === "interior" || placement.wallFace === "exterior") {
+          counts.unknown += 1;
+          return counts;
+        }
+
+        if (placement.resolvedWallFace === "left") {
+          counts.left += 1;
+        } else if (placement.resolvedWallFace === "right") {
+          counts.right += 1;
+        } else {
+          counts.unknown += 1;
+        }
+
+        return counts;
+      },
+      {
+        left: 0,
+        right: 0,
+        unknown: 0,
+      }
+    );
+
+    return {
+      wallId: wallPlan.wallId,
+      wallLabel: wallPlan.wallLabel ?? wallPlan.wallId,
+      cabinetPlacementMode: wallSource?.cabinetPlacementMode,
+      zoneType: wallPlan.zoneType ?? undefined,
+      placementCount: placements.length,
+      wallFaceCounts,
+      notes: wallPlan.notes,
+    } satisfies SmartKitchenPlannerDebugOutputWallSummary;
+  });
+
+  const allPlacements = plan.wallPlans.flatMap((wallPlan) => wallPlan.placements ?? []);
+  const cabinetPlacementCount = allPlacements.filter(
+    (placement) => getPlacementTypeFromCatalogId(room, placement.catalogId) === 'cabinet'
+  ).length;
+  const productPlacementCount = allPlacements.filter(
+    (placement) => getPlacementTypeFromCatalogId(room, placement.catalogId) === 'product'
+  ).length;
+  const accessoryPlacementCount = allPlacements.filter(
+    (placement) => getPlacementTypeFromCatalogId(room, placement.catalogId) === 'accessory'
+  ).length;
+
+  return {
+    layoutType: plan.layoutType,
+    wallCount: plan.wallPlans.length,
+    totalPlacementCount: allPlacements.length,
+    cabinetPlacementCount,
+    productPlacementCount,
+    accessoryPlacementCount,
+    emptyWallCount: wallSummaries.filter((wall) => wall.placementCount === 0).length,
+    walls: wallSummaries,
+  };
+}
+
+function createPlannerConversionSummary(params: {
+  readonly generatedLayout: GeneratedKitchenLayout;
+  readonly placementDecisions?: readonly {
+    readonly wallId: string;
+    readonly catalogId: string;
+    readonly outcome:
+      | "accepted"
+      | "catalog-missing"
+      | "exceeds-wall-width"
+      | "overlap-existing"
+      | "skipped-open-wall";
+    readonly note?: string;
+  }[];
+}): SmartKitchenPlannerDebugConversionSummary {
+  const placementDecisions = params.placementDecisions ?? [];
+  const acceptedPlacementCount = placementDecisions.filter(
+    (decision) => decision.outcome === "accepted"
+  ).length;
+  const catalogMissingPlacementCount = placementDecisions.filter(
+    (decision) => decision.outcome === "catalog-missing"
+  ).length;
+  const exceedsWallWidthPlacementCount = placementDecisions.filter(
+    (decision) => decision.outcome === "exceeds-wall-width"
+  ).length;
+  const overlapExistingPlacementCount = placementDecisions.filter(
+    (decision) => decision.outcome === "overlap-existing"
+  ).length;
+  const skippedOpenWallPlacementCount = placementDecisions.filter(
+    (decision) => decision.outcome === "skipped-open-wall"
+  ).length;
+
+  return {
+    conversionAttempted: true,
+    conversionSucceeded: params.generatedLayout.cabinets.length > 0,
+    generatedRoomHasLayout: params.generatedLayout.room.cabinets.length > 0,
+    generatedLayoutCabinetCount: params.generatedLayout.cabinets.length,
+    generatedRoomCabinetCount: params.generatedLayout.room.cabinets.length,
+    placementDecisionCount: placementDecisions.length,
+    acceptedPlacementCount,
+    catalogMissingPlacementCount,
+    exceedsWallWidthPlacementCount,
+    overlapExistingPlacementCount,
+    skippedOpenWallPlacementCount,
+    ...(placementDecisions.length > 0 ? { placementDecisions } : {}),
+  };
+}
+
+function buildPlannerDebugArtifactBase(params: {
+  readonly requestSummary: SmartKitchenPlannerDebugRequestSummary;
+}): SmartKitchenPlannerDebugArtifact {
+  return {
+    createdAtIso: new Date().toISOString(),
+    debugVersion: SMART_KITCHEN_PLANNER_DEBUG_VERSION,
+    requestSummary: params.requestSummary,
+    promptFiles: [],
+  };
+}
+
+async function writePlannerDebugArtifact(artifact: SmartKitchenPlannerDebugArtifact | null): Promise<void> {
+  if (!artifact || !isSmartKitchenPlannerDebugEnabled()) return;
+
+  await mkdir(path.dirname(SMART_KITCHEN_PLANNER_DEBUG_ARTIFACT_PATH), { recursive: true });
+  await writeFile(
+    SMART_KITCHEN_PLANNER_DEBUG_ARTIFACT_PATH,
+    JSON.stringify(artifact, null, 2),
+    'utf8'
+  );
+}
+
+function logPlannerDebugArtifact(
+  artifact: SmartKitchenPlannerDebugArtifact | null
+): void {
+  if (!artifact || !isSmartKitchenPlannerDebugEnabled()) return;
+
+  const promptHash = artifact.promptSummary?.promptHash ?? 'n/a';
+  const responseLength = artifact.providerSummary?.responseTextLength ?? 0;
+  const parseSucceeded = artifact.parseSummary?.parseSucceeded ?? false;
+  const placementCount = artifact.outputSummary?.totalPlacementCount ?? 0;
+  const cabinetCount = artifact.conversionSummary?.generatedLayoutCabinetCount ?? 0;
+
+  console.info(
+    `[SmartKitchenPlannerDebug] promptHash=${promptHash} walls=${artifact.requestSummary.wallCount} catalog=${artifact.requestSummary.catalogItemCount} responseLength=${responseLength} parseSucceeded=${parseSucceeded} placements=${placementCount} cabinets=${cabinetCount}`
+  );
 }
 
 export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
+  const requestId = createSmartKitchenRequestId(request);
 
   if (!apiKey) {
     return NextResponse.json(
@@ -1897,200 +2364,445 @@ export async function POST(request: Request) {
     designerFeedback: designerFeedback || null,
   };
   const plannerInputPayload = { plannerInput };
-  const plannerPrompt = await readStructuredSmartKitchenPrompt();
-  const outputShapeText = await readRequiredTextFile(
-    SMART_KITCHEN_OUTPUT_SHAPE_PATH,
-    "smart-kitchen output shape"
-  );
+  let plannerDebugArtifact: SmartKitchenPlannerDebugArtifact | null = isSmartKitchenPlannerDebugEnabled()
+    ? buildPlannerDebugArtifactBase({
+        requestSummary: {
+          hasRoom: Boolean(fullRoom),
+          wallCount: fullRoom.walls.length,
+          allowedWallCount: summarizedWalls.filter(
+            (wall) => wall.cabinetPlacementMode !== "none"
+          ).length,
+          fixedObjectCount: summarizedWalls.reduce(
+            (count, wall) => count + wall.fixedObjects.length,
+            0
+          ),
+          catalogItemCount: summarizedCatalog.length,
+          hasDesignerFeedback: designerFeedback.length > 0,
+          designerFeedbackLength: designerFeedback.length,
+        },
+      })
+    : null;
 
-  const aiPlannerRequestPayload = {
-    model: plannerModel,
-    reasoning: {
-      effort: "medium",
-    },
-    max_output_tokens: 20000,
-    text: {
-      format: {
-        type: "json_object",
-      },
-    },
-    input: [
-      {
-        role: "system",
-        content: [
-          {
-            type: "input_text",
-            text: plannerPrompt,
-          },
-        ],
-      },
-      {
-        role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: `Planner input JSON:\n${JSON.stringify(plannerInputPayload, null, 2)}`,
-          },
-        ],
-      },
-      {
-        role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: [
-              "Required output shape reference:",
-              'Use the value of "outputShape" as the schema reference.',
-              'Return only the inner JSON object that matches that shape. Do not wrap your final answer in an outer "outputShape" key.',
-              outputShapeText,
-            ].join("\n\n"),
-          },
-        ],
-      },
-    ],
-  };
-
-  if (body.previewOnly) {
-    return NextResponse.json({
-      preview: aiPlannerRequestPayload,
-      plannerInput: plannerInputPayload,
-      outputShape: outputShapeText,
-    });
-  }
-
-  let plannerResponse: Response;
+  let plannerResponse: Response | null = null;
+  let plannerRequestFailureReason: string | null = null;
+  const plannerRequestStartedAt = Date.now();
+  const plannerPlacementDecisions: Array<{
+    readonly wallId: string;
+    readonly catalogId: string;
+    readonly outcome:
+      | "accepted"
+      | "catalog-missing"
+      | "exceeds-wall-width"
+      | "overlap-existing"
+      | "skipped-open-wall";
+    readonly note?: string;
+  }> = [];
+  const plannerDebugCollector = plannerDebugArtifact
+    ? {
+        recordExplicitPlacementPlan: (_wallCount: number, _placementCount: number) => {
+          // Intentionally left as a hook for future planner path debugging.
+        },
+        recordPlacementDecision: (decision: {
+          readonly wallId: string;
+          readonly catalogId: string;
+          readonly outcome:
+            | "accepted"
+            | "catalog-missing"
+            | "exceeds-wall-width"
+            | "overlap-existing"
+            | "skipped-open-wall";
+          readonly note?: string;
+        }) => {
+          plannerPlacementDecisions.push(decision);
+        },
+        recordFallbackRun: (_note: string) => {
+          // Intentionally left as a hook for future planner path debugging.
+        },
+      }
+    : undefined;
 
   try {
-    plannerResponse = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(aiPlannerRequestPayload),
-    });
-  } catch (error) {
-    const plannerError = getOpenAiErrorMessage(error);
+    const plannerPromptData = await readStructuredSmartKitchenPrompt();
+    const plannerPrompt = plannerPromptData.prompt;
+    const outputShapeText = plannerPromptData.outputShapeText;
 
-    return NextResponse.json({
-      layout: buildFallbackSmartLayout({
-        room: roomForGeneration,
-        plannerModel,
-        designerFeedback,
-        plannerFailureReason: `The smart planner request timed out or failed before a response was returned. ${plannerError}`,
-      }),
-      usedFallback: true,
-      plannerError: `The smart planner request timed out or failed before a response was returned. ${plannerError}`,
-    });
-  }
-
-  if (!plannerResponse.ok) {
-    const errorText = await plannerResponse.text();
-
-    return NextResponse.json(
-      {
-        error: `OpenAI planning request failed: ${errorText}`,
-      },
-      { status: 502 }
-    );
-  }
-
-  const plannerPayload = (await plannerResponse.json()) as OpenAIResponsesPayload;
-  const plannerText = getResponseText(plannerPayload);
-
-  if (!plannerText) {
-    return NextResponse.json({
-      layout: buildFallbackSmartLayout({
-        room: roomForGeneration,
-        plannerModel,
-        designerFeedback,
-        plannerFailureReason:
-          "The smart planner returned no usable output text.",
-      }),
-      usedFallback: true,
-      plannerError: "The smart planner returned no usable output text.",
-    });
-  }
-
-  let rawPlan: unknown;
-  let plannerParseError: string | null = null;
-
-  try {
-    rawPlan = parsePlannerJson(plannerText);
-  } catch (error) {
-    plannerParseError =
-      error instanceof Error
-        ? error.message
-        : "The parser could not recover a usable plan from the model output.";
-    return NextResponse.json({
-      layout: buildFallbackSmartLayout({
-        room: roomForGeneration,
-        plannerModel,
-        designerFeedback,
-        plannerFailureReason: `The smart planner returned invalid JSON. ${plannerParseError}`,
-      }),
-      aiOutput: plannerText,
-      usedFallback: true,
-      plannerError: `The smart planner returned invalid JSON. ${plannerParseError}`,
-    });
-  }
-
-  if (
-    rawPlan &&
-    typeof rawPlan === "object" &&
-    !Array.isArray(rawPlan) &&
-    "outputShape" in rawPlan
-  ) {
-    const wrappedPlan = rawPlan as { outputShape?: unknown };
-    if (wrappedPlan.outputShape) {
-      rawPlan = wrappedPlan.outputShape;
+    if (plannerDebugArtifact) {
+      const promptSummary = createPlannerPromptSummary(plannerPrompt);
+      plannerDebugArtifact = {
+        ...plannerDebugArtifact,
+        promptFiles: plannerPromptData.promptFileRecords,
+        promptSummary,
+      };
     }
-  }
 
-  const plan = normalizeSmartKitchenPlan(fullRoom, rawPlan, plannerModel);
-  const smartLayout = generateSmartKitchenLayout(fullRoom, plan);
-
-  if (smartLayout.cabinets.length > 0) {
-    return NextResponse.json({
-      layout: designerFeedback
-        ? {
-            ...smartLayout,
-            summary: {
-              ...smartLayout.summary,
-              notes: [
-                "Designer feedback was applied to this smart kitchen concept.",
-                ...smartLayout.summary.notes,
-              ],
-            },
-          }
-        : smartLayout,
-      aiOutput: rawPlan,
-      plan,
+    logSmartKitchenPlannerEvent(requestId, "request received", {
+      plannerModel,
+      wallCount: summarizedWalls.length,
+      catalogCount: summarizedCatalog.length,
+      roomWallCount: fullRoom.walls.length,
+      roomCabinetCount: fullRoom.cabinets.length,
     });
-  }
 
-  const fallbackLayout = generateKitchenLayout(roomForGeneration);
-
-  return NextResponse.json({
-    layout: {
-      ...fallbackLayout,
-      summary: {
-        ...fallbackLayout.summary,
-        generationMethod: "smart-ai",
-        plannerModel,
-        notes: [
-          ...(designerFeedback
-            ? ["Designer feedback was applied to this smart kitchen concept."]
-            : []),
-          "The smart planner produced a plan, but the engine could not realize it cleanly, so the rule-based generator was used as a fallback.",
-          ...plan.notes,
-          ...fallbackLayout.summary.notes,
-        ],
+    const aiPlannerRequestPayload = {
+      model: plannerModel,
+      reasoning: {
+        effort: "medium",
       },
-    },
-    aiOutput: rawPlan,
-    plan,
-    usedFallback: true,
-  });
-}
+      max_output_tokens: 20000,
+      text: {
+        format: {
+          type: "json_object",
+        },
+      },
+      input: [
+        {
+          role: "system",
+          content: [
+            {
+              type: "input_text",
+              text: plannerPrompt,
+            },
+          ],
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: `Planner input JSON:\n${JSON.stringify(plannerInputPayload, null, 2)}`,
+            },
+          ],
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: [
+                "Required output shape reference:",
+                'Use the value of "outputShape" as the schema reference.',
+                'Return only the inner JSON object that matches that shape. Do not wrap your final answer in an outer "outputShape" key.',
+                outputShapeText,
+              ].join("\n\n"),
+            },
+          ],
+        },
+      ],
+    };
 
+    if (body.previewOnly) {
+      return NextResponse.json({
+        preview: aiPlannerRequestPayload,
+        plannerInput: plannerInputPayload,
+        outputShape: outputShapeText,
+      });
+    }
+
+    for (let attempt = 1; attempt <= OPENAI_PLANNER_MAX_ATTEMPTS; attempt += 1) {
+      try {
+        logSmartKitchenPlannerEvent(requestId, "OpenAI request start", {
+          attempt,
+          plannerModel,
+        });
+        plannerResponse = await fetch("https://api.openai.com/v1/responses", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(aiPlannerRequestPayload),
+        });
+      } catch (error) {
+        plannerRequestFailureReason = `The smart planner request failed before a response was returned. ${getOpenAiErrorMessage(error)}`;
+        plannerResponse = null;
+      }
+
+      if (plannerResponse?.ok) {
+        logSmartKitchenPlannerEvent(requestId, "OpenAI request complete", {
+          attempt,
+          status: plannerResponse.status,
+          durationMs: Date.now() - plannerRequestStartedAt,
+        });
+        break;
+      }
+
+      const responseStatus = plannerResponse?.status ?? 0;
+      const errorText = plannerResponse ? await plannerResponse.text().catch(() => "") : "";
+      const errorMessage =
+        errorText ||
+        plannerRequestFailureReason ||
+        "OpenAI planning request failed.";
+      const retryableStatus = isRetryableOpenAiStatus(responseStatus);
+
+      if (retryableStatus && attempt < OPENAI_PLANNER_MAX_ATTEMPTS) {
+        continue;
+      }
+
+      if (plannerDebugArtifact) {
+        plannerDebugArtifact = {
+          ...plannerDebugArtifact,
+          providerSummary: createPlannerProviderSummary({
+            model: plannerModel,
+            status: responseStatus || undefined,
+            responseText: errorText || errorMessage,
+            errorMessage,
+          }),
+        };
+      }
+
+      if (retryableStatus) {
+        return buildPlannerFailureResponse(
+          `OpenAI planning request failed after ${OPENAI_PLANNER_MAX_ATTEMPTS} attempts: ${errorMessage}`
+        );
+      }
+
+      return buildPlannerFailureResponse(`OpenAI planning request failed: ${errorMessage}`);
+    }
+
+    if (!plannerResponse) {
+      if (plannerDebugArtifact) {
+        plannerDebugArtifact = {
+          ...plannerDebugArtifact,
+          providerSummary: createPlannerProviderSummary({
+            model: plannerModel,
+            responseText: plannerRequestFailureReason ?? "The smart planner request failed before a response was returned.",
+            errorMessage: plannerRequestFailureReason ?? "The smart planner request failed before a response was returned.",
+          }),
+        };
+      }
+
+      return buildPlannerFailureResponse(
+        plannerRequestFailureReason ??
+          "The smart planner request failed before a response was returned."
+      );
+    }
+
+    const plannerResponseText = await plannerResponse.text();
+    if (plannerDebugArtifact) {
+      plannerDebugArtifact = {
+        ...plannerDebugArtifact,
+        providerSummary: createPlannerProviderSummary({
+          model: plannerModel,
+          status: plannerResponse.status,
+          responseText: plannerResponseText,
+        }),
+      };
+    }
+
+    let plannerPayload: OpenAIResponsesPayload;
+    try {
+      plannerPayload = JSON.parse(plannerResponseText) as OpenAIResponsesPayload;
+    } catch (error) {
+      const providerParseErrorMessage =
+        error instanceof Error ? error.message : "The OpenAI planner response was not valid JSON.";
+      if (plannerDebugArtifact) {
+        plannerDebugArtifact = {
+          ...plannerDebugArtifact,
+          parseSummary: createPlannerParseSummary({
+            parseSucceeded: false,
+            errorMessage: providerParseErrorMessage,
+          }),
+        };
+      }
+
+      return buildPlannerFailureResponse(
+        `The smart planner response could not be parsed. ${providerParseErrorMessage}`
+      );
+    }
+
+    const plannerText = getResponseText(plannerPayload);
+    const plannerPayloadKeys = Object.keys(plannerPayload);
+
+    if (!plannerText) {
+      if (plannerDebugArtifact) {
+        plannerDebugArtifact = {
+          ...plannerDebugArtifact,
+          parseSummary: {
+            parseSucceeded: false,
+            errorMessage: "The smart planner returned no usable output text.",
+            topLevelKeys: plannerPayloadKeys,
+          },
+        };
+      }
+
+      return buildPlannerFailureResponse("The smart planner returned no usable output text.");
+    }
+
+    let rawPlan: unknown;
+    let plannerParseError: string | null = null;
+
+    try {
+      rawPlan = parsePlannerJson(plannerText);
+    } catch (error) {
+      plannerParseError =
+        error instanceof Error
+          ? error.message
+          : "The parser could not recover a usable plan from the model output.";
+      if (plannerDebugArtifact) {
+        plannerDebugArtifact = {
+          ...plannerDebugArtifact,
+          parseSummary: createPlannerParseSummary({
+            parseSucceeded: false,
+            rawPlan: undefined,
+            errorMessage: plannerParseError,
+          }),
+        };
+      }
+      return buildPlannerFailureResponse(`The smart planner returned invalid JSON. ${plannerParseError}`);
+    }
+
+    if (
+      rawPlan &&
+      typeof rawPlan === "object" &&
+      !Array.isArray(rawPlan) &&
+      "outputShape" in rawPlan
+    ) {
+      const wrappedPlan = rawPlan as { outputShape?: unknown };
+      if (wrappedPlan.outputShape) {
+        rawPlan = wrappedPlan.outputShape;
+      }
+    }
+
+    const plan = normalizeSmartKitchenPlan(fullRoom, rawPlan, plannerModel);
+
+    if (plannerDebugArtifact) {
+      plannerDebugArtifact = {
+        ...plannerDebugArtifact,
+        parseSummary: createPlannerParseSummary({
+          parseSucceeded: true,
+          rawPlan,
+        }),
+        outputSummary: createPlannerOutputSummary(fullRoom, plan, summarizedWalls),
+      };
+    }
+
+    let smartLayout: GeneratedKitchenLayout;
+    try {
+      smartLayout = generateSmartKitchenLayout(fullRoom, plan, {
+        debugCollector: plannerDebugCollector,
+      });
+    } catch (error) {
+      if (plannerDebugArtifact) {
+        plannerDebugArtifact = {
+          ...plannerDebugArtifact,
+          conversionSummary: {
+            conversionAttempted: true,
+            conversionSucceeded: false,
+            generatedRoomHasLayout: false,
+            generatedLayoutCabinetCount: 0,
+            generatedRoomCabinetCount: 0,
+            placementDecisionCount: plannerPlacementDecisions.length,
+            acceptedPlacementCount: plannerPlacementDecisions.filter(
+              (decision) => decision.outcome === "accepted"
+            ).length,
+            catalogMissingPlacementCount: plannerPlacementDecisions.filter(
+              (decision) => decision.outcome === "catalog-missing"
+            ).length,
+            exceedsWallWidthPlacementCount: plannerPlacementDecisions.filter(
+              (decision) => decision.outcome === "exceeds-wall-width"
+            ).length,
+            overlapExistingPlacementCount: plannerPlacementDecisions.filter(
+              (decision) => decision.outcome === "overlap-existing"
+            ).length,
+            skippedOpenWallPlacementCount: plannerPlacementDecisions.filter(
+              (decision) => decision.outcome === "skipped-open-wall"
+            ).length,
+            placementDecisions: plannerPlacementDecisions,
+            errorMessage:
+              error instanceof Error
+                ? error.message
+                : "The smart planner layout conversion failed with an unknown error.",
+          },
+        };
+      }
+
+      return buildPlannerFailureResponse(
+        `The smart planner produced a plan, but it could not be converted into a usable cabinet layout. ${
+          error instanceof Error ? error.message : "Unknown layout conversion error."
+        }`
+      );
+    }
+
+    if (plannerDebugArtifact) {
+      plannerDebugArtifact = {
+        ...plannerDebugArtifact,
+        conversionSummary: createPlannerConversionSummary({
+          generatedLayout: smartLayout,
+          placementDecisions: plannerPlacementDecisions,
+        }),
+      };
+    }
+
+    logSmartKitchenPlannerEvent(requestId, "layout generated", {
+      durationMs: Date.now() - plannerRequestStartedAt,
+      cabinetCount: smartLayout.cabinets.length,
+      wallCount: smartLayout.room.walls.length,
+      layoutType: smartLayout.summary.layoutType,
+    });
+
+    if (smartLayout.cabinets.length > 0) {
+      return NextResponse.json({
+        layout: designerFeedback
+          ? {
+              ...smartLayout,
+              summary: {
+                ...smartLayout.summary,
+                notes: [
+                  "Designer feedback was applied to this smart kitchen concept.",
+                  ...smartLayout.summary.notes,
+                ],
+              },
+            }
+          : smartLayout,
+        aiOutput: rawPlan,
+        plan,
+      });
+    }
+
+    if (plannerDebugArtifact) {
+      plannerDebugArtifact = {
+        ...plannerDebugArtifact,
+        conversionSummary: {
+          conversionAttempted: true,
+          conversionSucceeded: false,
+          generatedRoomHasLayout: smartLayout.room.cabinets.length > 0,
+          generatedLayoutCabinetCount: smartLayout.cabinets.length,
+          generatedRoomCabinetCount: smartLayout.room.cabinets.length,
+          placementDecisionCount: plannerPlacementDecisions.length,
+          acceptedPlacementCount: plannerPlacementDecisions.filter(
+            (decision) => decision.outcome === "accepted"
+          ).length,
+          catalogMissingPlacementCount: plannerPlacementDecisions.filter(
+            (decision) => decision.outcome === "catalog-missing"
+          ).length,
+          exceedsWallWidthPlacementCount: plannerPlacementDecisions.filter(
+            (decision) => decision.outcome === "exceeds-wall-width"
+          ).length,
+          overlapExistingPlacementCount: plannerPlacementDecisions.filter(
+            (decision) => decision.outcome === "overlap-existing"
+          ).length,
+          skippedOpenWallPlacementCount: plannerPlacementDecisions.filter(
+            (decision) => decision.outcome === "skipped-open-wall"
+          ).length,
+          placementDecisions: plannerPlacementDecisions,
+          errorMessage:
+            "The smart planner produced a plan, but it could not be converted into a usable cabinet layout.",
+        },
+      };
+    }
+
+    return buildPlannerFailureResponse(
+      "The smart planner produced a plan, but it could not be converted into a usable cabinet layout."
+    );
+  } finally {
+    try {
+      await writePlannerDebugArtifact(plannerDebugArtifact);
+    } catch (error) {
+      logSmartKitchenPlannerEvent(requestId, "failed to write planner debug artifact", {
+        errorMessage: error instanceof Error ? error.message : "Unknown planner debug artifact error.",
+      });
+    }
+
+    logPlannerDebugArtifact(plannerDebugArtifact);
+  }
+}

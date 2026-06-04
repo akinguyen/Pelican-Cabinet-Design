@@ -1,41 +1,76 @@
-# Generate Smart Kitchen - Step 1 Report
+# Generate Smart Kitchen Step 1 Report
 
-## Step number
+## Implementation Summary
+No runtime code was changed in this step. I inspected the current editor, workspace, storage, and API flow to map where the generated room JSON should be captured and restored.
 
-Step 1 - Feature foundation, types, constants, and deterministic mock data.
+## Answers to the Requested Questions
 
-## Files changed
+1. **What function opens the Generate Smart Kitchen screen from the editor?**
+   - `handleOpenSmartKitchenWorkspace()` in [components/src/features/cabinet-editor/CabinetEditorBase.tsx](/home/vannguyen/project/Pelican-Cabinet-Design/components/src/features/cabinet-editor/CabinetEditorBase.tsx#L287).
+   - It first triggers the workspace draft store event, then calls `openGenerateSmartKitchenWorkspace()`.
 
-| File | Change |
-| --- | --- |
-| `src/features/generate-smart-kitchen/types.ts` | Added strict TypeScript domain models for the 7-step workspace. |
-| `src/features/generate-smart-kitchen/constants.ts` | Added workflow, generation, comparison, and export constants. |
-| `src/features/generate-smart-kitchen/mockData.ts` | Added deterministic mock factories and mock constants. |
-| `src/features/generate-smart-kitchen/index.ts` | Added public feature exports. |
-| `src/features/generate-smart-kitchen/__tests__/constants.test.ts` | Added tests for workflow constants and export definitions. |
-| `src/features/generate-smart-kitchen/__tests__/mockData.test.ts` | Added tests for deterministic mock data, generated designs, estimates, and handoff data. |
-| `src/features/generate-smart-kitchen/__tests__/types-compile.test.ts` | Added compile-oriented public API type coverage test. |
-| `artifacts/generate-smart-kitchen/step-1-handoff.md` | Added handoff notes for Step 1. |
-| `artifacts/generate-smart-kitchen/step-1-report.md` | Added structured Step 1 report. |
+2. **What local/session storage key or utility stores the editor room before opening the smart kitchen screen?**
+   - The utility is [src/features/generate-smart-kitchen/utils/workspaceDraftStorage.ts](/home/vannguyen/project/Pelican-Cabinet-Design/src/features/generate-smart-kitchen/utils/workspaceDraftStorage.ts#L56).
+   - Storage key pattern: `pelican-smart-kitchen-workspace-draft:<projectId>`.
+   - Default project ID fallback: `editor-draft`.
 
-## Tests run
+3. **What function loads the attached room JSON on the smart kitchen screen?**
+   - `loadSmartKitchenWorkspaceDraft(projectId)` in [src/features/generate-smart-kitchen/screens/SimpleGenerateSmartKitchenScreen.tsx](/home/vannguyen/project/Pelican-Cabinet-Design/src/features/generate-smart-kitchen/screens/SimpleGenerateSmartKitchenScreen.tsx#L380).
 
-| Command | Result |
-| --- | --- |
-| `tsc --strict --noEmit --target ES2022 --module ESNext --moduleResolution Bundler src/features/generate-smart-kitchen/types.ts src/features/generate-smart-kitchen/constants.ts src/features/generate-smart-kitchen/mockData.ts src/features/generate-smart-kitchen/index.ts` | Passed |
-| `npx vitest run src/features/generate-smart-kitchen/__tests__` | Passed - 3 test files, 14 tests |
+4. **What exact response shape comes back from `generateSmartKitchenImages`?**
+   - The helper returns:
+     - `projectId`
+     - `attachedFileName`
+     - `prompt?`
+     - `systemPrompt?`
+     - `generatedLayout?`
+     - `generatedRoom?`
+     - `generatedRoomFileName?`
+     - `generationMode?`
+     - `placeholderReason?`
+     - `images`
+   - See [src/features/generate-smart-kitchen/utils/generateSmartKitchenImages.ts](/home/vannguyen/project/Pelican-Cabinet-Design/src/features/generate-smart-kitchen/utils/generateSmartKitchenImages.ts#L24).
 
-## Summary of the implementation
+5. **Does the response include `generatedRoom`, `generatedLayout`, or equivalent AI-generated JSON?**
+   - Yes.
+   - The API route returns both `generatedLayout` and `generatedRoom`.
+   - See [app/api/generate-smart-kitchen-images/route.ts](/home/vannguyen/project/Pelican-Cabinet-Design/app/api/generate-smart-kitchen-images/route.ts#L240).
 
-Step 1 added the UI-independent foundation for the Generate Smart Kitchen workspace inside `src/features/generate-smart-kitchen/`. The new model covers the 7-step workflow, project status, review data, measurements, style selections, appliance and cabinet requirements, generated designs, generation jobs, version history, ratings, estimates, export files, and internal handoff form data.
+6. **Where is this generated JSON currently discarded or ignored?**
+   - In [src/features/generate-smart-kitchen/screens/SimpleGenerateSmartKitchenScreen.tsx](/home/vannguyen/project/Pelican-Cabinet-Design/src/features/generate-smart-kitchen/screens/SimpleGenerateSmartKitchenScreen.tsx#L547), the result handler keeps only `result.images`.
+   - `generatedLayout`, `generatedRoom`, and `generatedRoomFileName` are not currently stored back into the editor flow from the workspace screen.
 
-The constants file defines the ordered 7-step workflow, requested design count, comparison limits, generation phases, and production export file types. The mock data file provides deterministic factories for future UI and tests, including 10 generated design options and a complete mock project.
+7. **What editor state/function is used to load/import a room JSON back into the main editor?**
+   - `loadedRoom` state in [components/src/features/cabinet-editor/CabinetEditorBase.tsx](/home/vannguyen/project/Pelican-Cabinet-Design/components/src/features/cabinet-editor/CabinetEditorBase.tsx#L68).
+   - `handleImportedRoom()` calls `setLoadedRoom(nextRoom)`.
+   - `CanvasArea` consumes `loadedRoom` and applies it to the editor scene.
 
-No editor files were changed in this step.
+8. **What route should the smart kitchen screen navigate to when returning to the editor?**
+   - `/`
+   - The home route [app/page.tsx](/home/vannguyen/project/Pelican-Cabinet-Design/app/page.tsx) renders `CabinetEditorBase`.
 
-## Limitations, warnings, and TODOs
+## Findings
+- The editor already has a working room import path through `loadedRoom`.
+- The workspace already receives both the original attached room JSON and the AI-generated JSON, but the generated JSON is not passed back to the editor yet.
+- The current Generate Smart Kitchen workspace only persists the original attachment draft, not the generated output.
 
-- This step intentionally does not wire the feature into the existing editor.
-- Mock image URLs point to placeholder paths and should be replaced or mapped to real static assets in a future UI step.
-- Runtime validation, API adapters, state management, and workspace UI are not included in Step 1.
-- The tests use Vitest syntax and should fit projects already using Vitest. If the app uses Jest only, the test imports may need small framework-specific adjustments.
+## Recommended Integration Points
+- Persist the generated room JSON from the workspace after generation completes.
+- Add a workspace exit handler that returns to `/` after storing the generated room JSON.
+- Reuse the existing `loadedRoom` path in the editor to load the generated room JSON.
+- If needed, store the generated images separately so they remain visible after exiting and re-entering the workspace.
+
+## Files Reviewed
+- [components/src/features/cabinet-editor/CabinetEditorBase.tsx](/home/vannguyen/project/Pelican-Cabinet-Design/components/src/features/cabinet-editor/CabinetEditorBase.tsx)
+- [components/src/features/cabinet-editor/components/layout/TopBar.tsx](/home/vannguyen/project/Pelican-Cabinet-Design/components/src/features/cabinet-editor/components/layout/TopBar.tsx)
+- [app/generate-smart-kitchen/[projectId]/page.tsx](/home/vannguyen/project/Pelican-Cabinet-Design/app/generate-smart-kitchen/%5BprojectId%5D/page.tsx)
+- [src/features/generate-smart-kitchen/screens/SimpleGenerateSmartKitchenScreen.tsx](/home/vannguyen/project/Pelican-Cabinet-Design/src/features/generate-smart-kitchen/screens/SimpleGenerateSmartKitchenScreen.tsx)
+- [src/features/generate-smart-kitchen/utils/workspaceDraftStorage.ts](/home/vannguyen/project/Pelican-Cabinet-Design/src/features/generate-smart-kitchen/utils/workspaceDraftStorage.ts)
+- [src/features/generate-smart-kitchen/utils/generateSmartKitchenImages.ts](/home/vannguyen/project/Pelican-Cabinet-Design/src/features/generate-smart-kitchen/utils/generateSmartKitchenImages.ts)
+- [app/api/generate-smart-kitchen-images/route.ts](/home/vannguyen/project/Pelican-Cabinet-Design/app/api/generate-smart-kitchen-images/route.ts)
+- [app/api/smart-kitchen/route.ts](/home/vannguyen/project/Pelican-Cabinet-Design/app/api/smart-kitchen/route.ts)
+
+## Notes
+- No tests were run in this step.
+- No code was changed.
+

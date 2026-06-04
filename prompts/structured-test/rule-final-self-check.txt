@@ -65,6 +65,12 @@ No-leftover-gap checks:
 - No filler was used to hide leftover math between normal cabinets.
 - Any remaining gap is either required protected clearance, appliance clearance, wall-end clearance, intentional opening, smaller than all usable catalog options after recomposition, or clearly explained in notes.
 
+Source-of-truth checks:
+- Every wallId, wallLabel, cabinetPlacementMode, wallFace, catalogId, fixed object, and dimension came from the input or from a catalog-allowed accessory flexibility rule.
+- No placement depends on a guessed wall connection, guessed opening, guessed appliance, guessed island, guessed missing wall, or guessed fixed-object location.
+- Designer feedback and user preferences were applied only where they did not conflict with geometry, fixed objects, cabinetPlacementMode, catalog availability, or buildability.
+- The output does not rely on the image/rendering model to fix geometry, hide overlap, add missing objects, or reinterpret notes as physical placements.
+
 Output checks:
 - JSON is valid.
 - JSON matches output-shape.txt exactly.

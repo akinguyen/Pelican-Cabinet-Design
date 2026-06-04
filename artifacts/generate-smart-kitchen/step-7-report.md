@@ -1,39 +1,48 @@
-# Generate Smart Kitchen Step 7 Report
+# Step 7 Report
 
-## Step Number
-Step 7
+Step: 7 - Real browser verification
 
-## Files Changed
-- `components/src/features/cabinet-editor/components/layout/TopBar.tsx`
-- `components/src/features/cabinet-editor/CabinetEditorBase.tsx`
-- `components/src/features/cabinet-editor/components/canvas/CanvasArea.tsx`
-- `components/src/features/cabinet-editor/__tests__/editorWorkspaceNavigation.test.ts`
-- `components/src/features/cabinet-editor/__tests__/node-shims.d.ts`
-- `artifacts/generate-smart-kitchen/step-7-handoff.md`
-- `artifacts/generate-smart-kitchen/step-7-report.md`
+Files changed:
+- None in the application codebase.
+- Browser-verification-only temp scripts were edited outside the repo workspace.
 
-## Tests Run
-- `tsc --strict --jsx react-jsx --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck app src/features/generate-smart-kitchen components/src/features/cabinet-editor/__tests__`
-- `vitest run src/features/generate-smart-kitchen/__tests__ components/src/features/cabinet-editor/__tests__`
+Browser verification result:
+- FAIL
 
-## Test Results
-- TypeScript strict check passed for the Generate Smart Kitchen feature files and the Step 7 editor migration tests.
-- Vitest passed: 18 test files, 70 tests.
+What was verified:
+- The app opens in a real browser-capable environment.
+- The Generate Smart Kitchen route loads.
+- The workspace draft key is present in `localStorage` on the live workspace origin.
+- The live workspace still shows `Project file • 0 B` and does not surface `Download Attached File`.
 
-## Implementation Summary
-- Added workspace navigation helpers to `CabinetEditorBase`:
-  - `GENERATE_SMART_KITCHEN_DRAFT_PROJECT_ID`
-  - `getGenerateSmartKitchenWorkspacePath`
-  - `openGenerateSmartKitchenWorkspace`
-- Changed the editor TopBar integration from old event dispatch to `onOpenSmartKitchenWorkspace`.
-- Kept the TopBar button label as `Generate smart kitchen` so the visible editor entry point remains stable.
-- Removed the old immediate-generation event listener from `CanvasArea` and replaced it with a deprecation comment.
-- Added regression tests that read the updated editor sources and verify:
-  - the TopBar exposes the workspace navigation callback,
-  - `CabinetEditorBase` navigates to `/generate-smart-kitchen/...`,
-  - the old immediate generation event is no longer dispatched or handled.
+What failed:
+- The workspace did not restore the attached JSON file from the workspace draft in the live browser.
+- Because the attached file did not appear, the rest of the round trip could not be verified end to end.
 
-## Limitations, Warnings, and TODOs
-- The workspace currently opens with the stable draft route `/generate-smart-kitchen/editor-draft`; a future step should pass or persist the real project ID/floor-plan data.
-- The debug/download smart input path still exists separately from the Generate smart kitchen button and may still call `/api/smart-kitchen` for preview/download behavior. This step only removed the immediate generation path from the editor button flow.
-- Full editor component type-checking was not run because the uploaded editor files reference many project-local modules that are not present in this isolated step package. The migration-specific tests and feature files were type-checked.
+Screenshots / notes:
+- Local browser screenshot captured during the failed import attempt.
+  - Editor canvas remained blank after the synthetic import attempt.
+- Live workspace DOM text:
+  - `Project file • 0 B`
+  - `Download Attached File` was absent.
+- Live workspace localStorage:
+  - `pelican-smart-kitchen-workspace-draft:editor-draft` exists.
+
+Bugs found:
+- The Smart Kitchen workspace is not restoring the visible attached file from the saved draft in the live browser.
+
+Fixes made:
+- None in application code.
+
+Tests/checks run:
+- Browser inspection via Chrome DevTools Protocol.
+- Fresh Chrome profile launched on port `9223`.
+- Live DOM and localStorage inspection in the workspace.
+
+Remaining limitations / TODOs:
+- The root cause of the attachment restoration failure is still unresolved.
+- The next debugging target is `SimpleGenerateSmartKitchenScreen` attachment restoration:
+  - `loadSmartKitchenWorkspaceDraft(projectId)`
+  - `activeAttachment`
+  - `restoreWorkspaceSession()`
+- After that is fixed, rerun the full browser round trip and capture the generation/exit/history screenshots.

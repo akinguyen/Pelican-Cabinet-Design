@@ -26,8 +26,9 @@ Every filler must have exactly one of these valid reasons:
 - Use 3 inches first. Use 4 or 5 inches only when it makes standard catalog objects fit cleaner, improves buildability, or avoids awkward leftover gaps.
 - This is separate from the blind cabinet's built-in filler.
 - The blind-corner clearance must be output as an actual filler placement object, not only as a note and not only as empty space.
-- Use `accessory-base-filler` for base blind-corner clearance.
-- Use `accessory-wall-filler` for wall/upper blind-corner clearance.
+- Use `accessory-base-filler` for base blind-corner clearance only if that catalogId exists in the input catalog; otherwise use the matching provided base filler accessory catalogId.
+- Use `accessory-wall-filler` for wall/upper blind-corner clearance only if that catalogId exists in the input catalog; otherwise use the matching provided wall filler accessory catalogId.
+- If no matching filler accessory exists in the catalog, do not invent one; leave the condition noted as unresolved or choose a different valid layout.
 - Its purpose is to prevent doors/drawers/hardware on perpendicular runs from colliding.
 - Do not add any extra fit, scribe, decimal-remainder, or alignment filler beside this corner filler.
 
@@ -66,8 +67,9 @@ Adjacent filler rule:
 
 End panel rules:
 - Use end panels to finish exposed cabinet/product sides open to the room.
-- Use accessory-base-end-panel for exposed base-category side faces.
-- Use accessory-wall-end-panel for exposed wall-category side faces.
+- Use accessory-base-end-panel for exposed base-category side faces only if that catalogId exists in the input catalog; otherwise use the matching provided base end-panel accessory catalogId.
+- Use accessory-wall-end-panel for exposed wall-category side faces only if that catalogId exists in the input catalog; otherwise use the matching provided wall end-panel accessory catalogId.
+- If no matching end-panel accessory exists in the catalog, do not invent one; explain the exposed side in notes or choose a different valid run ending.
 - If a dishwasher is at the open end of a base run with no cabinet beside it, a base end panel may be needed for support/finish.
 - Do not use end panels at shared inside corners where a filler or protected corner clearance is required.
 - Do not create cabinet -> filler -> end panel or cabinet -> end panel -> filler chains for the same exposed side.

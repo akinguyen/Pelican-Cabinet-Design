@@ -1,29 +1,32 @@
-# Generate Smart Kitchen Step 5 Handoff
+# Step 5 Handoff
 
-## Files changed
-- `src/features/generate-smart-kitchen/utils/smartKitchenCalculations.ts`
-- `src/features/generate-smart-kitchen/screens/KitchenStudioScreen.tsx`
-- `src/features/generate-smart-kitchen/screens/CompareChooseScreen.tsx`
-- `src/features/generate-smart-kitchen/index.ts`
-- `src/features/generate-smart-kitchen/__tests__/smartKitchenCalculations.test.ts`
-- `src/features/generate-smart-kitchen/__tests__/kitchenStudioScreen.test.tsx`
-- `src/features/generate-smart-kitchen/__tests__/compareChooseScreen.test.tsx`
-- `artifacts/generate-smart-kitchen/step-5-handoff.md`
-- `artifacts/generate-smart-kitchen/step-5-report.md`
+Files changed:
+- `src/features/generate-smart-kitchen/screens/SimpleGenerateSmartKitchenScreen.tsx`
+- `src/features/generate-smart-kitchen/__tests__/simpleGenerateSmartKitchenScreen.test.tsx`
+- `src/features/generate-smart-kitchen/__tests__/simpleGenerateSmartKitchenSessionRestore.test.tsx`
 
-## Tests run
-- TypeScript strict check:
-  - `tsc --strict --jsx react-jsx --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck app/generate-smart-kitchen/[projectId]/page.tsx src/features/generate-smart-kitchen/**/*.ts src/features/generate-smart-kitchen/**/*.tsx`
-- Unit/component tests:
-  - `./node_modules/.bin/vitest run src/features/generate-smart-kitchen/__tests__`
+What was completed:
+- Verified the workspace/editor project-id flow is still aligned with the current one-project handoff path:
+  - editor workspace draft
+  - editor return draft
+  - workspace session restore
+- The workspace now uses `activeAttachment` as the active UI/download payload.
+- After `Generate Images`, the active attachment switches from the original editor export to the generated design payload.
+- The generated attachment payload includes:
+  - `room`
+  - `generatedLayout`
+  - `generatedRoomFileName`
+  - `instructions`
+  - `generatedAtIso`
+- `Download Attached File` now downloads JSON file 2 after generation.
+- Session/history restore reconstructs JSON file 2 from the saved generated fields.
+- The `Generate Images` API request still uses a compatible `AiRoomInput` room input.
 
-## What was completed
-- Added UI-independent Smart Kitchen calculation helpers for active design lookup, comparison selection limits, score calculation, recommendation badges, cabinet count extraction, and price formatting.
-- Added `KitchenStudioScreen` for browsing generated designs, switching the active design, marking a customer favorite, and selecting designs for comparison.
-- Added `CompareChooseScreen` for side-by-side review of 2-3 selected designs, customer favorite selection, comparison summary, recommendation badges, pros/cons, and estimate-review readiness.
-- Exported the new utility and screens from the feature barrel.
-- Added tests for the calculation utility and both new screens.
-
-## What the next step should do
-- Wire the generated-design screens into the workspace route/provider flow when the migration step explicitly asks for navigation/state integration.
-- Add the next requested screen or behavior without changing unrelated editor behavior.
+What the next step should do:
+- Manually verify the full round trip in the browser:
+  - generate
+  - confirm file 2 is visible
+  - exit
+  - confirm the main editor shows the generated placements
+  - reopen workspace and confirm History/file 2 is restored
+- If there is still any discrepancy in the editor display, inspect only the canvas restore order and placement conversion helper.

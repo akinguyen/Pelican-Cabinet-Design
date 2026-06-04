@@ -8,9 +8,58 @@ describe('generateSmartKitchenImages', () => {
         JSON.stringify({
           projectId: 'editor-draft',
           attachedFileName: 'pelican-smart-kitchen-editor-room-export.json',
+          generationId: 'batch-1',
+          generatedLayout: {
+            room: {
+              walls: [{ id: 'wall-1', start: { x: 0, y: 0 }, end: { x: 100, y: 0 } }],
+              windows: [],
+              doors: [],
+              cabinets: [],
+              catalog: [],
+              wallChains: [],
+              meta: {
+                source: 'generated',
+                gridSize: 28,
+                wallThickness: 16,
+                generatedAt: '2026-05-23T12:00:00.000Z',
+              },
+            },
+            cabinets: [],
+            summary: {
+              layoutType: 'single-wall',
+              notes: ['Generated for test'],
+              selectedWallIds: ['wall-1'],
+            },
+            elevations: [],
+          },
+          generatedRoom: {
+            walls: [{ id: 'wall-1', start: { x: 0, y: 0 }, end: { x: 100, y: 0 } }],
+            windows: [],
+            doors: [],
+            cabinets: [],
+            catalog: [],
+            wallChains: [],
+            meta: {
+              source: 'generated',
+              gridSize: 28,
+              wallThickness: 16,
+              generatedAt: '2026-05-23T12:00:00.000Z',
+            },
+          },
+          generatedRoomFileName: 'generated-smart-kitchen-room.json',
           images: [
-            { id: 'image-1', imageUrl: 'data:image/png;base64,one', mimeType: 'image/png' },
-            { id: 'image-2', imageUrl: 'data:image/png;base64,two', mimeType: 'image/png' },
+            {
+              id: 'image-1',
+              generationId: 'batch-1',
+              imageUrl: 'data:image/png;base64,one',
+              mimeType: 'image/png',
+            },
+            {
+              id: 'image-2',
+              generationId: 'batch-1',
+              imageUrl: 'data:image/png;base64,two',
+              mimeType: 'image/png',
+            },
           ],
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
@@ -46,11 +95,74 @@ describe('generateSmartKitchenImages', () => {
     );
     expect(result.projectId).toBe('editor-draft');
     expect(result.attachedFileName).toBe('pelican-smart-kitchen-editor-room-export.json');
+    expect(result.generationId).toBe('batch-1');
+    expect(result.generatedRoomFileName).toBe('generated-smart-kitchen-room.json');
+    expect(result.generatedRoom).toBeDefined();
+    expect(result.generatedLayout).toBeDefined();
     expect(result.images).toHaveLength(2);
+    expect(result.images.every((image) => image.generationId === 'batch-1')).toBe(true);
   });
 
-  it('returns placeholder images without calling fetch when placeholder mode is enabled', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+  it('passes placeholder mode through to the API and returns the placeholder images', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          projectId: 'editor-draft',
+          attachedFileName: 'pelican-smart-kitchen-editor-room-export.json',
+          generatedLayout: {
+            room: {
+              walls: [{ id: 'wall-1', start: { x: 0, y: 0 }, end: { x: 100, y: 0 } }],
+              windows: [],
+              doors: [],
+              cabinets: [],
+              catalog: [],
+              wallChains: [],
+              meta: {
+                source: 'generated',
+                gridSize: 28,
+                wallThickness: 16,
+                generatedAt: '2026-05-23T12:00:00.000Z',
+              },
+            },
+            cabinets: [],
+            summary: {
+              layoutType: 'single-wall',
+              notes: ['Placeholder mode'],
+              selectedWallIds: ['wall-1'],
+            },
+            elevations: [],
+          },
+          generatedRoom: {
+            walls: [{ id: 'wall-1', start: { x: 0, y: 0 }, end: { x: 100, y: 0 } }],
+            windows: [],
+            doors: [],
+            cabinets: [],
+            catalog: [],
+            wallChains: [],
+            meta: {
+              source: 'generated',
+              gridSize: 28,
+              wallThickness: 16,
+              generatedAt: '2026-05-23T12:00:00.000Z',
+            },
+          },
+          generatedRoomFileName: 'generated-smart-kitchen-room.json',
+          generationMode: 'placeholder',
+          placeholderReason: 'Placeholder mode enabled.',
+          images: Array.from({ length: 15 }, (_, index) => ({
+            id: `placeholder-image-${index + 1}`,
+            generationId: 'batch-placeholder',
+            imageUrl: `data:image/svg+xml,placeholder-${index + 1}`,
+            mimeType: 'image/svg+xml',
+            conceptIndex: Math.floor(index / 3),
+            conceptLabel: `Concept ${Math.floor(index / 3) + 1}`,
+            imageIndex: index % 3,
+            imageLabel: `Image ${index % 3 + 1}`,
+          })),
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
 
     const result = await generateSmartKitchenImages({
       projectId: 'editor-draft',
@@ -73,10 +185,11 @@ describe('generateSmartKitchenImages', () => {
       usePlaceholderImages: true,
     });
 
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(result.generationMode).toBe('placeholder');
     expect(result.images).toHaveLength(15);
     expect(result.images.every((image) => image.imageUrl.startsWith('data:image/svg+xml'))).toBe(true);
+    expect(result.images.every((image) => image.generationId === 'batch-placeholder')).toBe(true);
   });
 
   it('throws a readable error when the API returns an error', async () => {

@@ -6,12 +6,14 @@ Purpose:
 - Resolve inside corners before filling the rest of the run.
 - Validate the floor plan, not only the elevation.
 - Create realistic L-shaped cabinet corners without blocked doors, blocked drawers, exposed blind areas, or footprint overlap.
+- Use a blind-corner solution only when the input geometry proves the walls connect and both required wall faces allow placement.
 
 Corner-first rule:
 - Solve usable inside corners before placing the rest of the run.
 - Do not place normal cabinets, drawer bases, pantry cabinets, refrigerators, appliances, or products tight into an inside corner if a perpendicular run would block opening or access.
 - If cabinetry continues around a usable inside corner, use a blind cabinet unless another solution is clearly better.
 - Do not use a random empty gap as a substitute for a real corner strategy.
+- Do not create a blind cabinet, corner filler, or perpendicular run for an assumed corner that is not proven by the input geometry.
 
 Invalid corner conditions:
 A corner is invalid if:

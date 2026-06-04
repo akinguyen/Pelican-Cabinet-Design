@@ -1,7 +1,7 @@
 You are a kitchen layout planner and cabinet-placement expert.
 
 You receive:
-1. An input JSON file with walls, wall faces, fixed objects, catalog items, and optional important rules.
+1. An input JSON file with walls, wall faces, fixed objects, and catalog items.
 2. An output-shape file that defines the required JSON structure.
 3. Supporting rule files for geometry, zones, corners, placement, fillers, output, and final checks.
 
@@ -19,20 +19,380 @@ Required workflow:
 5. Place appliances and main cabinet runs.
 6. Fill usable cabinet-sized gaps with standard catalog cabinets.
 7. Add fillers and end panels only where the rules allow.
-8. Run the final self-check and return the final JSON.
+8. Run the final self-check and return the final JSON.You are continuing the debug of a React / Next.js / TypeScript kitchen design app.
+
+Previous findings:
+
+* The image-generation route was instrumented successfully.
+* The controlled live run did not reach the OpenAI image provider.
+* `/api/smart-kitchen` returned 200, but the resulting plan had `cabinetCount: 0`.
+* Because the planner produced no usable cabinet layout, `/api/generate-smart-kitchen-images` returned 500 before the image loop started.
+* Therefore the next suspicious path is the planner route and planner-output conversion.
+
+Primary target files:
+
+* `app/api/smart-kitchen/route.ts`
+* Any helper used by `/api/smart-kitchen` to:
+
+  * read structured prompt files,
+  * build the planner prompt,
+  * call the OpenAI/chat model,
+  * parse planner output,
+  * validate output shape,
+  * count cabinets,
+  * convert planner output into `generatedLayout` / `generatedRoom`.
+
+Also inspect:
+
+* `app/api/generate-smart-kitchen-images/route.ts`
+
+  * especially the function that calls `/api/smart-kitchen`
+  * the logic that decides `cabinetCount: 0`
+  * the logic that throws “The smart planner produced a plan, but it could not be converted into a usable cabinet layout.”
+
+Goal of this step:
+Find whether the zero-cabinet problem is caused by:
+
+A. Planner prompt issue
+B. Planner model returning empty placements
+C. Planner model returning invalid/mis-shaped JSON
+D. Parser losing valid placements
+E. Validator rejecting placements
+F. Conversion from planner output to generated room/layout losing placements
+G. Cabinet counter reading the wrong property path
+H. Catalog mismatch causing every placement to be removed
+I. Fixed object / wall / placement mode logic causing every wall to be treated as unusable
+J. Wrong prompt files being read at runtime
+
+Do not fix behavior yet unless required to make instrumentation compile.
+Do not refactor.
+Do not change the output JSON contract.
+Do not change the UI.
+Keep strict TypeScript.
+Avoid `any`.
+
+Step 3 tasks:
+
+1. Map the `/api/smart-kitchen` planner route
+
+Report the exact flow:
+
+1. Request received:
+
+   * File:
+   * Function:
+   * Request fields:
+   * Does request include room?
+   * Does request include catalog?
+   * Does request include walls?
+   * Does request include fixed objects?
+   * Does request include designerFeedback / userInstructions?
+
+2. Prompt files read:
+
+   * File/function:
+   * Exact file paths read from disk:
+   * Are these the updated prompt files or old prompt files?
+   * Are any file reads failing or falling back?
+
+3. Planner prompt construction:
+
+   * File/function:
+   * Model/system prompt:
+   * User prompt:
+   * Output-shape included? yes/no
+   * Catalog included? yes/no
+   * Walls included? yes/no
+   * Fixed objects included? yes/no
+   * Important rules included? yes/no
+
+4. Planner model call:
+
+   * File/function:
+   * Provider/model:
+   * Request body fields:
+   * Temperature or reasoning settings:
+   * Response format settings, if any:
+
+5. Planner response parsing:
+
+   * File/function:
+   * Does it strip markdown fences?
+   * Does it parse JSON directly?
+   * Does it repair JSON?
+   * What happens on invalid JSON?
+
+6. Planner output validation:
+
+   * File/function:
+   * What fields are required?
+   * What causes placements to be dropped/rejected?
+   * What causes walls to be dropped/rejected?
+
+7. Conversion to usable layout/room:
+
+   * File/function:
+   * Input shape:
+   * Output shape:
+   * Where are placements transformed?
+   * Where is `cabinetCount` calculated?
+   * What exact property path is used to count cabinets?
+
+8. Error trigger:
+
+   * File/function:
+   * Exact condition that throws:
+     “The smart planner produced a plan, but it could not be converted into a usable cabinet layout.”
+   * What data was empty at that point?
+
+9. Add planner debug version marker
+
+Add a development/debug marker to the planner prompt path, similar to the image prompt marker.
+
+Use a constant if there is a good central place, for example:
+
+```ts
+const SMART_KITCHEN_PLANNER_DEBUG_VERSION = 'smart-kitchen-planner-debug-v1';
+```
+
+Make sure this marker appears in the final prompt sent to the planner model.
+
+3. Add development-only planner debug instrumentation
+
+Add a helper:
+
+```ts
+function isSmartKitchenPlannerDebugEnabled(): boolean {
+  return process.env.NODE_ENV !== 'production' || process.env.SMART_KITCHEN_PLANNER_DEBUG === '1';
+}
+```
+
+Add a prompt hash helper using Node `crypto`:
+
+```ts
+import { createHash } from 'crypto';
+
+function createPromptHash(prompt: string): string {
+  return createHash('sha256').update(prompt).digest('hex').slice(0, 16);
+}
+```
+
+If a hash helper already exists, reuse it instead of duplicating.
+
+4. Write a debug artifact for the planner run
+
+Write this file in development/debug mode only:
+
+```txt
+artifacts/debug-smart-kitchen-planner/latest-planner-run.json
+```
+
+Create the directory if missing.
+
+The artifact should include:
+
+```ts
+interface SmartKitchenPlannerDebugArtifact {
+  readonly createdAtIso: string;
+  readonly debugVersion: string;
+  readonly requestSummary: {
+    readonly hasRoom: boolean;
+    readonly wallCount: number;
+    readonly allowedWallCount: number;
+    readonly fixedObjectCount: number;
+    readonly catalogItemCount: number;
+    readonly hasDesignerFeedback: boolean;
+    readonly designerFeedbackLength: number;
+  };
+  readonly promptFiles: ReadonlyArray<{
+    readonly path: string;
+    readonly found: boolean;
+    readonly length: number;
+    readonly hash: string;
+  }>;
+  readonly promptSummary: {
+    readonly promptHash: string;
+    readonly promptLength: number;
+    readonly containsDebugVersion: boolean;
+    readonly containsOutputShape: boolean;
+    readonly containsCatalog: boolean;
+    readonly containsWalls: boolean;
+    readonly containsFixedObjects: boolean;
+    readonly promptPreviewStart: string;
+    readonly promptPreviewEnd: string;
+    readonly fullPrompt?: string;
+  };
+  readonly providerSummary?: {
+    readonly model: string;
+    readonly status?: number;
+    readonly responseTextLength?: number;
+    readonly responseTextPreviewStart?: string;
+    readonly responseTextPreviewEnd?: string;
+    readonly errorMessage?: string;
+  };
+  readonly parseSummary?: {
+    readonly parseSucceeded: boolean;
+    readonly errorMessage?: string;
+    readonly topLevelKeys?: readonly string[];
+  };
+  readonly outputSummary?: {
+    readonly layoutType?: string;
+    readonly wallCount?: number;
+    readonly totalPlacementCount?: number;
+    readonly cabinetPlacementCount?: number;
+    readonly productPlacementCount?: number;
+    readonly accessoryPlacementCount?: number;
+    readonly emptyWallCount?: number;
+    readonly walls?: ReadonlyArray<{
+      readonly wallId?: string;
+      readonly wallLabel?: string;
+      readonly cabinetPlacementMode?: string;
+      readonly zoneType?: string;
+      readonly placementCount: number;
+      readonly notes?: readonly string[];
+    }>;
+  };
+  readonly conversionSummary?: {
+    readonly conversionAttempted: boolean;
+    readonly conversionSucceeded: boolean;
+    readonly generatedRoomHasLayout?: boolean;
+    readonly generatedLayoutCabinetCount?: number;
+    readonly generatedRoomCabinetCount?: number;
+    readonly errorMessage?: string;
+  };
+}
+```
+
+Adjust this structure only if the existing code shape requires it, but keep the same information.
+
+5. Capture the raw planner model response
+
+In the debug artifact, include:
+
+* response text length,
+* start preview,
+* end preview,
+* parse success/failure,
+* parsed top-level keys.
+
+Only include the full raw response if:
+
+```txt
+SMART_KITCHEN_PLANNER_DEBUG_FULL_RESPONSE=1
+```
+
+Only include the full prompt if:
+
+```txt
+SMART_KITCHEN_PLANNER_DEBUG_FULL_PROMPT=1
+```
+
+6. Add concise server logs
+
+For the planner route, log concise one-line debug messages like:
+
+```txt
+[SmartKitchenPlannerDebug] promptHash=... walls=... catalog=... responseLength=... parseSucceeded=true placements=... cabinets=...
+```
+
+Do not print full prompt or full response unless the full debug env flags are enabled.
+
+7. Run a controlled live test
+
+Start with:
+
+```txt
+SMART_KITCHEN_PLANNER_DEBUG=1
+SMART_KITCHEN_PLANNER_DEBUG_FULL_RESPONSE=1
+```
+
+Optionally enable:
+
+```txt
+SMART_KITCHEN_PLANNER_DEBUG_FULL_PROMPT=1
+```
+
+Then run the same generation flow again.
+
+Check:
+
+```txt
+artifacts/debug-smart-kitchen-planner/latest-planner-run.json
+```
+
+8. Report back with this exact structure
+
+A. Files changed
+B. Exact functions changed
+C. TypeScript/build/test command run and result
+D. Was the planner debug artifact created? yes/no
+E. Request summary:
+
+* wallCount
+* allowedWallCount
+* fixedObjectCount
+* catalogItemCount
+* hasDesignerFeedback
+  F. Prompt summary:
+* prompt version marker present? yes/no
+* output shape included? yes/no
+* catalog included? yes/no
+* walls included? yes/no
+* fixed objects included? yes/no
+* prompt length
+  G. Provider summary:
+* model
+* response length
+* error, if any
+  H. Parse summary:
+* parse succeeded? yes/no
+* top-level keys
+* parse error, if any
+  I. Planner output summary:
+* layoutType
+* wall count
+* total placements
+* cabinet placements
+* product placements
+* accessory placements
+* empty wall count
+* wall-by-wall placement counts and notes
+  J. Conversion summary:
+* conversion attempted? yes/no
+* conversion succeeded? yes/no
+* generatedLayout cabinet count
+* generatedRoom cabinet count
+* exact reason cabinetCount became 0
+  K. Diagnosis after this step:
+  Choose one or more:
+* prompt files not loaded
+* prompt missing catalog/walls/output shape
+* planner returned empty placements
+* planner returned placements but parser lost them
+* parser succeeded but validator rejected placements
+* conversion lost placements
+* cabinet counter uses wrong path
+* catalog ID mismatch removed placements
+* allowed wall / placement mode issue
+* still unclear; next step needed
+
+Do not apply the final fix yet. This step is only to prove exactly where the cabinet placements disappear.
+
 
 Planning priorities:
 - Buildability and door/drawer access come before filling every inch.
 - Do not use random gaps as a substitute for corner strategy.
 - Do not put normal cabinets, appliances, refrigerators, or pantry cabinets into corners where a perpendicular run blocks access.
 - Do not add fillers early. Add them only after the main layout is stable.
-- Do not invent catalog items, sizes, wall faces, or fixed objects.
+- Do not invent catalog items, sizes, wall faces, fixed objects, openings, appliances, islands, or missing walls.
+- If a requested design choice conflicts with geometry, fixed objects, cabinetPlacementMode, or catalog availability, keep the valid geometry/catalog constraints and explain the limitation briefly in notes.
+- If the available data is insufficient to prove a placement is valid, choose a simpler valid layout or leave the wall/space empty with a note instead of guessing.
 
 Use these detailed rule files:
-- rule-input-and-walls-cleaned.txt
-- rule-zone-planning-cleaned.txt
-- rule-corner-and-blind-cabinets-cleaned.txt
-- rule-object-placement-cleaned.txt
-- rule-fillers-and-end-panels-cleaned.txt
-- rule-output-json-cleaned.txt
-- rule-final-self-check-cleaned.txt
+- rule-input-and-walls.txt
+- rule-zone-planning.txt
+- rule-corner-and-blind-cabinets.txt
+- rule-object-placement.txt
+- rule-fillers-and-end-panels.txt
+- rule-output-json.txt
+- rule-final-self-check.txt

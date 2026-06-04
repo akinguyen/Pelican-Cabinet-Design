@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -24,16 +24,22 @@ import {
   loadSmartKitchenWorkspaceDraft,
   type SmartKitchenWorkspaceDraft,
   SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID,
+  saveSmartKitchenEditorReturnDraft,
+  loadSmartKitchenWorkspaceSession,
+  saveSmartKitchenWorkspaceSession,
 } from '../utils/workspaceDraftStorage';
 import {
   generateSmartKitchenImages,
   type GeneratedSmartKitchenImage,
 } from '../utils/generateSmartKitchenImages';
+import type { AiRoomInput, GeneratedKitchenLayout } from '../../../../lib/ai/types';
 
 export interface SimpleGenerateSmartKitchenScreenProps {
   readonly projectId: string;
   readonly initialDraft?: SmartKitchenWorkspaceDraft | null;
 }
+
+export const SMART_KITCHEN_EDITOR_ROUTE = '/' as const;
 
 interface WorkspaceNavItem {
   readonly label: string;
@@ -45,8 +51,127 @@ function joinClassNames(...classNames: readonly (string | false | null | undefin
   return classNames.filter(Boolean).join(' ');
 }
 
+export function saveGeneratedRoomForEditorReturn(params: {
+  readonly projectId: string;
+  readonly generatedRoom: AiRoomInput | null;
+  readonly generatedLayout: GeneratedKitchenLayout | null;
+  readonly generatedRoomFileName: string | null;
+}): boolean {
+  if (!params.generatedRoom) {
+    return false;
+  }
+
+  saveSmartKitchenEditorReturnDraft({
+    projectId: params.projectId,
+    room: params.generatedRoom,
+    generatedLayout: params.generatedLayout,
+    generatedRoomFileName: params.generatedRoomFileName,
+    exportedAtIso: new Date().toISOString(),
+  });
+
+  return true;
+}
+
 export function formatInstructionCharacterCounter(value: string): string {
   return `${Math.min(value.length, 1000)} / 1000`;
+}
+
+type SmartKitchenActiveAttachment =
+  | {
+      readonly kind: 'original';
+      readonly fileName: string;
+      readonly room: AiRoomInput;
+      readonly exportedAtIso: string;
+    }
+  | {
+      readonly kind: 'generated';
+      readonly generationId: string | null;
+      readonly fileName: string;
+      readonly room: AiRoomInput;
+      readonly generatedLayout: GeneratedKitchenLayout | null;
+      readonly generatedRoomFileName: string | null;
+      readonly generatedAtIso: string;
+      readonly instructions: string;
+    };
+
+function getGeneratedAttachmentFileName(fileName: string | null): string {
+  if (typeof fileName === 'string' && fileName.trim().length > 0) {
+    return fileName.trim();
+  }
+
+  return 'smart-kitchen-generated-design.json';
+}
+
+function formatJsonByteSize(value: unknown): string {
+  const sizeInBytes = new Blob([JSON.stringify(value, null, 2)]).size;
+
+  if (sizeInBytes < 1024) {
+    return `${sizeInBytes} B`;
+  }
+
+  const sizeInKilobytes = sizeInBytes / 1024;
+
+  return `${sizeInKilobytes.toFixed(sizeInKilobytes >= 10 ? 1 : 2)} KB`;
+}
+
+function buildOriginalAttachmentState(
+  draft: SmartKitchenWorkspaceDraft,
+): SmartKitchenActiveAttachment {
+  return {
+    kind: 'original',
+    fileName: draft.attachment.fileName,
+    room: draft.attachment.room,
+    exportedAtIso: draft.attachment.exportedAtIso,
+  };
+}
+
+function buildGeneratedAttachmentState(params: {
+  readonly instructions: string;
+  readonly generatedRoom: AiRoomInput;
+  readonly generatedLayout: GeneratedKitchenLayout | null;
+  readonly generatedRoomFileName: string | null;
+  readonly generationId: string | null;
+}): SmartKitchenActiveAttachment {
+  return {
+    kind: 'generated',
+    generationId: params.generationId,
+    fileName: getGeneratedAttachmentFileName(params.generatedRoomFileName),
+    room: params.generatedRoom,
+    generatedLayout: params.generatedLayout,
+    generatedRoomFileName: params.generatedRoomFileName,
+    generatedAtIso: new Date().toISOString(),
+    instructions: params.instructions,
+  };
+}
+
+export function buildGeneratedAttachmentDownloadPayload(
+  projectId: string,
+  attachment: Extract<SmartKitchenActiveAttachment, { kind: 'generated' }>,
+) {
+  return {
+    projectId,
+    source: 'generate-smart-kitchen',
+    generationId: attachment.generationId,
+    generatedAtIso: attachment.generatedAtIso,
+    instructions: attachment.instructions,
+    fileName: attachment.fileName,
+    room: attachment.room,
+    generatedRoom: attachment.room,
+    generatedLayout: attachment.generatedLayout,
+  };
+}
+
+export function buildOriginalAttachmentDownloadPayload(
+  projectId: string,
+  attachment: Extract<SmartKitchenActiveAttachment, { kind: 'original' }>,
+) {
+  return {
+    projectId,
+    source: 'generate-smart-kitchen-workspace',
+    fileName: attachment.fileName,
+    room: attachment.room,
+    exportedAtIso: attachment.exportedAtIso,
+  };
 }
 
 function WorkspaceNavLink({ label, icon: Icon, isActive = false }: WorkspaceNavItem) {
@@ -82,7 +207,19 @@ interface GeneratedImageConceptGroup {
   readonly startIndex: number;
 }
 
-function buildGeneratedImageConceptGroups(
+export function filterGeneratedImagesForGeneration(
+  images: readonly GeneratedSmartKitchenImage[],
+  generationId: string | null,
+): readonly GeneratedSmartKitchenImage[] {
+  if (generationId) {
+    return images.filter((image) => image.generationId === generationId);
+  }
+
+  const legacyImages = images.filter((image) => typeof image.generationId !== 'string');
+  return legacyImages.length > 0 ? legacyImages : images;
+}
+
+export function buildGeneratedImageConceptGroups(
   images: readonly GeneratedSmartKitchenImage[],
 ): readonly GeneratedImageConceptGroup[] {
   if (images.length === 0) {
@@ -366,15 +503,24 @@ export function SimpleGenerateSmartKitchenScreen({
   projectId,
   initialDraft = null,
 }: SimpleGenerateSmartKitchenScreenProps) {
+  const router = useRouter();
   const [draft, setDraft] = useState<SmartKitchenWorkspaceDraft | null>(initialDraft);
+  const [generatedAttachment, setGeneratedAttachment] = useState<SmartKitchenActiveAttachment | null>(
+    null,
+  );
+  const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
   const [instructions, setInstructions] = useState('');
   const [usePlaceholderImages, setUsePlaceholderImages] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<readonly GeneratedSmartKitchenImage[]>([]);
+  const [generatedRoom, setGeneratedRoom] = useState<AiRoomInput | null>(null);
+  const [generatedLayout, setGeneratedLayout] = useState<GeneratedKitchenLayout | null>(null);
+  const [generatedRoomFileName, setGeneratedRoomFileName] = useState<string | null>(null);
   const [selectedGeneratedImageIndex, setSelectedGeneratedImageIndex] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [generationNotice, setGenerationNotice] = useState<string | null>(null);
+  const [workspaceNotice, setWorkspaceNotice] = useState<string | null>(null);
+  const [isSessionRestored, setIsSessionRestored] = useState(false);
   const progressIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -383,19 +529,90 @@ export function SimpleGenerateSmartKitchenScreen({
       return;
     }
 
-    setDraft(loadSmartKitchenWorkspaceDraft(projectId));
+    const nextDraft = loadSmartKitchenWorkspaceDraft(projectId);
+    setDraft(nextDraft);
   }, [initialDraft, projectId]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    async function restoreWorkspaceSession(): Promise<void> {
+      const session = await loadSmartKitchenWorkspaceSession(projectId);
+
+      if (!isActive || !session) {
+        return;
+      }
+
+      const restoredGeneratedRoom = session.generatedRoom ?? null;
+      const restoredGeneratedLayout = session.generatedLayout ?? null;
+
+      setInstructions(session.instructions);
+      setGeneratedImages(session.generatedImages);
+      setCurrentGenerationId(session.generationId ?? null);
+      setGeneratedRoom(restoredGeneratedRoom);
+      setGeneratedLayout(restoredGeneratedLayout);
+      setGeneratedRoomFileName(session.generatedRoomFileName ?? null);
+      if (restoredGeneratedRoom && restoredGeneratedLayout) {
+        setGeneratedAttachment(
+          buildGeneratedAttachmentState({
+            instructions: session.instructions,
+            generatedRoom: restoredGeneratedRoom,
+            generatedLayout: restoredGeneratedLayout,
+            generatedRoomFileName: session.generatedRoomFileName ?? null,
+            generationId: session.generationId ?? null,
+          }),
+        );
+        setIsSessionRestored(session.generatedImages.length > 0);
+        setWorkspaceNotice(
+          session.generatedImages.length > 0
+          ? 'Previously generated concepts restored from your last workspace session.'
+          : null,
+        );
+      }
+    }
+
+    void restoreWorkspaceSession();
+
+    return () => {
+      isActive = false;
+    };
+  }, [projectId]);
+
   const attachment = draft?.attachment ?? null;
+  const originalAttachment = draft ? buildOriginalAttachmentState(draft) : null;
+  const activeAttachment = generatedAttachment ?? originalAttachment;
+  const activeAttachmentLabel =
+    activeAttachment?.kind === 'generated' ? 'Generated Design / Project Data' : 'Current Floor Plan / Project Data';
+  const activeAttachmentSizeLabel = useMemo(() => {
+    if (!activeAttachment) {
+      return 'Project file • 0 B';
+    }
+
+    if (activeAttachment.kind === 'generated') {
+      return `Project file • ${formatJsonByteSize(
+        buildGeneratedAttachmentDownloadPayload(projectId, activeAttachment),
+      )}`;
+    }
+
+    return `Project file • ${formatJsonByteSize(
+      buildOriginalAttachmentDownloadPayload(projectId, activeAttachment),
+    )}`;
+  }, [activeAttachment, projectId]);
   const instructionCounterLabel = useMemo(
     () => formatInstructionCharacterCounter(instructions),
     [instructions],
   );
+  const visibleGeneratedImages = useMemo(
+    () => filterGeneratedImagesForGeneration(generatedImages, currentGenerationId),
+    [currentGenerationId, generatedImages],
+  );
   const selectedGeneratedImage =
-    selectedGeneratedImageIndex === null ? null : generatedImages[selectedGeneratedImageIndex] ?? null;
+    selectedGeneratedImageIndex === null
+      ? null
+      : visibleGeneratedImages[selectedGeneratedImageIndex] ?? null;
   const conceptGroups = useMemo(
-    () => buildGeneratedImageConceptGroups(generatedImages),
-    [generatedImages],
+    () => buildGeneratedImageConceptGroups(visibleGeneratedImages),
+    [visibleGeneratedImages],
   );
   const selectedGeneratedImageConceptGroup = useMemo(() => {
     if (selectedGeneratedImageIndex === null) {
@@ -464,7 +681,7 @@ export function SimpleGenerateSmartKitchenScreen({
     currentIndex: number,
     direction: 'previous' | 'next',
   ): number {
-    const currentImage = generatedImages[currentIndex];
+    const currentImage = visibleGeneratedImages[currentIndex];
     if (!currentImage) {
       return currentIndex;
     }
@@ -490,7 +707,7 @@ export function SimpleGenerateSmartKitchenScreen({
         : (currentLocalIndex + 1) % currentGroup.images.length;
 
     const nextGlobalIndex = currentGroup.startIndex + nextLocalIndex;
-    const nextImage = generatedImages[nextGlobalIndex];
+    const nextImage = visibleGeneratedImages[nextGlobalIndex];
 
     return nextImage ? nextGlobalIndex : currentIndex;
   }
@@ -508,15 +725,14 @@ export function SimpleGenerateSmartKitchenScreen({
   }
 
   function handleDownloadAttachedFile(): void {
-    if (!attachment) {
+    if (!activeAttachment) {
       return;
     }
 
-    const attachedFilePayload = {
-      projectId,
-      fileName: attachment.fileName,
-      room: attachment.room,
-    };
+    const attachedFilePayload =
+      activeAttachment.kind === 'generated'
+        ? buildGeneratedAttachmentDownloadPayload(projectId, activeAttachment)
+        : buildOriginalAttachmentDownloadPayload(projectId, activeAttachment);
     const attachedFileBlob = new Blob([JSON.stringify(attachedFilePayload, null, 2)], {
       type: 'application/json',
     });
@@ -524,7 +740,10 @@ export function SimpleGenerateSmartKitchenScreen({
     const downloadLink = document.createElement('a');
 
     downloadLink.href = attachedFileUrl;
-    downloadLink.download = attachment.fileName || 'pelican-smart-kitchen-editor-room-export.json';
+    downloadLink.download =
+      activeAttachment.kind === 'generated'
+        ? getGeneratedAttachmentFileName(activeAttachment.generatedRoomFileName)
+        : activeAttachment.fileName || 'pelican-smart-kitchen-editor-room-export.json';
     downloadLink.rel = 'noopener';
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -533,7 +752,7 @@ export function SimpleGenerateSmartKitchenScreen({
   }
 
   function handleDownloadAll(): void {
-    generatedImages.forEach((image, index) => {
+    visibleGeneratedImages.forEach((image, index) => {
       const downloadLink = document.createElement('a');
       downloadLink.href = image.imageUrl;
       downloadLink.download = `smart-kitchen-concept-${index + 1}.png`;
@@ -544,23 +763,52 @@ export function SimpleGenerateSmartKitchenScreen({
     });
   }
 
+  function handleExitWorkspace(): void {
+    if (!generatedRoom) {
+      setWorkspaceNotice(
+        'Generate images first to create an AI kitchen plan that can be loaded in the editor.',
+      );
+      return;
+    }
+
+    setWorkspaceNotice(null);
+    saveGeneratedRoomForEditorReturn({
+      projectId,
+      generatedRoom,
+      generatedLayout,
+      generatedRoomFileName,
+    });
+
+    router.replace(SMART_KITCHEN_EDITOR_ROUTE);
+  }
+
   async function handleGenerateImages(): Promise<void> {
-    if (!attachment) {
+    const currentAttachmentRoom = activeAttachment?.room ?? attachment?.room ?? null;
+    const currentAttachmentFileName =
+      activeAttachment?.fileName ?? attachment?.fileName ?? 'pelican-smart-kitchen-editor-room-export.json';
+
+    if (!currentAttachmentRoom) {
       setErrorMessage('No attached project file is available for generation.');
       return;
     }
 
     setIsGenerating(true);
     setErrorMessage(null);
+    setWorkspaceNotice(null);
+    setIsSessionRestored(false);
     setGeneratedImages([]);
+    setCurrentGenerationId(null);
+    setGeneratedRoom(null);
+    setGeneratedLayout(null);
+    setGeneratedRoomFileName(null);
     setSelectedGeneratedImageIndex(null);
     startGenerationProgress();
 
     try {
       const result = await generateSmartKitchenImages({
         projectId,
-        attachedFileName: attachment.fileName,
-        room: attachment.room,
+        attachedFileName: currentAttachmentFileName,
+        room: currentAttachmentRoom,
         userInstructions: instructions.trim(),
         usePlaceholderImages,
       });
@@ -569,6 +817,38 @@ export function SimpleGenerateSmartKitchenScreen({
       setGenerationProgress(100);
       await new Promise((resolve) => window.setTimeout(resolve, 250));
       setGeneratedImages(result.images);
+      setCurrentGenerationId(result.generationId);
+      setGeneratedRoom(result.generatedRoom ?? null);
+      setGeneratedLayout(result.generatedLayout ?? null);
+      setGeneratedRoomFileName(result.generatedRoomFileName ?? null);
+      if (result.generatedRoom && result.generatedLayout) {
+        setGeneratedAttachment(
+          buildGeneratedAttachmentState({
+            instructions: instructions.trim(),
+            generatedRoom: result.generatedRoom,
+            generatedLayout: result.generatedLayout,
+            generatedRoomFileName: result.generatedRoomFileName ?? null,
+            generationId: result.generationId,
+          }),
+        );
+      }
+      setIsSessionRestored(false);
+      try {
+        await saveSmartKitchenWorkspaceSession({
+          projectId,
+          instructions: instructions.trim(),
+          generationId: result.generationId,
+          generatedImages: result.images,
+          generatedRoom: result.generatedRoom ?? null,
+          generatedLayout: result.generatedLayout ?? null,
+          generatedRoomFileName: result.generatedRoomFileName ?? null,
+          updatedAtIso: new Date().toISOString(),
+        });
+      } catch (storageError) {
+        if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+          console.warn('Unable to persist the smart kitchen session.', storageError);
+        }
+      }
     } catch (error) {
       clearProgressInterval();
       setGenerationProgress(0);
@@ -628,18 +908,7 @@ export function SimpleGenerateSmartKitchenScreen({
 
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="grid h-[88px] grid-cols-[1fr_auto_1fr] items-center border-b border-slate-200 bg-white px-4 sm:px-6">
-          <div className="flex items-center">
-            <PrimaryButton
-              variant="secondary"
-              onClick={() => undefined}
-              className="h-11 rounded-xl border-slate-200 px-4 text-sm font-semibold !text-[#0e796e] !flex-row !items-center"
-            >
-              <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap">
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to Editor</span>
-              </span>
-            </PrimaryButton>
-          </div>
+          <div />
 
           <div className="text-center">
             <h1 className="text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">
@@ -650,7 +919,7 @@ export function SimpleGenerateSmartKitchenScreen({
           <div className="flex justify-end">
             <PrimaryButton
               variant="secondary"
-              onClick={() => undefined}
+              onClick={handleExitWorkspace}
               className="h-11 rounded-xl border-slate-200 px-4 text-sm font-semibold !text-slate-700 !flex-row !items-center"
             >
               <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap">
@@ -703,13 +972,13 @@ export function SimpleGenerateSmartKitchenScreen({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-slate-950">
-                        Current Floor Plan / Project Data
+                        {activeAttachmentLabel}
                       </p>
-                      <p className="mt-1 text-sm text-slate-500">Project file • 2.4 MB</p>
+                      <p className="mt-1 text-sm text-slate-500">{activeAttachmentSizeLabel}</p>
                     </div>
                   </div>
 
-                  {attachment ? (
+                  {activeAttachment ? (
                     <button
                       type="button"
                       onClick={handleDownloadAttachedFile}
@@ -722,10 +991,11 @@ export function SimpleGenerateSmartKitchenScreen({
                   ) : null}
                 </div>
 
-                {attachment ? (
+                {activeAttachment ? (
                   <p className="mt-4 text-xs font-medium text-slate-500">
-                    Automatically attached from the editor export for project{' '}
-                    {SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID}.
+                    {activeAttachment.kind === 'generated'
+                      ? 'Automatically attached from the latest AI-generated workspace result.'
+                      : `Automatically attached from the editor export for project ${SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID}.`}
                   </p>
                 ) : null}
               </div>
@@ -754,7 +1024,7 @@ export function SimpleGenerateSmartKitchenScreen({
             <div className="mt-6">
               <PrimaryButton
                 fullWidth
-                disabled={!attachment || isGenerating}
+                disabled={!activeAttachment || isGenerating}
                 onClick={() => {
                   void handleGenerateImages();
                 }}
@@ -779,6 +1049,12 @@ export function SimpleGenerateSmartKitchenScreen({
               </div>
             ) : null}
 
+            {workspaceNotice ? (
+              <div className="mt-6 rounded-2xl border border-[#dbeef0] bg-[#f6fbfc] px-4 py-3 text-sm text-slate-600">
+                {workspaceNotice}
+              </div>
+            ) : null}
+
             {isGenerating ? <GeneratingImagesProgressPanel progress={generationProgress} /> : null}
 
             {conceptGroups.length > 0 ? (
@@ -789,9 +1065,13 @@ export function SimpleGenerateSmartKitchenScreen({
                       <Check className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="text-[15px] font-semibold text-[#2d9f68]">Generation Complete!</h3>
+                      <h3 className="text-[15px] font-semibold text-[#2d9f68]">
+                        {isSessionRestored ? 'History' : 'Generation Complete!'}
+                      </h3>
                       <p className="mt-1 text-sm text-slate-500">
-                        Here are your five AI-generated kitchen concepts.
+                        {isSessionRestored
+                          ? 'These concepts were restored from your last workspace session.'
+                          : 'Here are your five AI-generated kitchen concepts.'}
                       </p>
                     </div>
                   </div>
@@ -810,7 +1090,7 @@ export function SimpleGenerateSmartKitchenScreen({
                     <GeneratedConceptImageRow
                       key={`${group.key}-${groupIndex}`}
                       group={group}
-                      generatedImages={generatedImages}
+                      generatedImages={visibleGeneratedImages}
                       onImageClick={setSelectedGeneratedImageIndex}
                     />
                   ))}

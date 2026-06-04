@@ -22,6 +22,7 @@ import { areWallsEqual, buildConnectionMap, buildWallChains, canConvertThinWallS
 import { downloadJsonFile, readUnknownJsonFile } from "../../services/fileJson";
 import { normalizeImportedKitchenPlan } from "../../services/importedKitchenPlan";
 import { addEditorElevationWidthsToRoom, exportAiRoomInputFromEditor, getEditorPlacementCatalogItem, withSmartInputCatalog } from "../../services/smartKitchenExport";
+import { buildWorkspaceReturnPlacements } from "../../services/workspaceReturnLayout";
 import {
   SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID,
   createSmartKitchenWorkspaceDraft,
@@ -47,6 +48,8 @@ export function CanvasArea({
   smartKitchenFeedback,
   onSmartKitchenOutput,
   loadedRoom = null,
+  workspaceReturnLayout = null,
+  onWorkspaceReturnLayoutApplied,
 }: {
   activeTool: Tool;
   setActiveTool: React.Dispatch<React.SetStateAction<Tool>>;
@@ -65,6 +68,8 @@ export function CanvasArea({
   smartKitchenFeedback: string;
   onSmartKitchenOutput?: (payload: unknown | null) => void;
   loadedRoom?: AiRoomInput | null;
+  workspaceReturnLayout?: GeneratedKitchenLayout | null;
+  onWorkspaceReturnLayoutApplied?: () => void;
 }) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const offsetRef = useRef<Point>(offset);
@@ -490,6 +495,39 @@ export function CanvasArea({
     },
     []
   );
+
+  useEffect(() => {
+    if (!loadedRoom || !workspaceReturnLayout) {
+      return;
+    }
+
+    const restoredPlacements = buildWorkspaceReturnPlacements(workspaceReturnLayout);
+
+    if (restoredPlacements.length > 0) {
+      commitPlacementsChange(() => restoredPlacements);
+    }
+
+    setSelectedPlacementId(null);
+    setSelectedWindowId(null);
+    setSelectedDoorId(null);
+    setSelectedWallId(null);
+    setGroupSelectedPlacementIds([]);
+    setGroupSelectedWallIds([]);
+    setGroupContextMenu(null);
+    setMenuPosition(null);
+    updatePlacementPreview(null);
+    updateDoorPreview(null);
+    updateWindowPreview(null);
+    onWorkspaceReturnLayoutApplied?.();
+  }, [
+    loadedRoom,
+    workspaceReturnLayout,
+    commitPlacementsChange,
+    onWorkspaceReturnLayoutApplied,
+    updateDoorPreview,
+    updatePlacementPreview,
+    updateWindowPreview,
+  ]);
 
   const buildImportedKitchenPlacement = useCallback(
     (

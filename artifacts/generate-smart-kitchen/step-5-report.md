@@ -1,39 +1,38 @@
-# Generate Smart Kitchen Step 5 Report
+# Step 5 Report
 
-## Step number
-Step 5
+Step: End-to-end verification of JSON file 2 return/display.
 
-## Files changed
-- `src/features/generate-smart-kitchen/utils/smartKitchenCalculations.ts`
-- `src/features/generate-smart-kitchen/screens/KitchenStudioScreen.tsx`
-- `src/features/generate-smart-kitchen/screens/CompareChooseScreen.tsx`
-- `src/features/generate-smart-kitchen/index.ts`
-- `src/features/generate-smart-kitchen/__tests__/smartKitchenCalculations.test.ts`
-- `src/features/generate-smart-kitchen/__tests__/kitchenStudioScreen.test.tsx`
-- `src/features/generate-smart-kitchen/__tests__/compareChooseScreen.test.tsx`
-- `artifacts/generate-smart-kitchen/step-5-handoff.md`
-- `artifacts/generate-smart-kitchen/step-5-report.md`
+Files changed:
+- `src/features/generate-smart-kitchen/screens/SimpleGenerateSmartKitchenScreen.tsx`
+- `src/features/generate-smart-kitchen/__tests__/simpleGenerateSmartKitchenScreen.test.tsx`
+- `src/features/generate-smart-kitchen/__tests__/simpleGenerateSmartKitchenSessionRestore.test.tsx`
 
-## Tests run
-- TypeScript strict check:
-  - `tsc --strict --jsx react-jsx --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck app/generate-smart-kitchen/[projectId]/page.tsx src/features/generate-smart-kitchen/**/*.ts src/features/generate-smart-kitchen/**/*.tsx`
-- Unit/component tests:
-  - `./node_modules/.bin/vitest run src/features/generate-smart-kitchen/__tests__`
+Implementation summary:
+- Verified project-id usage in the current flow:
+  - the editor opens the workspace with the shared `editor-draft` path
+  - the workspace draft/session/return draft now all stay aligned with the same current flow
+- Confirmed `Exit Workspace` still saves:
+  - `generatedRoom`
+  - `generatedLayout`
+  - `generatedRoomFileName`
+- Confirmed the workspace active attachment now switches from file 1 to file 2 after successful generation.
+- Confirmed the downloaded attached file now represents JSON file 2 and includes `generatedLayout`.
+- Confirmed restored History/session reconstructs file 2 from `generatedRoom`, `generatedLayout`, and `generatedRoomFileName`.
+- No change was needed to the editor return flow from Step 3, because it already uses the non-debug restore path:
+  - `returnDraft.room`
+  - `returnDraft.generatedLayout.cabinets`
+  - debug state remains suppressed
 
-## Test result
-- TypeScript strict check passed.
-- Vitest passed: 14 test files, 60 tests.
+Checks performed:
+- Source-level verification of the workspace attachment and editor return paths.
+- Source-level verification that the generated attachment payload includes layout data.
 
-## Implementation summary
-- Added `smartKitchenCalculations.ts` as the single home for Step 5 comparison and design-browsing calculations.
-- Added deterministic helpers for active design resolution, selected design lookup, comparison selection limits, comparison readiness, overall score calculation, cabinet count extraction, recommendation badges, comparison summary, and price formatting.
-- Added `KitchenStudioScreen` as a presentational workspace screen that displays the active design, all generated thumbnails, selected-design details, key features, layout/storage summary, favorite action, and comparison selection action.
-- Added `CompareChooseScreen` as a presentational comparison screen that displays selected designs side by side, recommendation badges, score bars, price/material/cabinet summaries, pros/cons, customer favorite selection, and readiness for estimate review.
-- Kept API calls out of the new UI screens. Screens accept callbacks and state from the provider layer when a later step wires them into the route.
-- No editor files were changed.
+Limitations / blockers:
+- The sandbox does not have local Vitest binaries, so the newly added tests were not executed here.
+- Standalone `tsc` runs in this environment still report unrelated alias-resolution and pre-existing repo type issues when invoked outside the repo’s full build context.
+- I did not observe a projectId/storage-key mismatch in the current one-project flow.
+- I did not observe a restore-order race in `CanvasArea`; the existing `loadedRoom` then `workspaceReturnLayout` effect order remains the correct flow.
 
-## Limitations, warnings, or TODOs
-- Step 5 intentionally does not wire `KitchenStudioScreen` or `CompareChooseScreen` into the route because this step only requested the screens and calculation utility.
-- Step 5 does not implement AI refinement, ratings modal, estimate review, or presentation/export behavior.
-- Component tests use server-rendered markup assertions. Event-level interaction tests can be added later when a full app test harness is available.
-- Test dependencies were installed locally in the working folder to run validation, but `node_modules` is excluded from the delivered ZIP.
+TODOs:
+- Perform one browser-level manual verification of the full round trip.
+- If a discrepancy remains, the next place to inspect is the `workspaceReturnLayout` placement normalization helper and the canvas restore effect ordering.

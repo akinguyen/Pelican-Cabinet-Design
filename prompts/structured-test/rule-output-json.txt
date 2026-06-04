@@ -8,6 +8,8 @@ Output format:
 - Do not wrap the answer in an extra outputShape property.
 - Do not include markdown, prose, comments, images, or explanations outside JSON.
 - Keep JSON valid, compact, and complete.
+- Do not add fields that are not defined by output-shape.txt.
+- Use real JSON numbers for numeric dimensions, not strings, formulas, ranges, or approximate text.
 
 Wall output:
 - Include walls in the required structure.
@@ -15,6 +17,8 @@ Wall output:
 - Use the correct cabinetPlacementMode from the input.
 - Every allowed wall should have placements unless notes explain why it cannot.
 - Each wall should include placements, notes, and zoneType.
+- Do not add fields that are not defined by output-shape.txt.
+- Use real JSON numbers for numeric dimensions, not strings, formulas, ranges, or approximate text.
 
 Placement output:
 - Each placement must describe the catalog item and position.
@@ -36,4 +40,5 @@ Before returning:
 4. Confirm no floor-plan corner overlap exists.
 5. Confirm fixed objects are preserved.
 6. Confirm fillers and end panels follow their rule file.
-7. Confirm the JSON parses successfully.
+7. Confirm no output value was invented to satisfy appearance, symmetry, or work-triangle preference.
+8. Confirm the JSON parses successfully.

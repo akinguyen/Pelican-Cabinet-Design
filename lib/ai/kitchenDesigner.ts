@@ -14,6 +14,28 @@ import { getCatalogVisualId } from "@/components/src/features/cabinet-editor/dat
 
 type KitchenDesignOptions = Record<string, unknown>;
 
+type KitchenDesignPlacementDecision = {
+  wallId: string;
+  catalogId: string;
+  outcome:
+    | "accepted"
+    | "catalog-missing"
+    | "exceeds-wall-width"
+    | "overlap-existing"
+    | "skipped-open-wall";
+  note?: string;
+};
+
+type KitchenDesignDebugCollector = {
+  recordPlacementDecision?: (decision: KitchenDesignPlacementDecision) => void;
+  recordExplicitPlacementPlan?: (wallCount: number, placementCount: number) => void;
+  recordFallbackRun?: (note: string) => void;
+};
+
+type KitchenDesignDebugOptions = KitchenDesignOptions & {
+  debugCollector?: KitchenDesignDebugCollector;
+};
+
 function isFloorStandingKitchenCategory(category: unknown) {
   return category === "base";
 }
@@ -1687,6 +1709,7 @@ export function generateSmartKitchenLayout(
   plan: SmartKitchenPlan,
   _options: KitchenDesignOptions = {}
 ): GeneratedKitchenLayout {
+  const options = _options as KitchenDesignDebugOptions;
   const filteredRoom = filterRoomForKitchenGeneration(room);
   const thickWalls = filteredRoom.walls.filter((wall) => wall.kind !== "thin-wall");
   const targetWalls = thickWalls;
@@ -1758,17 +1781,39 @@ export function generateSmartKitchenLayout(
   );
 
   if (hasExplicitPlacementPlan(wallPlans)) {
+    options.debugCollector?.recordExplicitPlacementPlan?.(
+      selectedWalls.length,
+      Array.from(wallPlans.values()).reduce(
+        (count, wallPlan) => count + (wallPlan.placements?.length ?? 0),
+        0
+      )
+    );
+
     for (let wallIndex = 0; wallIndex < selectedWalls.length; wallIndex += 1) {
       const wallEntry = selectedWalls[wallIndex];
       const wallPlan = wallPlans.get(wallEntry.wall.id);
 
-      if (!wallPlan || wallPlan.needsPlacement === false) continue;
+      if (!wallPlan || wallPlan.needsPlacement === false) {
+        options.debugCollector?.recordPlacementDecision?.({
+          wallId: wallEntry.wall.id,
+          catalogId: "(no-placement-plan)",
+          outcome: "skipped-open-wall",
+          note: "The planner did not assign placements to this wall.",
+        });
+        continue;
+      }
 
       wallPlan.notes.forEach((note) => {
         notes.push(`${wallPlan.wallLabel ?? `Wall ${wallIndex + 1}`}: ${note}`);
       });
 
       if ((wallPlan.placements?.length ?? 0) === 0) {
+        options.debugCollector?.recordPlacementDecision?.({
+          wallId: wallEntry.wall.id,
+          catalogId: "(explicitly-open)",
+          outcome: "skipped-open-wall",
+          note: "The planner explicitly left this wall open.",
+        });
         notes.push(`${wallPlan.wallLabel ?? `Wall ${wallIndex + 1}`}: left open intentionally.`);
         continue;
       }
@@ -1777,7 +1822,15 @@ export function generateSmartKitchenLayout(
         const catalogItem =
           filteredRoom.catalog.find((item) => item.id === placement.catalogId) ?? null;
 
-        if (!catalogItem) continue;
+        if (!catalogItem) {
+          options.debugCollector?.recordPlacementDecision?.({
+            wallId: wallEntry.wall.id,
+            catalogId: placement.catalogId,
+            outcome: "catalog-missing",
+            note: "Planner referenced a catalog item that was not available in the filtered room catalog.",
+          });
+          continue;
+        }
 
         const wallWidthInches = getPlacementWallWidthInches(wallEntry);
         const leftInches = placement.leftInches;
@@ -1787,6 +1840,12 @@ export function generateSmartKitchenLayout(
         const widthInches = spanWidthInches;
 
         if (leftInches < -0.01 || leftInches + widthInches > wallWidthInches + 0.01) {
+          options.debugCollector?.recordPlacementDecision?.({
+            wallId: wallEntry.wall.id,
+            catalogId: placement.catalogId,
+            outcome: "exceeds-wall-width",
+            note: `Placement would exceed wall width (${leftInches.toFixed(2)} + ${widthInches.toFixed(2)} > ${wallWidthInches.toFixed(2)}).`,
+          });
           notes.push(
             `${wallPlan.wallLabel ?? `Wall ${wallIndex + 1}`}: skipped ${catalogItem.title.toLowerCase()} because it would exceed the wall width.`
           );
@@ -1842,6 +1901,12 @@ export function generateSmartKitchenLayout(
         }
 
         if (cabinets.some((existing) => cabinetsOverlap(plannedCabinet, existing))) {
+          options.debugCollector?.recordPlacementDecision?.({
+            wallId: wallEntry.wall.id,
+            catalogId: placement.catalogId,
+            outcome: "overlap-existing",
+            note: "Placement overlapped an already accepted cabinet/product object.",
+          });
           notes.push(
             `${wallPlan.wallLabel ?? `Wall ${wallIndex + 1}`}: skipped ${catalogItem.title.toLowerCase()} because it would overlap an existing object.`
           );
@@ -1849,6 +1914,11 @@ export function generateSmartKitchenLayout(
         }
 
         cabinets.push(plannedCabinet);
+        options.debugCollector?.recordPlacementDecision?.({
+          wallId: wallEntry.wall.id,
+          catalogId: placement.catalogId,
+          outcome: "accepted",
+        });
         addCabinetReservations(
           baseReservations,
           upperReservations,
@@ -1876,6 +1946,10 @@ export function generateSmartKitchenLayout(
       })),
     };
   }
+
+  options.debugCollector?.recordFallbackRun?.(
+    "No explicit placement plan was used; fallback placement logic ran instead."
+  );
 
   if (corners.length > 0 && plan.layoutType !== "single-wall") {
     notes.push(
@@ -2177,4 +2251,3 @@ export function generateSmartKitchenLayout(
     })),
   };
 }
-

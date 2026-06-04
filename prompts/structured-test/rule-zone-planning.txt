@@ -20,6 +20,11 @@ Zone rules:
 - Respect fixed objects that imply a zone.
 - Redesign the zone plan if it creates blocked corners, unusable doors/drawers, appliance conflicts, or awkward access.
 
+Source-of-truth appliance rules:
+- Plan refrigerator, sink, dishwasher, range/cooktop, hood, microwave, and pantry zones only from fixed objects, designer instructions, and catalog items available in the input.
+- Do not invent a missing appliance or product just to complete the work triangle.
+- If a key appliance is not available in the input/catalog, keep the closest practical zone plan and explain the limitation in notes.
+
 Workflow rules:
 - Refrigerator, sink/dishwasher, and range/cooktop should feel connected.
 - Keep the dishwasher directly beside the sink when possible.

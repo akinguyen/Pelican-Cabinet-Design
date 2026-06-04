@@ -1,31 +1,25 @@
-# Generate Smart Kitchen Step 4 Handoff
+# Step 4 Handoff
 
-## Files changed
-- `app/generate-smart-kitchen/[projectId]/page.tsx`
-- `src/features/generate-smart-kitchen/utils/editorToSmartKitchenData.ts`
-- `src/features/generate-smart-kitchen/screens/ReviewConfirmScreen.tsx`
-- `src/features/generate-smart-kitchen/screens/GenerateDesignsScreen.tsx`
-- `src/features/generate-smart-kitchen/index.ts`
-- `src/features/generate-smart-kitchen/__tests__/editorToSmartKitchenData.test.ts`
-- `src/features/generate-smart-kitchen/__tests__/reviewConfirmScreen.test.tsx`
-- `src/features/generate-smart-kitchen/__tests__/generateDesignsScreen.test.tsx`
-- `src/features/generate-smart-kitchen/__tests__/routePage.test.tsx`
-- `artifacts/generate-smart-kitchen/step-4-handoff.md`
-- `artifacts/generate-smart-kitchen/step-4-report.md`
+Files changed:
+- `src/features/generate-smart-kitchen/screens/SimpleGenerateSmartKitchenScreen.tsx`
+- `src/features/generate-smart-kitchen/__tests__/simpleGenerateSmartKitchenScreen.test.tsx`
+- `src/features/generate-smart-kitchen/__tests__/simpleGenerateSmartKitchenSessionRestore.test.tsx`
 
-## Tests run
-- `./node_modules/.bin/tsc --strict --jsx react-jsx --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck app/generate-smart-kitchen/[projectId]/page.tsx src/features/generate-smart-kitchen/**/*.ts src/features/generate-smart-kitchen/**/*.tsx`
-- `./node_modules/.bin/vitest run src/features/generate-smart-kitchen/__tests__`
+What was completed:
+- Added a local `activeAttachment` state to the smart kitchen workspace screen.
+- The workspace now starts with the original editor export as file 1.
+- After `Generate Images` succeeds, the active attachment switches to the generated design payload:
+  - `room`
+  - `generatedLayout`
+  - `generatedRoomFileName`
+  - metadata used for download/display
+- `Download Attached File` now downloads the current active attachment:
+  - file 1 before generation
+  - file 2 after generation or session restore
+- The restored `History`/session path now rebuilds file 2 from the saved generated room/layout fields when present.
+- The `Generate Images` request still sends a compatible `AiRoomInput` room payload to the backend.
 
-## What was completed
-- Added the route entry at `app/generate-smart-kitchen/[projectId]/page.tsx`.
-- Added a safe editor-to-review-data adapter utility for future editor handoff.
-- Added the Step 1 Review & Confirm workspace screen.
-- Added the Step 2 Generate Designs progress screen.
-- The route reads `projectId`, loads provider state through `SmartKitchenFlowProvider`, renders Review & Confirm first, and does not start generation on route load.
-- Generation can be started only through the Review screen CTA, using provider actions rather than direct API calls in screen components.
-- No editor files or existing editor behavior were changed.
-
-## What the next step should do
-- Add the Step 3 AI Kitchen Studio screen with featured design viewer, thumbnail strip, selected design details panel, and initial browse behavior.
-- Keep the editor button unwired until the explicit migration step for editor integration.
+What the next step should do:
+- Verify the session/history behavior and the generated attachment display in the UI.
+- Confirm `Exit Workspace` still uses the generated room/layout from Step 3 and not the original attachment.
+- If needed, add a browser-level test for switching the attached file after generation.

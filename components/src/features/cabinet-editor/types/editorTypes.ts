@@ -126,6 +126,8 @@ export type Wall = {
   end: Point;
   kind?: WallKind;
   elevationViewMode?: WallElevationViewMode;
+  elevationViewSideOverride?: "left" | "right";
+  interiorSideOverride?: "left" | "right";
   needPlacement?: boolean;
   placementMode?: WallPlacementMode;
   sourceThinLength?: number;

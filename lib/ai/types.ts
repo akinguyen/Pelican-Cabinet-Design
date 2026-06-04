@@ -238,6 +238,8 @@ export type SmartKitchenWarning = {
 export type SmartKitchenWallPlan = {
   wallId: string;
   wallLabel?: string | null;
+  zoneType?: string | null;
+  cabinetPlacementMode?: "none" | "both" | "interior" | "exterior" | null;
   needsPlacement?: boolean;
   placements?: SmartKitchenPlacement[];
   role: SmartKitchenWallRole;

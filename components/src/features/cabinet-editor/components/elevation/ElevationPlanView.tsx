@@ -13,8 +13,8 @@ import { PENIN_WALL_ELEVATION_FACE_WIDTH_INCHES, PENIN_WALL_ELEVATION_HEIGHT_INC
 import { useMeasurementDisplayUnit } from "../../context/MeasurementDisplayUnitContext";
 import { getBlindCabinetSide, getBlindCabinetWidthSegments, getDefaultBottomDrawerProductLayout, getOvenCabinetHeightSegments } from "../../data/placementCatalog";
 import { placementHasToeKick, getPlacementImage, getPlacementSupportType, getDefaultPlacementImageForCategory, isAccessoryPlacementImage, isElevationFloatingPlacement, isProductPlacementImage, isStandaloneBaseProductElevationImage } from "../../engine/placementClassification";
-import { add, clamp, cross, degreesToRadians, distance, dot, formatMeasurementFromInches, getPreferredNormal, inchesToPixels, mul, normalize, perp, pixelsToInches, sub, vectorLength } from "../../engine/geometry";
-import { closestPointOnSegment, getWallSegmentBlackDotGeometry, isDetachedPanelWall, isIslandWall, isPeninWall, isThickWall } from "../../engine/wallEngine";
+import { add, clamp, cross, degreesToRadians, distance, dot, formatMeasurementFromInches, getPreferredNormal, inchesToPixels, midpoint, mul, normalize, perp, pixelsToInches, samePoint, sub, vectorLength } from "../../engine/geometry";
+import { buildWallChains, closestPointOnSegment, getMeasurementGuideAnchor, getWallSegmentBlackDotGeometry, isDetachedPanelWall, isIslandWall, isPeninWall, isThickWall, uniquePoints } from "../../engine/wallEngine";
 import { getPlacementCatalogItemByIdentity } from "../../services/smartKitchenExport";
 import type { PlacementCategory, PlacementElement, PlacementElevationItem, PlacementImage, PlacementPreview, PlacementWallAttachment, DoorElement, ElevationAlignmentGuide, ElevationCornerReservation, ElevationCornerReservationSeverity, ElevationDragState, ElevationObjectBox, ElevationObjectDistanceMetrics, ElevationOpeningLayout, ElevationWallAxis, ElevationWallDistanceContext, ElevationWallInteriorSpan, MeasurementSide, PeninWallElevationPlacement, Point, Wall, WallPlacementMode, WallPlacementStackPlacementResult, WallElevationViewMode, WallFaceSide, WindowElement } from "../../types/editorTypes";
 
@@ -52,6 +52,9 @@ export function getInteriorMeasurementGuideSide(
   wall: Wall,
   walls: Wall[] = []
 ): Exclude<MeasurementSide, "length"> {
+  const manualOverride = wall.elevationViewSideOverride ?? wall.interiorSideOverride;
+  if (manualOverride) return manualOverride;
+
   const direction = normalize(sub(wall.end, wall.start));
   if (!vectorLength(direction)) return "left";
 
@@ -71,10 +74,173 @@ export function getInteriorMeasurementGuideSide(
     if (rightLength + tolerance < leftLength) return "right";
   }
 
+  const wallSystemSide = getInteriorMeasurementGuideSideFromWallSystem(wall, walls);
+  if (wallSystemSide) return wallSystemSide;
+
   const baseNormal = normalize(perp(direction));
   const interiorNormal = mul(getPreferredNormal(wall.start, wall.end), -1);
 
   return dot(interiorNormal, baseNormal) >= 0 ? "left" : "right";
+}
+
+function getInteriorMeasurementGuideSideFromWallSystem(
+  wall: Wall,
+  walls: Wall[]
+): Exclude<MeasurementSide, "length"> | null {
+  const thickWalls = walls.filter(isThickWall);
+  if (!thickWalls.length) return null;
+
+  const chains = buildWallChains(thickWalls);
+  const matchingChain = chains
+    .map((chain) => {
+      for (let index = 0; index < chain.points.length - 1; index += 1) {
+        const segmentStart = chain.points[index];
+        const segmentEnd = chain.points[index + 1];
+
+        if (samePoint(segmentStart, wall.start) && samePoint(segmentEnd, wall.end)) {
+          return { chain, segmentIndex: index, reversed: false };
+        }
+
+        if (samePoint(segmentStart, wall.end) && samePoint(segmentEnd, wall.start)) {
+          return { chain, segmentIndex: index, reversed: true };
+        }
+      }
+
+      return null;
+    })
+    .find(
+      (
+        candidate
+      ): candidate is {
+        chain: { points: Point[] };
+        segmentIndex: number;
+        reversed: boolean;
+      } => Boolean(candidate)
+    );
+
+  if (!matchingChain) return null;
+
+  const componentPoints = uniquePoints(matchingChain.chain.points);
+  if (!componentPoints.length) return null;
+
+  const centroid = componentPoints.reduce(
+    (sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }),
+    { x: 0, y: 0 }
+  );
+
+  centroid.x /= componentPoints.length;
+  centroid.y /= componentPoints.length;
+
+  const getWallSideMeasurementAnchor = (
+    segmentStart: Point,
+    segmentEnd: Point,
+    side: Exclude<MeasurementSide, "length">
+  ) => {
+    const direction = normalize(sub(segmentEnd, segmentStart));
+    const baseNormal = normalize(perp(direction));
+    const normal = side === "left" ? baseNormal : mul(baseNormal, -1);
+
+    return getMeasurementGuideAnchor(segmentStart, segmentEnd, normal, thickWalls);
+  };
+
+  const getJointAnchorDistance = (
+    points: Point[],
+    segmentIndex: number,
+    previousSide: Exclude<MeasurementSide, "length">,
+    nextSide: Exclude<MeasurementSide, "length">
+  ) => {
+    const previousEndAnchor = getWallSideMeasurementAnchor(
+      points[segmentIndex + 1],
+      points[segmentIndex],
+      previousSide
+    );
+    const nextStartAnchor = getWallSideMeasurementAnchor(
+      points[segmentIndex + 1],
+      points[segmentIndex + 2],
+      nextSide
+    );
+
+    return distance(previousEndAnchor, nextStartAnchor);
+  };
+
+  const getInwardScore = (points: Point[], sides: Array<Exclude<MeasurementSide, "length">>) =>
+    sides.reduce((score, side, index) => {
+      const segmentStart = points[index];
+      const segmentEnd = points[index + 1];
+      const direction = normalize(sub(segmentEnd, segmentStart));
+      if (!vectorLength(direction)) return score;
+
+      const baseNormal = normalize(perp(direction));
+      const normal = side === "left" ? baseNormal : mul(baseNormal, -1);
+      const inwardVector = sub(centroid, midpoint(segmentStart, segmentEnd));
+
+      return score + dot(normal, inwardVector);
+    }, 0);
+
+  const candidateStartSides: Array<Exclude<MeasurementSide, "length">> = ["left", "right"];
+  let bestSolution:
+    | {
+        sides: Array<Exclude<MeasurementSide, "length">>;
+        continuityCost: number;
+        inwardScore: number;
+      }
+    | null = null;
+
+  for (const forcedStartSide of candidateStartSides) {
+    const points = matchingChain.chain.points;
+    const segmentCount = points.length - 1;
+    const dp = Array.from({ length: segmentCount }, () => ({ left: Infinity, right: Infinity }));
+    const parent = Array.from({ length: segmentCount }, () => ({
+      left: null as Exclude<MeasurementSide, "length"> | null,
+      right: null as Exclude<MeasurementSide, "length"> | null,
+    }));
+
+    dp[0][forcedStartSide] = 0;
+
+    for (let index = 1; index < segmentCount; index += 1) {
+      for (const side of candidateStartSides) {
+        for (const previousSide of candidateStartSides) {
+          const candidateCost =
+            dp[index - 1][previousSide] +
+            getJointAnchorDistance(points, index - 1, previousSide, side);
+
+          if (candidateCost < dp[index][side]) {
+            dp[index][side] = candidateCost;
+            parent[index][side] = previousSide;
+          }
+        }
+      }
+    }
+
+    const endSide = dp[segmentCount - 1].left <= dp[segmentCount - 1].right ? "left" : "right";
+    const continuityCost = dp[segmentCount - 1][endSide];
+    const sides = new Array<Exclude<MeasurementSide, "length">>(segmentCount).fill("left");
+    let currentSide: Exclude<MeasurementSide, "length"> = endSide;
+
+    for (let index = segmentCount - 1; index >= 0; index -= 1) {
+      sides[index] = currentSide;
+      currentSide = parent[index][currentSide] ?? forcedStartSide;
+    }
+
+    const inwardScore = getInwardScore(points, sides);
+    const isBetter =
+      !bestSolution ||
+      continuityCost < bestSolution.continuityCost - 0.001 ||
+      (Math.abs(continuityCost - bestSolution.continuityCost) <= 0.001 && inwardScore > bestSolution.inwardScore);
+
+    if (isBetter) {
+      bestSolution = {
+        sides,
+        continuityCost,
+        inwardScore,
+      };
+    }
+  }
+
+  if (!bestSolution) return null;
+
+  const chainSide = bestSolution.sides[matchingChain.segmentIndex];
+  return matchingChain.reversed ? (chainSide === "left" ? "right" : "left") : chainSide;
 }
 
 export function getWallElevationViewMode(wall: Wall): WallElevationViewMode {

@@ -12,7 +12,11 @@ import { PLACEMENT_CATALOG } from "./data/placementCatalog";
 import { isAccessoryPlacementImage, isProductPlacementImage } from "./engine/placementClassification";
 import { clamp } from "./engine/geometry";
 import { downloadJsonFile, readJsonFile } from "./services/fileJson";
-import { SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID } from "../../../../src/features/generate-smart-kitchen/utils/workspaceDraftStorage";
+import {
+  SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID,
+  clearSmartKitchenEditorReturnDraft,
+  loadSmartKitchenEditorReturnDraft,
+} from "../../../../src/features/generate-smart-kitchen/utils/workspaceDraftStorage";
 import type { PlacementCategory, PlacementSelectionDetail, DoorSelectionDetail, MeasurementDisplayUnit, Panel, PlanViewMode, Point, Tool, WallPlacementMode, WallSelectionDetail, WindowSelectionDetail } from "./types/editorTypes";
 
 export const GENERATE_SMART_KITCHEN_DRAFT_PROJECT_ID = SMART_KITCHEN_WORKSPACE_DRAFT_PROJECT_ID;
@@ -61,6 +65,8 @@ export default function CabinetEditorBase() {
     useState<MeasurementDisplayUnit>("feet-inches");
   const [canConvertSelectedThinWalls, setCanConvertSelectedThinWalls] = useState(false);
   const [generatedLayout, setGeneratedLayout] = useState<GeneratedKitchenLayout | null>(null);
+  const [pendingWorkspaceReturnLayout, setPendingWorkspaceReturnLayout] =
+    useState<GeneratedKitchenLayout | null>(null);
   const [isDesignerSummaryCollapsed, setIsDesignerSummaryCollapsed] = useState(false);
   const [lastSmartKitchenAiOutput, setLastSmartKitchenAiOutput] = useState<unknown | null>(null);
   const [smartKitchenFeedback, setSmartKitchenFeedback] = useState("");
@@ -226,6 +232,21 @@ export default function CabinetEditorBase() {
     return () => {
       window.removeEventListener("pelican-ai-kitchen-generated", handleKitchenGenerated);
     };
+  }, []);
+
+  useEffect(() => {
+    const returnDraft = loadSmartKitchenEditorReturnDraft(GENERATE_SMART_KITCHEN_DRAFT_PROJECT_ID);
+
+    if (!returnDraft) {
+      return;
+    }
+
+    setLoadedRoom(returnDraft.room);
+    setGeneratedLayout(null);
+    setPendingWorkspaceReturnLayout(returnDraft.generatedLayout ?? null);
+    setIsDesignerSummaryCollapsed(false);
+    setActivePanel("cabinets");
+    clearSmartKitchenEditorReturnDraft(returnDraft.projectId);
   }, []);
 
 
@@ -466,6 +487,8 @@ export default function CabinetEditorBase() {
             smartKitchenFeedback={smartKitchenFeedback}
             onSmartKitchenOutput={setLastSmartKitchenAiOutput}
             loadedRoom={loadedRoom}
+            workspaceReturnLayout={pendingWorkspaceReturnLayout}
+            onWorkspaceReturnLayoutApplied={() => setPendingWorkspaceReturnLayout(null)}
           />
         </section>
 

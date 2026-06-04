@@ -1,28 +1,66 @@
-# Generate Smart Kitchen Step 8 Report
+# Step 8 Report
 
-## Step number
-8
+## Implementation Summary
+- Restored the initial Smart Kitchen attachment so the workspace shows the original exported project JSON file instead of `0 B`.
+- The visible attachment is now derived from the loaded workspace draft, with generated history kept separate.
+- The attachment card now shows a real payload size and `Download Attached File` before generation.
+- `Generate Images` still uses the restored draft room as its input.
+- The previous Step 4 generated-file behavior remains intact.
 
-## Files changed
-- `src/features/generate-smart-kitchen/__tests__/smartKitchenFlow.integration.test.tsx`
-- `components/src/features/cabinet-editor/components/canvas/CanvasArea.tsx`
-- `components/src/features/cabinet-editor/__tests__/editorWorkspaceNavigation.test.ts`
+## Files Changed
+- `src/features/generate-smart-kitchen/screens/SimpleGenerateSmartKitchenScreen.tsx`
+- `src/features/generate-smart-kitchen/__tests__/simpleGenerateSmartKitchenSessionRestore.test.tsx`
+- `next.config.mjs`
 - `artifacts/generate-smart-kitchen/step-8-handoff.md`
-- `artifacts/generate-smart-kitchen/step-8-report.md`
 
-## Tests run
-- TypeScript strict check for workspace files and the editor migration test file.
-- `npx vitest run src/features/generate-smart-kitchen/__tests__/smartKitchenFlow.integration.test.tsx components/src/features/cabinet-editor/__tests__/editorWorkspaceNavigation.test.ts`
-- `npx vitest run src/features/generate-smart-kitchen/__tests__ components/src/features/cabinet-editor/__tests__`
+## Root Cause
+- The browser failure came from the live dev session not hydrating correctly on the `127.0.0.1` origin until the origin was explicitly allowed.
+- The workspace draft itself was valid in localStorage.
+- Once the live browser hydrated properly, the draft restore effect ran and the attachment rendered with a non-zero size.
 
-## Implementation summary
-- Added `smartKitchenFlow.integration.test.tsx` to verify the complete Generate Smart Kitchen workspace sequence with fake API data: Review & Confirm, Generate Designs, AI Kitchen Studio, Compare & Choose, Estimate Review, Presentation, Final Review & Export, exports, and internal handoff.
-- The test uses deterministic mock data and `createFakeSmartKitchenApi()` so it does not depend on the old editor generation path or network calls.
-- Cleaned up the editor's leftover direct `/api/smart-kitchen` request in `CanvasArea.tsx`. The smart input download path now exports the editor room data locally instead of calling the generation endpoint.
-- Updated the editor migration test to assert that `CanvasArea` no longer contains `/api/smart-kitchen`, the old immediate generation handler, or the old generation event name.
+## LocalStorage Draft Shape
+- Top-level keys:
+  - `projectId`
+  - `attachment`
+- Attachment keys:
+  - `fileName`
+  - `room`
+  - `exportedAtIso`
+- The stored room contained valid wall data.
+- The stored object matched the expected `SmartKitchenWorkspaceDraft` shape.
 
-## Limitations, warnings, or TODOs
-- The integration test is a component/API integration test, not a browser E2E test. A future Playwright/Cypress test can be added once the production route orchestrates all seven screens in one mounted flow.
-- The current route from Step 4 still only mounts the initial review/generation path; later route orchestration can connect the remaining screen transitions if requested.
-- The editor still supports local import/export utilities, but direct Smart Kitchen generation has been removed from the editor path.
-- The extracted test package does not include the full editor dependency graph or path alias setup, so full standalone TypeScript compilation of `CanvasArea.tsx`/`CabinetEditorBase.tsx` is not available here. Cleanup is covered by the affected editor Vitest migration test.
+## Attachment Restore Behavior
+- The original draft attachment is now derived directly from the loaded workspace draft.
+- The generated attachment remains a separate state and only replaces the visible attachment after `Generate Images` succeeds.
+- `Download Attached File` is visible before generation.
+- The file size is calculated from the same JSON payload used for download with `new Blob([JSON.stringify(payload, null, 2)]).size`.
+
+## Generated JSON Behavior
+- After generation, JSON file 2 still contains:
+  - `projectId`
+  - `source`
+  - `generatedAtIso`
+  - `instructions`
+  - `fileName`
+  - `room`
+  - `generatedRoom`
+  - `generatedLayout`
+- The Step 4 behavior of switching the attached file to the generated design still works.
+
+## Browser Verification Result
+- PASS
+- Live browser verification on `127.0.0.1:3000` showed:
+  - `Project file • 4.49 KB`
+  - `Download Attached File`
+  - `Automatically attached from the editor export for project editor-draft.`
+- Local browser screenshot captured for the restored attachment state.
+
+## Tests / Checks Run
+- `npx tsc --strict --jsx react-jsx --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck src/features/generate-smart-kitchen/screens/SimpleGenerateSmartKitchenScreen.tsx src/features/generate-smart-kitchen/utils/workspaceDraftStorage.ts`
+- Live browser verification on `127.0.0.1:3000`
+- `npm run lint` attempted, but `next lint` failed with an invalid project directory error in this repo setup
+
+## Limitations / TODOs
+- The repository’s lint script is not currently compatible with the installed Next.js version/configuration.
+- Vitest was not run in this container because the local Vitest binary is unavailable.
+- If the app is run under a different origin than `127.0.0.1`, the browser draft restore should be rechecked against that origin’s localStorage.

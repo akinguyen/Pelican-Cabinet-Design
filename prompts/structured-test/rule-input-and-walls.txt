@@ -3,9 +3,14 @@ Rule file: Input and wall understanding
 Use this file to understand the room correctly before cabinet placement.
 
 Input expectations:
-- The input JSON may include `plannerInput.walls`, `plannerInput.catalog`, `plannerInput.catalogVersion`, `designerFeedback`, and `importantRules`.
-- If the input JSON includes `importantRules`, treat them as required constraints.
+- The input JSON may include `plannerInput.walls`, `plannerInput.catalog`, `plannerInput.catalogVersion`, and `designerFeedback`.
 - If this file and the input JSON conflict, follow the stricter constraint.
+
+Data-grounding discipline:
+- Use only wall IDs, wall labels, wall faces, wall lengths, wall dots, wall shape dot pairs, fixed objects, and catalog items that appear in the input.
+- Do not create missing walls, missing openings, missing windows, missing doors, missing islands, missing appliances, or missing cabinet faces.
+- A wall connection exists only when the provided geometry shows a shared or connected endpoint. Do not infer a corner from labels, visual order, or likely room shape.
+- If geometry is incomplete or a placement cannot be proven to fit, do not guess. Use a simpler valid placement, leave that wall/area empty, and explain the limitation in notes.
 
 Wall understanding:
 - Each wall is a real wall polygon, not a simplified abstract line.

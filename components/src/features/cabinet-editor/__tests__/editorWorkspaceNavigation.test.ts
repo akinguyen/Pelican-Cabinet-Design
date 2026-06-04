@@ -25,6 +25,14 @@ describe('Generate Smart Kitchen editor button migration', () => {
     expect(source).toContain('getGenerateSmartKitchenWorkspacePath');
     expect(source).toContain('/generate-smart-kitchen/');
     expect(source).toContain('onOpenSmartKitchenWorkspace={handleOpenSmartKitchenWorkspace}');
+    expect(source).toContain('loadSmartKitchenEditorReturnDraft');
+    expect(source).toContain('clearSmartKitchenEditorReturnDraft');
+    expect(source).toContain('setLoadedRoom(returnDraft.room)');
+    expect(source).toContain('setGeneratedLayout(null)');
+    expect(source).toContain('setPendingWorkspaceReturnLayout');
+    expect(source).toContain('workspaceReturnLayout={pendingWorkspaceReturnLayout}');
+    expect(source).toContain('onWorkspaceReturnLayoutApplied={() => setPendingWorkspaceReturnLayout(null)}');
+    expect(source).not.toContain('setGeneratedLayout(returnDraft.generatedLayout ?? null)');
     expect(source).not.toContain('new Event("pelican-ai-generate-smart-kitchen-request")');
     expect(source).not.toContain('pelican-ai-smart-kitchen-status');
   });

@@ -1,32 +1,36 @@
-# Generate Smart Kitchen - Step 2 Handoff
+# Generate Smart Kitchen Step 2 Handoff
 
-## Files changed
+## Scope
+Implemented only the storage layer for saving an AI-generated room so the editor can load it later.
 
-- `src/features/generate-smart-kitchen/api/smartKitchenApi.ts`
-- `src/features/generate-smart-kitchen/state/smartKitchenReducer.ts`
-- `src/features/generate-smart-kitchen/state/SmartKitchenFlowProvider.tsx`
-- `src/features/generate-smart-kitchen/index.ts`
-- `src/features/generate-smart-kitchen/__tests__/smartKitchenApi.test.ts`
-- `src/features/generate-smart-kitchen/__tests__/smartKitchenReducer.test.ts`
-- `artifacts/generate-smart-kitchen/step-2-handoff.md`
-- `artifacts/generate-smart-kitchen/step-2-report.md`
+## Files Changed
+- [src/features/generate-smart-kitchen/utils/workspaceDraftStorage.ts](/home/vannguyen/project/Pelican-Cabinet-Design/src/features/generate-smart-kitchen/utils/workspaceDraftStorage.ts)
+- [src/features/generate-smart-kitchen/__tests__/workspaceDraftStorage.test.ts](/home/vannguyen/project/Pelican-Cabinet-Design/src/features/generate-smart-kitchen/__tests__/workspaceDraftStorage.test.ts)
 
-## Tests run
+## What Was Added
 
-- `npx tsc --strict --jsx react-jsx --noEmit --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck src/features/generate-smart-kitchen/types.ts src/features/generate-smart-kitchen/constants.ts src/features/generate-smart-kitchen/mockData.ts src/features/generate-smart-kitchen/api/smartKitchenApi.ts src/features/generate-smart-kitchen/state/smartKitchenReducer.ts src/features/generate-smart-kitchen/state/SmartKitchenFlowProvider.tsx src/features/generate-smart-kitchen/index.ts`
-- `npx vitest run src/features/generate-smart-kitchen/__tests__`
+### New storage concept
+- Added a separate editor-return draft namespace, distinct from the existing editor-to-workspace draft.
+- New storage key pattern:
+  - `pelican-smart-kitchen-editor-return:<projectId>`
 
-## What was completed
+### New exported types and helpers
+- `SmartKitchenEditorReturnDraft`
+- `saveSmartKitchenEditorReturnDraft(...)`
+- `loadSmartKitchenEditorReturnDraft(...)`
+- `clearSmartKitchenEditorReturnDraft(...)`
 
-- Added a UI-independent fake Smart Kitchen API with deterministic in-memory project data.
-- Added fake generation lifecycle behavior, design loading, refinement, version duplication, customer favorite/rating updates, estimate recalculation, presentation creation, export file generation, and internal handoff submission.
-- Added a pure reducer for workspace flow state.
-- Added a React provider and `useSmartKitchenFlow` hook that keep API calls out of future UI components.
-- Exported the new Step 2 API, reducer, and provider modules from the feature barrel.
-- Added focused unit tests for fake API behavior and reducer state transitions.
+### Safety
+- The loader uses safe JSON parsing.
+- The loader validates the stored shape enough to avoid crashing on malformed localStorage values.
+- The existing workspace draft helpers were preserved unchanged.
 
-## What the next step should do
+## What the Next Step Should Do
+- Add a way for the smart kitchen workspace to save the AI-generated room into the new editor-return draft after generation.
+- Later, wire the workspace `Exit Workspace` action to navigate back to the editor after saving that return draft.
+- Later still, make the editor read the return draft and load it into `loadedRoom`.
 
-- Implement only Step 3 of the migration.
-- Keep the editor unchanged until a step explicitly requests editor wiring.
-- Start building the workspace shell or route layer on top of the provider state, without adding future workflow behavior early.
+## Tests
+- Strict TypeScript compile passed for the updated storage utility.
+- Vitest was not runnable in this container because the local `vitest` binary is not installed.
+
