@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "kitchen-editor-scene/v1",
+  "units": "inches",
+  "coordinateSystem": {
+    "origin": "floor-plane",
+    "xAxis": "horizontal-left-right",
+    "yAxis": "horizontal-front-back",
+    "zAxis": "vertical-height",
+    "rotationUnit": "degrees",
+    "objectFrontAtZeroRotation": "+Y"
+  },
+  "catalog": {
+    "mode": "reference",
+    "requiredDefinitionIds": [
+      "base-one-door-cabinet",
+      "one-drawer-one-door-box"
+    ]
+  },
+  "scene": {
+    "placedAssemblies": [
+      {
+        "id": "placed-assembly-001",
+        "definitionId": "base-one-door-cabinet",
+        "configuration": {
+          "sizeInches": {
+            "widthInches": 24,
+            "depthInches": 24,
+            "heightInches": 34.5
+          },
+          "optionValues": {
+            "panel-color": "#d8c7a1",
+            "front-color": "#f4e7bd",
+            "handle-color": "#111111",
+            "handle-type": "bar",
+            "handle-position": "right"
+          },
+          "componentOverrides": [
+            {
+              "targetComponentPath": [
+                "cabinet-box",
+                "left-side-panel"
+              ],
+              "materialColorHex": "#eeeeee"
+            },
+            {
+              "targetComponentPath": [
+                "cabinet-door"
+              ],
+              "isHidden": false
+            }
+          ]
+        },
+        "worldPositionInches": {
+          "xInches": 60,
+          "yInches": 30,
+          "zInches": 17.25
+        },
+        "rotationDegrees": {
+          "zDegrees": 0
+        }
+      }
+    ],
+    "placedWalls": [
+      {
+        "id": "placed-wall-001",
+        "heightInches": 96,
+        "viewableEdgeIndices": [
+          0,
+          2
+        ],
+        "footprint": {
+          "boundaryPointsInches": [
+            {
+              "xInches": 0,
+              "yInches": 0,
+              "zInches": 0
+            },
+            {
+              "xInches": 120,
+              "yInches": 0,
+              "zInches": 0
+            },
+            {
+              "xInches": 120,
+              "yInches": 4.5,
+              "zInches": 0
+            },
+            {
+              "xInches": 0,
+              "yInches": 4.5,
+              "zInches": 0
+            }
+          ]
+        }
+      },
+      {
+        "id": "placed-wall-002",
+        "heightInches": 96,
+        "viewableEdgeIndices": [
+          1
+        ],
+        "footprint": {
+          "boundaryPointsInches": [
+            {
+              "xInches": 115.5,
+              "yInches": 0,
+              "zInches": 0
+            },
+            {
+              "xInches": 120,
+              "yInches": 0,
+              "zInches": 0
+            },
+            {
+              "xInches": 120,
+              "yInches": 96,
+              "zInches": 0
+            },
+            {
+              "xInches": 115.5,
+              "yInches": 96,
+              "zInches": 0
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
