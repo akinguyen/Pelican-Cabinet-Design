@@ -1,0 +1,145 @@
+{
+  "id": "panel",
+  "name": "Panel",
+  "catalogCategoryId": "basic-units/panels",
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 24,
+      "optionsInches": [
+        {
+          "valueInches": 12,
+          "label": "12 in"
+        },
+        {
+          "valueInches": 18,
+          "label": "18 in"
+        },
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        },
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 6,
+      "maxValueInches": 60,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 0.75,
+      "optionsInches": [
+        {
+          "valueInches": 0.75,
+          "label": "3/4 in"
+        },
+        {
+          "valueInches": 1,
+          "label": "1 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 0.25,
+      "maxValueInches": 2,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 34.5,
+      "optionsInches": [
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
+        {
+          "valueInches": 34.5,
+          "label": "34 1/2 in"
+        },
+        {
+          "valueInches": 42,
+          "label": "42 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 6,
+      "maxValueInches": 96,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "panel-color",
+          "label": "Panel color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#d8b27a",
+          "choices": [
+            {
+              "value": "#d8b27a",
+              "label": "Natural maple"
+            },
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#111827",
+              "label": "Black"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "panel-body",
+      "label": "Panel Body",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "ref": "size.heightInches"
+        }
+      },
+      "material": {
+        "colorOptionId": "panel-color"
+      },
+      "role": "panel-body"
+    }
+  ]
+}

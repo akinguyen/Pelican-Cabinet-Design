@@ -1,0 +1,4873 @@
+{
+  "id": "door",
+  "name": "Door",
+  "catalogCategoryId": "basic-units/doors",
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 18,
+      "optionsInches": [
+        {
+          "valueInches": 12,
+          "label": "12 in"
+        },
+        {
+          "valueInches": 15,
+          "label": "15 in"
+        },
+        {
+          "valueInches": 18,
+          "label": "18 in"
+        },
+        {
+          "valueInches": 21,
+          "label": "21 in"
+        },
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 6,
+      "maxValueInches": 36,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 0.75,
+      "optionsInches": [
+        {
+          "valueInches": 0.75,
+          "label": "3/4 in"
+        },
+        {
+          "valueInches": 1,
+          "label": "1 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 0.25,
+      "maxValueInches": 2,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 30,
+      "optionsInches": [
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        },
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 12,
+      "maxValueInches": 96,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "door-color",
+          "label": "Door color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#f8fafc",
+          "choices": [
+            {
+              "value": "#d8b27a",
+              "label": "Natural maple"
+            },
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#111827",
+              "label": "Black"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            }
+          ]
+        },
+        {
+          "id": "handle-color",
+          "label": "Handle color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#111827",
+          "choices": [
+            {
+              "value": "#d8b27a",
+              "label": "Natural maple"
+            },
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#111827",
+              "label": "Black"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "handle",
+      "label": "Handle",
+      "options": [
+        {
+          "id": "show-handle",
+          "label": "Show handle",
+          "valueType": "boolean",
+          "control": "checkbox",
+          "defaultValue": true
+        },
+        {
+          "id": "handle-type",
+          "label": "Handle type",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "bar",
+          "choices": [
+            {
+              "value": "bar",
+              "label": "Bar"
+            },
+            {
+              "value": "knob",
+              "label": "Knob"
+            }
+          ]
+        },
+        {
+          "id": "handle-position",
+          "label": "Handle position",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "right-center",
+          "choices": [
+            {
+              "value": "left-center",
+              "label": "Left center"
+            },
+            {
+              "value": "right-center",
+              "label": "Right center"
+            },
+            {
+              "value": "top-left",
+              "label": "Top left"
+            },
+            {
+              "value": "top-right",
+              "label": "Top right"
+            },
+            {
+              "value": "bottom-left",
+              "label": "Bottom left"
+            },
+            {
+              "value": "bottom-right",
+              "label": "Bottom right"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "door-body",
+      "label": "Door Body",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "ref": "size.heightInches"
+        }
+      },
+      "material": {
+        "colorOptionId": "door-color"
+      },
+      "role": "door-body"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle-bar-left-center",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 0.75
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0.25
+                      },
+                      {
+                        "ref": "size.widthInches"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "op": "multiply",
+                    "left": {
+                      "op": "min",
+                      "values": [
+                        {
+                          "value": 1.25
+                        },
+                        {
+                          "op": "divide",
+                          "left": {
+                            "op": "max",
+                            "values": [
+                              {
+                                "value": 0.25
+                              },
+                              {
+                                "ref": "size.widthInches"
+                              }
+                            ]
+                          },
+                          "right": {
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "ref": "size.widthInches"
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 5
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0.25
+                      },
+                      {
+                        "ref": "size.heightInches"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "op": "multiply",
+                    "left": {
+                      "op": "min",
+                      "values": [
+                        {
+                          "value": 1.25
+                        },
+                        {
+                          "op": "divide",
+                          "left": {
+                            "op": "max",
+                            "values": [
+                              {
+                                "value": 0.25
+                              },
+                              {
+                                "ref": "size.heightInches"
+                              }
+                            ]
+                          },
+                          "right": {
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "ref": "size.heightInches"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-handle",
+            "equals": true
+          },
+          {
+            "ref": "option.handle-type",
+            "equals": "bar"
+          },
+          {
+            "ref": "option.handle-position",
+            "equals": "left-center"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle-bar-right-center",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "component.size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 0.75
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0.25
+                      },
+                      {
+                        "ref": "size.widthInches"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "op": "multiply",
+                    "left": {
+                      "op": "min",
+                      "values": [
+                        {
+                          "value": 1.25
+                        },
+                        {
+                          "op": "divide",
+                          "left": {
+                            "op": "max",
+                            "values": [
+                              {
+                                "value": 0.25
+                              },
+                              {
+                                "ref": "size.widthInches"
+                              }
+                            ]
+                          },
+                          "right": {
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "ref": "size.widthInches"
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 5
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0.25
+                      },
+                      {
+                        "ref": "size.heightInches"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "op": "multiply",
+                    "left": {
+                      "op": "min",
+                      "values": [
+                        {
+                          "value": 1.25
+                        },
+                        {
+                          "op": "divide",
+                          "left": {
+                            "op": "max",
+                            "values": [
+                              {
+                                "value": 0.25
+                              },
+                              {
+                                "ref": "size.heightInches"
+                              }
+                            ]
+                          },
+                          "right": {
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "ref": "size.heightInches"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-handle",
+            "equals": true
+          },
+          {
+            "ref": "option.handle-type",
+            "equals": "bar"
+          },
+          {
+            "ref": "option.handle-position",
+            "equals": "right-center"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle-bar-top-left",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "component.size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 0.75
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0.25
+                      },
+                      {
+                        "ref": "size.widthInches"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "op": "multiply",
+                    "left": {
+                      "op": "min",
+                      "values": [
+                        {
+                          "value": 1.25
+                        },
+                        {
+                          "op": "divide",
+                          "left": {
+                            "op": "max",
+                            "values": [
+                              {
+                                "value": 0.25
+                              },
+                              {
+                                "ref": "size.widthInches"
+                              }
+                            ]
+                          },
+                          "right": {
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "ref": "size.widthInches"
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 5
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0.25
+                      },
+                      {
+                        "ref": "size.heightInches"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "op": "multiply",
+                    "left": {
+                      "op": "min",
+                      "values": [
+                        {
+                          "value": 1.25
+                        },
+                        {
+                          "op": "divide",
+                          "left": {
+                            "op": "max",
+                            "values": [
+                              {
+                                "value": 0.25
+                              },
+                              {
+                                "ref": "size.heightInches"
+                              }
+                            ]
+                          },
+                          "right": {
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "ref": "size.heightInches"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-handle",
+            "equals": true
+          },
+          {
+            "ref": "option.handle-type",
+            "equals": "bar"
+          },
+          {
+            "ref": "option.handle-position",
+            "equals": "top-left"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle-bar-top-right",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "component.size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "component.size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 0.75
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0.25
+                      },
+                      {
+                        "ref": "size.widthInches"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "op": "multiply",
+                    "left": {
+                      "op": "min",
+                      "values": [
+                        {
+                          "value": 1.25
+                        },
+                        {
+                          "op": "divide",
+                          "left": {
+                            "op": "max",
+                            "values": [
+                              {
+                                "value": 0.25
+                              },
+                              {
+                                "ref": "size.widthInches"
+                              }
+                            ]
+                          },
+                          "right": {
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "ref": "size.widthInches"
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 5
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0.25
+                      },
+                      {
+                        "ref": "size.heightInches"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "op": "multiply",
+                    "left": {
+                      "op": "min",
+                      "values": [
+                        {
+                          "value": 1.25
+                        },
+                        {
+                          "op": "divide",
+                          "left": {
+                            "op": "max",
+                            "values": [
+                              {
+                                "value": 0.25
+                              },
+                              {
+                                "ref": "size.heightInches"
+                              }
+                            ]
+                          },
+                          "right": {
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "ref": "size.heightInches"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-handle",
+            "equals": true
+          },
+          {
+            "ref": "option.handle-type",
+            "equals": "bar"
+          },
+          {
+            "ref": "option.handle-position",
+            "equals": "top-right"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle-bar-bottom-left",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 0.75
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0.25
+                      },
+                      {
+                        "ref": "size.widthInches"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "op": "multiply",
+                    "left": {
+                      "op": "min",
+                      "values": [
+                        {
+                          "value": 1.25
+                        },
+                        {
+                          "op": "divide",
+                          "left": {
+                            "op": "max",
+                            "values": [
+                              {
+                                "value": 0.25
+                              },
+                              {
+                                "ref": "size.widthInches"
+                              }
+                            ]
+                          },
+                          "right": {
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "ref": "size.widthInches"
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 5
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0.25
+                      },
+                      {
+                        "ref": "size.heightInches"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "op": "multiply",
+                    "left": {
+                      "op": "min",
+                      "values": [
+                        {
+                          "value": 1.25
+                        },
+                        {
+                          "op": "divide",
+                          "left": {
+                            "op": "max",
+                            "values": [
+                              {
+                                "value": 0.25
+                              },
+                              {
+                                "ref": "size.heightInches"
+                              }
+                            ]
+                          },
+                          "right": {
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "ref": "size.heightInches"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-handle",
+            "equals": true
+          },
+          {
+            "ref": "option.handle-type",
+            "equals": "bar"
+          },
+          {
+            "ref": "option.handle-position",
+            "equals": "bottom-left"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle-bar-bottom-right",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "component.size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 0.75
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0.25
+                      },
+                      {
+                        "ref": "size.widthInches"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "op": "multiply",
+                    "left": {
+                      "op": "min",
+                      "values": [
+                        {
+                          "value": 1.25
+                        },
+                        {
+                          "op": "divide",
+                          "left": {
+                            "op": "max",
+                            "values": [
+                              {
+                                "value": 0.25
+                              },
+                              {
+                                "ref": "size.widthInches"
+                              }
+                            ]
+                          },
+                          "right": {
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "ref": "size.widthInches"
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 5
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0.25
+                      },
+                      {
+                        "ref": "size.heightInches"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "op": "multiply",
+                    "left": {
+                      "op": "min",
+                      "values": [
+                        {
+                          "value": 1.25
+                        },
+                        {
+                          "op": "divide",
+                          "left": {
+                            "op": "max",
+                            "values": [
+                              {
+                                "value": 0.25
+                              },
+                              {
+                                "ref": "size.heightInches"
+                              }
+                            ]
+                          },
+                          "right": {
+                            "value": 3
+                          }
+                        }
+                      ]
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "ref": "size.heightInches"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-handle",
+            "equals": true
+          },
+          {
+            "ref": "option.handle-type",
+            "equals": "bar"
+          },
+          {
+            "ref": "option.handle-position",
+            "equals": "bottom-right"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle-knob-left-center",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.widthInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.widthInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.widthInches"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.heightInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.heightInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.heightInches"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.widthInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.widthInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.widthInches"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.heightInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.heightInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.heightInches"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-handle",
+            "equals": true
+          },
+          {
+            "ref": "option.handle-type",
+            "equals": "knob"
+          },
+          {
+            "ref": "option.handle-position",
+            "equals": "left-center"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle-knob-right-center",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "component.size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.widthInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.widthInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.widthInches"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.heightInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.heightInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.heightInches"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.widthInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.widthInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.widthInches"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.heightInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.heightInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.heightInches"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-handle",
+            "equals": true
+          },
+          {
+            "ref": "option.handle-type",
+            "equals": "knob"
+          },
+          {
+            "ref": "option.handle-position",
+            "equals": "right-center"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle-knob-top-left",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "component.size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.widthInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.widthInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.widthInches"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.heightInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.heightInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.heightInches"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.widthInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.widthInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.widthInches"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.heightInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.heightInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.heightInches"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-handle",
+            "equals": true
+          },
+          {
+            "ref": "option.handle-type",
+            "equals": "knob"
+          },
+          {
+            "ref": "option.handle-position",
+            "equals": "top-left"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle-knob-top-right",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "component.size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "component.size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.widthInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.widthInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.widthInches"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.heightInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.heightInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.heightInches"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.widthInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.widthInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.widthInches"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.heightInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.heightInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.heightInches"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-handle",
+            "equals": true
+          },
+          {
+            "ref": "option.handle-type",
+            "equals": "knob"
+          },
+          {
+            "ref": "option.handle-position",
+            "equals": "top-right"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle-knob-bottom-left",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.widthInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.widthInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.widthInches"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.heightInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.heightInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.heightInches"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.widthInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.widthInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.widthInches"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.heightInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.heightInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.heightInches"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-handle",
+            "equals": true
+          },
+          {
+            "ref": "option.handle-type",
+            "equals": "knob"
+          },
+          {
+            "ref": "option.handle-position",
+            "equals": "bottom-left"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle-knob-bottom-right",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.widthInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "component.size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1.25
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      },
+                      "right": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "component.size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "component.size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.widthInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.widthInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.widthInches"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.heightInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.heightInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.heightInches"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.widthInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.widthInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.widthInches"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0.25
+                          },
+                          {
+                            "ref": "size.heightInches"
+                          }
+                        ]
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "op": "min",
+                          "values": [
+                            {
+                              "value": 1.25
+                            },
+                            {
+                              "op": "divide",
+                              "left": {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 0.25
+                                  },
+                                  {
+                                    "ref": "size.heightInches"
+                                  }
+                                ]
+                              },
+                              "right": {
+                                "value": 3
+                              }
+                            }
+                          ]
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0.25
+                    },
+                    {
+                      "ref": "size.heightInches"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-handle",
+            "equals": true
+          },
+          {
+            "ref": "option.handle-type",
+            "equals": "knob"
+          },
+          {
+            "ref": "option.handle-position",
+            "equals": "bottom-right"
+          }
+        ]
+      }
+    }
+  ]
+}
