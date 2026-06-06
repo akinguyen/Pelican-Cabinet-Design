@@ -8,6 +8,7 @@ export function createInitialDesignSceneStoreState(): Pick<
   | "designScene"
   | "wallSettings"
   | "activeEditorView"
+  | "activeWallElevationWallId"
   | "activeWallElevationEdgeIndex"
   | "activeToolbarTool"
   | "cameraCommand"
@@ -18,6 +19,7 @@ export function createInitialDesignSceneStoreState(): Pick<
     designScene: createEmptyDesignScene(),
     wallSettings: defaultWallSettings,
     activeEditorView: "perspective",
+    activeWallElevationWallId: null,
     activeWallElevationEdgeIndex: 0,
     activeToolbarTool: null,
     cameraCommand: null,

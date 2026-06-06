@@ -12,14 +12,35 @@ export type OrthographicEditorCameraState = Readonly<{
 }>;
 
 export type ElevationEditorCameraState = OrthographicEditorCameraState & Readonly<{
-  elevationSideKey: string | null;
+  elevationViewKey: string | null;
 }>;
 
 export type EditorCameraStates = Readonly<{
   perspective: PerspectiveEditorCameraState;
   floorPlan: OrthographicEditorCameraState;
-  elevation: ElevationEditorCameraState;
+  elevationDefault: ElevationEditorCameraState;
+  elevationByViewKey: Readonly<Record<string, ElevationEditorCameraState>>;
 }>;
+
+export function createDefaultElevationEditorCameraState(): ElevationEditorCameraState {
+  return {
+    cameraPositionInches: { xInches: 0, yInches: 360, zInches: 36 },
+    cameraTargetInches: { xInches: 0, yInches: 0, zInches: 36 },
+    zoom: 2,
+    elevationViewKey: null,
+  };
+}
+
+export function getStoredElevationEditorCameraState(
+  editorCameraStates: EditorCameraStates,
+  elevationViewKey: string | null,
+): ElevationEditorCameraState {
+  if (elevationViewKey === null) {
+    return editorCameraStates.elevationDefault;
+  }
+
+  return editorCameraStates.elevationByViewKey[elevationViewKey] ?? editorCameraStates.elevationDefault;
+}
 
 export function createDefaultEditorCameraStates(): EditorCameraStates {
   return {
@@ -32,11 +53,7 @@ export function createDefaultEditorCameraStates(): EditorCameraStates {
       cameraTargetInches: { xInches: 0, yInches: 0, zInches: 0 },
       zoom: 2,
     },
-    elevation: {
-      cameraPositionInches: { xInches: 0, yInches: 360, zInches: 36 },
-      cameraTargetInches: { xInches: 0, yInches: 0, zInches: 36 },
-      zoom: 2,
-      elevationSideKey: null,
-    },
+    elevationDefault: createDefaultElevationEditorCameraState(),
+    elevationByViewKey: {},
   };
 }

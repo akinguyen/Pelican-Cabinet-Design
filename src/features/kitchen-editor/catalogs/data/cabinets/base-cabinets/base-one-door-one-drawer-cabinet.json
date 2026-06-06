@@ -1422,13 +1422,41 @@
           "value": 0
         },
         "yInches": {
-          "op": "multiply",
-          "left": {
-            "ref": "size.depthInches"
-          },
-          "right": {
-            "value": -0.08
-          }
+          "op": "add",
+          "values": [
+            {
+              "op": "multiply",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": -0.5
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "multiply",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 0.85
+                    }
+                  }
+                ]
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
         },
         "zInches": {
           "op": "add",

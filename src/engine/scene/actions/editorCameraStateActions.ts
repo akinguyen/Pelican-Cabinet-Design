@@ -34,12 +34,26 @@ export function createEditorCameraStateActions(
     },
 
     updateElevationCameraState(cameraState: ElevationEditorCameraState) {
-      set((state) => ({
-        editorCameraStates: {
-          ...state.editorCameraStates,
-          elevation: cameraState,
-        },
-      }));
+      set((state) => {
+        if (cameraState.elevationViewKey === null) {
+          return {
+            editorCameraStates: {
+              ...state.editorCameraStates,
+              elevationDefault: cameraState,
+            },
+          };
+        }
+
+        return {
+          editorCameraStates: {
+            ...state.editorCameraStates,
+            elevationByViewKey: {
+              ...state.editorCameraStates.elevationByViewKey,
+              [cameraState.elevationViewKey]: cameraState,
+            },
+          },
+        };
+      });
     },
   };
 }

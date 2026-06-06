@@ -1,9 +1,8 @@
 "use client";
 
-import { measurePlacedAssemblyBounds } from "@/engine/assemblies/assemblyBounds";
+import { measurePlacedAssemblyPlacementBounds } from "@/engine/assemblies/assemblyBounds";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { SceneSelection } from "@/engine/scene/sceneSelectionTypes";
-import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
 import { SelectedAssemblyOutlineMesh } from "./SelectedAssemblyOutlineMesh";
 
 type SelectedAssemblyOutlineLayerProps = Readonly<{
@@ -29,7 +28,7 @@ export function SelectedAssemblyOutlineLayer({
 
   return (
     <SelectedAssemblyOutlineMesh
-      boundsInches={measurePlacedAssemblyBounds(selectedAssembly, kitchenEditorCatalogRegistry)}
+      boundsInches={measurePlacedAssemblyPlacementBounds(selectedAssembly)}
     />
   );
 }

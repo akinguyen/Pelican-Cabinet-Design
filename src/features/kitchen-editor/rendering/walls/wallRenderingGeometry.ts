@@ -19,6 +19,8 @@ export function createWallFootprintGeometry(
   return new ShapeGeometry(createWallShape(polygonInches));
 }
 
+export const WALL_TOP_BOUNDARY_RENDER_OFFSET_INCHES = 0.08;
+
 export function createTopBoundaryEdgePoints(args: {
   polygonInches: readonly Point3DInches[];
   heightInches: number;
@@ -27,7 +29,7 @@ export function createTopBoundaryEdgePoints(args: {
     return [];
   }
 
-  const boundaryLineZInches = args.heightInches + 0.08;
+  const boundaryLineZInches = args.heightInches + WALL_TOP_BOUNDARY_RENDER_OFFSET_INCHES;
   const toLinePoint = (
     pointInches: Point3DInches,
   ): [number, number, number] => [
@@ -64,6 +66,21 @@ export function createFlatBoundaryEdgePoints(args: {
 
     return [toLinePoint(pointInches), toLinePoint(nextPointInches)];
   });
+}
+
+export function createVerticalBoundaryEdgePoints(args: {
+  polygonInches: readonly Point3DInches[];
+  bottomZInches: number;
+  topZInches: number;
+}): readonly (readonly [number, number, number][])[] {
+  if (args.polygonInches.length < 1) {
+    return [];
+  }
+
+  return args.polygonInches.map((pointInches) => [
+    [pointInches.xInches, pointInches.yInches, args.bottomZInches],
+    [pointInches.xInches, pointInches.yInches, args.topZInches],
+  ]);
 }
 
 function createWallShape(polygonInches: readonly Point3DInches[]): Shape {

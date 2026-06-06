@@ -29,7 +29,7 @@ export function PerspectiveCameraControls() {
 
   useEffect(() => {
     applyPerspectiveCameraState(camera as PerspectiveCamera, controlsRef.current, cameraState);
-  }, [camera]);
+  }, [camera, cameraState]);
 
   useEffect(() => {
     if (cameraCommand === null || cameraCommand.editorView !== "perspective") {
@@ -64,26 +64,30 @@ export function PerspectiveCameraControls() {
     updatePerspectiveCameraState(readPerspectiveCameraState(camera as PerspectiveCamera, controls));
   }
 
+  const isEditorOperationActive = activeSceneOperation !== null || activeToolbarTool !== null;
+
   return (
     <OrbitControls
       ref={controlsRef}
-      enabled={activeSceneOperation === null && activeDrag === null && activeToolbarTool === null}
+      enabled={activeDrag === null}
       makeDefault
       enableDamping
       dampingFactor={0.06}
+      enablePan={!isEditorOperationActive}
+      enableZoom
       minDistance={MIN_CAMERA_DISTANCE_INCHES}
       maxDistance={MAX_CAMERA_DISTANCE_INCHES}
       rotateSpeed={0.55}
       zoomSpeed={0.4}
       panSpeed={0.75}
-      screenSpacePanning={false}
+      screenSpacePanning
       mouseButtons={{
-        LEFT: MOUSE.ROTATE,
+        LEFT: MOUSE.PAN,
         MIDDLE: MOUSE.DOLLY,
         RIGHT: MOUSE.PAN,
       }}
       touches={{
-        ONE: TOUCH.ROTATE,
+        ONE: TOUCH.PAN,
         TWO: TOUCH.DOLLY_PAN,
       }}
       onChange={handleControlsChange}
@@ -97,6 +101,21 @@ function applyPerspectiveCameraState(
   cameraState: PerspectiveEditorCameraState,
 ): void {
   camera.up.set(0, 0, 1);
+
+  const hasCameraPositionChanged =
+    Math.abs(camera.position.x - cameraState.cameraPositionInches.xInches) > 0.001 ||
+    Math.abs(camera.position.y - cameraState.cameraPositionInches.yInches) > 0.001 ||
+    Math.abs(camera.position.z - cameraState.cameraPositionInches.zInches) > 0.001;
+  const hasCameraTargetChanged =
+    controls !== null &&
+    (Math.abs(controls.target.x - cameraState.cameraTargetInches.xInches) > 0.001 ||
+      Math.abs(controls.target.y - cameraState.cameraTargetInches.yInches) > 0.001 ||
+      Math.abs(controls.target.z - cameraState.cameraTargetInches.zInches) > 0.001);
+
+  if (!hasCameraPositionChanged && !hasCameraTargetChanged) {
+    return;
+  }
+
   camera.position.set(
     cameraState.cameraPositionInches.xInches,
     cameraState.cameraPositionInches.yInches,

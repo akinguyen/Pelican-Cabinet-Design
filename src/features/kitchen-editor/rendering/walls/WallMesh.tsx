@@ -1,15 +1,12 @@
 "use client";
 
-import { Line } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useMemo } from "react";
 import { DoubleSide } from "three";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { BuiltWall } from "@/engine/walls/footprint/wallFootprintTypes";
-import {
-  createExtrudedWallGeometry,
-  createTopBoundaryEdgePoints,
-} from "./wallRenderingGeometry";
+import { createExtrudedWallGeometry } from "./wallRenderingGeometry";
+import { WallBoundaryEdges } from "./WallBoundaryEdges";
 
 type WallMeshProps = Readonly<{
   builtWall: BuiltWall;
@@ -26,11 +23,6 @@ export function WallMesh({ builtWall, isSelected }: WallMeshProps) {
     ),
     [builtWall.footprint.boundaryPointsInches, builtWall.heightInches],
   );
-  const boundaryEdgePoints = createTopBoundaryEdgePoints({
-    polygonInches: builtWall.footprint.boundaryPointsInches,
-    heightInches: builtWall.heightInches,
-  });
-
   function handlePointerDown(event: ThreeEvent<PointerEvent>) {
     if (activeToolbarTool === "draw-wall-footprint" || event.button !== 0) {
       return;
@@ -43,22 +35,9 @@ export function WallMesh({ builtWall, isSelected }: WallMeshProps) {
   return (
     <group renderOrder={isSelected ? 10 : 1}>
       <mesh geometry={geometry} onPointerDown={handlePointerDown} renderOrder={isSelected ? 10 : 1}>
-        <meshStandardMaterial
-          color={isSelected ? "#22d3ee" : "#9ca3af"}
-          opacity={isSelected ? 0.88 : 0.82}
-          transparent
-          side={DoubleSide}
-        />
+        <meshStandardMaterial color={isSelected ? "#22d3ee" : "#9ca3af"} side={DoubleSide} />
       </mesh>
-      {boundaryEdgePoints.map((boundaryLinePoints, boundaryEdgeIndex) => (
-        <Line
-          key={`wall-footprint-boundary-${builtWall.id}-${boundaryEdgeIndex}`}
-          points={boundaryLinePoints}
-          color="#020617"
-          lineWidth={2}
-          renderOrder={isSelected ? 11 : 2}
-        />
-      ))}
+      <WallBoundaryEdges builtWall={builtWall} isSelected={isSelected} />
     </group>
   );
 }

@@ -1,80 +1,120 @@
 "use client";
 
+import { OrbitControls } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { MOUSE, TOUCH } from "three";
 import type { OrthographicCamera } from "three";
-import type { ElevationEditorCameraState } from "../shared/editorCameraStateTypes";
-import type { SceneFitFrame } from "../shared/cameraFit";
-import { getPlacedWallActiveElevationSide } from "@/engine/walls/elevation/wallElevationGeometry";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import {
+  getElevationSideWorldPointAtHorizontal,
+  getElevationViewFitBoundsCenter,
+  getElevationViewFitBoundsSize,
+  measureElevationViewFitBounds,
+} from "@/engine/walls/elevation/elevationViewFitBounds";
+import { getActivePlacedWallElevationView, createWallElevationViewKey } from "@/engine/walls/elevation/wallElevationGeometry";
 import type { PlacedWallElevationSide } from "@/engine/walls/elevation/wallElevationGeometry";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
+import type { ElevationEditorCameraState } from "../shared/editorCameraStateTypes";
+import { getStoredElevationEditorCameraState } from "../shared/editorCameraStateTypes";
+import type { SceneFitFrame } from "../shared/cameraFit";
 import { useSceneFitFrame } from "../shared/useSceneFitFrame";
 
-const ELEVATION_ZOOM_BASE_INCHES = 220;
 const MIN_ELEVATION_ZOOM = 1.15;
+const MAX_ELEVATION_ZOOM = 12;
 const TOOLBAR_ZOOM_SCALE = 1.16;
 const ELEVATION_CAMERA_Y_OFFSET_INCHES = 360;
+const ELEVATION_FIT_VIEWPORT_SCALE = 0.74;
 
 export function ElevationCameraControls() {
-  const { camera } = useThree();
-  const hasInitializedCameraStateRef = useRef(false);
-  const activeElevationSideKeyRef = useRef<string | null>(null);
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const activeElevationViewKeyRef = useRef<string | null>(null);
+  const { camera, size: canvasSizePixels } = useThree();
   const cameraCommand = useDesignSceneStore((state) => state.cameraCommand);
-  const cameraState = useDesignSceneStore((state) => state.editorCameraStates.elevation);
+  const editorCameraStates = useDesignSceneStore((state) => state.editorCameraStates);
   const updateElevationCameraState = useDesignSceneStore((state) => state.updateElevationCameraState);
   const clearCameraCommand = useDesignSceneStore((state) => state.clearCameraCommand);
+  const placedAssemblies = useDesignSceneStore((state) => state.designScene.placedAssemblies);
   const placedWalls = useDesignSceneStore((state) => state.designScene.placedWalls);
-  const activeSelection = useDesignSceneStore((state) => state.designScene.activeSelection);
+  const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
+  const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
+  const activeDrag = useDesignSceneStore((state) => state.activeDrag);
+  const activeWallElevationWallId = useDesignSceneStore((state) => state.activeWallElevationWallId);
   const activeWallElevationEdgeIndex = useDesignSceneStore((state) => state.activeWallElevationEdgeIndex);
-  const selectedPlacedWall = activeSelection?.kind === "placed-wall"
-    ? placedWalls.find((placedWall) => placedWall.id === activeSelection.placedWallId) ?? null
-    : null;
-  const activeElevationSide = useMemo(
-    () => selectedPlacedWall === null
-      ? null
-      : getPlacedWallActiveElevationSide(selectedPlacedWall, activeWallElevationEdgeIndex),
-    [selectedPlacedWall, activeWallElevationEdgeIndex],
-  );
-  const activeElevationSideKey = getElevationSideKey(activeElevationSide);
   const sceneFitFrame = useSceneFitFrame();
+  const activeElevationView = getActivePlacedWallElevationView({
+    placedWalls,
+    activeWallElevationWallId,
+    activeWallElevationEdgeIndex,
+  });
+  const activeElevationSide = activeElevationView?.side ?? null;
+  const activeElevationViewKey = activeElevationSide === null
+    ? null
+    : createWallElevationViewKey(activeElevationSide);
 
   useEffect(() => {
-    const nextCameraState = cameraState.elevationSideKey === activeElevationSideKey
-      ? cameraState
+    const storedCameraState = getStoredElevationEditorCameraState(
+      editorCameraStates,
+      activeElevationViewKey,
+    );
+    const nextCameraState = storedCameraState.elevationViewKey === activeElevationViewKey
+      ? storedCameraState
       : createElevationCameraState({
           activeElevationSide,
-          elevationSideKey: activeElevationSideKey,
+          elevationViewKey: activeElevationViewKey,
+          placedAssemblies,
+          canvasSizePixels,
           sceneFitFrame,
         });
 
-    applyElevationCameraState(camera as OrthographicCamera, nextCameraState);
+    applyElevationCameraState(camera as OrthographicCamera, controlsRef.current, nextCameraState);
     updateElevationCameraState(nextCameraState);
-    hasInitializedCameraStateRef.current = true;
-    activeElevationSideKeyRef.current = activeElevationSideKey;
+    activeElevationViewKeyRef.current = activeElevationViewKey;
   }, [camera]);
 
   useEffect(() => {
-    if (!hasInitializedCameraStateRef.current) {
+    if (activeElevationViewKeyRef.current === activeElevationViewKey) {
       return;
     }
 
-    if (activeElevationSideKeyRef.current === activeElevationSideKey) {
-      return;
-    }
+    const storedCameraState = getStoredElevationEditorCameraState(
+      editorCameraStates,
+      activeElevationViewKey,
+    );
+    const nextCameraState = storedCameraState.elevationViewKey === activeElevationViewKey
+      ? storedCameraState
+      : createElevationCameraState({
+          activeElevationSide,
+          elevationViewKey: activeElevationViewKey,
+          placedAssemblies,
+          canvasSizePixels,
+          sceneFitFrame,
+        });
 
-    const nextCameraState = createElevationCameraState({
-      activeElevationSide,
-      elevationSideKey: activeElevationSideKey,
-      sceneFitFrame,
-    });
-
-    applyElevationCameraState(camera as OrthographicCamera, nextCameraState);
+    applyElevationCameraState(camera as OrthographicCamera, controlsRef.current, nextCameraState);
     updateElevationCameraState(nextCameraState);
-    activeElevationSideKeyRef.current = activeElevationSideKey;
-  }, [activeElevationSide, activeElevationSideKey, camera, sceneFitFrame, updateElevationCameraState]);
+    activeElevationViewKeyRef.current = activeElevationViewKey;
+  }, [
+    activeElevationSide,
+    activeElevationViewKey,
+    camera,
+    canvasSizePixels,
+    editorCameraStates,
+    placedAssemblies,
+    sceneFitFrame,
+    updateElevationCameraState,
+  ]);
 
   useEffect(() => {
     if (cameraCommand === null || cameraCommand.editorView !== "elevation") {
+      return;
+    }
+
+    const controls = controlsRef.current;
+
+    if (controls === null) {
       return;
     }
 
@@ -82,73 +122,149 @@ export function ElevationCameraControls() {
 
     if (cameraCommand.tool === "zoom-in") {
       updateElevationZoom(camera as OrthographicCamera, camera.zoom * TOOLBAR_ZOOM_SCALE);
+      controls.update();
       nextCameraState = readElevationCameraState({
         camera: camera as OrthographicCamera,
-        cameraTargetInches: cameraState.cameraTargetInches,
-        elevationSideKey: cameraState.elevationSideKey,
+        controls,
+        elevationViewKey: activeElevationViewKey,
       });
     } else if (cameraCommand.tool === "zoom-out") {
       updateElevationZoom(camera as OrthographicCamera, camera.zoom / TOOLBAR_ZOOM_SCALE);
+      controls.update();
       nextCameraState = readElevationCameraState({
         camera: camera as OrthographicCamera,
-        cameraTargetInches: cameraState.cameraTargetInches,
-        elevationSideKey: cameraState.elevationSideKey,
+        controls,
+        elevationViewKey: activeElevationViewKey,
       });
     } else {
       nextCameraState = createElevationCameraState({
         activeElevationSide,
-        elevationSideKey: activeElevationSideKey,
+        elevationViewKey: activeElevationViewKey,
+        placedAssemblies,
+        canvasSizePixels,
         sceneFitFrame,
       });
-      applyElevationCameraState(camera as OrthographicCamera, nextCameraState);
+      applyElevationCameraState(camera as OrthographicCamera, controls, nextCameraState);
     }
 
     updateElevationCameraState(nextCameraState);
     clearCameraCommand(cameraCommand.id);
   }, [
     activeElevationSide,
-    activeElevationSideKey,
+    activeElevationViewKey,
     camera,
     cameraCommand,
-    cameraState.cameraTargetInches,
-    cameraState.elevationSideKey,
+    canvasSizePixels,
     clearCameraCommand,
+    placedAssemblies,
     sceneFitFrame,
     updateElevationCameraState,
   ]);
 
-  return null;
-}
+  function handleControlsChange() {
+    const controls = controlsRef.current;
 
-function getElevationSideKey(activeElevationSide: PlacedWallElevationSide | null): string | null {
-  if (activeElevationSide === null) {
-    return null;
+    if (controls === null) {
+      return;
+    }
+
+    updateElevationCameraState(readElevationCameraState({
+      camera: camera as OrthographicCamera,
+      controls,
+      elevationViewKey: activeElevationViewKey,
+    }));
   }
 
-  return `${activeElevationSide.placedWallId}:${activeElevationSide.edgeIndex}`;
+  const isEditorOperationActive = activeSceneOperation !== null || activeToolbarTool !== null;
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      enabled={activeDrag === null}
+      makeDefault
+      enableRotate={false}
+      enablePan={!isEditorOperationActive}
+      enableZoom
+      enableDamping
+      dampingFactor={0.08}
+      minZoom={MIN_ELEVATION_ZOOM}
+      maxZoom={MAX_ELEVATION_ZOOM}
+      zoomSpeed={0.45}
+      panSpeed={1}
+      screenSpacePanning
+      mouseButtons={{
+        LEFT: MOUSE.PAN,
+        MIDDLE: MOUSE.DOLLY,
+        RIGHT: MOUSE.PAN,
+      }}
+      touches={{
+        ONE: TOUCH.PAN,
+        TWO: TOUCH.DOLLY_PAN,
+      }}
+      onChange={handleControlsChange}
+    />
+  );
 }
 
 function createElevationCameraState(args: {
   activeElevationSide: PlacedWallElevationSide | null;
-  elevationSideKey: string | null;
+  elevationViewKey: string | null;
+  placedAssemblies: readonly PlacedAssembly[];
+  canvasSizePixels: Readonly<{ width: number; height: number }>;
   sceneFitFrame: SceneFitFrame;
 }): ElevationEditorCameraState {
   if (args.activeElevationSide !== null) {
-    return createElevationCameraStateForSide(args.activeElevationSide, args.elevationSideKey);
+    return createElevationCameraStateForSide({
+      activeElevationSide: args.activeElevationSide,
+      elevationViewKey: args.elevationViewKey,
+      placedAssemblies: args.placedAssemblies,
+      canvasSizePixels: args.canvasSizePixels,
+    });
   }
 
   return createElevationCameraStateForSceneFit(args.sceneFitFrame);
 }
 
-function createElevationCameraStateForSide(
-  activeElevationSide: PlacedWallElevationSide,
-  elevationSideKey: string | null,
-): ElevationEditorCameraState {
+function createElevationCameraStateForSide(args: {
+  activeElevationSide: PlacedWallElevationSide;
+  elevationViewKey: string | null;
+  placedAssemblies: readonly PlacedAssembly[];
+  canvasSizePixels: Readonly<{ width: number; height: number }>;
+}): ElevationEditorCameraState {
+  const fitBounds = measureElevationViewFitBounds({
+    activeElevationSide: args.activeElevationSide,
+    placedAssemblies: args.placedAssemblies,
+    registry: kitchenEditorCatalogRegistry,
+  });
+  const fitBoundsCenter = getElevationViewFitBoundsCenter(fitBounds);
+  const fitBoundsSize = getElevationViewFitBoundsSize(fitBounds);
+  const targetBasePointInches = getElevationSideWorldPointAtHorizontal(
+    args.activeElevationSide,
+    fitBoundsCenter.horizontalInches,
+  );
+  const cameraTargetInches = {
+    ...targetBasePointInches,
+    zInches: fitBoundsCenter.zInches,
+  };
+  const cameraDistanceInches = Math.max(
+    args.activeElevationSide.cameraDistanceInches,
+    fitBoundsSize.widthInches * 0.5,
+    40,
+  );
+
   return {
-    cameraPositionInches: activeElevationSide.cameraPositionInches,
-    cameraTargetInches: activeElevationSide.cameraTargetInches,
-    zoom: Math.max(MIN_ELEVATION_ZOOM, ELEVATION_ZOOM_BASE_INCHES / activeElevationSide.viewSizeInches),
-    elevationSideKey,
+    cameraPositionInches: {
+      xInches:
+        cameraTargetInches.xInches +
+        args.activeElevationSide.outwardNormalInches.xInches * cameraDistanceInches,
+      yInches:
+        cameraTargetInches.yInches +
+        args.activeElevationSide.outwardNormalInches.yInches * cameraDistanceInches,
+      zInches: cameraTargetInches.zInches,
+    },
+    cameraTargetInches,
+    zoom: computeElevationFitZoom(fitBoundsSize, args.canvasSizePixels),
+    elevationViewKey: args.elevationViewKey,
   };
 }
 
@@ -162,13 +278,26 @@ function createElevationCameraStateForSceneFit(sceneFitFrame: SceneFitFrame): El
       zInches: centerInches.zInches,
     },
     cameraTargetInches: centerInches,
-    zoom: Math.max(MIN_ELEVATION_ZOOM, ELEVATION_ZOOM_BASE_INCHES / sizeInches),
-    elevationSideKey: null,
+    zoom: Math.max(MIN_ELEVATION_ZOOM, 220 / sizeInches),
+    elevationViewKey: null,
   };
+}
+
+function computeElevationFitZoom(
+  fitBoundsSize: Readonly<{ widthInches: number; heightInches: number }>,
+  canvasSizePixels: Readonly<{ width: number; height: number }>,
+): number {
+  const zoomForWidth = (canvasSizePixels.width * ELEVATION_FIT_VIEWPORT_SCALE) / fitBoundsSize.widthInches;
+  const zoomForHeight = (canvasSizePixels.height * ELEVATION_FIT_VIEWPORT_SCALE) / fitBoundsSize.heightInches;
+  return Math.min(
+    Math.max(Math.min(zoomForWidth, zoomForHeight), MIN_ELEVATION_ZOOM),
+    MAX_ELEVATION_ZOOM,
+  );
 }
 
 function applyElevationCameraState(
   camera: OrthographicCamera,
+  controls: OrbitControlsImpl | null,
   cameraState: ElevationEditorCameraState,
 ): void {
   camera.up.set(0, 0, 1);
@@ -177,18 +306,27 @@ function applyElevationCameraState(
     cameraState.cameraPositionInches.yInches,
     cameraState.cameraPositionInches.zInches,
   );
-  camera.lookAt(
+  updateElevationZoom(camera, cameraState.zoom);
+  controls?.target.set(
     cameraState.cameraTargetInches.xInches,
     cameraState.cameraTargetInches.yInches,
     cameraState.cameraTargetInches.zInches,
   );
-  updateElevationZoom(camera, cameraState.zoom);
+  controls?.update();
+
+  if (controls === null) {
+    camera.lookAt(
+      cameraState.cameraTargetInches.xInches,
+      cameraState.cameraTargetInches.yInches,
+      cameraState.cameraTargetInches.zInches,
+    );
+  }
 }
 
 function readElevationCameraState(args: {
   camera: OrthographicCamera;
-  cameraTargetInches: ElevationEditorCameraState["cameraTargetInches"];
-  elevationSideKey: string | null;
+  controls: OrbitControlsImpl;
+  elevationViewKey: string | null;
 }): ElevationEditorCameraState {
   return {
     cameraPositionInches: {
@@ -196,13 +334,17 @@ function readElevationCameraState(args: {
       yInches: args.camera.position.y,
       zInches: args.camera.position.z,
     },
-    cameraTargetInches: args.cameraTargetInches,
+    cameraTargetInches: {
+      xInches: args.controls.target.x,
+      yInches: args.controls.target.y,
+      zInches: args.controls.target.z,
+    },
     zoom: args.camera.zoom,
-    elevationSideKey: args.elevationSideKey,
+    elevationViewKey: args.elevationViewKey,
   };
 }
 
 function updateElevationZoom(camera: OrthographicCamera, zoom: number): void {
-  camera.zoom = Math.max(MIN_ELEVATION_ZOOM, zoom);
+  camera.zoom = Math.min(Math.max(zoom, MIN_ELEVATION_ZOOM), MAX_ELEVATION_ZOOM);
   camera.updateProjectionMatrix();
 }

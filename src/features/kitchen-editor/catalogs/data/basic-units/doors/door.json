@@ -231,7 +231,13 @@
       "material": {
         "colorOptionId": "door-color"
       },
-      "role": "door-body"
+      "role": "door-body",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
     },
     {
       "kind": "primitive-geometry",

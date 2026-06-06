@@ -7,9 +7,13 @@ import { AssemblyRenderer } from "./AssemblyRenderer";
 
 type AssemblyPlacementCandidateRendererProps = Readonly<{
   activeSceneOperation: SceneOperation | null;
+  showFrontOutlineLines: boolean;
 }>;
 
-export function AssemblyPlacementCandidateRenderer({ activeSceneOperation }: AssemblyPlacementCandidateRendererProps) {
+export function AssemblyPlacementCandidateRenderer({
+  activeSceneOperation,
+  showFrontOutlineLines,
+}: AssemblyPlacementCandidateRendererProps) {
   if (activeSceneOperation?.kind !== "assembly-placement" || activeSceneOperation.placementState !== "positioned") {
     return null;
   }
@@ -18,6 +22,7 @@ export function AssemblyPlacementCandidateRenderer({ activeSceneOperation }: Ass
     <AssemblyRenderer
       builtAssemblyTree={buildAssemblyTree(activeSceneOperation.placedAssembly, kitchenEditorCatalogRegistry)}
       renderState="candidate"
+      showFrontOutlineLines={showFrontOutlineLines}
     />
   );
 }

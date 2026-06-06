@@ -1,4 +1,5 @@
 import type { AssemblyOptionValue } from "./assemblyConfiguration";
+import type { PrimitiveBoxFrontOutlineEdge } from "./assemblyComponentTypes";
 import type {
   AssemblyDimensionDefinition,
   AssemblyOptionGroup,
@@ -28,6 +29,7 @@ export type RawPrimitiveGeometryComponentDefinition = Readonly<{
   localRotationDegrees?: RawRotationDegrees3DExpression;
   sizeInches: RawSize3DExpression;
   material: RawPrimitiveMaterialDefinition;
+  frontOutlineEdges?: readonly PrimitiveBoxFrontOutlineEdge[];
   role?: string;
   includeWhen?: RawCondition;
 }>;

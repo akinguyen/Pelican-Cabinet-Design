@@ -44,20 +44,22 @@ export function AssemblyCatalogPanel() {
   }
 
   return (
-    <div className="flex min-h-full -m-4">
-      <div className="min-w-0 flex-1 p-4">
-        <div className="mb-4">
+    <div className="flex h-full min-h-0">
+      <div className="flex min-w-0 flex-1 flex-col p-3">
+        <div className="shrink-0 pb-3">
           <AssemblyCatalogCategoryTabs
             activeCatalogId={activeCatalogId}
             activeCategoryId={activeCategoryId}
             onSelectCategory={setActiveCategoryId}
           />
         </div>
-        <AssemblyCatalogGrid
-          activeCatalogId={activeCatalogId}
-          activeCategoryId={activeCategoryId}
-          onSelectAssemblyDefinition={handleSelectAssemblyDefinition}
-        />
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <AssemblyCatalogGrid
+            activeCatalogId={activeCatalogId}
+            activeCategoryId={activeCategoryId}
+            onSelectAssemblyDefinition={handleSelectAssemblyDefinition}
+          />
+        </div>
       </div>
       <AssemblyCatalogSelector activeCatalogId={activeCatalogId} onSelectCatalog={handleSelectCatalog} />
     </div>

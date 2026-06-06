@@ -1,6 +1,7 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { addPoint3DInches, rotatePointAroundZInches } from "@/core/geometry/pointTypes";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
+import type { PrimitiveBoxFrontOutlineEdge } from "./assemblyComponentTypes";
 import type { PrimitiveGeometry } from "@/engine/primitive-geometry/primitiveGeometryTypes";
 import type { PrimitiveMaterial } from "@/engine/primitive-geometry/primitiveMaterialTypes";
 import type { AssemblyComponentOverride, AssemblyConfiguration } from "./assemblyConfiguration";
@@ -35,6 +36,7 @@ export type BuiltPrimitiveGeometry = Readonly<{
   }>;
   sizeInches: Size3DInches;
   material: PrimitiveMaterial;
+  frontOutlineEdges?: readonly PrimitiveBoxFrontOutlineEdge[];
   role?: string;
 }>;
 
@@ -109,6 +111,7 @@ function buildAssemblyTreeFromDefinition(args: BuildAssemblyTreeArgs): BuiltAsse
         },
         sizeInches: component.sizeInches,
         material: applyPrimitiveMaterialOverride(component.material, componentOverride),
+        frontOutlineEdges: component.frontOutlineEdges,
         role: component.role,
       });
       return;

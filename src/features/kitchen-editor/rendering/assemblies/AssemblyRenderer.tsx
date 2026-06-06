@@ -2,14 +2,16 @@
 
 import { collectBuiltPrimitiveGeometries } from "@/engine/assemblies/assemblyBounds";
 import type { BuiltAssemblyTree } from "@/engine/assemblies/assemblyTreeBuilder";
+import { AssemblyFrontOutlineLines } from "./AssemblyFrontOutlineLines";
 import { AssemblyPrimitiveMesh } from "./AssemblyPrimitiveMesh";
 
 type AssemblyRendererProps = Readonly<{
   builtAssemblyTree: BuiltAssemblyTree;
   renderState: "default" | "candidate";
+  showFrontOutlineLines: boolean;
 }>;
 
-export function AssemblyRenderer({ builtAssemblyTree, renderState }: AssemblyRendererProps) {
+export function AssemblyRenderer({ builtAssemblyTree, renderState, showFrontOutlineLines }: AssemblyRendererProps) {
   const primitiveGeometries = collectBuiltPrimitiveGeometries(builtAssemblyTree);
 
   return (
@@ -21,6 +23,7 @@ export function AssemblyRenderer({ builtAssemblyTree, renderState }: AssemblyRen
           renderState={renderState}
         />
       ))}
+      {showFrontOutlineLines ? <AssemblyFrontOutlineLines builtAssemblyTree={builtAssemblyTree} /> : null}
     </group>
   );
 }

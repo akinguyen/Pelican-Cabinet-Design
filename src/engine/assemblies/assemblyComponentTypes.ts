@@ -5,6 +5,8 @@ import type { PrimitiveGeometry } from "@/engine/primitive-geometry/primitiveGeo
 import type { PrimitiveMaterial } from "@/engine/primitive-geometry/primitiveMaterialTypes";
 import type { AssemblyConfiguration } from "./assemblyConfiguration";
 
+export type PrimitiveBoxFrontOutlineEdge = "top" | "right" | "bottom" | "left";
+
 export type PrimitiveGeometryComponent = Readonly<{
   kind: "primitive-geometry";
   id: string;
@@ -14,6 +16,7 @@ export type PrimitiveGeometryComponent = Readonly<{
   localRotationDegrees?: RotationDegrees3D;
   sizeInches: Size3DInches;
   material: PrimitiveMaterial;
+  frontOutlineEdges?: readonly PrimitiveBoxFrontOutlineEdge[];
   role?: string;
 }>;
 

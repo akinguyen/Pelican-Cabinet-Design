@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { combineBounds3DInches } from "@/core/geometry/boxBounds";
-import { measurePlacedAssembliesBounds } from "@/engine/assemblies/assemblyBounds";
+import { measurePlacedAssembliesVisualBounds } from "@/engine/assemblies/assemblyBounds";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { measurePlacedWallsBounds } from "@/engine/walls/wallBounds";
 import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
@@ -16,7 +16,7 @@ export function useSceneFitFrame() {
     () =>
       createSceneFitFrame(
         combineBounds3DInches(
-          measurePlacedAssembliesBounds(placedAssemblies, kitchenEditorCatalogRegistry),
+          measurePlacedAssembliesVisualBounds(placedAssemblies, kitchenEditorCatalogRegistry),
           measurePlacedWallsBounds(placedWalls),
         ),
       ),

@@ -1,5 +1,5 @@
+import { getActivePlacedWallElevationView, getPlacedWallElevationWallViews } from "@/engine/walls/elevation/wallElevationGeometry";
 import { deletePlacedWall, updatePlacedWallHeight, updatePlacedWallViewableEdge } from "@/engine/walls/wallEditing";
-import { getPlacedWallViewableEdgeIndices } from "@/engine/walls/elevation/wallViewableEdges";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
 export function createWallEditingActions(
@@ -43,20 +43,15 @@ export function createWallEditingActions(
           edgeIndex,
           isViewable,
         });
-        const selectedPlacedWall = placedWalls.find(
-          (placedWall) => placedWall.id === activeSelection.placedWallId,
-        );
-        const viewableEdgeIndices = selectedPlacedWall === undefined
-          ? []
-          : getPlacedWallViewableEdgeIndices(selectedPlacedWall);
-        const nextActiveWallElevationEdgeIndex = viewableEdgeIndices.includes(
-          state.activeWallElevationEdgeIndex,
-        )
-          ? state.activeWallElevationEdgeIndex
-          : viewableEdgeIndices[0] ?? 0;
+        const activeElevationView = getActivePlacedWallElevationView({
+          placedWalls,
+          activeWallElevationWallId: state.activeWallElevationWallId,
+          activeWallElevationEdgeIndex: state.activeWallElevationEdgeIndex,
+        });
 
         return {
-          activeWallElevationEdgeIndex: nextActiveWallElevationEdgeIndex,
+          activeWallElevationWallId: activeElevationView?.wallView.placedWallId ?? null,
+          activeWallElevationEdgeIndex: activeElevationView?.side.edgeIndex ?? 0,
           designScene: {
             ...state.designScene,
             placedWalls,
@@ -72,17 +67,28 @@ export function createWallEditingActions(
         return;
       }
 
-      set((state) => ({
-        activeWallElevationEdgeIndex: 0,
-        designScene: {
-          ...state.designScene,
-          placedWalls: deletePlacedWall({
-            placedWalls: state.designScene.placedWalls,
-            placedWallId: activeSelection.placedWallId,
-          }),
-          activeSelection: null,
-        },
-      }));
+      set((state) => {
+        const placedWalls = deletePlacedWall({
+          placedWalls: state.designScene.placedWalls,
+          placedWallId: activeSelection.placedWallId,
+        });
+        const wallViews = getPlacedWallElevationWallViews(placedWalls);
+        const activeElevationView = getActivePlacedWallElevationView({
+          placedWalls,
+          activeWallElevationWallId: state.activeWallElevationWallId,
+          activeWallElevationEdgeIndex: state.activeWallElevationEdgeIndex,
+        });
+
+        return {
+          activeWallElevationWallId: activeElevationView?.wallView.placedWallId ?? wallViews[0]?.placedWallId ?? null,
+          activeWallElevationEdgeIndex: activeElevationView?.side.edgeIndex ?? wallViews[0]?.viewableSides[0]?.edgeIndex ?? 0,
+          designScene: {
+            ...state.designScene,
+            placedWalls,
+            activeSelection: null,
+          },
+        };
+      });
     },
   };
 }

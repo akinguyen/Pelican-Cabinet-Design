@@ -12,7 +12,7 @@ export function KitchenEditorShell({ children }: Readonly<{ children: ReactNode 
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
           <EditorToolbar />
-          <section className="min-h-0 flex-1 p-3">{children}</section>
+          <section className="min-h-0 flex-1 overflow-hidden">{children}</section>
         </div>
         <KitchenEditorInspectorPanel />
       </div>

@@ -20,11 +20,69 @@ export type PlacedWallElevationSide = Readonly<{
     yInches: number;
   }>;
   lengthInches: number;
+  wallHeightInches: number;
   cameraDistanceInches: number;
   cameraPositionInches: Point3DInches;
   cameraTargetInches: Point3DInches;
   viewSizeInches: number;
 }>;
+
+
+export type PlacedWallElevationWallView = Readonly<{
+  placedWallId: string;
+  wallIndex: number;
+  viewableSides: readonly PlacedWallElevationSide[];
+}>;
+
+export type ActivePlacedWallElevationView = Readonly<{
+  wallView: PlacedWallElevationWallView;
+  side: PlacedWallElevationSide;
+  sideIndex: number;
+}>;
+
+export function getPlacedWallElevationWallViews(
+  placedWalls: readonly PlacedWall[],
+): readonly PlacedWallElevationWallView[] {
+  return placedWalls
+    .map((placedWall, wallIndex) => ({
+      placedWallId: placedWall.id,
+      wallIndex,
+      viewableSides: getPlacedWallElevationSides(placedWall),
+    }))
+    .filter((wallView) => wallView.viewableSides.length > 0);
+}
+
+export function getActivePlacedWallElevationView(args: {
+  placedWalls: readonly PlacedWall[];
+  activeWallElevationWallId: string | null;
+  activeWallElevationEdgeIndex: number;
+}): ActivePlacedWallElevationView | null {
+  const wallViews = getPlacedWallElevationWallViews(args.placedWalls);
+
+  if (wallViews.length === 0) {
+    return null;
+  }
+
+  const wallView = wallViews.find(
+    (candidateWallView) => candidateWallView.placedWallId === args.activeWallElevationWallId,
+  ) ?? wallViews[0];
+  const side = wallView.viewableSides.find(
+    (candidateSide) => candidateSide.edgeIndex === args.activeWallElevationEdgeIndex,
+  ) ?? wallView.viewableSides[0];
+  const sideIndex = wallView.viewableSides.findIndex(
+    (candidateSide) => candidateSide.edgeIndex === side.edgeIndex,
+  );
+
+  return {
+    wallView,
+    side,
+    sideIndex: sideIndex >= 0 ? sideIndex : 0,
+  };
+}
+
+export function createWallElevationViewKey(activeElevationSide: PlacedWallElevationSide): string {
+  return `${activeElevationSide.placedWallId}:edge-${activeElevationSide.edgeIndex}`;
+}
 
 export function getPlacedWallElevationSides(
   placedWall: PlacedWall,
@@ -108,6 +166,7 @@ export function getPlacedWallElevationSide(
     midpointInches,
     outwardNormalInches,
     lengthInches,
+    wallHeightInches: placedWall.heightInches,
     cameraDistanceInches,
     cameraPositionInches,
     cameraTargetInches,

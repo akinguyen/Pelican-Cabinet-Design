@@ -64,13 +64,15 @@ export function FloorPlanCameraControls() {
     updateFloorPlanCameraState(readFloorPlanCameraState(camera as OrthographicCamera, controls));
   }
 
+  const isEditorOperationActive = activeSceneOperation !== null || activeToolbarTool !== null;
+
   return (
     <OrbitControls
       ref={controlsRef}
-      enabled={activeSceneOperation === null && activeDrag === null && activeToolbarTool === null}
+      enabled={activeDrag === null}
       makeDefault
       enableRotate={false}
-      enablePan
+      enablePan={!isEditorOperationActive}
       enableZoom
       enableDamping
       dampingFactor={0.08}

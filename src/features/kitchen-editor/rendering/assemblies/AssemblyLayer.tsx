@@ -7,9 +7,10 @@ import { AssemblyRenderer } from "./AssemblyRenderer";
 
 type AssemblyLayerProps = Readonly<{
   placedAssemblies: readonly PlacedAssembly[];
+  showFrontOutlineLines: boolean;
 }>;
 
-export function AssemblyLayer({ placedAssemblies }: AssemblyLayerProps) {
+export function AssemblyLayer({ placedAssemblies, showFrontOutlineLines }: AssemblyLayerProps) {
   return (
     <group>
       {placedAssemblies.map((placedAssembly) => (
@@ -17,6 +18,7 @@ export function AssemblyLayer({ placedAssemblies }: AssemblyLayerProps) {
           key={placedAssembly.id}
           builtAssemblyTree={buildAssemblyTree(placedAssembly, kitchenEditorCatalogRegistry)}
           renderState="default"
+          showFrontOutlineLines={showFrontOutlineLines}
         />
       ))}
     </group>

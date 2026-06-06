@@ -61,6 +61,7 @@ function buildRawAssemblyComponent(
         ),
         sizeInches,
         material: createPrimitiveMaterial(componentDefinition.material, componentContext),
+        frontOutlineEdges: componentDefinition.frontOutlineEdges,
         role: componentDefinition.role,
       },
     ];

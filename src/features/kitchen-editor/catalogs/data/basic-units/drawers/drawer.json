@@ -219,7 +219,13 @@
       "material": {
         "colorOptionId": "drawer-color"
       },
-      "role": "drawer-body"
+      "role": "drawer-body",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
     },
     {
       "kind": "primitive-geometry",

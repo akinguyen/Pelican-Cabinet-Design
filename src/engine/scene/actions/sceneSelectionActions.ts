@@ -1,4 +1,3 @@
-import { getPlacedWallFirstViewableEdgeIndex } from "@/engine/walls/elevation/wallViewableEdges";
 import { createWallSplitDraftForTarget } from "@/engine/walls/split-draft/wallSplitDraftFactory";
 import type { SceneSelection } from "../sceneSelectionTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
@@ -23,32 +22,22 @@ export function createSceneSelectionActions(
     },
 
     selectPlacedWall(placedWallId) {
-      set((state) => {
-        const selectedPlacedWall = state.designScene.placedWalls.find(
-          (placedWall) => placedWall.id === placedWallId,
-        );
-        const firstViewableEdgeIndex = selectedPlacedWall === undefined
-          ? 0
-          : getPlacedWallFirstViewableEdgeIndex(selectedPlacedWall) ?? 0;
-
-        return {
-          activeWallElevationEdgeIndex: firstViewableEdgeIndex,
-          designScene: {
-            ...state.designScene,
-            activeSelection: {
-              kind: "placed-wall",
-              placedWallId,
-            },
-            activeSceneOperation:
-              state.activeToolbarTool === "split-wall-footprint"
-                ? {
-                    kind: "wall-split-draft",
-                    wallSplitDraft: createWallSplitDraftForTarget(placedWallId),
-                  }
-                : state.designScene.activeSceneOperation,
+      set((state) => ({
+        designScene: {
+          ...state.designScene,
+          activeSelection: {
+            kind: "placed-wall",
+            placedWallId,
           },
-        };
-      });
+          activeSceneOperation:
+            state.activeToolbarTool === "split-wall-footprint"
+              ? {
+                  kind: "wall-split-draft",
+                  wallSplitDraft: createWallSplitDraftForTarget(placedWallId),
+                }
+              : state.designScene.activeSceneOperation,
+        },
+      }));
     },
 
     clearSelection() {

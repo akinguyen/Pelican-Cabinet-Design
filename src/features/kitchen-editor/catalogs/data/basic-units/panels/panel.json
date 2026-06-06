@@ -139,7 +139,13 @@
       "material": {
         "colorOptionId": "panel-color"
       },
-      "role": "panel-body"
+      "role": "panel-body",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
     }
   ]
 }

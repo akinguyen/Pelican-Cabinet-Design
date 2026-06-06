@@ -65,13 +65,15 @@ export function createWallFootprintDraftActions(
 
       if (clickResult.kind === "created-placed-wall") {
         set((state) => ({
+          activeToolbarTool: null,
+          activeWallElevationWallId: state.activeWallElevationWallId ?? clickResult.placedWall.id,
+          activeWallElevationEdgeIndex: state.activeWallElevationWallId === null
+            ? clickResult.placedWall.viewableEdgeIndices[0] ?? 0
+            : state.activeWallElevationEdgeIndex,
           designScene: {
             ...state.designScene,
             placedWalls: [...state.designScene.placedWalls, clickResult.placedWall],
-            activeSceneOperation: {
-              kind: "wall-footprint-draft",
-              wallFootprintDraft: clickResult.draft,
-            },
+            activeSceneOperation: null,
             activeSelection: null,
           },
         }));

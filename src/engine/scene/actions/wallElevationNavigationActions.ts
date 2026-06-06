@@ -1,11 +1,29 @@
-import { getPlacedWallViewableEdgeIndices } from "@/engine/walls/elevation/wallViewableEdges";
+import { getActivePlacedWallElevationView, getPlacedWallElevationWallViews } from "@/engine/walls/elevation/wallElevationGeometry";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
 export function createWallElevationNavigationActions(
   get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
-): Pick<DesignSceneStore, "showPreviousWallElevationSide" | "showNextWallElevationSide"> {
+): Pick<
+  DesignSceneStore,
+  "setActiveWallElevationWall" | "showPreviousWallElevationSide" | "showNextWallElevationSide"
+> {
   return {
+    setActiveWallElevationWall(placedWallId) {
+      const wallView = getPlacedWallElevationWallViews(get().designScene.placedWalls).find(
+        (candidateWallView) => candidateWallView.placedWallId === placedWallId,
+      );
+
+      if (wallView === undefined) {
+        return;
+      }
+
+      set({
+        activeWallElevationWallId: wallView.placedWallId,
+        activeWallElevationEdgeIndex: wallView.viewableSides[0].edgeIndex,
+      });
+    },
+
     showPreviousWallElevationSide() {
       updateWallElevationEdgeIndex(-1, get, set);
     },
@@ -22,31 +40,24 @@ function updateWallElevationEdgeIndex(
   set: DesignSceneStoreSetter,
 ): void {
   const state = get();
-  const activeSelection = state.designScene.activeSelection;
+  const activeElevationView = getActivePlacedWallElevationView({
+    placedWalls: state.designScene.placedWalls,
+    activeWallElevationWallId: state.activeWallElevationWallId,
+    activeWallElevationEdgeIndex: state.activeWallElevationEdgeIndex,
+  });
 
-  if (activeSelection?.kind !== "placed-wall") {
+  if (activeElevationView === null) {
     return;
   }
 
-  const selectedPlacedWall = state.designScene.placedWalls.find(
-    (placedWall) => placedWall.id === activeSelection.placedWallId,
-  );
+  const viewableSideCount = activeElevationView.wallView.viewableSides.length;
+  const nextSideIndex =
+    ((activeElevationView.sideIndex + delta) % viewableSideCount + viewableSideCount) %
+    viewableSideCount;
+  const nextSide = activeElevationView.wallView.viewableSides[nextSideIndex];
 
-  if (selectedPlacedWall === undefined) {
-    return;
-  }
-
-  const viewableEdgeIndices = getPlacedWallViewableEdgeIndices(selectedPlacedWall);
-
-  if (viewableEdgeIndices.length <= 0) {
-    return;
-  }
-
-  const currentViewableIndex = viewableEdgeIndices.indexOf(state.activeWallElevationEdgeIndex);
-  const activeViewableIndex = currentViewableIndex >= 0 ? currentViewableIndex : 0;
-  const nextViewableIndex =
-    ((activeViewableIndex + delta) % viewableEdgeIndices.length + viewableEdgeIndices.length) %
-    viewableEdgeIndices.length;
-
-  set({ activeWallElevationEdgeIndex: viewableEdgeIndices[nextViewableIndex] });
+  set({
+    activeWallElevationWallId: activeElevationView.wallView.placedWallId,
+    activeWallElevationEdgeIndex: nextSide.edgeIndex,
+  });
 }

@@ -23,12 +23,14 @@ export type DesignSceneStore = Readonly<{
   designScene: DesignScene;
   wallSettings: WallSettings;
   activeEditorView: KitchenEditorView;
+  activeWallElevationWallId: string | null;
   activeWallElevationEdgeIndex: number;
   activeToolbarTool: EditorActiveToolbarTool | null;
   cameraCommand: EditorCameraCommand | null;
   editorCameraStates: EditorCameraStates;
   activeDrag: AssemblyDragState | null;
   setActiveEditorView: (editorView: KitchenEditorView) => void;
+  setActiveWallElevationWall: (placedWallId: string) => void;
   showPreviousWallElevationSide: () => void;
   showNextWallElevationSide: () => void;
   runCameraCommand: (toolbarTool: EditorCameraCommandTool) => void;
