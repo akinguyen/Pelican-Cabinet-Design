@@ -1,5 +1,4 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { WallAngleGuide, WallReferenceGuides } from "../draft-guides/wallDraftGuideTypes";
 
 export type WallSplitAnchor = Readonly<{
   placedWallId: string;
@@ -27,6 +26,4 @@ export type WallSplitDraft =
       targetPlacedWallId: string;
       startAnchor: WallSplitAnchor;
       hoverAnchor: WallSplitAnchor | null;
-      referenceGuides: WallReferenceGuides;
-      angleGuide: WallAngleGuide | null;
     }>;

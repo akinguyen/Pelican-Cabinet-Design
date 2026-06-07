@@ -1,5 +1,5 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { WallAngleGuide, WallReferenceGuides } from "../draft-guides/wallDraftGuideTypes";
+import type { WallAngleGuide, WallParallelGuide, WallReferenceGuides } from "../draft-guides/wallDraftGuideTypes";
 
 export type WallFootprintDraftPointSource =
   | Readonly<{
@@ -59,5 +59,6 @@ export type WallFootprintDraft = Readonly<{
   snapTarget: WallFootprintSnapTarget | null;
   referenceGuides: WallReferenceGuides;
   angleGuide: WallAngleGuide | null;
+  parallelGuide: WallParallelGuide | null;
   heightInches: number;
 }>;

@@ -13,6 +13,7 @@ import { getActiveWallFootprintDraftPoint } from "@/engine/walls/footprint-draft
 import { WallAngleGuides } from "./WallAngleGuides";
 import { WallMeasurementGuides } from "./WallMeasurementGuides";
 import { WallReferenceGuides } from "./WallReferenceGuides";
+import { WallParallelGuides } from "./WallParallelGuides";
 import { WallVertexMarkers } from "./WallVertexMarkers";
 import { createWallFootprintGeometry } from "./wallRenderingGeometry";
 
@@ -58,6 +59,7 @@ export function WallFootprintDraftRenderer({ draft }: WallFootprintDraftRenderer
       <WallMeasurementGuides measurements={previewEdgeMeasurements} variant="draft" />
       <WallMeasurementGuides measurements={splitPreviewMeasurements} variant="split-preview" />
       <WallReferenceGuides referenceGuides={draft.referenceGuides} />
+      <WallParallelGuides parallelGuide={draft.parallelGuide} />
       <WallAngleGuides angleGuide={draft.angleGuide} />
       <WallVertexMarkers
         pointsInches={orderedPointsInches}

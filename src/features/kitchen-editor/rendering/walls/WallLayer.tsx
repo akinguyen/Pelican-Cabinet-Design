@@ -1,21 +1,23 @@
 "use client";
 
 import { buildWall } from "@/engine/walls/wallBuilding";
+import { getWallPlanMeasurementFrame } from "@/engine/walls/footprint/wallPlanMeasurements";
 import type { PlacedWall } from "@/engine/walls/wallTypes";
 import type { WallFootprintDraft } from "@/engine/walls/footprint-draft/wallFootprintDraftTypes";
 import type { WallSplitDraft } from "@/engine/walls/split-draft/wallSplitDraftTypes";
 import type { SceneSelection } from "@/engine/scene/sceneSelectionTypes";
-import { WallMeasurementGuides } from "./WallMeasurementGuides";
 import { WallMesh } from "./WallMesh";
 import { WallFootprintDraftRenderer } from "./WallFootprintDraftRenderer";
 import { SelectedWallBoundaryOverlay } from "./SelectedWallBoundaryOverlay";
 import { WallSplitDraftRenderer } from "./WallSplitDraftRenderer";
+import { WallPlanMeasurementOverlay } from "./WallPlanMeasurementOverlay";
 
 type WallLayerProps = Readonly<{
   placedWalls: readonly PlacedWall[];
   activeSelection: SceneSelection | null;
   wallFootprintDraft: WallFootprintDraft | null;
   wallSplitDraft: WallSplitDraft | null;
+  showPlanMeasurements: boolean;
 }>;
 
 export function WallLayer({
@@ -23,6 +25,7 @@ export function WallLayer({
   activeSelection,
   wallFootprintDraft,
   wallSplitDraft,
+  showPlanMeasurements,
 }: WallLayerProps) {
   const selectedPlacedWallId = activeSelection?.kind === "placed-wall"
     ? activeSelection.placedWallId
@@ -35,6 +38,9 @@ export function WallLayer({
   const highlightedBuiltWall = highlightedPlacedWallId === null
     ? null
     : builtWalls.find((builtWall) => builtWall.placedWallId === highlightedPlacedWallId) ?? null;
+  const planMeasurementFrame = showPlanMeasurements
+    ? getWallPlanMeasurementFrame(placedWalls)
+    : null;
 
   return (
     <group>
@@ -56,15 +62,10 @@ export function WallLayer({
             isSelected
           />
         ))}
-      {builtWalls.map((builtWall) => (
-        <WallMeasurementGuides
-          key={`wall-measurements-${builtWall.id}`}
-          measurements={builtWall.edgeMeasurements}
-        />
-      ))}
       {highlightedBuiltWall !== null ? (
         <SelectedWallBoundaryOverlay builtWall={highlightedBuiltWall} />
       ) : null}
+      <WallPlanMeasurementOverlay measurementFrame={planMeasurementFrame} />
       <WallFootprintDraftRenderer draft={wallFootprintDraft} />
       <WallSplitDraftRenderer draft={wallSplitDraft} />
     </group>

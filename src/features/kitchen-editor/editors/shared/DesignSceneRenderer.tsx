@@ -25,6 +25,10 @@ export function DesignSceneRenderer() {
       : null;
 
   const showFrontOutlineLines = activeEditorView === "elevation";
+  const showWallPlanMeasurements =
+    activeEditorView === "floor-plan" &&
+    wallFootprintDraft === null &&
+    wallSplitDraft === null;
 
   return (
     <>
@@ -33,6 +37,7 @@ export function DesignSceneRenderer() {
         activeSelection={activeSelection}
         wallFootprintDraft={wallFootprintDraft}
         wallSplitDraft={wallSplitDraft}
+        showPlanMeasurements={showWallPlanMeasurements}
       />
       <AssemblyLayer placedAssemblies={placedAssemblies} showFrontOutlineLines={showFrontOutlineLines} />
       <SelectedAssemblyOutlineLayer placedAssemblies={placedAssemblies} activeSelection={activeSelection} />

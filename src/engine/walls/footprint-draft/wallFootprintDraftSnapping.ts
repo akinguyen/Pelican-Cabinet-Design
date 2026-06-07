@@ -1,6 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedWall } from "../wallTypes";
-import type { WallAngleGuide, WallReferenceGuides } from "../draft-guides/wallDraftGuideTypes";
+import type { WallAngleGuide, WallParallelGuide, WallReferenceGuides } from "../draft-guides/wallDraftGuideTypes";
 import { createEmptyWallReferenceGuides, createWallAngleGuide } from "../draft-guides/wallDraftGuides";
 import type { WallFootprintDraft, WallFootprintSnapTarget } from "./wallFootprintDraftTypes";
 import { getActiveWallFootprintDraftPoint } from "./wallFootprintDraftSelectors";
@@ -15,6 +15,7 @@ import {
   snapToAngleGuide,
   snapToHorizontalVerticalGuides,
 } from "./wallFootprintDraftGuideSnapping";
+import { snapToParallelDraftEdge } from "./wallFootprintDraftParallelSnapping";
 
 export function snapWallFootprintDraftPoint(args: {
   pointInches: Point3DInches;
@@ -25,6 +26,7 @@ export function snapWallFootprintDraftPoint(args: {
   snapTarget: WallFootprintSnapTarget;
   referenceGuides: WallReferenceGuides;
   angleGuide: WallAngleGuide | null;
+  parallelGuide: WallParallelGuide | null;
 }> {
   const activePointInches = getActiveWallFootprintDraftPoint(args.draft)?.pointInches ?? null;
   const referenceDirectionDegrees = getWallFootprintDraftReferenceDirectionDegrees(args.draft);
@@ -84,6 +86,29 @@ export function snapWallFootprintDraftPoint(args: {
         pointInches: referenceSnap.pointInches,
         referenceDirectionDegrees,
       }),
+      parallelGuide: null,
+    };
+  }
+
+  const parallelSnap = snapToParallelDraftEdge({
+    pointInches: args.pointInches,
+    draft: args.draft,
+  });
+
+  if (parallelSnap !== null) {
+    return {
+      pointInches: parallelSnap.pointInches,
+      snapTarget: {
+        kind: "free-point",
+        pointInches: parallelSnap.pointInches,
+      },
+      referenceGuides: createEmptyWallReferenceGuides(),
+      angleGuide: createWallAngleGuide({
+        activePointInches,
+        pointInches: parallelSnap.pointInches,
+        referenceDirectionDegrees,
+      }),
+      parallelGuide: parallelSnap.parallelGuide,
     };
   }
 
@@ -102,6 +127,7 @@ export function snapWallFootprintDraftPoint(args: {
       },
       referenceGuides: createEmptyWallReferenceGuides(),
       angleGuide: angleSnap.angleGuide,
+      parallelGuide: null,
     };
   }
 
@@ -117,6 +143,7 @@ export function snapWallFootprintDraftPoint(args: {
       pointInches: args.pointInches,
       referenceDirectionDegrees,
     }),
+    parallelGuide: null,
   };
 }
 
@@ -130,6 +157,7 @@ function createSnapResult(args: {
   snapTarget: WallFootprintSnapTarget;
   referenceGuides: WallReferenceGuides;
   angleGuide: WallAngleGuide | null;
+  parallelGuide: WallParallelGuide | null;
 }> {
   return {
     pointInches: args.pointInches,
@@ -142,6 +170,7 @@ function createSnapResult(args: {
           pointInches: args.pointInches,
           referenceDirectionDegrees: args.referenceDirectionDegrees,
         }),
+    parallelGuide: null,
   };
 }
 
@@ -150,6 +179,7 @@ function createFreePointSnapResult(pointInches: Point3DInches): Readonly<{
   snapTarget: WallFootprintSnapTarget;
   referenceGuides: WallReferenceGuides;
   angleGuide: WallAngleGuide | null;
+  parallelGuide: WallParallelGuide | null;
 }> {
   return {
     pointInches,
@@ -159,5 +189,6 @@ function createFreePointSnapResult(pointInches: Point3DInches): Readonly<{
     },
     referenceGuides: createEmptyWallReferenceGuides(),
     angleGuide: null,
+    parallelGuide: null,
   };
 }

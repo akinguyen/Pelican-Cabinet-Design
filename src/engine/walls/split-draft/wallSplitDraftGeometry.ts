@@ -70,10 +70,10 @@ function isCutAlongExistingBoundary(args: {
   startAnchor: WallSplitAnchor;
   endAnchor: WallSplitAnchor;
 }): boolean {
-  return (
-    args.startAnchor.edgeStartIndex === args.endAnchor.edgeStartIndex &&
-    args.startAnchor.edgeEndIndex === args.endAnchor.edgeEndIndex
-  );
+  const startEdgeIndices = getWallSplitAnchorBoundaryEdgeIndices(args.startAnchor);
+  const endEdgeIndices = getWallSplitAnchorBoundaryEdgeIndices(args.endAnchor);
+
+  return startEdgeIndices.some((edgeIndex) => endEdgeIndices.includes(edgeIndex));
 }
 
 function isStraightCutInsideFootprint(args: {
@@ -109,13 +109,26 @@ function doesCutCrossBoundary(args: {
     endPointInches: args.endAnchor.pointInches,
   };
 
+  const touchedEdgeIndices = new Set([
+    ...getWallSplitAnchorBoundaryEdgeIndices(args.startAnchor),
+    ...getWallSplitAnchorBoundaryEdgeIndices(args.endAnchor),
+  ]);
+
   return getClosedPolygonEdges(args.placedWall.footprint.boundaryPointsInches).some((edge, edgeIndex) => {
-    if (edgeIndex === args.startAnchor.edgeStartIndex || edgeIndex === args.endAnchor.edgeStartIndex) {
+    if (touchedEdgeIndices.has(edgeIndex)) {
       return false;
     }
 
     return doWallFootprintSegmentsIntersect(cutEdge, edge);
   });
+}
+
+function getWallSplitAnchorBoundaryEdgeIndices(anchor: WallSplitAnchor): readonly number[] {
+  if (anchor.pointKind === "vertex") {
+    return [anchor.edgeStartIndex, anchor.edgeEndIndex];
+  }
+
+  return [anchor.edgeStartIndex];
 }
 
 function insertSplitAnchors(args: {

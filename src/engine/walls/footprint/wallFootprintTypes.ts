@@ -18,5 +18,4 @@ export type BuiltWall = Readonly<{
   footprint: WallFootprint;
   heightInches: number;
   viewableEdgeIndices: readonly number[];
-  edgeMeasurements: readonly WallEdgeMeasurement[];
 }>;

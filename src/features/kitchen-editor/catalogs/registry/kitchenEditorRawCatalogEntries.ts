@@ -1,25 +1,26 @@
+import { parseRawAssemblyDefinition } from "@/engine/assemblies/parseRawAssemblyDefinition";
 import type { RawAssemblyDefinition } from "@/engine/assemblies/rawAssemblyDefinitionTypes";
 import type {
   KitchenEditorCatalogCategoryId,
   KitchenEditorCatalogId,
 } from "./kitchenEditorCatalogConfig";
 
-import panelRawDefinition from "../data/basic-units/panels/panel.json";
-import doorRawDefinition from "../data/basic-units/doors/door.json";
-import drawerRawDefinition from "../data/basic-units/drawers/drawer.json";
-import oneDrawerOneDoorBoxRawDefinition from "../data/basic-units/boxes/one-drawer-one-door-box.json";
-import baseOneDoorCabinetRawDefinition from "../data/cabinets/base-cabinets/base-one-door-cabinet.json";
-import baseTwoDoorCabinetRawDefinition from "../data/cabinets/base-cabinets/base-two-door-cabinet.json";
-import baseOneDoorOneDrawerCabinetRawDefinition from "../data/cabinets/base-cabinets/base-one-door-one-drawer-cabinet.json";
-import baseTwoDoorOneDrawerCabinetRawDefinition from "../data/cabinets/base-cabinets/base-two-door-one-drawer-cabinet.json";
-import baseTwoDoorTwoDrawerCabinetRawDefinition from "../data/cabinets/base-cabinets/base-two-door-two-drawer-cabinet.json";
-import baseTwoDrawerCabinetRawDefinition from "../data/cabinets/base-cabinets/base-two-drawer-cabinet.json";
-import baseThreeDrawerCabinetRawDefinition from "../data/cabinets/base-cabinets/base-three-drawer-cabinet.json";
-import baseFourDrawerCabinetRawDefinition from "../data/cabinets/base-cabinets/base-four-drawer-cabinet.json";
-import wallOneDoorCabinetRawDefinition from "../data/cabinets/wall-cabinets/wall-one-door-cabinet.json";
-import wallTwoDoorCabinetRawDefinition from "../data/cabinets/wall-cabinets/wall-two-door-cabinet.json";
-import pantryOneDoorCabinetRawDefinition from "../data/cabinets/pantry-cabinets/pantry-one-door-cabinet.json";
-import pantryTwoDoorCabinetRawDefinition from "../data/cabinets/pantry-cabinets/pantry-two-door-cabinet.json";
+import panelRawDefinitionData from "../data/basic-units/panels/panel.json";
+import doorRawDefinitionData from "../data/basic-units/doors/door.json";
+import drawerRawDefinitionData from "../data/basic-units/drawers/drawer.json";
+import oneDrawerOneDoorBoxRawDefinitionData from "../data/basic-units/boxes/one-drawer-one-door-box.json";
+import baseOneDoorCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-one-door-cabinet.json";
+import baseTwoDoorCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-two-door-cabinet.json";
+import baseOneDoorOneDrawerCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-one-door-one-drawer-cabinet.json";
+import baseTwoDoorOneDrawerCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-two-door-one-drawer-cabinet.json";
+import baseTwoDoorTwoDrawerCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-two-door-two-drawer-cabinet.json";
+import baseTwoDrawerCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-two-drawer-cabinet.json";
+import baseThreeDrawerCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-three-drawer-cabinet.json";
+import baseFourDrawerCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-four-drawer-cabinet.json";
+import wallOneDoorCabinetRawDefinitionData from "../data/cabinets/wall-cabinets/wall-one-door-cabinet.json";
+import wallTwoDoorCabinetRawDefinitionData from "../data/cabinets/wall-cabinets/wall-two-door-cabinet.json";
+import pantryOneDoorCabinetRawDefinitionData from "../data/cabinets/pantry-cabinets/pantry-one-door-cabinet.json";
+import pantryTwoDoorCabinetRawDefinitionData from "../data/cabinets/pantry-cabinets/pantry-two-door-cabinet.json";
 
 export type KitchenEditorRawCatalogEntry = Readonly<{
   catalogId: KitchenEditorCatalogId;
@@ -31,81 +32,129 @@ export const kitchenEditorRawCatalogEntries = [
   {
     catalogId: "basic-units",
     categoryId: "panels",
-    rawDefinition: panelRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      panelRawDefinitionData,
+      "basic-units/panels/panel.json",
+    ),
   },
   {
     catalogId: "basic-units",
     categoryId: "doors",
-    rawDefinition: doorRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      doorRawDefinitionData,
+      "basic-units/doors/door.json",
+    ),
   },
   {
     catalogId: "basic-units",
     categoryId: "drawers",
-    rawDefinition: drawerRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      drawerRawDefinitionData,
+      "basic-units/drawers/drawer.json",
+    ),
   },
   {
     catalogId: "basic-units",
     categoryId: "boxes",
-    rawDefinition: oneDrawerOneDoorBoxRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      oneDrawerOneDoorBoxRawDefinitionData,
+      "basic-units/boxes/one-drawer-one-door-box.json",
+    ),
   },
   {
     catalogId: "cabinets",
     categoryId: "base-cabinets",
-    rawDefinition: baseOneDoorCabinetRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      baseOneDoorCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-one-door-cabinet.json",
+    ),
   },
   {
     catalogId: "cabinets",
     categoryId: "base-cabinets",
-    rawDefinition: baseTwoDoorCabinetRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      baseTwoDoorCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-two-door-cabinet.json",
+    ),
   },
   {
     catalogId: "cabinets",
     categoryId: "base-cabinets",
-    rawDefinition: baseOneDoorOneDrawerCabinetRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      baseOneDoorOneDrawerCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-one-door-one-drawer-cabinet.json",
+    ),
   },
   {
     catalogId: "cabinets",
     categoryId: "base-cabinets",
-    rawDefinition: baseTwoDoorOneDrawerCabinetRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      baseTwoDoorOneDrawerCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-two-door-one-drawer-cabinet.json",
+    ),
   },
   {
     catalogId: "cabinets",
     categoryId: "base-cabinets",
-    rawDefinition: baseTwoDoorTwoDrawerCabinetRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      baseTwoDoorTwoDrawerCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-two-door-two-drawer-cabinet.json",
+    ),
   },
   {
     catalogId: "cabinets",
     categoryId: "base-cabinets",
-    rawDefinition: baseTwoDrawerCabinetRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      baseTwoDrawerCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-two-drawer-cabinet.json",
+    ),
   },
   {
     catalogId: "cabinets",
     categoryId: "base-cabinets",
-    rawDefinition: baseThreeDrawerCabinetRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      baseThreeDrawerCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-three-drawer-cabinet.json",
+    ),
   },
   {
     catalogId: "cabinets",
     categoryId: "base-cabinets",
-    rawDefinition: baseFourDrawerCabinetRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      baseFourDrawerCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-four-drawer-cabinet.json",
+    ),
   },
   {
     catalogId: "cabinets",
     categoryId: "wall-cabinets",
-    rawDefinition: wallOneDoorCabinetRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      wallOneDoorCabinetRawDefinitionData,
+      "cabinets/wall-cabinets/wall-one-door-cabinet.json",
+    ),
   },
   {
     catalogId: "cabinets",
     categoryId: "wall-cabinets",
-    rawDefinition: wallTwoDoorCabinetRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      wallTwoDoorCabinetRawDefinitionData,
+      "cabinets/wall-cabinets/wall-two-door-cabinet.json",
+    ),
   },
   {
     catalogId: "cabinets",
     categoryId: "pantry-cabinets",
-    rawDefinition: pantryOneDoorCabinetRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      pantryOneDoorCabinetRawDefinitionData,
+      "cabinets/pantry-cabinets/pantry-one-door-cabinet.json",
+    ),
   },
   {
     catalogId: "cabinets",
     categoryId: "pantry-cabinets",
-    rawDefinition: pantryTwoDoorCabinetRawDefinition,
+    rawDefinition: parseRawAssemblyDefinition(
+      pantryTwoDoorCabinetRawDefinitionData,
+      "cabinets/pantry-cabinets/pantry-two-door-cabinet.json",
+    ),
   },
 ] as const satisfies readonly KitchenEditorRawCatalogEntry[];

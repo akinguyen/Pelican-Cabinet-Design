@@ -2,13 +2,8 @@
 
 import { Html, Line } from "@react-three/drei";
 import { Scissors } from "lucide-react";
-import { getPoint3DDistanceInches } from "@/core/geometry/pointTypes";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { WallEdgeMeasurement } from "@/engine/walls/footprint/wallFootprintTypes";
 import type { WallSplitAnchor, WallSplitDraft } from "@/engine/walls/split-draft/wallSplitDraftTypes";
-import { WallAngleGuides } from "./WallAngleGuides";
-import { WallMeasurementGuides } from "./WallMeasurementGuides";
-import { WallReferenceGuides } from "./WallReferenceGuides";
 
 const WALL_SPLIT_Z_INCHES = 2.8;
 const WALL_SPLIT_MARKER_Z_INCHES = 3.2;
@@ -32,22 +27,12 @@ export function WallSplitDraftRenderer({ draft }: WallSplitDraftRendererProps) {
         startPointInches: draft.startAnchor.pointInches,
         endPointInches: draft.hoverAnchor.pointInches,
       };
-  const previewMeasurement = previewCut === null
-    ? []
-    : [createWallSplitMeasurement(previewCut)];
-  const splitPreviewMeasurements = draft.hoverAnchor === null
-    ? []
-    : createSplitEdgeMeasurements(draft.hoverAnchor);
 
   return (
     <group>
       <WallSplitAnchorMarker anchor={draft.startAnchor} />
       <WallSplitAnchorMarker anchor={draft.hoverAnchor} />
       {previewCut !== null ? <WallSplitPreviewCut previewCut={previewCut} /> : null}
-      <WallMeasurementGuides measurements={previewMeasurement} variant="draft" />
-      <WallMeasurementGuides measurements={splitPreviewMeasurements} variant="split-preview" />
-      <WallReferenceGuides referenceGuides={draft.referenceGuides} />
-      <WallAngleGuides angleGuide={draft.angleGuide} />
     </group>
   );
 }
@@ -90,40 +75,4 @@ function WallSplitAnchorMarker({ anchor }: Readonly<{ anchor: WallSplitAnchor | 
       </div>
     </Html>
   );
-}
-
-function createWallSplitMeasurement(args: Readonly<{
-  startPointInches: Point3DInches;
-  endPointInches: Point3DInches;
-}>): WallEdgeMeasurement {
-  return {
-    id: "wall-split-preview-cut-measurement",
-    edgeIndex: 0,
-    startPointInches: args.startPointInches,
-    endPointInches: args.endPointInches,
-    lengthInches: getPoint3DDistanceInches(args.startPointInches, args.endPointInches),
-  };
-}
-
-function createSplitEdgeMeasurements(anchor: WallSplitAnchor): readonly WallEdgeMeasurement[] {
-  if (anchor.pointKind !== "edge-body") {
-    return [];
-  }
-
-  return [
-    {
-      id: "wall-split-edge-preview-start",
-      edgeIndex: 0,
-      startPointInches: anchor.edgeStartPointInches,
-      endPointInches: anchor.pointInches,
-      lengthInches: anchor.splitStartLengthInches,
-    },
-    {
-      id: "wall-split-edge-preview-end",
-      edgeIndex: 1,
-      startPointInches: anchor.pointInches,
-      endPointInches: anchor.edgeEndPointInches,
-      lengthInches: anchor.splitEndLengthInches,
-    },
-  ];
 }

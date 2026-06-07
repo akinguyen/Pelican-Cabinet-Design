@@ -11,3 +11,10 @@ export type WallAngleGuide = Readonly<{
   referenceDirectionDegrees: number;
   directionDegrees: number;
 }>;
+
+export type WallParallelGuide = Readonly<{
+  referenceStartPointInches: Point3DInches;
+  referenceEndPointInches: Point3DInches;
+  previewStartPointInches: Point3DInches;
+  previewEndPointInches: Point3DInches;
+}>;

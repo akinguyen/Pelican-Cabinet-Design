@@ -1,11 +1,9 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedWall } from "../wallTypes";
-import { createEmptyWallReferenceGuides, createWallAngleGuide } from "../draft-guides/wallDraftGuides";
 import { getAllWallFootprintEdgeIndices } from "../footprint/wallFootprintGeometry";
 import { findWallSplitAnchor } from "./wallSplitDraftAnchors";
 import { createWallSplitDraftForTarget } from "./wallSplitDraftFactory";
 import { splitWallFootprintByStraightCut } from "./wallSplitDraftGeometry";
-import { createWallSplitReferenceGuides } from "./wallSplitDraftGuides";
 import type { WallSplitDraft } from "./wallSplitDraftTypes";
 
 export type WallSplitDraftClickResult =
@@ -57,20 +55,6 @@ export function updateWallSplitDraftHover(args: {
   return {
     ...draft,
     hoverAnchor,
-    referenceGuides: hoverAnchor === null
-      ? createEmptyWallReferenceGuides()
-      : createWallSplitReferenceGuides({
-          startPointInches: draft.startAnchor.pointInches,
-          endPointInches: hoverAnchor.pointInches,
-          targetWall,
-        }),
-    angleGuide: hoverAnchor === null
-      ? null
-      : createWallAngleGuide({
-          activePointInches: draft.startAnchor.pointInches,
-          pointInches: hoverAnchor.pointInches,
-          referenceDirectionDegrees: 0,
-        }),
   };
 }
 
@@ -108,8 +92,6 @@ export function clickWallSplitDraftPoint(args: {
         targetPlacedWallId: draft.targetPlacedWallId,
         startAnchor: draft.hoverAnchor,
         hoverAnchor: null,
-        referenceGuides: createEmptyWallReferenceGuides(),
-        angleGuide: null,
       },
     };
   }
