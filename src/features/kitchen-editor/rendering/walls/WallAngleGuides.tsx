@@ -3,9 +3,11 @@
 import { Html, Line } from "@react-three/drei";
 import type { WallAngleGuide } from "@/engine/walls/draft-guides/wallDraftGuideTypes";
 
-const ANGLE_GUIDE_Z_INCHES = 1.6;
-const ANGLE_LABEL_OFFSET_INCHES = 14;
-const ANGLE_GUIDE_RADIUS_INCHES = 20;
+const ANGLE_GUIDE_Z_INCHES = 0.5;
+const ANGLE_LABEL_OFFSET_INCHES = 8;
+const ANGLE_GUIDE_MIN_RADIUS_INCHES = 6;
+const ANGLE_GUIDE_MAX_RADIUS_INCHES = 20;
+const ANGLE_GUIDE_RADIUS_SCALE = 0.35;
 const ANGLE_GUIDE_SEGMENTS = 24;
 
 type WallAngleGuidesProps = Readonly<{
@@ -17,33 +19,19 @@ export function WallAngleGuides({ angleGuide }: WallAngleGuidesProps) {
     return null;
   }
 
-  const directionRadians = (angleGuide.directionDegrees * Math.PI) / 180;
-  const labelDirectionDegrees = angleGuide.referenceDirectionDegrees + angleGuide.angleDegrees / 2;
+  const arcRadiusInches = getAngleArcRadiusInches(angleGuide);
+  const signedDeltaDegrees = normalizeSignedAngleDegrees(
+    angleGuide.previewDirectionDegrees - angleGuide.referenceDirectionDegrees,
+  );
+  const labelDirectionDegrees = angleGuide.referenceDirectionDegrees + signedDeltaDegrees / 2;
   const labelDirectionRadians = (labelDirectionDegrees * Math.PI) / 180;
-  const labelXInches = angleGuide.centerPointInches.xInches + Math.cos(labelDirectionRadians) * ANGLE_LABEL_OFFSET_INCHES;
-  const labelYInches = angleGuide.centerPointInches.yInches + Math.sin(labelDirectionRadians) * ANGLE_LABEL_OFFSET_INCHES;
-  const arcPoints = createAngleArcPoints(angleGuide);
-  const directionGuideEnd = [
-    angleGuide.centerPointInches.xInches + Math.cos(directionRadians) * ANGLE_GUIDE_RADIUS_INCHES,
-    angleGuide.centerPointInches.yInches + Math.sin(directionRadians) * ANGLE_GUIDE_RADIUS_INCHES,
-    ANGLE_GUIDE_Z_INCHES,
-  ] as const;
-  const centerPoint = [
-    angleGuide.centerPointInches.xInches,
-    angleGuide.centerPointInches.yInches,
-    ANGLE_GUIDE_Z_INCHES,
-  ] as const;
+  const labelDistanceInches = arcRadiusInches + ANGLE_LABEL_OFFSET_INCHES;
+  const labelXInches = angleGuide.centerPointInches.xInches + Math.cos(labelDirectionRadians) * labelDistanceInches;
+  const labelYInches = angleGuide.centerPointInches.yInches + Math.sin(labelDirectionRadians) * labelDistanceInches;
+  const arcPoints = createAngleArcPoints({ angleGuide, arcRadiusInches, signedDeltaDegrees });
 
   return (
     <group>
-      <Line
-        points={[centerPoint, directionGuideEnd]}
-        color="#64748b"
-        lineWidth={1}
-        dashed
-        dashScale={16}
-        gapSize={6}
-      />
       <Line points={arcPoints} color="#64748b" lineWidth={1.25} />
       <Html
         center
@@ -58,20 +46,38 @@ export function WallAngleGuides({ angleGuide }: WallAngleGuidesProps) {
   );
 }
 
-function createAngleArcPoints(angleGuide: WallAngleGuide): readonly [number, number, number][] {
-  const startDegrees = angleGuide.referenceDirectionDegrees;
-  const endDegrees = angleGuide.directionDegrees;
-  const deltaDegrees = normalizeSignedAngleDegrees(endDegrees - startDegrees);
+function getAngleArcRadiusInches(angleGuide: WallAngleGuide): number {
+  const shortestEdgeLengthInches = Math.min(
+    angleGuide.referenceLengthInches,
+    angleGuide.previewLengthInches,
+  );
+
+  if (shortestEdgeLengthInches <= 0) {
+    return 0;
+  }
+
+  const preferredRadiusInches = shortestEdgeLengthInches * ANGLE_GUIDE_RADIUS_SCALE;
+  return Math.min(
+    shortestEdgeLengthInches,
+    Math.max(ANGLE_GUIDE_MIN_RADIUS_INCHES, Math.min(preferredRadiusInches, ANGLE_GUIDE_MAX_RADIUS_INCHES)),
+  );
+}
+
+function createAngleArcPoints(args: {
+  angleGuide: WallAngleGuide;
+  arcRadiusInches: number;
+  signedDeltaDegrees: number;
+}): readonly [number, number, number][] {
   const points: [number, number, number][] = [];
 
   for (let segmentIndex = 0; segmentIndex <= ANGLE_GUIDE_SEGMENTS; segmentIndex += 1) {
     const progress = segmentIndex / ANGLE_GUIDE_SEGMENTS;
-    const angleDegrees = startDegrees + deltaDegrees * progress;
+    const angleDegrees = args.angleGuide.referenceDirectionDegrees + args.signedDeltaDegrees * progress;
     const angleRadians = (angleDegrees * Math.PI) / 180;
 
     points.push([
-      angleGuide.centerPointInches.xInches + Math.cos(angleRadians) * ANGLE_GUIDE_RADIUS_INCHES,
-      angleGuide.centerPointInches.yInches + Math.sin(angleRadians) * ANGLE_GUIDE_RADIUS_INCHES,
+      args.angleGuide.centerPointInches.xInches + Math.cos(angleRadians) * args.arcRadiusInches,
+      args.angleGuide.centerPointInches.yInches + Math.sin(angleRadians) * args.arcRadiusInches,
       ANGLE_GUIDE_Z_INCHES,
     ]);
   }

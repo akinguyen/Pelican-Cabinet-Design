@@ -10,7 +10,6 @@ export function createEmptyWallFootprintDraft(heightInches: number): WallFootpri
     snapTarget: null,
     referenceGuides: createEmptyWallReferenceGuides(),
     angleGuide: null,
-    parallelGuide: null,
     heightInches,
   };
 }

@@ -1,4 +1,5 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
+import { getPoint3DDistanceInches } from "@/core/geometry/pointTypes";
 import type { WallAngleGuide, WallReferenceGuides } from "./wallDraftGuideTypes";
 
 export function createEmptyWallReferenceGuides(): WallReferenceGuides {
@@ -11,21 +12,30 @@ export function createEmptyWallReferenceGuides(): WallReferenceGuides {
 export function createWallAngleGuide(args: {
   activePointInches: Point3DInches;
   pointInches: Point3DInches;
-  referenceDirectionDegrees: number;
+  referencePointInches: Point3DInches | null;
 }): WallAngleGuide | null {
-  const directionDegrees = getDirectionDegrees(args.activePointInches, args.pointInches);
-
-  if (directionDegrees === null) {
+  if (args.referencePointInches === null) {
     return null;
   }
 
-  const angleDegrees = Math.abs(normalizeAngleDegrees(directionDegrees - args.referenceDirectionDegrees));
+  const referenceDirectionDegrees = getDirectionDegrees(args.activePointInches, args.referencePointInches);
+  const previewDirectionDegrees = getDirectionDegrees(args.activePointInches, args.pointInches);
+
+  if (referenceDirectionDegrees === null || previewDirectionDegrees === null) {
+    return null;
+  }
+
+  const angleDegrees = Math.abs(normalizeAngleDegrees(previewDirectionDegrees - referenceDirectionDegrees));
 
   return {
     centerPointInches: args.activePointInches,
+    referencePointInches: args.referencePointInches,
+    previewPointInches: args.pointInches,
     angleDegrees,
-    referenceDirectionDegrees: args.referenceDirectionDegrees,
-    directionDegrees,
+    referenceDirectionDegrees,
+    previewDirectionDegrees,
+    referenceLengthInches: getPoint3DDistanceInches(args.activePointInches, args.referencePointInches),
+    previewLengthInches: getPoint3DDistanceInches(args.activePointInches, args.pointInches),
   };
 }
 
