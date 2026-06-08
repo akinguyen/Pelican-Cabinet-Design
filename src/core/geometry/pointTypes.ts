@@ -1,3 +1,5 @@
+import { degreesToUserFacingZRadians } from "./rotationTypes";
+
 export type Point3DInches = Readonly<{
   xInches: number;
   yInches: number;
@@ -19,7 +21,7 @@ export function rotatePointAroundZInches(
   pointInches: Point3DInches,
   zDegrees: number,
 ): Point3DInches {
-  const radians = (zDegrees * Math.PI) / 180;
+  const radians = degreesToUserFacingZRadians(zDegrees);
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
 

@@ -4,6 +4,7 @@ import { OrthographicCamera, PerspectiveCamera } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
+import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { getPlacedWallElevationWallViews } from "@/engine/walls/elevation/wallElevationGeometry";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { ElevationCameraControls } from "../elevation/ElevationCameraControls";
@@ -12,10 +13,15 @@ import { PerspectiveCameraControls } from "../perspective/PerspectiveCameraContr
 import { PerspectiveViewGizmo } from "../perspective/PerspectiveViewGizmo";
 import { SceneAxisGizmo } from "./SceneAxisGizmo";
 import { DesignSceneRenderer } from "./DesignSceneRenderer";
-import { EditorLighting } from "./EditorLighting";
-import type { SceneViewMode } from "./sceneViewModeTypes";
+import { DesignSceneLighting } from "./DesignSceneLighting";
+import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { GroundGrid } from "./GroundGrid";
 import { PlacementSurface } from "./PlacementSurface";
+import {
+  DEFAULT_FLOOR_PLAN_CAMERA_POSITION_INCHES,
+  DEFAULT_FLOOR_PLAN_ZOOM,
+  DEFAULT_PERSPECTIVE_CAMERA_POSITION_INCHES,
+} from "@/engine/scene/sceneCameraStateTypes";
 
 export function DesignSceneCanvas() {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -57,10 +63,10 @@ export function DesignSceneCanvas() {
     >
       <Canvas onPointerMissed={handlePointerMissed}>
         <color attach="background" args={["#f8fafc"]} />
-        {activeSceneViewMode === "perspective" ? <PerspectiveCamera makeDefault position={[96, -144, 96]} fov={45} /> : null}
-        {activeSceneViewMode === "floor-plan" ? <OrthographicCamera makeDefault position={[0, 0, 600]} zoom={2} /> : null}
+        {activeSceneViewMode === "perspective" ? <PerspectiveCamera makeDefault position={toCanvasPosition(DEFAULT_PERSPECTIVE_CAMERA_POSITION_INCHES)} fov={45} /> : null}
+        {activeSceneViewMode === "floor-plan" ? <OrthographicCamera makeDefault position={toCanvasPosition(DEFAULT_FLOOR_PLAN_CAMERA_POSITION_INCHES)} up={[0, -1, 0]} zoom={DEFAULT_FLOOR_PLAN_ZOOM} /> : null}
         {activeSceneViewMode === "elevation" ? <OrthographicCamera makeDefault position={[0, 360, 36]} zoom={2} /> : null}
-        <EditorLighting />
+        <DesignSceneLighting />
         <GroundGrid />
         {activeSceneViewMode === "perspective" ? <SceneAxisGizmo /> : null}
         {activeSceneViewMode !== "elevation" || hasElevationViews ? <DesignSceneRenderer /> : null}
@@ -118,4 +124,8 @@ function getCanvasCursorClassName(
   }
 
   return "cursor-grab active:cursor-grabbing";
+}
+
+function toCanvasPosition(pointInches: Point3DInches): [number, number, number] {
+  return [pointInches.xInches, pointInches.yInches, pointInches.zInches];
 }

@@ -2,14 +2,13 @@
 
 import { Line } from "@react-three/drei";
 import type { BuiltWall } from "@/engine/walls/footprint/wallFootprintTypes";
-import { createFlatBoundaryEdgePoints } from "./wallRenderingGeometry";
+import { createTopBoundaryEdgePoints } from "./wallRenderingGeometry";
 
-const SELECTED_WALL_BOUNDARY_OVERLAY_Z_INCHES = 2.2;
 
 export function SelectedWallBoundaryOverlay({ builtWall }: Readonly<{ builtWall: BuiltWall }>) {
-  const boundaryEdgePoints = createFlatBoundaryEdgePoints({
+  const boundaryEdgePoints = createTopBoundaryEdgePoints({
     polygonInches: builtWall.footprint.boundaryPointsInches,
-    zInches: SELECTED_WALL_BOUNDARY_OVERLAY_Z_INCHES,
+    heightInches: builtWall.heightInches,
   });
   const viewableEdgeIndexSet = new Set(builtWall.viewableEdgeIndices);
 

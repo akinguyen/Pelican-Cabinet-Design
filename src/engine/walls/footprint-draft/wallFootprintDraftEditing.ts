@@ -45,7 +45,6 @@ export function updateWallFootprintDraftHover(args: {
     snapTarget: snapResult.snapTarget,
     referenceGuides: snapResult.referenceGuides,
     angleGuide: snapResult.angleGuide,
-    parallelGuide: snapResult.parallelGuide,
   };
 }
 

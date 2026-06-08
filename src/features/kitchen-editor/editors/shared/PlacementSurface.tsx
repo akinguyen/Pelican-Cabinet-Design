@@ -4,7 +4,7 @@ import type { ThreeEvent } from "@react-three/fiber";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { getAssemblyDistanceFromFloorInches } from "@/engine/assemblies/placedAssemblyTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { SceneViewMode } from "./sceneViewModeTypes";
+import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 
 const PLACEMENT_SURFACE_SIZE_INCHES = 3200;
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { SceneViewMode } from "../editors/shared/sceneViewModeTypes";
+import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 
 const sceneViewModeTabs: readonly Readonly<{ id: SceneViewMode; label: string }>[] = [
   { id: "perspective", label: "Perspective" },

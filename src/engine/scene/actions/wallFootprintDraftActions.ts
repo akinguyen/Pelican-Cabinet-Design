@@ -89,6 +89,10 @@ export function createWallFootprintDraftActions(
     },
 
     exitWallFootprintDraftTool() {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       set((state) => ({
         activeToolbarTool: null,
         designScene: {

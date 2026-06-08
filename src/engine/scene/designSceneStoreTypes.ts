@@ -2,18 +2,18 @@ import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { WallSettings } from "@/engine/walls/wallTypes";
-import type { KitchenEditorActiveToolbarTool } from "@/features/kitchen-editor/editor-toolbar/kitchenEditorToolbarTypes";
+import type { KitchenEditorActiveToolbarTool } from "@/engine/scene/sceneEditingToolTypes";
 import type {
   SceneCameraCommand,
   SceneCameraCommandTool,
-} from "@/features/kitchen-editor/editors/shared/sceneCameraCommandTypes";
+} from "@/engine/scene/sceneCameraCommandTypes";
 import type {
   SceneCameraStates,
   ElevationCameraState,
   OrthographicCameraState,
   PerspectiveCameraState,
-} from "@/features/kitchen-editor/editors/shared/sceneCameraStateTypes";
-import type { SceneViewMode } from "@/features/kitchen-editor/editors/shared/sceneViewModeTypes";
+} from "@/engine/scene/sceneCameraStateTypes";
+import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { DesignScene } from "./designSceneTypes";
 import type { KitchenWorkspaceMode } from "./kitchenWorkspaceModeTypes";
 import type { AssemblyDragState } from "./sceneDragTypes";

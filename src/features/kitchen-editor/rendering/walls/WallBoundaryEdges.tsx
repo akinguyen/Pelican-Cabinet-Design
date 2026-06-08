@@ -3,7 +3,6 @@
 import { Line } from "@react-three/drei";
 import type { BuiltWall } from "@/engine/walls/footprint/wallFootprintTypes";
 import {
-  createFlatBoundaryEdgePoints,
   createTopBoundaryEdgePoints,
   createVerticalBoundaryEdgePoints,
   WALL_TOP_BOUNDARY_RENDER_OFFSET_INCHES,
@@ -11,7 +10,6 @@ import {
 
 const WALL_BOUNDARY_LINE_COLOR_HEX = "#020617";
 const WALL_BOUNDARY_LINE_WIDTH_PIXELS = 2;
-const WALL_BOTTOM_BOUNDARY_RENDER_Z_INCHES = 0.06;
 
 type WallBoundaryEdgesProps = Readonly<{
   builtWall: BuiltWall;
@@ -23,20 +21,16 @@ export function WallBoundaryEdges({ builtWall, isSelected }: WallBoundaryEdgesPr
     polygonInches: builtWall.footprint.boundaryPointsInches,
     heightInches: builtWall.heightInches,
   });
-  const bottomBoundaryEdgePoints = createFlatBoundaryEdgePoints({
-    polygonInches: builtWall.footprint.boundaryPointsInches,
-    zInches: WALL_BOTTOM_BOUNDARY_RENDER_Z_INCHES,
-  });
   const verticalBoundaryEdgePoints = createVerticalBoundaryEdgePoints({
     polygonInches: builtWall.footprint.boundaryPointsInches,
-    bottomZInches: WALL_BOTTOM_BOUNDARY_RENDER_Z_INCHES,
+    bottomZInches: 0,
     topZInches: builtWall.heightInches + WALL_TOP_BOUNDARY_RENDER_OFFSET_INCHES,
   });
   const renderOrder = isSelected ? 11 : 2;
 
   return (
     <group renderOrder={renderOrder}>
-      {[...bottomBoundaryEdgePoints, ...topBoundaryEdgePoints, ...verticalBoundaryEdgePoints].map(
+      {[...topBoundaryEdgePoints, ...verticalBoundaryEdgePoints].map(
         (boundaryLinePoints, boundaryEdgeIndex) => (
           <Line
             key={`wall-boundary-edge-${builtWall.id}-${boundaryEdgeIndex}`}

@@ -81,6 +81,10 @@ export function createAssemblyPlacementActions(
     },
 
     cancelActiveSceneOperation() {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       set((state) => ({
         designScene: {
           ...state.designScene,

@@ -1,6 +1,6 @@
 import { Maximize, Minus, PencilLine, Plus, Scissors } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { SceneCameraCommandTool } from "../editors/shared/sceneCameraCommandTypes";
+import type { SceneCameraCommandTool } from "@/engine/scene/sceneCameraCommandTypes";
 import type {
   KitchenEditorActiveToolbarTool,
   KitchenEditorToolbarActionId,

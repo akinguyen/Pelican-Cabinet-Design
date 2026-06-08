@@ -528,7 +528,7 @@
             "ref": "size.widthInches"
           },
           "right": {
-            "value": -0.12
+            "value": -0.09
           }
         },
         "yInches": {
@@ -633,7 +633,7 @@
             "ref": "size.widthInches"
           },
           "right": {
-            "value": -0.06
+            "value": -0.03
           }
         },
         "yInches": {
@@ -738,7 +738,7 @@
             "ref": "size.widthInches"
           },
           "right": {
-            "value": 0
+            "value": 0.03
           }
         },
         "yInches": {
@@ -843,112 +843,7 @@
             "ref": "size.widthInches"
           },
           "right": {
-            "value": 0.06
-          }
-        },
-        "yInches": {
-          "op": "subtract",
-          "left": {
-            "op": "divide",
-            "left": {
-              "ref": "size.depthInches"
-            },
-            "right": {
-              "value": 2
-            }
-          },
-          "right": {
-            "value": 0.35
-          }
-        },
-        "zInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "negate",
-              "value": {
-                "op": "divide",
-                "left": {
-                  "ref": "size.heightInches"
-                },
-                "right": {
-                  "value": 2
-                }
-              }
-            },
-            {
-              "op": "divide",
-              "left": {
-                "value": 2.4
-              },
-              "right": {
-                "value": 2
-              }
-            }
-          ]
-        }
-      },
-      "sizeInches": {
-        "widthInches": {
-          "op": "clamp",
-          "value": {
-            "op": "multiply",
-            "left": {
-              "ref": "size.widthInches"
-            },
-            "right": {
-              "value": 0.025
-            }
-          },
-          "min": {
-            "value": 0.55
-          },
-          "max": {
-            "value": 0.85
-          }
-        },
-        "depthInches": {
-          "value": 0.7
-        },
-        "heightInches": {
-          "op": "clamp",
-          "value": {
-            "op": "multiply",
-            "left": {
-              "ref": "size.widthInches"
-            },
-            "right": {
-              "value": 0.025
-            }
-          },
-          "min": {
-            "value": 0.55
-          },
-          "max": {
-            "value": 0.85
-          }
-        }
-      },
-      "material": {
-        "colorOptionId": "detail-color"
-      },
-      "role": "control-button"
-    },
-    {
-      "kind": "primitive-geometry",
-      "id": "control-button-5",
-      "label": "Control Button 5",
-      "geometry": {
-        "kind": "cylinder"
-      },
-      "localPositionInches": {
-        "xInches": {
-          "op": "multiply",
-          "left": {
-            "ref": "size.widthInches"
-          },
-          "right": {
-            "value": 0.12
+            "value": 0.09
           }
         },
         "yInches": {

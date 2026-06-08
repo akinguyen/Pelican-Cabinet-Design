@@ -2,7 +2,7 @@ import type {
   ElevationCameraState,
   OrthographicCameraState,
   PerspectiveCameraState,
-} from "@/features/kitchen-editor/editors/shared/sceneCameraStateTypes";
+} from "@/engine/scene/sceneCameraStateTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
 export function createSceneCameraStateActions(

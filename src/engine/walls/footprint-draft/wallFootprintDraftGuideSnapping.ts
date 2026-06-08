@@ -1,7 +1,7 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedWall } from "../wallTypes";
 import type { WallAngleGuide, WallReferenceGuides } from "../draft-guides/wallDraftGuideTypes";
-import { getDirectionDegrees, normalizeAngleDegrees } from "../draft-guides/wallDraftGuides";
+import { createWallAngleGuide, getDirectionDegrees, normalizeAngleDegrees } from "../draft-guides/wallDraftGuides";
 import type { WallFootprintDraft } from "./wallFootprintDraftTypes";
 import { getActiveWallFootprintDraftPoint } from "./wallFootprintDraftSelectors";
 
@@ -11,73 +11,77 @@ const WALL_FOOTPRINT_DRAFT_ANGLE_SNAP_THRESHOLD_DEGREES = 5;
 
 export function snapToHorizontalVerticalGuides(args: {
   pointInches: Point3DInches;
-  activePointInches: Point3DInches;
   snapPointsInches: readonly Point3DInches[];
 }): Readonly<{
   pointInches: Point3DInches;
   referenceGuides: WallReferenceGuides;
 }> | null {
-  let snappedPointInches: Point3DInches | null = null;
-  let referenceGuides: WallReferenceGuides | null = null;
-  let bestDistanceInches = Number.POSITIVE_INFINITY;
+  let verticalGuide: number | null = null;
+  let horizontalGuide: number | null = null;
+  let nearestVerticalDistanceInches = Number.POSITIVE_INFINITY;
+  let nearestHorizontalDistanceInches = Number.POSITIVE_INFINITY;
 
   args.snapPointsInches.forEach((snapPointInches) => {
     const deltaXInches = Math.abs(args.pointInches.xInches - snapPointInches.xInches);
     const deltaYInches = Math.abs(args.pointInches.yInches - snapPointInches.yInches);
 
-    if (deltaXInches <= WALL_FOOTPRINT_DRAFT_REFERENCE_SNAP_THRESHOLD_INCHES && deltaXInches < bestDistanceInches) {
-      bestDistanceInches = deltaXInches;
-      snappedPointInches = {
-        ...args.pointInches,
-        xInches: snapPointInches.xInches,
-      };
-      referenceGuides = {
-        horizontalGuide: null,
-        verticalGuide: snapPointInches.xInches,
-      };
+    if (
+      deltaXInches <= WALL_FOOTPRINT_DRAFT_REFERENCE_SNAP_THRESHOLD_INCHES &&
+      deltaXInches < nearestVerticalDistanceInches
+    ) {
+      nearestVerticalDistanceInches = deltaXInches;
+      verticalGuide = snapPointInches.xInches;
     }
 
-    if (deltaYInches <= WALL_FOOTPRINT_DRAFT_REFERENCE_SNAP_THRESHOLD_INCHES && deltaYInches < bestDistanceInches) {
-      bestDistanceInches = deltaYInches;
-      snappedPointInches = {
-        ...args.pointInches,
-        yInches: snapPointInches.yInches,
-      };
-      referenceGuides = {
-        horizontalGuide: snapPointInches.yInches,
-        verticalGuide: null,
-      };
+    if (
+      deltaYInches <= WALL_FOOTPRINT_DRAFT_REFERENCE_SNAP_THRESHOLD_INCHES &&
+      deltaYInches < nearestHorizontalDistanceInches
+    ) {
+      nearestHorizontalDistanceInches = deltaYInches;
+      horizontalGuide = snapPointInches.yInches;
     }
   });
 
-  if (snappedPointInches === null || referenceGuides === null) {
+  if (verticalGuide === null && horizontalGuide === null) {
     return null;
   }
 
   return {
-    pointInches: snappedPointInches,
-    referenceGuides,
+    pointInches: {
+      xInches: verticalGuide ?? args.pointInches.xInches,
+      yInches: horizontalGuide ?? args.pointInches.yInches,
+      zInches: 0,
+    },
+    referenceGuides: {
+      horizontalGuide,
+      verticalGuide,
+    },
   };
 }
 
 export function snapToAngleGuide(args: {
   pointInches: Point3DInches;
   activePointInches: Point3DInches;
-  referenceDirectionDegrees: number;
+  referencePointInches: Point3DInches | null;
 }): Readonly<{
   pointInches: Point3DInches;
   angleGuide: WallAngleGuide;
 }> | null {
-  const rawDirectionDegrees = getDirectionDegrees(args.activePointInches, args.pointInches);
+  if (args.referencePointInches === null) {
+    return null;
+  }
 
-  if (rawDirectionDegrees === null) {
+  const previewDirectionDegrees = getDirectionDegrees(args.activePointInches, args.pointInches);
+  const referenceDirectionDegrees = getDirectionDegrees(args.activePointInches, args.referencePointInches);
+
+  if (previewDirectionDegrees === null || referenceDirectionDegrees === null) {
     return null;
   }
 
   const deltaXInches = args.pointInches.xInches - args.activePointInches.xInches;
   const deltaYInches = args.pointInches.yInches - args.activePointInches.yInches;
   const lengthInches = Math.hypot(deltaXInches, deltaYInches);
-  const rawAngleDegrees = normalizeAngleDegrees(rawDirectionDegrees - args.referenceDirectionDegrees);
+  const rawAngleDegrees = normalizeAngleDegrees(previewDirectionDegrees - referenceDirectionDegrees);
   const snappedAngleDegrees = Math.round(rawAngleDegrees / WALL_FOOTPRINT_DRAFT_ANGLE_SNAP_DEGREES) * WALL_FOOTPRINT_DRAFT_ANGLE_SNAP_DEGREES;
   const angleDifferenceDegrees = Math.abs(normalizeAngleDegrees(rawAngleDegrees - snappedAngleDegrees));
 
@@ -85,40 +89,42 @@ export function snapToAngleGuide(args: {
     return null;
   }
 
-  const directionDegrees = args.referenceDirectionDegrees + snappedAngleDegrees;
-  const directionRadians = (directionDegrees * Math.PI) / 180;
+  const snappedDirectionDegrees = referenceDirectionDegrees + snappedAngleDegrees;
+  const snappedDirectionRadians = (snappedDirectionDegrees * Math.PI) / 180;
   const pointInches = {
-    xInches: args.activePointInches.xInches + Math.cos(directionRadians) * lengthInches,
-    yInches: args.activePointInches.yInches + Math.sin(directionRadians) * lengthInches,
+    xInches: args.activePointInches.xInches + Math.cos(snappedDirectionRadians) * lengthInches,
+    yInches: args.activePointInches.yInches + Math.sin(snappedDirectionRadians) * lengthInches,
     zInches: 0,
   };
+  const angleGuide = createWallAngleGuide({
+    activePointInches: args.activePointInches,
+    pointInches,
+    referencePointInches: args.referencePointInches,
+  });
+
+  if (angleGuide === null) {
+    return null;
+  }
 
   return {
     pointInches,
-    angleGuide: {
-      centerPointInches: args.activePointInches,
-      angleDegrees: Math.abs(normalizeAngleDegrees(snappedAngleDegrees)),
-      referenceDirectionDegrees: args.referenceDirectionDegrees,
-      directionDegrees,
-    },
+    angleGuide,
   };
 }
 
-export function getWallFootprintDraftReferenceDirectionDegrees(draft: WallFootprintDraft): number {
+export function getWallFootprintDraftReferencePointInches(
+  draft: WallFootprintDraft,
+): Point3DInches | null {
   const activePoint = getActiveWallFootprintDraftPoint(draft);
 
   if (activePoint === null || draft.points.length < 2) {
-    return 0;
+    return null;
   }
 
   const activePointIndex = draft.points.findIndex((point) => point.id === activePoint.id);
   const previousPoint = activePointIndex > 0 ? draft.points[activePointIndex - 1] : null;
 
-  if (previousPoint === null) {
-    return 0;
-  }
-
-  return getDirectionDegrees(previousPoint.pointInches, activePoint.pointInches) ?? 0;
+  return previousPoint?.pointInches ?? null;
 }
 
 export function getWallFootprintDraftReferenceSnapPoints(args: {

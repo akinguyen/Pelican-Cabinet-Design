@@ -5,6 +5,8 @@ import type { WallReferenceGuides } from "@/engine/walls/draft-guides/wallDraftG
 
 const GUIDE_Z_INCHES = 0.3;
 const GUIDE_HALF_LENGTH_INCHES = 1600;
+const GUIDE_RENDER_ORDER = 90;
+const GUIDE_COLOR = "#ef4444";
 
 type WallReferenceGuidesProps = Readonly<{
   referenceGuides: WallReferenceGuides;
@@ -19,11 +21,14 @@ export function WallReferenceGuides({ referenceGuides }: WallReferenceGuidesProp
             [-GUIDE_HALF_LENGTH_INCHES, referenceGuides.horizontalGuide, GUIDE_Z_INCHES],
             [GUIDE_HALF_LENGTH_INCHES, referenceGuides.horizontalGuide, GUIDE_Z_INCHES],
           ]}
-          color="#38bdf8"
-          lineWidth={1}
+          color={GUIDE_COLOR}
+          lineWidth={1.5}
           dashed
-          dashScale={20}
+          dashSize={8}
           gapSize={8}
+          dashScale={1}
+          depthTest={false}
+          renderOrder={GUIDE_RENDER_ORDER}
         />
       ) : null}
       {referenceGuides.verticalGuide !== null ? (
@@ -32,11 +37,14 @@ export function WallReferenceGuides({ referenceGuides }: WallReferenceGuidesProp
             [referenceGuides.verticalGuide, -GUIDE_HALF_LENGTH_INCHES, GUIDE_Z_INCHES],
             [referenceGuides.verticalGuide, GUIDE_HALF_LENGTH_INCHES, GUIDE_Z_INCHES],
           ]}
-          color="#38bdf8"
-          lineWidth={1}
+          color={GUIDE_COLOR}
+          lineWidth={1.5}
           dashed
-          dashScale={20}
+          dashSize={8}
           gapSize={8}
+          dashScale={1}
+          depthTest={false}
+          renderOrder={GUIDE_RENDER_ORDER}
         />
       ) : null}
     </>

@@ -1,5 +1,5 @@
 import { defaultWallSettings } from "@/engine/walls/wallTypes";
-import { createDefaultSceneCameraStates } from "@/features/kitchen-editor/editors/shared/sceneCameraStateTypes";
+import { createDefaultSceneCameraStates } from "@/engine/scene/sceneCameraStateTypes";
 import { createEmptyDesignScene } from "./designSceneTypes";
 import type { DesignSceneStore } from "./designSceneStoreTypes";
 

@@ -13,9 +13,9 @@ export function SceneAxisGizmo() {
         <sphereGeometry args={[1.4, 16, 16]} />
         <meshBasicMaterial color="#111827" />
       </mesh>
-      <Line points={[[0, 0, 0], [AXIS_LENGTH_INCHES, 0, 0]]} color="#ef4444" lineWidth={2} />
-      <Line points={[[0, 0, 0], [0, AXIS_LENGTH_INCHES, 0]]} color="#22c55e" lineWidth={2} />
-      <Line points={[[0, 0, 0], [0, 0, AXIS_LENGTH_INCHES]]} color="#3b82f6" lineWidth={2} />
+      <Line points={[[0, 0, 0], [AXIS_LENGTH_INCHES, 0, 0]]} color="#22c55e" lineWidth={2} />
+      <Line points={[[0, 0, 0], [0, AXIS_LENGTH_INCHES, 0]]} color="#3b82f6" lineWidth={2} />
+      <Line points={[[0, 0, 0], [0, 0, AXIS_LENGTH_INCHES]]} color="#ef4444" lineWidth={2} />
       <AxisLabel position={[AXIS_LENGTH_INCHES + AXIS_LABEL_OFFSET_INCHES, 0, 0]} label="X" />
       <AxisLabel position={[0, AXIS_LENGTH_INCHES + AXIS_LABEL_OFFSET_INCHES, 0]} label="Y" />
       <AxisLabel position={[0, 0, AXIS_LENGTH_INCHES + AXIS_LABEL_OFFSET_INCHES]} label="Z" />

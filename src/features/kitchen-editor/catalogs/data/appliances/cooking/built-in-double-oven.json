@@ -1,0 +1,1176 @@
+{
+  "id": "built-in-double-oven",
+  "name": "Built-In Double Oven",
+  "catalogCategoryId": "appliances/cooking",
+  "defaultDistanceFromFloorInches": 24,
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 30,
+      "optionsInches": [
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        },
+        {
+          "valueInches": 27,
+          "label": "27 in"
+        },
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
+        {
+          "valueInches": 33,
+          "label": "33 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 18,
+      "maxValueInches": 42,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 24,
+      "optionsInches": [
+        {
+          "valueInches": 22,
+          "label": "22 in"
+        },
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        },
+        {
+          "valueInches": 26,
+          "label": "26 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 18,
+      "maxValueInches": 30,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 50,
+      "optionsInches": [
+        {
+          "valueInches": 42,
+          "label": "42 in"
+        },
+        {
+          "valueInches": 46,
+          "label": "46 in"
+        },
+        {
+          "valueInches": 50,
+          "label": "50 in"
+        },
+        {
+          "valueInches": 54,
+          "label": "54 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 30,
+      "maxValueInches": 72,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "body-color",
+          "label": "Body color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#d1d5db",
+          "choices": [
+            {
+              "value": "#d1d5db",
+              "label": "Light gray"
+            },
+            {
+              "value": "#e5e7eb",
+              "label": "Soft light gray"
+            },
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            }
+          ]
+        },
+        {
+          "id": "trim-color",
+          "label": "Trim color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#6b7280",
+          "choices": [
+            {
+              "value": "#6b7280",
+              "label": "Dark gray"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            },
+            {
+              "value": "#cbd5e1",
+              "label": "Soft silver"
+            },
+            {
+              "value": "#111827",
+              "label": "Near black"
+            }
+          ]
+        },
+        {
+          "id": "glass-color",
+          "label": "Glass color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#111827",
+          "choices": [
+            {
+              "value": "#111827",
+              "label": "Dark glass"
+            },
+            {
+              "value": "#1f2937",
+              "label": "Gray glass"
+            },
+            {
+              "value": "#334155",
+              "label": "Slate glass"
+            }
+          ]
+        },
+        {
+          "id": "detail-color",
+          "label": "Detail color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#1f2937",
+          "choices": [
+            {
+              "value": "#1f2937",
+              "label": "Dark gray"
+            },
+            {
+              "value": "#111827",
+              "label": "Near black"
+            },
+            {
+              "value": "#4b5563",
+              "label": "Medium gray"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "double-oven-body",
+      "label": "Double Oven Body",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "negate",
+          "value": {
+            "op": "divide",
+            "left": {
+              "value": 1.2
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 1.2
+          }
+        },
+        "heightInches": {
+          "ref": "size.heightInches"
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "appliance-body"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "double-oven-face-panel",
+      "label": "Double Oven Face Panel",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              },
+              "right": {
+                "value": 1.2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.35
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.96
+          }
+        },
+        "depthInches": {
+          "value": 0.35
+        },
+        "heightInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "value": 0.94
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "front-face"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "left-knob",
+      "label": "Left Knob",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.28
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.85
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 4.1
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.065
+            }
+          },
+          "min": {
+            "value": 1.4
+          },
+          "max": {
+            "value": 2.3
+          }
+        },
+        "depthInches": {
+          "value": 0.85
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.065
+            }
+          },
+          "min": {
+            "value": 1.4
+          },
+          "max": {
+            "value": 2.3
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "trim-color"
+      },
+      "role": "knob"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "right-knob",
+      "label": "Right Knob",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.28
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.85
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 4.1
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.065
+            }
+          },
+          "min": {
+            "value": 1.4
+          },
+          "max": {
+            "value": 2.3
+          }
+        },
+        "depthInches": {
+          "value": 0.85
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.065
+            }
+          },
+          "min": {
+            "value": 1.4
+          },
+          "max": {
+            "value": 2.3
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "trim-color"
+      },
+      "role": "knob"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-display",
+      "label": "Control Display",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "value": 0.05
+            }
+          ]
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 4.1
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.18
+          }
+        },
+        "depthInches": {
+          "value": 0.1
+        },
+        "heightInches": {
+          "value": 1.25
+        }
+      },
+      "material": {
+        "colorHex": "#111827"
+      },
+      "role": "display"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-divider-line",
+      "label": "Control Divider Line",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "value": 0.06
+            }
+          ]
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 6.7
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.96
+          }
+        },
+        "depthInches": {
+          "value": 0.1
+        },
+        "heightInches": {
+          "value": 0.08
+        }
+      },
+      "material": {
+        "colorHex": "#1f2937"
+      },
+      "role": "divider-line"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "upper-oven-handle",
+      "label": "Upper Oven Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.85
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "multiply",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 0.15
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "clamp",
+                "value": {
+                  "op": "multiply",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "value": 0.23
+                  }
+                },
+                "min": {
+                  "value": 10.5
+                },
+                "max": {
+                  "value": 13.5
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 2.1
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.74
+          }
+        },
+        "depthInches": {
+          "value": 0.85
+        },
+        "heightInches": {
+          "value": 0.55
+        }
+      },
+      "material": {
+        "colorOptionId": "trim-color"
+      },
+      "role": "handle"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "lower-oven-handle",
+      "label": "Lower Oven Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.85
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "multiply",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": -0.276
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "clamp",
+                "value": {
+                  "op": "multiply",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "value": 0.23
+                  }
+                },
+                "min": {
+                  "value": 10.5
+                },
+                "max": {
+                  "value": 13.5
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 2.1
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.74
+          }
+        },
+        "depthInches": {
+          "value": 0.85
+        },
+        "heightInches": {
+          "value": 0.55
+        }
+      },
+      "material": {
+        "colorOptionId": "trim-color"
+      },
+      "role": "handle"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "upper-oven-window",
+      "label": "Upper Oven Window",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "value": 0.05
+            }
+          ]
+        },
+        "zInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "value": 0.15
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.7
+          }
+        },
+        "depthInches": {
+          "value": 0.1
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 0.23
+            }
+          },
+          "min": {
+            "value": 10.5
+          },
+          "max": {
+            "value": 13.5
+          }
+        }
+      },
+      "material": {
+        "colorHex": "#111827"
+      },
+      "role": "oven-window"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "middle-divider-line",
+      "label": "Middle Divider Line",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "value": 0.06
+            }
+          ]
+        },
+        "zInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "value": -0.04
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.96
+          }
+        },
+        "depthInches": {
+          "value": 0.1
+        },
+        "heightInches": {
+          "value": 0.08
+        }
+      },
+      "material": {
+        "colorHex": "#1f2937"
+      },
+      "role": "divider-line"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "lower-oven-window",
+      "label": "Lower Oven Window",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "value": 0.05
+            }
+          ]
+        },
+        "zInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "value": -0.276
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.7
+          }
+        },
+        "depthInches": {
+          "value": 0.1
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 0.23
+            }
+          },
+          "min": {
+            "value": 10.5
+          },
+          "max": {
+            "value": 13.5
+          }
+        }
+      },
+      "material": {
+        "colorHex": "#111827"
+      },
+      "role": "oven-window"
+    }
+  ]
+}

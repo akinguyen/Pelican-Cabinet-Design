@@ -576,13 +576,7 @@
       },
       "sizeInches": {
         "widthInches": {
-          "op": "multiply",
-          "left": {
-            "ref": "size.widthInches"
-          },
-          "right": {
-            "value": 0.96
-          }
+          "ref": "size.widthInches"
         },
         "depthInches": {
           "value": 0.35
@@ -713,103 +707,6 @@
           "right": {
             "value": 0.62
           }
-        }
-      },
-      "material": {
-        "colorHex": "#1f2937"
-      },
-      "role": "door-gap"
-    },
-    {
-      "kind": "primitive-geometry",
-      "id": "horizontal-door-gap",
-      "label": "Horizontal Door Gap",
-      "geometry": {
-        "kind": "box"
-      },
-      "localPositionInches": {
-        "xInches": {
-          "value": 0
-        },
-        "yInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "add",
-              "values": [
-                {
-                  "op": "subtract",
-                  "left": {
-                    "op": "divide",
-                    "left": {
-                      "ref": "size.depthInches"
-                    },
-                    "right": {
-                      "value": 2
-                    }
-                  },
-                  "right": {
-                    "value": 1.2
-                  }
-                },
-                {
-                  "value": 0.35
-                }
-              ]
-            },
-            {
-              "value": 0.05
-            }
-          ]
-        },
-        "zInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "negate",
-              "value": {
-                "op": "divide",
-                "left": {
-                  "ref": "size.heightInches"
-                },
-                "right": {
-                  "value": 2
-                }
-              }
-            },
-            {
-              "op": "subtract",
-              "left": {
-                "ref": "size.heightInches"
-              },
-              "right": {
-                "op": "multiply",
-                "left": {
-                  "ref": "size.heightInches"
-                },
-                "right": {
-                  "value": 0.62
-                }
-              }
-            }
-          ]
-        }
-      },
-      "sizeInches": {
-        "widthInches": {
-          "op": "multiply",
-          "left": {
-            "ref": "size.widthInches"
-          },
-          "right": {
-            "value": 0.96
-          }
-        },
-        "depthInches": {
-          "value": 0.12
-        },
-        "heightInches": {
-          "value": 0.18
         }
       },
       "material": {

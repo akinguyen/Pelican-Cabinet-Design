@@ -79,7 +79,7 @@ export function WallMesh({ builtWall, isSelected }: WallMeshProps) {
         onPointerMove={handlePointerMove}
         renderOrder={isSelected ? 10 : 1}
       >
-        <meshStandardMaterial color={isSelected ? "#22d3ee" : "#9ca3af"} side={DoubleSide} />
+        <meshStandardMaterial color={isSelected ? "#22d3ee" : "#cbd5e1"} side={DoubleSide} />
       </mesh>
       <WallBoundaryEdges builtWall={builtWall} isSelected={isSelected} />
     </group>

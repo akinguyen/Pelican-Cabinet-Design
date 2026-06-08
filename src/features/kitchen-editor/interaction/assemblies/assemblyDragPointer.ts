@@ -1,6 +1,6 @@
 import { Plane, Ray, Vector3 } from "three";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { SceneViewMode } from "../../editors/shared/sceneViewModeTypes";
+import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 
 const dragIntersectionPoint = new Vector3();
 

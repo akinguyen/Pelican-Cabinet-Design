@@ -3,7 +3,7 @@ import type { SceneSelection } from "../sceneSelectionTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
 export function createSceneSelectionActions(
-  _get: DesignSceneStoreGetter,
+  get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
 ): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedWall" | "clearSelection"> {
   return {
@@ -22,22 +22,26 @@ export function createSceneSelectionActions(
     },
 
     selectPlacedWall(placedWallId) {
-      set((state) => ({
-        designScene: {
-          ...state.designScene,
-          activeSelection: {
-            kind: "placed-wall",
-            placedWallId,
-          },
-          activeSceneOperation:
-            state.activeToolbarTool === "split-wall-footprint"
+      set((state) => {
+        const canStartWallSplitDraft =
+          get().workspaceMode === "editor" && state.activeToolbarTool === "split-wall-footprint";
+
+        return {
+          designScene: {
+            ...state.designScene,
+            activeSelection: {
+              kind: "placed-wall",
+              placedWallId,
+            },
+            activeSceneOperation: canStartWallSplitDraft
               ? {
                   kind: "wall-split-draft",
                   wallSplitDraft: createWallSplitDraftForTarget(placedWallId),
                 }
               : state.designScene.activeSceneOperation,
-        },
-      }));
+          },
+        };
+      });
     },
 
     clearSelection() {

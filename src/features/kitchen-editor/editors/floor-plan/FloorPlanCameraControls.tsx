@@ -7,13 +7,15 @@ import { MOUSE, TOUCH } from "three";
 import type { OrthographicCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { OrthographicCameraState } from "../shared/sceneCameraStateTypes";
+import type { OrthographicCameraState } from "@/engine/scene/sceneCameraStateTypes";
 import { useSceneFitFrame } from "../shared/useSceneFitFrame";
 
 const MIN_FLOOR_PLAN_ZOOM = 1.15;
 const MAX_FLOOR_PLAN_ZOOM = 12;
 const TOOLBAR_ZOOM_SCALE = 1.16;
 const FLOOR_PLAN_CAMERA_Z_INCHES = 600;
+const MIN_FLOOR_PLAN_FIT_ZOOM = 1.8;
+const FLOOR_PLAN_FIT_ZOOM_FRAME_INCHES = 290;
 
 export function FloorPlanCameraControls() {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
@@ -64,7 +66,7 @@ export function FloorPlanCameraControls() {
     updateFloorPlanCameraState(readFloorPlanCameraState(camera as OrthographicCamera, controls));
   }
 
-  const isEditorOperationActive = activeSceneOperation !== null || activeToolbarTool !== null;
+  const isSceneOperationBlockingPan = activeSceneOperation !== null || activeToolbarTool !== null;
 
   return (
     <OrbitControls
@@ -72,7 +74,7 @@ export function FloorPlanCameraControls() {
       enabled={activeDrag === null}
       makeDefault
       enableRotate={false}
-      enablePan={!isEditorOperationActive}
+      enablePan={!isSceneOperationBlockingPan}
       enableZoom
       enableDamping
       dampingFactor={0.08}
@@ -100,7 +102,7 @@ function applyFloorPlanCameraState(
   controls: OrbitControlsImpl | null,
   cameraState: OrthographicCameraState,
 ): void {
-  camera.up.set(0, 1, 0);
+  camera.up.set(0, -1, 0);
   camera.position.set(
     cameraState.cameraPositionInches.xInches,
     cameraState.cameraPositionInches.yInches,
@@ -142,7 +144,7 @@ function fitFloorPlanCameraToScene(
   const { centerInches, sizeInches } = sceneFitFrame;
 
   camera.position.set(centerInches.xInches, centerInches.yInches, centerInches.zInches + FLOOR_PLAN_CAMERA_Z_INCHES);
-  updateFloorPlanZoom(camera, Math.max(1.4, 220 / sizeInches));
+  updateFloorPlanZoom(camera, Math.max(MIN_FLOOR_PLAN_FIT_ZOOM, FLOOR_PLAN_FIT_ZOOM_FRAME_INCHES / sizeInches));
   controls.target.set(centerInches.xInches, centerInches.yInches, centerInches.zInches);
   controls.update();
 }

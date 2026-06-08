@@ -74,10 +74,18 @@ export function createAssemblyDragActions(
     },
 
     finishAssemblyDrag() {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       set({ activeDrag: null });
     },
 
     cancelAssemblyDrag() {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       set({ activeDrag: null });
     },
   };

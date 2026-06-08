@@ -17,8 +17,8 @@ import type { PlacedWallElevationSide } from "@/engine/walls/elevation/wallEleva
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
-import type { ElevationCameraState } from "../shared/sceneCameraStateTypes";
-import { getStoredElevationCameraState } from "../shared/sceneCameraStateTypes";
+import type { ElevationCameraState } from "@/engine/scene/sceneCameraStateTypes";
+import { getStoredElevationCameraState } from "@/engine/scene/sceneCameraStateTypes";
 import type { SceneFitFrame } from "../shared/cameraFit";
 import { useSceneFitFrame } from "../shared/useSceneFitFrame";
 
@@ -175,7 +175,7 @@ export function ElevationCameraControls() {
     }));
   }
 
-  const isEditorOperationActive = activeSceneOperation !== null || activeToolbarTool !== null;
+  const isSceneOperationBlockingPan = activeSceneOperation !== null || activeToolbarTool !== null;
 
   return (
     <OrbitControls
@@ -183,7 +183,7 @@ export function ElevationCameraControls() {
       enabled={activeDrag === null}
       makeDefault
       enableRotate={false}
-      enablePan={!isEditorOperationActive}
+      enablePan={!isSceneOperationBlockingPan}
       enableZoom
       enableDamping
       dampingFactor={0.08}

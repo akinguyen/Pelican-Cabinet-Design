@@ -7,7 +7,7 @@ import { MOUSE, TOUCH } from "three";
 import type { PerspectiveCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { PerspectiveCameraState } from "../shared/sceneCameraStateTypes";
+import type { PerspectiveCameraState } from "@/engine/scene/sceneCameraStateTypes";
 import { useSceneFitFrame } from "../shared/useSceneFitFrame";
 
 const MIN_CAMERA_DISTANCE_INCHES = 20;
@@ -64,7 +64,7 @@ export function PerspectiveCameraControls() {
     updatePerspectiveCameraState(readPerspectiveCameraState(camera as PerspectiveCamera, controls));
   }
 
-  const isEditorOperationActive = activeSceneOperation !== null || activeToolbarTool !== null;
+  const isSceneOperationBlockingPan = activeSceneOperation !== null || activeToolbarTool !== null;
 
   return (
     <OrbitControls
@@ -73,7 +73,7 @@ export function PerspectiveCameraControls() {
       makeDefault
       enableDamping
       dampingFactor={0.06}
-      enablePan={!isEditorOperationActive}
+      enablePan={!isSceneOperationBlockingPan}
       enableZoom
       minDistance={MIN_CAMERA_DISTANCE_INCHES}
       maxDistance={MAX_CAMERA_DISTANCE_INCHES}
@@ -155,14 +155,14 @@ function fitPerspectiveCameraToScene(
 ): void {
   const { centerInches, sizeInches } = sceneFitFrame;
   const distanceInches = Math.min(
-    Math.max(sizeInches * 1.35, MIN_CAMERA_DISTANCE_INCHES),
+    Math.max(sizeInches * 1.55, MIN_CAMERA_DISTANCE_INCHES),
     MAX_CAMERA_DISTANCE_INCHES,
   );
 
   camera.position.set(
-    centerInches.xInches + distanceInches,
-    centerInches.yInches - distanceInches,
-    centerInches.zInches + distanceInches * 0.75,
+    centerInches.xInches,
+    centerInches.yInches + distanceInches,
+    centerInches.zInches + distanceInches * 0.65,
   );
   camera.updateProjectionMatrix();
   controls.target.set(

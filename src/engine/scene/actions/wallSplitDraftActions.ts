@@ -90,6 +90,10 @@ export function createWallSplitDraftActions(
     },
 
     exitWallSplitDraftTool() {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       set((state) => ({
         activeToolbarTool: null,
         designScene: {

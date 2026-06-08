@@ -1,5 +1,6 @@
-import type { SceneCameraCommandTool } from "../editors/shared/sceneCameraCommandTypes";
+import type { SceneCameraCommandTool } from "@/engine/scene/sceneCameraCommandTypes";
+import type { KitchenEditorActiveToolbarTool } from "@/engine/scene/sceneEditingToolTypes";
 
-export type KitchenEditorActiveToolbarTool = "draw-wall-footprint" | "split-wall-footprint";
+export type { KitchenEditorActiveToolbarTool };
 
 export type KitchenEditorToolbarActionId = SceneCameraCommandTool | KitchenEditorActiveToolbarTool;

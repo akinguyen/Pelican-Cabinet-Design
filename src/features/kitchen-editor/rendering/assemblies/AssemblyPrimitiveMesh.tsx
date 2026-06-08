@@ -3,7 +3,7 @@
 import { Edges } from "@react-three/drei";
 import { useMemo } from "react";
 import type { ThreeEvent } from "@react-three/fiber";
-import { degreesToRadians } from "@/core/geometry/rotationTypes";
+import { degreesToRadians, degreesToUserFacingZRadians } from "@/core/geometry/rotationTypes";
 import type { BuiltPrimitiveGeometry } from "@/engine/assemblies/assemblyTreeBuilder";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import { createCustomMeshGeometry } from "@/engine/primitive-geometry/custom-meshes/createCustomMeshGeometry";
@@ -81,7 +81,7 @@ export function AssemblyPrimitiveMesh({ primitiveGeometry, renderState }: Assemb
       rotation={[
         degreesToRadians(primitiveGeometry.worldRotationDegrees.xDegrees),
         degreesToRadians(primitiveGeometry.worldRotationDegrees.yDegrees),
-        degreesToRadians(primitiveGeometry.worldRotationDegrees.zDegrees),
+        degreesToUserFacingZRadians(primitiveGeometry.worldRotationDegrees.zDegrees),
       ]}
       onPointerDown={handlePointerDown}
     >
