@@ -3,19 +3,41 @@
 import { OrbitControls } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
-import { MOUSE, TOUCH } from "three";
 import type { OrthographicCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { OrthographicCameraState } from "@/engine/scene/sceneCameraStateTypes";
-import { useSceneFitFrame } from "../shared/useSceneFitFrame";
+import {
+  applyOrthographicCameraState,
+  readOrthographicCameraState,
+  updateOrthographicCameraZoom,
+} from "../shared/camera/orthographicCameraControls";
+import {
+  ORTHOGRAPHIC_CAMERA_DAMPING_FACTOR,
+  ORTHOGRAPHIC_CAMERA_PAN_SPEED,
+  ORTHOGRAPHIC_CAMERA_TOOLBAR_ZOOM_SCALE,
+  ORTHOGRAPHIC_CAMERA_ZOOM_SPEED,
+  SCENE_CAMERA_MOUSE_BUTTONS,
+  SCENE_CAMERA_TOUCHES,
+} from "../shared/camera/sceneCameraControlSettings";
+import { useSceneFitFrame } from "../shared/camera/useSceneFitFrame";
 
 const MIN_FLOOR_PLAN_ZOOM = 1.15;
 const MAX_FLOOR_PLAN_ZOOM = 12;
-const TOOLBAR_ZOOM_SCALE = 1.16;
 const FLOOR_PLAN_CAMERA_Z_INCHES = 600;
 const MIN_FLOOR_PLAN_FIT_ZOOM = 1.8;
 const FLOOR_PLAN_FIT_ZOOM_FRAME_INCHES = 290;
+
+const FLOOR_PLAN_CAMERA_UP_VECTOR = {
+  x: 0,
+  y: -1,
+  z: 0,
+} as const;
+
+const FLOOR_PLAN_ZOOM_RANGE = {
+  minZoom: MIN_FLOOR_PLAN_ZOOM,
+  maxZoom: MAX_FLOOR_PLAN_ZOOM,
+} as const;
 
 export function FloorPlanCameraControls() {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
@@ -45,9 +67,9 @@ export function FloorPlanCameraControls() {
     }
 
     if (cameraCommand.tool === "zoom-in") {
-      updateFloorPlanZoom(camera as OrthographicCamera, camera.zoom * TOOLBAR_ZOOM_SCALE);
+      updateFloorPlanZoom(camera as OrthographicCamera, camera.zoom * ORTHOGRAPHIC_CAMERA_TOOLBAR_ZOOM_SCALE);
     } else if (cameraCommand.tool === "zoom-out") {
-      updateFloorPlanZoom(camera as OrthographicCamera, camera.zoom / TOOLBAR_ZOOM_SCALE);
+      updateFloorPlanZoom(camera as OrthographicCamera, camera.zoom / ORTHOGRAPHIC_CAMERA_TOOLBAR_ZOOM_SCALE);
     } else {
       fitFloorPlanCameraToScene(camera as OrthographicCamera, controls, sceneFitFrame);
     }
@@ -66,7 +88,7 @@ export function FloorPlanCameraControls() {
     updateFloorPlanCameraState(readFloorPlanCameraState(camera as OrthographicCamera, controls));
   }
 
-  const isSceneOperationBlockingPan = activeSceneOperation !== null || activeToolbarTool !== null;
+  const isEditorOperationActive = activeSceneOperation !== null || activeToolbarTool !== null;
 
   return (
     <OrbitControls
@@ -74,24 +96,17 @@ export function FloorPlanCameraControls() {
       enabled={activeDrag === null}
       makeDefault
       enableRotate={false}
-      enablePan={!isSceneOperationBlockingPan}
+      enablePan={!isEditorOperationActive}
       enableZoom
       enableDamping
-      dampingFactor={0.08}
+      dampingFactor={ORTHOGRAPHIC_CAMERA_DAMPING_FACTOR}
       minZoom={MIN_FLOOR_PLAN_ZOOM}
       maxZoom={MAX_FLOOR_PLAN_ZOOM}
-      zoomSpeed={0.45}
-      panSpeed={1}
+      zoomSpeed={ORTHOGRAPHIC_CAMERA_ZOOM_SPEED}
+      panSpeed={ORTHOGRAPHIC_CAMERA_PAN_SPEED}
       screenSpacePanning
-      mouseButtons={{
-        LEFT: MOUSE.PAN,
-        MIDDLE: MOUSE.DOLLY,
-        RIGHT: MOUSE.PAN,
-      }}
-      touches={{
-        ONE: TOUCH.PAN,
-        TWO: TOUCH.DOLLY_PAN,
-      }}
+      mouseButtons={SCENE_CAMERA_MOUSE_BUTTONS}
+      touches={SCENE_CAMERA_TOUCHES}
       onChange={handleControlsChange}
     />
   );
@@ -102,38 +117,20 @@ function applyFloorPlanCameraState(
   controls: OrbitControlsImpl | null,
   cameraState: OrthographicCameraState,
 ): void {
-  camera.up.set(0, -1, 0);
-  camera.position.set(
-    cameraState.cameraPositionInches.xInches,
-    cameraState.cameraPositionInches.yInches,
-    cameraState.cameraPositionInches.zInches,
-  );
-  updateFloorPlanZoom(camera, cameraState.zoom);
-  controls?.target.set(
-    cameraState.cameraTargetInches.xInches,
-    cameraState.cameraTargetInches.yInches,
-    cameraState.cameraTargetInches.zInches,
-  );
-  controls?.update();
+  applyOrthographicCameraState({
+    camera,
+    controls,
+    cameraState,
+    cameraUpVector: FLOOR_PLAN_CAMERA_UP_VECTOR,
+    zoomRange: FLOOR_PLAN_ZOOM_RANGE,
+  });
 }
 
 function readFloorPlanCameraState(
   camera: OrthographicCamera,
   controls: OrbitControlsImpl,
 ): OrthographicCameraState {
-  return {
-    cameraPositionInches: {
-      xInches: camera.position.x,
-      yInches: camera.position.y,
-      zInches: camera.position.z,
-    },
-    cameraTargetInches: {
-      xInches: controls.target.x,
-      yInches: controls.target.y,
-      zInches: controls.target.z,
-    },
-    zoom: camera.zoom,
-  };
+  return readOrthographicCameraState(camera, controls);
 }
 
 function fitFloorPlanCameraToScene(
@@ -149,7 +146,10 @@ function fitFloorPlanCameraToScene(
   controls.update();
 }
 
-function updateFloorPlanZoom(camera: OrthographicCamera, zoom: number) {
-  camera.zoom = Math.min(Math.max(zoom, MIN_FLOOR_PLAN_ZOOM), MAX_FLOOR_PLAN_ZOOM);
-  camera.updateProjectionMatrix();
+function updateFloorPlanZoom(camera: OrthographicCamera, zoom: number): void {
+  updateOrthographicCameraZoom({
+    camera,
+    zoom,
+    zoomRange: FLOOR_PLAN_ZOOM_RANGE,
+  });
 }

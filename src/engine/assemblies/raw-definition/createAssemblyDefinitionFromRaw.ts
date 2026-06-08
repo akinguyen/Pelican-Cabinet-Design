@@ -1,4 +1,4 @@
-import type { AssemblyDefinition } from "./assemblyDefinitionTypes";
+import type { AssemblyDefinition } from "../assemblyDefinitionTypes";
 import { buildAssemblyFromRawDefinition } from "./buildAssemblyFromRawDefinition";
 import type { RawAssemblyDefinition } from "./rawAssemblyDefinitionTypes";
 

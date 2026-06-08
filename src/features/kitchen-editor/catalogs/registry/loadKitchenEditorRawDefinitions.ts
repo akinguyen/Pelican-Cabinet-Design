@@ -1,4 +1,4 @@
-import { createAssemblyDefinitionFromRaw } from "@/engine/assemblies/createAssemblyDefinitionFromRaw";
+import { createAssemblyDefinitionFromRaw } from "@/engine/assemblies/raw-definition/createAssemblyDefinitionFromRaw";
 import type { AssemblyDefinition } from "@/engine/assemblies/assemblyDefinitionTypes";
 import type {
   KitchenEditorCatalogCategoryId,

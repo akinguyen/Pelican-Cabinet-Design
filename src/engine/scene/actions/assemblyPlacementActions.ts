@@ -1,4 +1,5 @@
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createAssemblyPlacementActions(
   get: DesignSceneStoreGetter,
@@ -12,7 +13,7 @@ export function createAssemblyPlacementActions(
 > {
   return {
     startAssemblyPlacementCandidate(placedAssembly) {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
@@ -31,7 +32,7 @@ export function createAssemblyPlacementActions(
     },
 
     updateAssemblyCandidateWorldPosition(worldPositionInches) {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
@@ -57,7 +58,7 @@ export function createAssemblyPlacementActions(
     },
 
     commitAssemblyPlacementCandidate() {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
@@ -81,10 +82,6 @@ export function createAssemblyPlacementActions(
     },
 
     cancelActiveSceneOperation() {
-      if (get().workspaceMode !== "editor") {
-        return;
-      }
-
       set((state) => ({
         designScene: {
           ...state.designScene,

@@ -3,17 +3,24 @@
 import { OrbitControls } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
-import { MOUSE, TOUCH } from "three";
 import type { PerspectiveCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { PerspectiveCameraState } from "@/engine/scene/sceneCameraStateTypes";
-import { useSceneFitFrame } from "../shared/useSceneFitFrame";
+import {
+  SCENE_CAMERA_MOUSE_BUTTONS,
+  SCENE_CAMERA_TOUCHES,
+} from "../shared/camera/sceneCameraControlSettings";
+import { useSceneFitFrame } from "../shared/camera/useSceneFitFrame";
 
 const MIN_CAMERA_DISTANCE_INCHES = 20;
 const MAX_CAMERA_DISTANCE_INCHES = 420;
 const TOOLBAR_ZOOM_IN_DISTANCE_SCALE = 0.82;
 const TOOLBAR_ZOOM_OUT_DISTANCE_SCALE = 1.18;
+const PERSPECTIVE_CAMERA_DAMPING_FACTOR = 0.06;
+const PERSPECTIVE_CAMERA_ROTATE_SPEED = 0.55;
+const PERSPECTIVE_CAMERA_ZOOM_SPEED = 0.4;
+const PERSPECTIVE_CAMERA_PAN_SPEED = 0.75;
 
 export function PerspectiveCameraControls() {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
@@ -64,7 +71,7 @@ export function PerspectiveCameraControls() {
     updatePerspectiveCameraState(readPerspectiveCameraState(camera as PerspectiveCamera, controls));
   }
 
-  const isSceneOperationBlockingPan = activeSceneOperation !== null || activeToolbarTool !== null;
+  const isEditorOperationActive = activeSceneOperation !== null || activeToolbarTool !== null;
 
   return (
     <OrbitControls
@@ -72,24 +79,17 @@ export function PerspectiveCameraControls() {
       enabled={activeDrag === null}
       makeDefault
       enableDamping
-      dampingFactor={0.06}
-      enablePan={!isSceneOperationBlockingPan}
+      dampingFactor={PERSPECTIVE_CAMERA_DAMPING_FACTOR}
+      enablePan={!isEditorOperationActive}
       enableZoom
       minDistance={MIN_CAMERA_DISTANCE_INCHES}
       maxDistance={MAX_CAMERA_DISTANCE_INCHES}
-      rotateSpeed={0.55}
-      zoomSpeed={0.4}
-      panSpeed={0.75}
+      rotateSpeed={PERSPECTIVE_CAMERA_ROTATE_SPEED}
+      zoomSpeed={PERSPECTIVE_CAMERA_ZOOM_SPEED}
+      panSpeed={PERSPECTIVE_CAMERA_PAN_SPEED}
       screenSpacePanning
-      mouseButtons={{
-        LEFT: MOUSE.PAN,
-        MIDDLE: MOUSE.DOLLY,
-        RIGHT: MOUSE.PAN,
-      }}
-      touches={{
-        ONE: TOUCH.PAN,
-        TWO: TOUCH.DOLLY_PAN,
-      }}
+      mouseButtons={SCENE_CAMERA_MOUSE_BUTTONS}
+      touches={SCENE_CAMERA_TOUCHES}
       onChange={handleControlsChange}
     />
   );

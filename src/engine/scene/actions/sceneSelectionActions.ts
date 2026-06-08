@@ -1,9 +1,10 @@
 import { createWallSplitDraftForTarget } from "@/engine/walls/split-draft/wallSplitDraftFactory";
 import type { SceneSelection } from "../sceneSelectionTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createSceneSelectionActions(
-  get: DesignSceneStoreGetter,
+  _get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
 ): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedWall" | "clearSelection"> {
   return {
@@ -22,26 +23,22 @@ export function createSceneSelectionActions(
     },
 
     selectPlacedWall(placedWallId) {
-      set((state) => {
-        const canStartWallSplitDraft =
-          get().workspaceMode === "editor" && state.activeToolbarTool === "split-wall-footprint";
-
-        return {
-          designScene: {
-            ...state.designScene,
-            activeSelection: {
-              kind: "placed-wall",
-              placedWallId,
-            },
-            activeSceneOperation: canStartWallSplitDraft
+      set((state) => ({
+        designScene: {
+          ...state.designScene,
+          activeSelection: {
+            kind: "placed-wall",
+            placedWallId,
+          },
+          activeSceneOperation:
+            canManuallyEditScene(state.workspaceMode) && state.activeToolbarTool === "split-wall-footprint"
               ? {
                   kind: "wall-split-draft",
                   wallSplitDraft: createWallSplitDraftForTarget(placedWallId),
                 }
               : state.designScene.activeSceneOperation,
-          },
-        };
-      });
+        },
+      }));
     },
 
     clearSelection() {

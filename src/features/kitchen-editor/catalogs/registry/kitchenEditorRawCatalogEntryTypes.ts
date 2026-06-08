@@ -1,4 +1,4 @@
-import type { RawAssemblyDefinition } from "@/engine/assemblies/rawAssemblyDefinitionTypes";
+import type { RawAssemblyDefinition } from "@/engine/assemblies/raw-definition/rawAssemblyDefinitionTypes";
 import type {
   KitchenEditorCatalogCategoryId,
   KitchenEditorCatalogId,

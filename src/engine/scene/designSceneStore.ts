@@ -5,8 +5,7 @@ import { createAssemblyPlacementActions } from "./actions/assemblyPlacementActio
 import { createSceneCameraStateActions } from "./actions/sceneCameraStateActions";
 import { createSceneInteractionActions } from "./actions/sceneInteractionActions";
 import { createSceneSelectionActions } from "./actions/sceneSelectionActions";
-import { createSceneCameraCommandActions } from "./actions/sceneCameraCommandActions";
-import { createSceneEditingToolActions } from "./actions/sceneEditingToolActions";
+import { createSceneToolbarActions } from "./actions/sceneToolbarActions";
 import { createSceneViewModeActions } from "./actions/sceneViewModeActions";
 import { createWallEditingActions } from "./actions/wallEditingActions";
 import { createWorkspaceModeActions } from "./actions/workspaceModeActions";
@@ -22,8 +21,7 @@ export const useDesignSceneStore = create<DesignSceneStore>((set, get) => ({
   ...createSceneViewModeActions(get, set),
   ...createSceneCameraStateActions(get, set),
   ...createWallElevationNavigationActions(get, set),
-  ...createSceneCameraCommandActions(get, set),
-  ...createSceneEditingToolActions(get, set),
+  ...createSceneToolbarActions(get, set),
   ...createAssemblyPlacementActions(get, set),
   ...createSceneSelectionActions(get, set),
   ...createAssemblyDragActions(get, set),

@@ -3,6 +3,7 @@
 import type { ThreeEvent } from "@react-three/fiber";
 import { useEffect } from "react";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import { createAssemblyDragPointerWorldPoint } from "./assemblyDragPointer";
 
 const DRAG_SURFACE_SIZE_INCHES = 3200;
@@ -14,7 +15,7 @@ export function AssemblyDragSurface() {
   const finishAssemblyDrag = useDesignSceneStore((state) => state.finishAssemblyDrag);
 
   useEffect(() => {
-    if (workspaceMode !== "editor" || activeDrag === null) {
+    if (!canManuallyEditScene(workspaceMode) || activeDrag === null) {
       return;
     }
 
@@ -29,12 +30,12 @@ export function AssemblyDragSurface() {
     };
   }, [activeDrag, finishAssemblyDrag, workspaceMode]);
 
-  if (workspaceMode !== "editor" || activeDrag === null) {
+  if (!canManuallyEditScene(workspaceMode) || activeDrag === null) {
     return null;
   }
 
   function handlePointerMove(event: ThreeEvent<PointerEvent>) {
-    if (workspaceMode !== "editor" || activeDrag === null) {
+    if (!canManuallyEditScene(workspaceMode) || activeDrag === null) {
       return;
     }
 

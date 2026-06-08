@@ -7,16 +7,16 @@ import type { RefObject } from "react";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { getPlacedWallElevationWallViews } from "@/engine/walls/elevation/wallElevationGeometry";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { ElevationCameraControls } from "../elevation/ElevationCameraControls";
-import { FloorPlanCameraControls } from "../floor-plan/FloorPlanCameraControls";
-import { PerspectiveCameraControls } from "../perspective/PerspectiveCameraControls";
-import { PerspectiveViewGizmo } from "../perspective/PerspectiveViewGizmo";
+import { ElevationCameraControls } from "../../elevation/ElevationCameraControls";
+import { FloorPlanCameraControls } from "../../floor-plan/FloorPlanCameraControls";
+import { PerspectiveCameraControls } from "../../perspective/PerspectiveCameraControls";
+import { PerspectiveViewGizmo } from "../../perspective/PerspectiveViewGizmo";
 import { SceneAxisGizmo } from "./SceneAxisGizmo";
 import { DesignSceneRenderer } from "./DesignSceneRenderer";
-import { DesignSceneLighting } from "./DesignSceneLighting";
+import { EditorLighting } from "./EditorLighting";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { GroundGrid } from "./GroundGrid";
-import { PlacementSurface } from "./PlacementSurface";
+import { PlacementSurface } from "../interaction/PlacementSurface";
 import {
   DEFAULT_FLOOR_PLAN_CAMERA_POSITION_INCHES,
   DEFAULT_FLOOR_PLAN_ZOOM,
@@ -66,7 +66,7 @@ export function DesignSceneCanvas() {
         {activeSceneViewMode === "perspective" ? <PerspectiveCamera makeDefault position={toCanvasPosition(DEFAULT_PERSPECTIVE_CAMERA_POSITION_INCHES)} fov={45} /> : null}
         {activeSceneViewMode === "floor-plan" ? <OrthographicCamera makeDefault position={toCanvasPosition(DEFAULT_FLOOR_PLAN_CAMERA_POSITION_INCHES)} up={[0, -1, 0]} zoom={DEFAULT_FLOOR_PLAN_ZOOM} /> : null}
         {activeSceneViewMode === "elevation" ? <OrthographicCamera makeDefault position={[0, 360, 36]} zoom={2} /> : null}
-        <DesignSceneLighting />
+        <EditorLighting />
         <GroundGrid />
         {activeSceneViewMode === "perspective" ? <SceneAxisGizmo /> : null}
         {activeSceneViewMode !== "elevation" || hasElevationViews ? <DesignSceneRenderer /> : null}

@@ -2,6 +2,7 @@
 
 import type { ThreeEvent } from "@react-three/fiber";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import { createWallGroundPlanePointerWorldPoint } from "./wallGroundPlanePointer";
 
 const WALL_FOOTPRINT_DRAFT_DRAWING_SURFACE_SIZE_INCHES = 3200;
@@ -18,7 +19,7 @@ export function WallFootprintDraftSurface() {
   );
   const isWallFootprintDraftDrawingActive = activeToolbarTool === "draw-wall-footprint";
 
-  if (workspaceMode !== "editor" || !isWallFootprintDraftDrawingActive || activeSceneViewMode === "elevation") {
+  if (!canManuallyEditScene(workspaceMode) || !isWallFootprintDraftDrawingActive || activeSceneViewMode === "elevation") {
     return null;
   }
 

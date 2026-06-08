@@ -1,6 +1,7 @@
 import { getActivePlacedWallElevationView, getPlacedWallElevationWallViews } from "@/engine/walls/elevation/wallElevationGeometry";
 import { deletePlacedWall, updatePlacedWallHeight, updatePlacedWallViewableEdge } from "@/engine/walls/wallEditing";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createWallEditingActions(
   get: DesignSceneStoreGetter,
@@ -11,7 +12,7 @@ export function createWallEditingActions(
 > {
   return {
     updateSelectedPlacedWallHeight(heightInches) {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
@@ -34,7 +35,7 @@ export function createWallEditingActions(
     },
 
     updateSelectedPlacedWallViewableEdge(edgeIndex, isViewable) {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
@@ -69,7 +70,7 @@ export function createWallEditingActions(
     },
 
     deleteSelectedPlacedWall() {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 

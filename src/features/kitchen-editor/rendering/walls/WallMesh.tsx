@@ -4,6 +4,7 @@ import type { ThreeEvent } from "@react-three/fiber";
 import { useMemo } from "react";
 import { DoubleSide } from "three";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import type { BuiltWall } from "@/engine/walls/footprint/wallFootprintTypes";
 import { createExtrudedWallGeometry } from "./wallRenderingGeometry";
 import { WallBoundaryEdges } from "./WallBoundaryEdges";
@@ -28,7 +29,7 @@ export function WallMesh({ builtWall, isSelected }: WallMeshProps) {
   );
 
   function handlePointerMove(event: ThreeEvent<PointerEvent>) {
-    if (workspaceMode !== "editor" || activeToolbarTool !== "split-wall-footprint" || !isSelected) {
+    if (!canManuallyEditScene(workspaceMode) || activeToolbarTool !== "split-wall-footprint" || !isSelected) {
       return;
     }
 
@@ -45,7 +46,7 @@ export function WallMesh({ builtWall, isSelected }: WallMeshProps) {
       return;
     }
 
-    if (workspaceMode !== "editor") {
+    if (!canManuallyEditScene(workspaceMode)) {
       event.stopPropagation();
       selectPlacedWall(builtWall.placedWallId);
       return;

@@ -2,36 +2,70 @@
 
 import { OrbitControls } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
-import { useEffect, useRef } from "react";
-import { MOUSE, TOUCH } from "three";
+import { useEffect, useMemo, useRef } from "react";
 import type { OrthographicCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import type { ElevationCameraState, SceneCameraStates } from "@/engine/scene/sceneCameraStateTypes";
+import { getStoredElevationCameraState } from "@/engine/scene/sceneCameraStateTypes";
 import {
   getElevationSideWorldPointAtHorizontal,
   getElevationViewFitBoundsCenter,
   getElevationViewFitBoundsSize,
   measureElevationViewFitBounds,
 } from "@/engine/walls/elevation/elevationViewFitBounds";
-import { getActivePlacedWallElevationView, createWallElevationViewKey } from "@/engine/walls/elevation/wallElevationGeometry";
+import { createWallElevationViewKey, getActivePlacedWallElevationView } from "@/engine/walls/elevation/wallElevationGeometry";
 import type { PlacedWallElevationSide } from "@/engine/walls/elevation/wallElevationGeometry";
-import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
-import type { ElevationCameraState } from "@/engine/scene/sceneCameraStateTypes";
-import { getStoredElevationCameraState } from "@/engine/scene/sceneCameraStateTypes";
-import type { SceneFitFrame } from "../shared/cameraFit";
-import { useSceneFitFrame } from "../shared/useSceneFitFrame";
+import type { SceneFitFrame } from "../shared/camera/cameraFit";
+import {
+  applyOrthographicCameraState,
+  readOrthographicCameraState,
+  updateOrthographicCameraZoom,
+} from "../shared/camera/orthographicCameraControls";
+import {
+  ORTHOGRAPHIC_CAMERA_DAMPING_FACTOR,
+  ORTHOGRAPHIC_CAMERA_PAN_SPEED,
+  ORTHOGRAPHIC_CAMERA_TOOLBAR_ZOOM_SCALE,
+  ORTHOGRAPHIC_CAMERA_ZOOM_SPEED,
+  SCENE_CAMERA_MOUSE_BUTTONS,
+  SCENE_CAMERA_TOUCHES,
+} from "../shared/camera/sceneCameraControlSettings";
+import { useSceneFitFrame } from "../shared/camera/useSceneFitFrame";
 
 const MIN_ELEVATION_ZOOM = 1.15;
 const MAX_ELEVATION_ZOOM = 12;
-const TOOLBAR_ZOOM_SCALE = 1.16;
 const ELEVATION_CAMERA_Y_OFFSET_INCHES = 360;
 const ELEVATION_FIT_VIEWPORT_SCALE = 0.74;
+
+const ELEVATION_CAMERA_UP_VECTOR = {
+  x: 0,
+  y: 0,
+  z: 1,
+} as const;
+
+const ELEVATION_ZOOM_RANGE = {
+  minZoom: MIN_ELEVATION_ZOOM,
+  maxZoom: MAX_ELEVATION_ZOOM,
+} as const;
+
+type CanvasSizePixels = Readonly<{
+  widthPixels: number;
+  heightPixels: number;
+}>;
 
 export function ElevationCameraControls() {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const activeElevationViewKeyRef = useRef<string | null>(null);
-  const { camera, size: canvasSizePixels } = useThree();
+  const { camera, size } = useThree();
+  const canvasSizePixels = useMemo<CanvasSizePixels>(
+    () => ({
+      widthPixels: size.width,
+      heightPixels: size.height,
+    }),
+    [size.height, size.width],
+  );
   const cameraCommand = useDesignSceneStore((state) => state.cameraCommand);
   const sceneCameraStates = useDesignSceneStore((state) => state.sceneCameraStates);
   const updateElevationCameraState = useDesignSceneStore((state) => state.updateElevationCameraState);
@@ -55,19 +89,14 @@ export function ElevationCameraControls() {
     : createWallElevationViewKey(activeElevationSide);
 
   useEffect(() => {
-    const storedCameraState = getStoredElevationCameraState(
+    const nextCameraState = getNextElevationCameraState({
       sceneCameraStates,
+      activeElevationSide,
       activeElevationViewKey,
-    );
-    const nextCameraState = storedCameraState.elevationViewKey === activeElevationViewKey
-      ? storedCameraState
-      : createElevationCameraState({
-          activeElevationSide,
-          elevationViewKey: activeElevationViewKey,
-          placedAssemblies,
-          canvasSizePixels,
-          sceneFitFrame,
-        });
+      placedAssemblies,
+      canvasSizePixels,
+      sceneFitFrame,
+    });
 
     applyElevationCameraState(camera as OrthographicCamera, controlsRef.current, nextCameraState);
     updateElevationCameraState(nextCameraState);
@@ -79,19 +108,14 @@ export function ElevationCameraControls() {
       return;
     }
 
-    const storedCameraState = getStoredElevationCameraState(
+    const nextCameraState = getNextElevationCameraState({
       sceneCameraStates,
+      activeElevationSide,
       activeElevationViewKey,
-    );
-    const nextCameraState = storedCameraState.elevationViewKey === activeElevationViewKey
-      ? storedCameraState
-      : createElevationCameraState({
-          activeElevationSide,
-          elevationViewKey: activeElevationViewKey,
-          placedAssemblies,
-          canvasSizePixels,
-          sceneFitFrame,
-        });
+      placedAssemblies,
+      canvasSizePixels,
+      sceneFitFrame,
+    });
 
     applyElevationCameraState(camera as OrthographicCamera, controlsRef.current, nextCameraState);
     updateElevationCameraState(nextCameraState);
@@ -121,7 +145,7 @@ export function ElevationCameraControls() {
     let nextCameraState: ElevationCameraState;
 
     if (cameraCommand.tool === "zoom-in") {
-      updateElevationZoom(camera as OrthographicCamera, camera.zoom * TOOLBAR_ZOOM_SCALE);
+      updateElevationZoom(camera as OrthographicCamera, camera.zoom * ORTHOGRAPHIC_CAMERA_TOOLBAR_ZOOM_SCALE);
       controls.update();
       nextCameraState = readElevationCameraState({
         camera: camera as OrthographicCamera,
@@ -129,7 +153,7 @@ export function ElevationCameraControls() {
         elevationViewKey: activeElevationViewKey,
       });
     } else if (cameraCommand.tool === "zoom-out") {
-      updateElevationZoom(camera as OrthographicCamera, camera.zoom / TOOLBAR_ZOOM_SCALE);
+      updateElevationZoom(camera as OrthographicCamera, camera.zoom / ORTHOGRAPHIC_CAMERA_TOOLBAR_ZOOM_SCALE);
       controls.update();
       nextCameraState = readElevationCameraState({
         camera: camera as OrthographicCamera,
@@ -175,7 +199,7 @@ export function ElevationCameraControls() {
     }));
   }
 
-  const isSceneOperationBlockingPan = activeSceneOperation !== null || activeToolbarTool !== null;
+  const isEditorOperationActive = activeSceneOperation !== null || activeToolbarTool !== null;
 
   return (
     <OrbitControls
@@ -183,34 +207,53 @@ export function ElevationCameraControls() {
       enabled={activeDrag === null}
       makeDefault
       enableRotate={false}
-      enablePan={!isSceneOperationBlockingPan}
+      enablePan={!isEditorOperationActive}
       enableZoom
       enableDamping
-      dampingFactor={0.08}
+      dampingFactor={ORTHOGRAPHIC_CAMERA_DAMPING_FACTOR}
       minZoom={MIN_ELEVATION_ZOOM}
       maxZoom={MAX_ELEVATION_ZOOM}
-      zoomSpeed={0.45}
-      panSpeed={1}
+      zoomSpeed={ORTHOGRAPHIC_CAMERA_ZOOM_SPEED}
+      panSpeed={ORTHOGRAPHIC_CAMERA_PAN_SPEED}
       screenSpacePanning
-      mouseButtons={{
-        LEFT: MOUSE.PAN,
-        MIDDLE: MOUSE.DOLLY,
-        RIGHT: MOUSE.PAN,
-      }}
-      touches={{
-        ONE: TOUCH.PAN,
-        TWO: TOUCH.DOLLY_PAN,
-      }}
+      mouseButtons={SCENE_CAMERA_MOUSE_BUTTONS}
+      touches={SCENE_CAMERA_TOUCHES}
       onChange={handleControlsChange}
     />
   );
+}
+
+function getNextElevationCameraState(args: {
+  sceneCameraStates: SceneCameraStates;
+  activeElevationSide: PlacedWallElevationSide | null;
+  activeElevationViewKey: string | null;
+  placedAssemblies: readonly PlacedAssembly[];
+  canvasSizePixels: CanvasSizePixels;
+  sceneFitFrame: SceneFitFrame;
+}): ElevationCameraState {
+  const storedCameraState = getStoredElevationCameraState(
+    args.sceneCameraStates,
+    args.activeElevationViewKey,
+  );
+
+  if (storedCameraState.elevationViewKey === args.activeElevationViewKey) {
+    return storedCameraState;
+  }
+
+  return createElevationCameraState({
+    activeElevationSide: args.activeElevationSide,
+    elevationViewKey: args.activeElevationViewKey,
+    placedAssemblies: args.placedAssemblies,
+    canvasSizePixels: args.canvasSizePixels,
+    sceneFitFrame: args.sceneFitFrame,
+  });
 }
 
 function createElevationCameraState(args: {
   activeElevationSide: PlacedWallElevationSide | null;
   elevationViewKey: string | null;
   placedAssemblies: readonly PlacedAssembly[];
-  canvasSizePixels: Readonly<{ width: number; height: number }>;
+  canvasSizePixels: CanvasSizePixels;
   sceneFitFrame: SceneFitFrame;
 }): ElevationCameraState {
   if (args.activeElevationSide !== null) {
@@ -229,7 +272,7 @@ function createElevationCameraStateForSide(args: {
   activeElevationSide: PlacedWallElevationSide;
   elevationViewKey: string | null;
   placedAssemblies: readonly PlacedAssembly[];
-  canvasSizePixels: Readonly<{ width: number; height: number }>;
+  canvasSizePixels: CanvasSizePixels;
 }): ElevationCameraState {
   const fitBounds = measureElevationViewFitBounds({
     activeElevationSide: args.activeElevationSide,
@@ -285,10 +328,10 @@ function createElevationCameraStateForSceneFit(sceneFitFrame: SceneFitFrame): El
 
 function computeElevationFitZoom(
   fitBoundsSize: Readonly<{ widthInches: number; heightInches: number }>,
-  canvasSizePixels: Readonly<{ width: number; height: number }>,
+  canvasSizePixels: CanvasSizePixels,
 ): number {
-  const zoomForWidth = (canvasSizePixels.width * ELEVATION_FIT_VIEWPORT_SCALE) / fitBoundsSize.widthInches;
-  const zoomForHeight = (canvasSizePixels.height * ELEVATION_FIT_VIEWPORT_SCALE) / fitBoundsSize.heightInches;
+  const zoomForWidth = (canvasSizePixels.widthPixels * ELEVATION_FIT_VIEWPORT_SCALE) / fitBoundsSize.widthInches;
+  const zoomForHeight = (canvasSizePixels.heightPixels * ELEVATION_FIT_VIEWPORT_SCALE) / fitBoundsSize.heightInches;
   return Math.min(
     Math.max(Math.min(zoomForWidth, zoomForHeight), MIN_ELEVATION_ZOOM),
     MAX_ELEVATION_ZOOM,
@@ -300,19 +343,13 @@ function applyElevationCameraState(
   controls: OrbitControlsImpl | null,
   cameraState: ElevationCameraState,
 ): void {
-  camera.up.set(0, 0, 1);
-  camera.position.set(
-    cameraState.cameraPositionInches.xInches,
-    cameraState.cameraPositionInches.yInches,
-    cameraState.cameraPositionInches.zInches,
-  );
-  updateElevationZoom(camera, cameraState.zoom);
-  controls?.target.set(
-    cameraState.cameraTargetInches.xInches,
-    cameraState.cameraTargetInches.yInches,
-    cameraState.cameraTargetInches.zInches,
-  );
-  controls?.update();
+  applyOrthographicCameraState({
+    camera,
+    controls,
+    cameraState,
+    cameraUpVector: ELEVATION_CAMERA_UP_VECTOR,
+    zoomRange: ELEVATION_ZOOM_RANGE,
+  });
 
   if (controls === null) {
     camera.lookAt(
@@ -329,22 +366,15 @@ function readElevationCameraState(args: {
   elevationViewKey: string | null;
 }): ElevationCameraState {
   return {
-    cameraPositionInches: {
-      xInches: args.camera.position.x,
-      yInches: args.camera.position.y,
-      zInches: args.camera.position.z,
-    },
-    cameraTargetInches: {
-      xInches: args.controls.target.x,
-      yInches: args.controls.target.y,
-      zInches: args.controls.target.z,
-    },
-    zoom: args.camera.zoom,
+    ...readOrthographicCameraState(args.camera, args.controls),
     elevationViewKey: args.elevationViewKey,
   };
 }
 
 function updateElevationZoom(camera: OrthographicCamera, zoom: number): void {
-  camera.zoom = Math.min(Math.max(zoom, MIN_ELEVATION_ZOOM), MAX_ELEVATION_ZOOM);
-  camera.updateProjectionMatrix();
+  updateOrthographicCameraZoom({
+    camera,
+    zoom,
+    zoomRange: ELEVATION_ZOOM_RANGE,
+  });
 }

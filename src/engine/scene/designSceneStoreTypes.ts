@@ -2,7 +2,7 @@ import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { WallSettings } from "@/engine/walls/wallTypes";
-import type { KitchenEditorActiveToolbarTool } from "@/engine/scene/sceneEditingToolTypes";
+import type { SceneEditingTool } from "./sceneEditingToolTypes";
 import type {
   SceneCameraCommand,
   SceneCameraCommandTool,
@@ -27,7 +27,7 @@ export type DesignSceneStore = Readonly<{
   activeSceneViewMode: SceneViewMode;
   activeWallElevationWallId: string | null;
   activeWallElevationEdgeIndex: number;
-  activeToolbarTool: KitchenEditorActiveToolbarTool | null;
+  activeToolbarTool: SceneEditingTool | null;
   cameraCommand: SceneCameraCommand | null;
   sceneCameraStates: SceneCameraStates;
   activeDrag: AssemblyDragState | null;
@@ -38,7 +38,7 @@ export type DesignSceneStore = Readonly<{
   showNextWallElevationSide: () => void;
   runCameraCommand: (cameraCommandTool: SceneCameraCommandTool) => void;
   clearCameraCommand: (cameraCommandId: number) => void;
-  setActiveToolbarTool: (toolbarTool: KitchenEditorActiveToolbarTool | null) => void;
+  setActiveToolbarTool: (toolbarTool: SceneEditingTool | null) => void;
   updatePerspectiveCameraState: (cameraState: PerspectiveCameraState) => void;
   updateFloorPlanCameraState: (cameraState: OrthographicCameraState) => void;
   updateElevationCameraState: (cameraState: ElevationCameraState) => void;

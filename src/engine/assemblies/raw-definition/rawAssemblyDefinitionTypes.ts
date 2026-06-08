@@ -1,9 +1,9 @@
-import type { AssemblyOptionValue } from "./assemblyConfiguration";
-import type { PrimitiveBoxFrontOutlineEdge } from "./assemblyComponentTypes";
+import type { AssemblyOptionValue } from "../assemblyConfiguration";
+import type { PrimitiveBoxFrontOutlineEdge } from "../assemblyComponentTypes";
 import type {
   AssemblyDimensionDefinition,
   AssemblyOptionGroup,
-} from "./assemblyDefinitionTypes";
+} from "../assemblyDefinitionTypes";
 import type { PrimitiveGeometry } from "@/engine/primitive-geometry/primitiveGeometryTypes";
 
 export type RawAssemblyDefinition = Readonly<{

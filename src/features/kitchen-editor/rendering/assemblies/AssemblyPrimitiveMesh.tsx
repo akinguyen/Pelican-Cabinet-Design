@@ -9,6 +9,7 @@ import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import { createCustomMeshGeometry } from "@/engine/primitive-geometry/custom-meshes/createCustomMeshGeometry";
 import type { PrimitiveCustomMeshGeometry } from "@/engine/primitive-geometry/primitiveGeometryTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import { createAssemblyDragPointerWorldPoint } from "../../interaction/assemblies/assemblyDragPointer";
 
 type AssemblyPrimitiveMeshProps = Readonly<{
@@ -50,7 +51,7 @@ export function AssemblyPrimitiveMesh({ primitiveGeometry, renderState }: Assemb
     event.stopPropagation();
     selectPlacedAssembly(primitiveGeometry.rootAssemblyId);
 
-    if (workspaceMode !== "editor") {
+    if (!canManuallyEditScene(workspaceMode)) {
       return;
     }
 

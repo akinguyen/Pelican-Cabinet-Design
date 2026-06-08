@@ -1,6 +1,6 @@
-import type { AssemblyConfiguration, AssemblyOptionValue } from "./assemblyConfiguration";
-import type { AssemblyComponent } from "./assemblyComponentTypes";
-import type { AssemblyBuildContext } from "./assemblyDefinitionTypes";
+import type { AssemblyConfiguration, AssemblyOptionValue } from "../assemblyConfiguration";
+import type { AssemblyComponent } from "../assemblyComponentTypes";
+import type { AssemblyBuildContext } from "../assemblyDefinitionTypes";
 import type { RawAssemblyComponentDefinition, RawAssemblyDefinition, RawExpression, RawPrimitiveMaterialDefinition } from "./rawAssemblyDefinitionTypes";
 import { evaluateRawCondition } from "./rawAssemblyConditionEvaluator";
 import {

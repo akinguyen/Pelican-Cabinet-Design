@@ -4,6 +4,7 @@ import {
   updateWallFootprintDraftHover as updateWallFootprintDraftHoverInEngine,
 } from "@/engine/walls/footprint-draft/wallFootprintDraftEditing";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createWallFootprintDraftActions(
   get: DesignSceneStoreGetter,
@@ -14,7 +15,7 @@ export function createWallFootprintDraftActions(
 > {
   return {
     updateWallFootprintDraftHover(pointInches) {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
@@ -40,7 +41,7 @@ export function createWallFootprintDraftActions(
     },
 
     clickWallFootprintDraftPoint(pointInches) {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
@@ -89,10 +90,6 @@ export function createWallFootprintDraftActions(
     },
 
     exitWallFootprintDraftTool() {
-      if (get().workspaceMode !== "editor") {
-        return;
-      }
-
       set((state) => ({
         activeToolbarTool: null,
         designScene: {

@@ -1,14 +1,42 @@
 import { createWallSplitDraftForTarget } from "@/engine/walls/split-draft/wallSplitDraftFactory";
 import { createEmptyWallFootprintDraft } from "@/engine/walls/footprint-draft/wallFootprintDraftFactory";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
-export function createSceneEditingToolActions(
+export function createSceneToolbarActions(
   get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
-): Pick<DesignSceneStore, "setActiveToolbarTool"> {
+): Pick<DesignSceneStore, "runCameraCommand" | "clearCameraCommand" | "setActiveToolbarTool"> {
   return {
+    runCameraCommand(cameraCommandTool) {
+      set((state) => ({
+        cameraCommand: {
+          id: (state.cameraCommand?.id ?? 0) + 1,
+          sceneViewMode: state.activeSceneViewMode,
+          tool: cameraCommandTool,
+        },
+        activeToolbarTool: null,
+        designScene: {
+          ...state.designScene,
+          activeSceneOperation: isToolbarSceneOperation(state.designScene.activeSceneOperation)
+            ? null
+            : state.designScene.activeSceneOperation,
+        },
+      }));
+    },
+
+    clearCameraCommand(cameraCommandId) {
+      set((state) => {
+        if (state.cameraCommand?.id !== cameraCommandId) {
+          return {};
+        }
+
+        return { cameraCommand: null };
+      });
+    },
+
     setActiveToolbarTool(toolbarTool) {
-      if (get().workspaceMode !== "editor" && toolbarTool !== null) {
+      if (!canManuallyEditScene(get().workspaceMode) && toolbarTool !== null) {
         return;
       }
 
@@ -50,14 +78,21 @@ export function createSceneEditingToolActions(
           activeToolbarTool: null,
           designScene: {
             ...state.designScene,
-            activeSceneOperation:
-              state.designScene.activeSceneOperation?.kind === "wall-footprint-draft" ||
-              state.designScene.activeSceneOperation?.kind === "wall-split-draft"
-                ? null
-                : state.designScene.activeSceneOperation,
+            activeSceneOperation: isToolbarSceneOperation(state.designScene.activeSceneOperation)
+              ? null
+              : state.designScene.activeSceneOperation,
           },
         };
       });
     },
   };
+}
+
+function isToolbarSceneOperation(
+  activeSceneOperation: DesignSceneStore["designScene"]["activeSceneOperation"],
+): boolean {
+  return (
+    activeSceneOperation?.kind === "wall-footprint-draft" ||
+    activeSceneOperation?.kind === "wall-split-draft"
+  );
 }

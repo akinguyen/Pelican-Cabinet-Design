@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 
 export function KeyboardShortcuts() {
   const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
@@ -24,7 +25,7 @@ export function KeyboardShortcuts() {
       if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
 
-        if (workspaceMode !== "editor") {
+        if (!canManuallyEditScene(workspaceMode)) {
           return;
         }
         deleteSelectedPlacedWall();

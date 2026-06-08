@@ -1,7 +1,7 @@
 "use client";
 
 import { WallElevationEdgeNavigator } from "./elevation/WallElevationEdgeNavigator";
-import { DesignSceneCanvas } from "./shared/DesignSceneCanvas";
+import { DesignSceneCanvas } from "./shared/scene-canvas/DesignSceneCanvas";
 
 export function DesignSceneViewport() {
   return (

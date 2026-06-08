@@ -4,6 +4,7 @@ import type { ThreeEvent } from "@react-three/fiber";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { getAssemblyDistanceFromFloorInches } from "@/engine/assemblies/placedAssemblyTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 
 const PLACEMENT_SURFACE_SIZE_INCHES = 3200;
@@ -20,7 +21,7 @@ export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
   );
   const commitAssemblyPlacementCandidate = useDesignSceneStore((state) => state.commitAssemblyPlacementCandidate);
 
-  if (workspaceMode !== "editor" || activeSceneOperation?.kind !== "assembly-placement") {
+  if (!canManuallyEditScene(workspaceMode) || activeSceneOperation?.kind !== "assembly-placement") {
     return null;
   }
 

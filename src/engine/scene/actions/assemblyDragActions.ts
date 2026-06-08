@@ -1,6 +1,7 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { AssemblyDragState } from "../sceneDragTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createAssemblyDragActions(
   get: DesignSceneStoreGetter,
@@ -11,7 +12,7 @@ export function createAssemblyDragActions(
 > {
   return {
     startAssemblyDrag({ assemblyId, pointerWorldInches, sceneViewMode }) {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
@@ -34,7 +35,7 @@ export function createAssemblyDragActions(
     },
 
     updateAssemblyDrag(pointerWorldInches) {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
@@ -74,18 +75,10 @@ export function createAssemblyDragActions(
     },
 
     finishAssemblyDrag() {
-      if (get().workspaceMode !== "editor") {
-        return;
-      }
-
       set({ activeDrag: null });
     },
 
     cancelAssemblyDrag() {
-      if (get().workspaceMode !== "editor") {
-        return;
-      }
-
       set({ activeDrag: null });
     },
   };

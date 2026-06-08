@@ -6,7 +6,6 @@ import {
   type PlacedAssembly,
 } from "@/engine/assemblies/placedAssemblyTypes";
 import { formatInchesLabel } from "../shared/formatInchesLabel";
-import { SelectedSummaryField } from "./SelectedSummaryField";
 
 type SelectedAssemblySummaryProps = Readonly<{
   placedAssembly: PlacedAssembly;
@@ -30,16 +29,27 @@ export function SelectedAssemblySummary({
         <p className="mt-0.5 break-all text-xs text-slate-500">{placedAssembly.id}</p>
       </div>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
-        <SelectedSummaryField label="Definition" value={definition.id} />
-        <SelectedSummaryField
+        <SummaryField label="Definition" value={definition.id} />
+        <SummaryField
           label="Size"
           value={`${formatInchesLabel(widthInches)} W × ${formatInchesLabel(depthInches)} D × ${formatInchesLabel(heightInches)} H`}
         />
-        <SelectedSummaryField label="X" value={formatInchesLabel(placedAssembly.worldPositionInches.xInches)} />
-        <SelectedSummaryField label="Y" value={formatInchesLabel(placedAssembly.worldPositionInches.yInches)} />
-        <SelectedSummaryField label="Distance from floor" value={formatInchesLabel(distanceFromFloorInches)} />
-        <SelectedSummaryField label="Rotation" value={`${placedAssembly.rotationDegrees.zDegrees}°`} />
+        <SummaryField label="X" value={formatInchesLabel(placedAssembly.worldPositionInches.xInches)} />
+        <SummaryField label="Y" value={formatInchesLabel(placedAssembly.worldPositionInches.yInches)} />
+        <SummaryField label="Distance from floor" value={formatInchesLabel(distanceFromFloorInches)} />
+        <SummaryField label="Rotation" value={`${placedAssembly.rotationDegrees.zDegrees}°`} />
       </dl>
     </section>
+  );
+}
+
+function SummaryField({ label, value }: Readonly<{ label: string; value: string }>) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-slate-400">{label}</dt>
+      <dd className="truncate font-medium text-slate-700" title={value}>
+        {value}
+      </dd>
+    </div>
   );
 }

@@ -5,7 +5,7 @@ import { combineBounds3DInches } from "@/core/geometry/boxBounds";
 import { measurePlacedAssembliesVisualBounds } from "@/engine/assemblies/assemblyBounds";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { measurePlacedWallsBounds } from "@/engine/walls/wallBounds";
-import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
+import { kitchenEditorCatalogRegistry } from "../../../catalogs/registry/kitchenEditorCatalogRegistry";
 import { createSceneFitFrame } from "./cameraFit";
 
 export function useSceneFitFrame() {

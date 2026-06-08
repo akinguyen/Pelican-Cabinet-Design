@@ -10,6 +10,7 @@ import type {
   DesignSceneStoreGetter,
   DesignSceneStoreSetter,
 } from "../designSceneStoreTypes";
+import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createAssemblyEditingActions(
   get: DesignSceneStoreGetter,
@@ -26,7 +27,7 @@ export function createAssemblyEditingActions(
 > {
   return {
     deleteSelectedAssembly() {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
@@ -146,7 +147,7 @@ function updateSelectedAssembly(
   get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
 ): void {
-  if (get().workspaceMode !== "editor") {
+  if (!canManuallyEditScene(get().workspaceMode)) {
     return;
   }
 

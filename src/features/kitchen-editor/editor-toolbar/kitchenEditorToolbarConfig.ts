@@ -1,10 +1,8 @@
 import { Maximize, Minus, PencilLine, Plus, Scissors } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { SceneCameraCommandTool } from "@/engine/scene/sceneCameraCommandTypes";
-import type {
-  KitchenEditorActiveToolbarTool,
-  KitchenEditorToolbarActionId,
-} from "./kitchenEditorToolbarTypes";
+import type { SceneEditingTool } from "@/engine/scene/sceneEditingToolTypes";
+import type { KitchenEditorToolbarActionId } from "./kitchenEditorToolbarTypes";
 
 export type KitchenEditorCameraToolbarAction = Readonly<{
   id: SceneCameraCommandTool;
@@ -15,7 +13,7 @@ export type KitchenEditorCameraToolbarAction = Readonly<{
 }>;
 
 export type KitchenEditorActiveToolbarAction = Readonly<{
-  id: KitchenEditorActiveToolbarTool;
+  id: SceneEditingTool;
   kind: "active-tool";
   label: string;
   icon: LucideIcon;

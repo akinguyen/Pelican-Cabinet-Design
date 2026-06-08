@@ -1,13 +1,13 @@
 "use client";
 
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { AssemblyDragSurface } from "../../interaction/assemblies/AssemblyDragSurface";
-import { WallFootprintDraftSurface } from "../../interaction/walls/WallFootprintDraftSurface";
-import { WallSplitDraftSurface } from "../../interaction/walls/WallSplitDraftSurface";
-import { AssemblyLayer } from "../../rendering/assemblies/AssemblyLayer";
-import { AssemblyPlacementCandidateRenderer } from "../../rendering/assemblies/AssemblyPlacementCandidateRenderer";
-import { SelectedAssemblyOutlineLayer } from "../../rendering/assemblies/SelectedAssemblyOutlineLayer";
-import { WallLayer } from "../../rendering/walls/WallLayer";
+import { AssemblyDragSurface } from "../../../interaction/assemblies/AssemblyDragSurface";
+import { WallFootprintDraftSurface } from "../../../interaction/walls/WallFootprintDraftSurface";
+import { WallSplitDraftSurface } from "../../../interaction/walls/WallSplitDraftSurface";
+import { AssemblyLayer } from "../../../rendering/assemblies/AssemblyLayer";
+import { AssemblyPlacementCandidateRenderer } from "../../../rendering/assemblies/AssemblyPlacementCandidateRenderer";
+import { SelectedAssemblyOutlineLayer } from "../../../rendering/assemblies/SelectedAssemblyOutlineLayer";
+import { WallLayer } from "../../../rendering/walls/WallLayer";
 
 export function DesignSceneRenderer() {
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);

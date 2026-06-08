@@ -1,17 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import { addPoint3DInches, rotatePointAroundZInches } from "@/core/geometry/pointTypes";
-import type { PrimitiveBoxFrontOutlineEdge } from "./assemblyComponentTypes";
-import { collectBuiltPrimitiveGeometries } from "./assemblyBounds";
-import type { BuiltAssemblyTree, BuiltPrimitiveGeometry } from "./assemblyTreeBuilder";
 
-export type AssemblyFrontOutlineLine = Readonly<{
-  id: string;
-  rootAssemblyId: string;
-  startPointInches: Point3DInches;
-  endPointInches: Point3DInches;
-}>;
-
-type OutlineLineCandidate = Readonly<{
+export type AssemblyFrontOutlineLineCandidate = Readonly<{
   rootAssemblyId: string;
   startPointInches: Point3DInches;
   endPointInches: Point3DInches;
@@ -40,96 +29,12 @@ type UnitVector3D = Readonly<{
   z: number;
 }>;
 
-const FRONT_OUTLINE_FACE_OFFSET_INCHES = 0.03;
 const FRONT_OUTLINE_MERGE_TOLERANCE_INCHES = 0.01;
 const FRONT_OUTLINE_KEY_TOLERANCE_INCHES = 0.02;
 
-export function buildAssemblyFrontOutlineLines(
-  builtAssemblyTree: BuiltAssemblyTree,
-): readonly AssemblyFrontOutlineLine[] {
-  const outlineCandidates = collectBuiltPrimitiveGeometries(builtAssemblyTree).flatMap(
-    createPrimitiveFrontOutlineLines,
-  );
-
-  return mergeAssemblyFrontOutlineLines(outlineCandidates).map((line, index) => ({
-    id: `${line.rootAssemblyId}/front-outline-${index}`,
-    rootAssemblyId: line.rootAssemblyId,
-    startPointInches: line.startPointInches,
-    endPointInches: line.endPointInches,
-  }));
-}
-
-function createPrimitiveFrontOutlineLines(
-  primitiveGeometry: BuiltPrimitiveGeometry,
-): readonly OutlineLineCandidate[] {
-  if (
-    primitiveGeometry.geometry.kind !== "box" ||
-    primitiveGeometry.frontOutlineEdges === undefined ||
-    primitiveGeometry.frontOutlineEdges.length === 0
-  ) {
-    return [];
-  }
-
-  return primitiveGeometry.frontOutlineEdges.map((edge) =>
-    createPrimitiveBoxFrontOutlineLine(primitiveGeometry, edge),
-  );
-}
-
-function createPrimitiveBoxFrontOutlineLine(
-  primitiveGeometry: BuiltPrimitiveGeometry,
-  edge: PrimitiveBoxFrontOutlineEdge,
-): OutlineLineCandidate {
-  const { widthInches, depthInches, heightInches } = primitiveGeometry.sizeInches;
-  const leftXInches = -widthInches / 2;
-  const rightXInches = widthInches / 2;
-  const bottomZInches = -heightInches / 2;
-  const topZInches = heightInches / 2;
-  const frontYInches = depthInches / 2 + FRONT_OUTLINE_FACE_OFFSET_INCHES;
-
-  const localLineEndpointsByEdge: Record<
-    PrimitiveBoxFrontOutlineEdge,
-    readonly [Point3DInches, Point3DInches]
-  > = {
-    top: [
-      { xInches: leftXInches, yInches: frontYInches, zInches: topZInches },
-      { xInches: rightXInches, yInches: frontYInches, zInches: topZInches },
-    ],
-    right: [
-      { xInches: rightXInches, yInches: frontYInches, zInches: bottomZInches },
-      { xInches: rightXInches, yInches: frontYInches, zInches: topZInches },
-    ],
-    bottom: [
-      { xInches: leftXInches, yInches: frontYInches, zInches: bottomZInches },
-      { xInches: rightXInches, yInches: frontYInches, zInches: bottomZInches },
-    ],
-    left: [
-      { xInches: leftXInches, yInches: frontYInches, zInches: bottomZInches },
-      { xInches: leftXInches, yInches: frontYInches, zInches: topZInches },
-    ],
-  };
-
-  const [localStartPointInches, localEndPointInches] = localLineEndpointsByEdge[edge];
-
-  return {
-    rootAssemblyId: primitiveGeometry.rootAssemblyId,
-    startPointInches: primitiveLocalPointToWorldPoint(localStartPointInches, primitiveGeometry),
-    endPointInches: primitiveLocalPointToWorldPoint(localEndPointInches, primitiveGeometry),
-  };
-}
-
-function primitiveLocalPointToWorldPoint(
-  localPointInches: Point3DInches,
-  primitiveGeometry: BuiltPrimitiveGeometry,
-): Point3DInches {
-  return addPoint3DInches(
-    primitiveGeometry.worldPositionInches,
-    rotatePointAroundZInches(localPointInches, primitiveGeometry.worldRotationDegrees.zDegrees),
-  );
-}
-
-function mergeAssemblyFrontOutlineLines(
-  outlineLines: readonly OutlineLineCandidate[],
-): readonly OutlineLineCandidate[] {
+export function mergeAssemblyFrontOutlineLineCandidates(
+  outlineLines: readonly AssemblyFrontOutlineLineCandidate[],
+): readonly AssemblyFrontOutlineLineCandidate[] {
   const horizontalGroups = new Map<string, HorizontalLineGroup>();
   const verticalGroups = new Map<string, VerticalLineGroup>();
 
@@ -150,7 +55,7 @@ function mergeAssemblyFrontOutlineLines(
 
 function addHorizontalLineToGroups(
   groups: Map<string, HorizontalLineGroup>,
-  line: OutlineLineCandidate,
+  line: AssemblyFrontOutlineLineCandidate,
 ): void {
   const direction = createCanonicalUnitVector(
     line.endPointInches.xInches - line.startPointInches.xInches,
@@ -187,7 +92,7 @@ function addHorizontalLineToGroups(
 
 function addVerticalLineToGroups(
   groups: Map<string, VerticalLineGroup>,
-  line: OutlineLineCandidate,
+  line: AssemblyFrontOutlineLineCandidate,
 ): void {
   const supportKey = [
     line.rootAssemblyId,
@@ -221,7 +126,9 @@ function addVerticalLineToGroups(
   });
 }
 
-function createMergedHorizontalLines(group: HorizontalLineGroup): readonly OutlineLineCandidate[] {
+function createMergedHorizontalLines(
+  group: HorizontalLineGroup,
+): readonly AssemblyFrontOutlineLineCandidate[] {
   return mergeLineIntervals(group.intervals).map((interval) => ({
     rootAssemblyId: group.rootAssemblyId,
     startPointInches: createPointOnLine(interval.supportPointInches, group.direction, interval.startInches),
@@ -229,7 +136,9 @@ function createMergedHorizontalLines(group: HorizontalLineGroup): readonly Outli
   }));
 }
 
-function createMergedVerticalLines(group: VerticalLineGroup): readonly OutlineLineCandidate[] {
+function createMergedVerticalLines(
+  group: VerticalLineGroup,
+): readonly AssemblyFrontOutlineLineCandidate[] {
   return mergeLineIntervals(group.intervals).map((interval) => ({
     rootAssemblyId: group.rootAssemblyId,
     startPointInches: {
@@ -271,7 +180,7 @@ function mergeLineIntervals(intervals: readonly LineInterval[]): readonly LineIn
 }
 
 function createHorizontalSupportPoint(
-  line: OutlineLineCandidate,
+  line: AssemblyFrontOutlineLineCandidate,
   direction: UnitVector3D,
 ): Point3DInches {
   const startDistanceInches = dotPointWithDirection(line.startPointInches, direction);
@@ -284,7 +193,7 @@ function createHorizontalSupportPoint(
 }
 
 function createLineInterval(
-  line: OutlineLineCandidate,
+  line: AssemblyFrontOutlineLineCandidate,
   direction: UnitVector3D,
   supportPointInches: Point3DInches,
 ): LineInterval {
@@ -357,7 +266,7 @@ function createCanonicalUnitVector(x: number, y: number, z: number): UnitVector3
   return unitVector;
 }
 
-function isVerticalLine(line: OutlineLineCandidate): boolean {
+function isVerticalLine(line: AssemblyFrontOutlineLineCandidate): boolean {
   return (
     Math.abs(line.startPointInches.xInches - line.endPointInches.xInches) <= FRONT_OUTLINE_MERGE_TOLERANCE_INCHES &&
     Math.abs(line.startPointInches.yInches - line.endPointInches.yInches) <= FRONT_OUTLINE_MERGE_TOLERANCE_INCHES

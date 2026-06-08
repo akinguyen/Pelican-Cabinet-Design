@@ -4,6 +4,7 @@ import {
   updateWallSplitDraftHover as updateWallSplitDraftHoverInEngine,
 } from "@/engine/walls/split-draft/wallSplitDraftEditing";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createWallSplitDraftActions(
   get: DesignSceneStoreGetter,
@@ -11,7 +12,7 @@ export function createWallSplitDraftActions(
 ): Pick<DesignSceneStore, "updateWallSplitDraftHover" | "clickWallSplitDraftPoint" | "exitWallSplitDraftTool"> {
   return {
     updateWallSplitDraftHover(pointInches) {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
@@ -37,7 +38,7 @@ export function createWallSplitDraftActions(
     },
 
     clickWallSplitDraftPoint(pointInches) {
-      if (get().workspaceMode !== "editor") {
+      if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
@@ -90,10 +91,6 @@ export function createWallSplitDraftActions(
     },
 
     exitWallSplitDraftTool() {
-      if (get().workspaceMode !== "editor") {
-        return;
-      }
-
       set((state) => ({
         activeToolbarTool: null,
         designScene: {

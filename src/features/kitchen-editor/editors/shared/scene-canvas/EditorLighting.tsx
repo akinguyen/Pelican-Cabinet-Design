@@ -1,6 +1,6 @@
 "use client";
 
-export function DesignSceneLighting() {
+export function EditorLighting() {
   return (
     <>
       <ambientLight intensity={0.65} />

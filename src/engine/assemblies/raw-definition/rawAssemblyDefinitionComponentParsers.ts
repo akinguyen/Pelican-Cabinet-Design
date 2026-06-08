@@ -1,18 +1,16 @@
-import type { PrimitiveBoxFrontOutlineEdge } from "@/engine/assemblies/assemblyComponentTypes";
+import type { PrimitiveBoxFrontOutlineEdge } from "../assemblyComponentTypes";
 import type { PrimitiveGeometry } from "@/engine/primitive-geometry/primitiveGeometryTypes";
 import type {
   RawAssemblyComponentDefinition,
+  RawAssemblyConfigurationDefinition,
+  RawExpression,
   RawNestedAssemblyComponentDefinition,
+  RawPoint3DExpression,
   RawPrimitiveGeometryComponentDefinition,
-} from "@/engine/assemblies/rawAssemblyDefinitionTypes";
-import { parseOptionalCondition } from "./parseRawAssemblyConditions";
-import {
-  parseAssemblyConfigurationDefinition,
-  parseOptionalRotationDegrees3DExpression,
-  parsePoint3DExpression,
-  parsePrimitiveMaterial,
-  parseSize3DExpression,
-} from "./parseRawAssemblyExpressions";
+  RawPrimitiveMaterialDefinition,
+  RawRotationDegrees3DExpression,
+  RawSize3DExpression,
+} from "./rawAssemblyDefinitionTypes";
 import {
   assertKnownKeys,
   parseArray,
@@ -23,7 +21,13 @@ import {
   readRecord,
   readString,
   throwInvalidRawAssemblyDefinition,
-} from "./rawAssemblyReadHelpers";
+} from "./rawAssemblyDefinitionParserReader";
+import {
+  parseExpression,
+  parseNumberExpression,
+  parseOptionalCondition,
+  parseOptionalExpression,
+} from "./rawAssemblyDefinitionValueParsers";
 
 const FRONT_OUTLINE_EDGES = ["top", "right", "bottom", "left"] as const;
 
@@ -221,4 +225,161 @@ function parsePrimitiveBoxFrontOutlineEdge(
   path: string,
 ): PrimitiveBoxFrontOutlineEdge {
   return readEnumValue(value, sourceLabel, path, FRONT_OUTLINE_EDGES);
+}
+
+function parseAssemblyConfigurationDefinition(
+  value: unknown,
+  sourceLabel: string,
+  path: string,
+): RawAssemblyConfigurationDefinition {
+  const configuration = readRecord(value, sourceLabel, path);
+  assertKnownKeys(configuration, sourceLabel, path, ["sizeInches", "optionValues"]);
+
+  return {
+    sizeInches: parseSize3DExpression(
+      configuration.sizeInches,
+      sourceLabel,
+      `${path}.sizeInches`,
+    ),
+    optionValues: parseOptionValueExpressions(
+      configuration.optionValues,
+      sourceLabel,
+      `${path}.optionValues`,
+    ),
+  };
+}
+
+function parseOptionValueExpressions(
+  value: unknown,
+  sourceLabel: string,
+  path: string,
+): Readonly<Record<string, RawExpression>> {
+  const optionValues = readRecord(value, sourceLabel, path);
+  const parsedOptionValues: Record<string, RawExpression> = {};
+
+  for (const [optionId, optionValue] of Object.entries(optionValues)) {
+    parsedOptionValues[optionId] = parseExpression(
+      optionValue,
+      sourceLabel,
+      `${path}.${optionId}`,
+    );
+  }
+
+  return parsedOptionValues;
+}
+
+function parsePrimitiveMaterial(
+  value: unknown,
+  sourceLabel: string,
+  path: string,
+): RawPrimitiveMaterialDefinition {
+  const material = readRecord(value, sourceLabel, path);
+  assertKnownKeys(material, sourceLabel, path, [
+    "colorHex",
+    "colorOptionId",
+    "opacity",
+  ]);
+
+  const colorHex = readOptionalString(material, sourceLabel, `${path}.colorHex`);
+  const colorOptionId = readOptionalString(
+    material,
+    sourceLabel,
+    `${path}.colorOptionId`,
+  );
+  const opacity = parseOptionalExpression(
+    material.opacity,
+    sourceLabel,
+    `${path}.opacity`,
+  );
+
+  return {
+    ...(colorHex === undefined ? {} : { colorHex }),
+    ...(colorOptionId === undefined ? {} : { colorOptionId }),
+    ...(opacity === undefined ? {} : { opacity }),
+  };
+}
+
+function parsePoint3DExpression(
+  value: unknown,
+  sourceLabel: string,
+  path: string,
+): RawPoint3DExpression {
+  const point = readRecord(value, sourceLabel, path);
+  assertKnownKeys(point, sourceLabel, path, ["xInches", "yInches", "zInches"]);
+
+  return {
+    xInches: parseNumberExpression(point.xInches, sourceLabel, `${path}.xInches`),
+    yInches: parseNumberExpression(point.yInches, sourceLabel, `${path}.yInches`),
+    zInches: parseNumberExpression(point.zInches, sourceLabel, `${path}.zInches`),
+  };
+}
+
+function parseSize3DExpression(
+  value: unknown,
+  sourceLabel: string,
+  path: string,
+): RawSize3DExpression {
+  const size = readRecord(value, sourceLabel, path);
+  assertKnownKeys(size, sourceLabel, path, [
+    "widthInches",
+    "depthInches",
+    "heightInches",
+  ]);
+
+  return {
+    widthInches: parseNumberExpression(
+      size.widthInches,
+      sourceLabel,
+      `${path}.widthInches`,
+    ),
+    depthInches: parseNumberExpression(
+      size.depthInches,
+      sourceLabel,
+      `${path}.depthInches`,
+    ),
+    heightInches: parseNumberExpression(
+      size.heightInches,
+      sourceLabel,
+      `${path}.heightInches`,
+    ),
+  };
+}
+
+function parseOptionalRotationDegrees3DExpression(
+  value: unknown,
+  sourceLabel: string,
+  path: string,
+): RawRotationDegrees3DExpression | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const rotationDegrees = readRecord(value, sourceLabel, path);
+  assertKnownKeys(rotationDegrees, sourceLabel, path, [
+    "xDegrees",
+    "yDegrees",
+    "zDegrees",
+  ]);
+
+  const xDegrees = parseOptionalExpression(
+    rotationDegrees.xDegrees,
+    sourceLabel,
+    `${path}.xDegrees`,
+  );
+  const yDegrees = parseOptionalExpression(
+    rotationDegrees.yDegrees,
+    sourceLabel,
+    `${path}.yDegrees`,
+  );
+  const zDegrees = parseOptionalExpression(
+    rotationDegrees.zDegrees,
+    sourceLabel,
+    `${path}.zDegrees`,
+  );
+
+  return {
+    ...(xDegrees === undefined ? {} : { xDegrees }),
+    ...(yDegrees === undefined ? {} : { yDegrees }),
+    ...(zDegrees === undefined ? {} : { zDegrees }),
+  };
 }

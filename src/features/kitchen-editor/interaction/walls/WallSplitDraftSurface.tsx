@@ -2,6 +2,7 @@
 
 import type { ThreeEvent } from "@react-three/fiber";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import { createWallGroundPlanePointerWorldPoint } from "./wallGroundPlanePointer";
 
 const WALL_SPLIT_SURFACE_SIZE_INCHES = 3200;
@@ -20,7 +21,7 @@ export function WallSplitDraftSurface() {
   const isWallSplitActive = activeToolbarTool === "split-wall-footprint";
   const hasSelectedWall = activeSelection?.kind === "placed-wall";
 
-  if (workspaceMode !== "editor" || !isWallSplitActive || !hasSelectedWall || activeSceneViewMode === "elevation") {
+  if (!canManuallyEditScene(workspaceMode) || !isWallSplitActive || !hasSelectedWall || activeSceneViewMode === "elevation") {
     return null;
   }
 

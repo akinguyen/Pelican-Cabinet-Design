@@ -1,7 +1,7 @@
 "use client";
 
 import { Line } from "@react-three/drei";
-import { buildAssemblyFrontOutlineLines } from "@/engine/assemblies/assemblyFrontOutlineLines";
+import { buildAssemblyFrontOutlineLines } from "@/engine/assemblies/front-outline/assemblyFrontOutlineLines";
 import type { BuiltAssemblyTree } from "@/engine/assemblies/assemblyTreeBuilder";
 
 const FRONT_OUTLINE_LINE_COLOR_HEX = "#111827";

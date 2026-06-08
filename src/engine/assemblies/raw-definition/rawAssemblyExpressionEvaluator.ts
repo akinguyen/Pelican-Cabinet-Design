@@ -1,7 +1,7 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { RotationDegrees3D } from "@/core/geometry/rotationTypes";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
-import type { AssemblyOptionValue } from "./assemblyConfiguration";
+import type { AssemblyOptionValue } from "../assemblyConfiguration";
 import type {
   RawExpression,
   RawNumberExpression,
