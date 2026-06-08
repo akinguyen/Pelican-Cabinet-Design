@@ -11,6 +11,10 @@ export function createWallEditingActions(
 > {
   return {
     updateSelectedPlacedWallHeight(heightInches) {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       const activeSelection = get().designScene.activeSelection;
 
       if (activeSelection?.kind !== "placed-wall") {
@@ -30,6 +34,10 @@ export function createWallEditingActions(
     },
 
     updateSelectedPlacedWallViewableEdge(edgeIndex, isViewable) {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       const activeSelection = get().designScene.activeSelection;
 
       if (activeSelection?.kind !== "placed-wall") {
@@ -61,6 +69,10 @@ export function createWallEditingActions(
     },
 
     deleteSelectedPlacedWall() {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       const activeSelection = get().designScene.activeSelection;
 
       if (activeSelection?.kind !== "placed-wall") {

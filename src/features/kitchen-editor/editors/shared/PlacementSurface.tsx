@@ -4,22 +4,23 @@ import type { ThreeEvent } from "@react-three/fiber";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { getAssemblyDistanceFromFloorInches } from "@/engine/assemblies/placedAssemblyTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { KitchenEditorView } from "./editorViewTypes";
+import type { SceneViewMode } from "./sceneViewModeTypes";
 
 const PLACEMENT_SURFACE_SIZE_INCHES = 3200;
 
 type PlacementSurfaceProps = Readonly<{
-  editorView: KitchenEditorView;
+  sceneViewMode: SceneViewMode;
 }>;
 
-export function PlacementSurface({ editorView }: PlacementSurfaceProps) {
+export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
+  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
   const updateAssemblyCandidateWorldPosition = useDesignSceneStore(
     (state) => state.updateAssemblyCandidateWorldPosition,
   );
   const commitAssemblyPlacementCandidate = useDesignSceneStore((state) => state.commitAssemblyPlacementCandidate);
 
-  if (activeSceneOperation?.kind !== "assembly-placement") {
+  if (workspaceMode !== "editor" || activeSceneOperation?.kind !== "assembly-placement") {
     return null;
   }
 
@@ -30,7 +31,7 @@ export function PlacementSurface({ editorView }: PlacementSurfaceProps) {
     event.stopPropagation();
     updateAssemblyCandidateWorldPosition(
       createAssemblyCandidatePositionFromPointerPoint(
-        editorView,
+        sceneViewMode,
         event.point,
         heightInches,
         distanceFromFloorInches,
@@ -43,7 +44,7 @@ export function PlacementSurface({ editorView }: PlacementSurfaceProps) {
     commitAssemblyPlacementCandidate();
   }
 
-  if (editorView === "elevation") {
+  if (sceneViewMode === "elevation") {
     return (
       <mesh
         position={[0, 0, 120]}
@@ -66,12 +67,12 @@ export function PlacementSurface({ editorView }: PlacementSurfaceProps) {
 }
 
 function createAssemblyCandidatePositionFromPointerPoint(
-  editorView: KitchenEditorView,
+  sceneViewMode: SceneViewMode,
   point: { x: number; y: number; z: number },
   heightInches: number,
   distanceFromFloorInches: number,
 ): Point3DInches {
-  if (editorView === "elevation") {
+  if (sceneViewMode === "elevation") {
     return {
       xInches: point.x,
       yInches: 0,

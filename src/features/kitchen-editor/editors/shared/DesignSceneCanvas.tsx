@@ -13,13 +13,13 @@ import { PerspectiveViewGizmo } from "../perspective/PerspectiveViewGizmo";
 import { SceneAxisGizmo } from "./SceneAxisGizmo";
 import { DesignSceneRenderer } from "./DesignSceneRenderer";
 import { EditorLighting } from "./EditorLighting";
-import type { KitchenEditorView } from "./editorViewTypes";
+import type { SceneViewMode } from "./sceneViewModeTypes";
 import { GroundGrid } from "./GroundGrid";
 import { PlacementSurface } from "./PlacementSurface";
 
 export function DesignSceneCanvas() {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const activeEditorView = useDesignSceneStore((state) => state.activeEditorView);
+  const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const placedWalls = useDesignSceneStore((state) => state.designScene.placedWalls);
   const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
@@ -30,12 +30,12 @@ export function DesignSceneCanvas() {
     activeToolbarTool === "draw-wall-footprint" ||
     activeToolbarTool === "split-wall-footprint";
   const cursorClassName = getCanvasCursorClassName(
-    activeEditorView,
+    activeSceneViewMode,
     activeSceneOperation !== null || hasActivePlacementOrDraftTool,
     activeDrag !== null,
   );
 
-  useEditorWorldGestureGuard(containerRef);
+  useSceneViewportGestureGuard(containerRef);
 
   function handlePointerMissed(event: MouseEvent) {
     if (event.button !== 0) {
@@ -57,24 +57,24 @@ export function DesignSceneCanvas() {
     >
       <Canvas onPointerMissed={handlePointerMissed}>
         <color attach="background" args={["#f8fafc"]} />
-        {activeEditorView === "perspective" ? <PerspectiveCamera makeDefault position={[96, -144, 96]} fov={45} /> : null}
-        {activeEditorView === "floor-plan" ? <OrthographicCamera makeDefault position={[0, 0, 600]} zoom={2} /> : null}
-        {activeEditorView === "elevation" ? <OrthographicCamera makeDefault position={[0, 360, 36]} zoom={2} /> : null}
+        {activeSceneViewMode === "perspective" ? <PerspectiveCamera makeDefault position={[96, -144, 96]} fov={45} /> : null}
+        {activeSceneViewMode === "floor-plan" ? <OrthographicCamera makeDefault position={[0, 0, 600]} zoom={2} /> : null}
+        {activeSceneViewMode === "elevation" ? <OrthographicCamera makeDefault position={[0, 360, 36]} zoom={2} /> : null}
         <EditorLighting />
         <GroundGrid />
-        {activeEditorView === "perspective" ? <SceneAxisGizmo /> : null}
-        {activeEditorView !== "elevation" || hasElevationViews ? <DesignSceneRenderer /> : null}
-        <PlacementSurface editorView={activeEditorView} />
-        {activeEditorView === "perspective" ? <PerspectiveCameraControls /> : null}
-        {activeEditorView === "floor-plan" ? <FloorPlanCameraControls /> : null}
-        {activeEditorView === "elevation" ? <ElevationCameraControls /> : null}
-        {activeEditorView === "perspective" ? <PerspectiveViewGizmo /> : null}
+        {activeSceneViewMode === "perspective" ? <SceneAxisGizmo /> : null}
+        {activeSceneViewMode !== "elevation" || hasElevationViews ? <DesignSceneRenderer /> : null}
+        <PlacementSurface sceneViewMode={activeSceneViewMode} />
+        {activeSceneViewMode === "perspective" ? <PerspectiveCameraControls /> : null}
+        {activeSceneViewMode === "floor-plan" ? <FloorPlanCameraControls /> : null}
+        {activeSceneViewMode === "elevation" ? <ElevationCameraControls /> : null}
+        {activeSceneViewMode === "perspective" ? <PerspectiveViewGizmo /> : null}
       </Canvas>
     </div>
   );
 }
 
-function useEditorWorldGestureGuard(containerRef: RefObject<HTMLDivElement | null>): void {
+function useSceneViewportGestureGuard(containerRef: RefObject<HTMLDivElement | null>): void {
   useEffect(() => {
     const container = containerRef.current;
 
@@ -101,7 +101,7 @@ function useEditorWorldGestureGuard(containerRef: RefObject<HTMLDivElement | nul
 }
 
 function getCanvasCursorClassName(
-  editorView: KitchenEditorView,
+  sceneViewMode: SceneViewMode,
   hasActiveOperation: boolean,
   hasActiveDrag: boolean,
 ) {
@@ -113,7 +113,7 @@ function getCanvasCursorClassName(
     return "cursor-crosshair";
   }
 
-  if (editorView === "elevation") {
+  if (sceneViewMode === "elevation") {
     return "cursor-grab active:cursor-grabbing";
   }
 

@@ -26,6 +26,10 @@ export function createAssemblyEditingActions(
 > {
   return {
     deleteSelectedAssembly() {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       const activeSelection = get().designScene.activeSelection;
 
       if (activeSelection?.kind !== "placed-assembly") {
@@ -142,6 +146,10 @@ function updateSelectedAssembly(
   get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
 ): void {
+  if (get().workspaceMode !== "editor") {
+    return;
+  }
+
   const activeSelection = get().designScene.activeSelection;
 
   if (activeSelection?.kind !== "placed-assembly") {

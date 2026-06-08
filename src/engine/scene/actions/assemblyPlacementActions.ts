@@ -12,6 +12,10 @@ export function createAssemblyPlacementActions(
 > {
   return {
     startAssemblyPlacementCandidate(placedAssembly) {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       set((state) => ({
         designScene: {
           ...state.designScene,
@@ -27,6 +31,10 @@ export function createAssemblyPlacementActions(
     },
 
     updateAssemblyCandidateWorldPosition(worldPositionInches) {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       const activeSceneOperation = get().designScene.activeSceneOperation;
 
       if (activeSceneOperation?.kind !== "assembly-placement") {
@@ -49,6 +57,10 @@ export function createAssemblyPlacementActions(
     },
 
     commitAssemblyPlacementCandidate() {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       const activeSceneOperation = get().designScene.activeSceneOperation;
 
       if (activeSceneOperation?.kind !== "assembly-placement" || activeSceneOperation.placementState !== "positioned") {

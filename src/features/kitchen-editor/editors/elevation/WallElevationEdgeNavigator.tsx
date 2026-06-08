@@ -6,7 +6,7 @@ import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { formatInchesLabel } from "../../shared/formatInchesLabel";
 
 export function WallElevationEdgeNavigator() {
-  const activeEditorView = useDesignSceneStore((state) => state.activeEditorView);
+  const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const placedWalls = useDesignSceneStore((state) => state.designScene.placedWalls);
   const activeWallElevationWallId = useDesignSceneStore((state) => state.activeWallElevationWallId);
   const activeWallElevationEdgeIndex = useDesignSceneStore((state) => state.activeWallElevationEdgeIndex);
@@ -14,7 +14,7 @@ export function WallElevationEdgeNavigator() {
   const showPreviousWallElevationSide = useDesignSceneStore((state) => state.showPreviousWallElevationSide);
   const showNextWallElevationSide = useDesignSceneStore((state) => state.showNextWallElevationSide);
 
-  if (activeEditorView !== "elevation") {
+  if (activeSceneViewMode !== "elevation") {
     return null;
   }
 

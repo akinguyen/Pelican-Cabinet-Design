@@ -7,7 +7,7 @@ import { MOUSE, TOUCH } from "three";
 import type { OrthographicCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { OrthographicEditorCameraState } from "../shared/editorCameraStateTypes";
+import type { OrthographicCameraState } from "../shared/sceneCameraStateTypes";
 import { useSceneFitFrame } from "../shared/useSceneFitFrame";
 
 const MIN_FLOOR_PLAN_ZOOM = 1.15;
@@ -19,7 +19,7 @@ export function FloorPlanCameraControls() {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const { camera } = useThree();
   const cameraCommand = useDesignSceneStore((state) => state.cameraCommand);
-  const cameraState = useDesignSceneStore((state) => state.editorCameraStates.floorPlan);
+  const cameraState = useDesignSceneStore((state) => state.sceneCameraStates.floorPlan);
   const updateFloorPlanCameraState = useDesignSceneStore((state) => state.updateFloorPlanCameraState);
   const clearCameraCommand = useDesignSceneStore((state) => state.clearCameraCommand);
   const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
@@ -32,7 +32,7 @@ export function FloorPlanCameraControls() {
   }, [camera]);
 
   useEffect(() => {
-    if (cameraCommand === null || cameraCommand.editorView !== "floor-plan") {
+    if (cameraCommand === null || cameraCommand.sceneViewMode !== "floor-plan") {
       return;
     }
 
@@ -98,7 +98,7 @@ export function FloorPlanCameraControls() {
 function applyFloorPlanCameraState(
   camera: OrthographicCamera,
   controls: OrbitControlsImpl | null,
-  cameraState: OrthographicEditorCameraState,
+  cameraState: OrthographicCameraState,
 ): void {
   camera.up.set(0, 1, 0);
   camera.position.set(
@@ -118,7 +118,7 @@ function applyFloorPlanCameraState(
 function readFloorPlanCameraState(
   camera: OrthographicCamera,
   controls: OrbitControlsImpl,
-): OrthographicEditorCameraState {
+): OrthographicCameraState {
   return {
     cameraPositionInches: {
       xInches: camera.position.x,

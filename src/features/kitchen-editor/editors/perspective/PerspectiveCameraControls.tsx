@@ -7,7 +7,7 @@ import { MOUSE, TOUCH } from "three";
 import type { PerspectiveCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { PerspectiveEditorCameraState } from "../shared/editorCameraStateTypes";
+import type { PerspectiveCameraState } from "../shared/sceneCameraStateTypes";
 import { useSceneFitFrame } from "../shared/useSceneFitFrame";
 
 const MIN_CAMERA_DISTANCE_INCHES = 20;
@@ -19,7 +19,7 @@ export function PerspectiveCameraControls() {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const { camera } = useThree();
   const cameraCommand = useDesignSceneStore((state) => state.cameraCommand);
-  const cameraState = useDesignSceneStore((state) => state.editorCameraStates.perspective);
+  const cameraState = useDesignSceneStore((state) => state.sceneCameraStates.perspective);
   const updatePerspectiveCameraState = useDesignSceneStore((state) => state.updatePerspectiveCameraState);
   const clearCameraCommand = useDesignSceneStore((state) => state.clearCameraCommand);
   const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
@@ -32,7 +32,7 @@ export function PerspectiveCameraControls() {
   }, [camera, cameraState]);
 
   useEffect(() => {
-    if (cameraCommand === null || cameraCommand.editorView !== "perspective") {
+    if (cameraCommand === null || cameraCommand.sceneViewMode !== "perspective") {
       return;
     }
 
@@ -98,7 +98,7 @@ export function PerspectiveCameraControls() {
 function applyPerspectiveCameraState(
   camera: PerspectiveCamera,
   controls: OrbitControlsImpl | null,
-  cameraState: PerspectiveEditorCameraState,
+  cameraState: PerspectiveCameraState,
 ): void {
   camera.up.set(0, 0, 1);
 
@@ -133,7 +133,7 @@ function applyPerspectiveCameraState(
 function readPerspectiveCameraState(
   camera: PerspectiveCamera,
   controls: OrbitControlsImpl,
-): PerspectiveEditorCameraState {
+): PerspectiveCameraState {
   return {
     cameraPositionInches: {
       xInches: camera.position.x,

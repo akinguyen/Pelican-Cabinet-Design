@@ -10,7 +10,7 @@ import { SelectedAssemblyOutlineLayer } from "../../rendering/assemblies/Selecte
 import { WallLayer } from "../../rendering/walls/WallLayer";
 
 export function DesignSceneRenderer() {
-  const activeEditorView = useDesignSceneStore((state) => state.activeEditorView);
+  const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const placedAssemblies = useDesignSceneStore((state) => state.designScene.placedAssemblies);
   const placedWalls = useDesignSceneStore((state) => state.designScene.placedWalls);
   const activeSelection = useDesignSceneStore((state) => state.designScene.activeSelection);
@@ -24,9 +24,9 @@ export function DesignSceneRenderer() {
       ? activeSceneOperation.wallSplitDraft
       : null;
 
-  const showFrontOutlineLines = activeEditorView === "elevation";
+  const showFrontOutlineLines = activeSceneViewMode === "elevation";
   const showWallPlanMeasurements =
-    activeEditorView === "floor-plan" &&
+    activeSceneViewMode === "floor-plan" &&
     wallFootprintDraft === null &&
     wallSplitDraft === null;
 

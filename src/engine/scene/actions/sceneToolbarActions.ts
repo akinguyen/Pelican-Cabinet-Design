@@ -3,16 +3,16 @@ import { createEmptyWallFootprintDraft } from "@/engine/walls/footprint-draft/wa
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
 export function createSceneToolbarActions(
-  _get: DesignSceneStoreGetter,
+  get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
 ): Pick<DesignSceneStore, "runCameraCommand" | "clearCameraCommand" | "setActiveToolbarTool"> {
   return {
-    runCameraCommand(toolbarTool) {
+    runCameraCommand(cameraCommandTool) {
       set((state) => ({
         cameraCommand: {
           id: (state.cameraCommand?.id ?? 0) + 1,
-          editorView: state.activeEditorView,
-          tool: toolbarTool,
+          sceneViewMode: state.activeSceneViewMode,
+          tool: cameraCommandTool,
         },
         activeToolbarTool: null,
       }));
@@ -29,6 +29,10 @@ export function createSceneToolbarActions(
     },
 
     setActiveToolbarTool(toolbarTool) {
+      if (get().workspaceMode !== "editor" && toolbarTool !== null) {
+        return;
+      }
+
       set((state) => {
         const selectedPlacedWallId = state.designScene.activeSelection?.kind === "placed-wall"
           ? state.designScene.activeSelection.placedWallId

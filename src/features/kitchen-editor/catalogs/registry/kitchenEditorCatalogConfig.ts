@@ -20,6 +20,16 @@ export const kitchenEditorCatalogs = [
       { id: "pantry-cabinets", label: "Pantry Cabinets" },
     ],
   },
+  {
+    id: "appliances",
+    label: "Appliances",
+    iconId: "appliances",
+    categories: [
+      { id: "cooking-appliances", label: "Cooking Appliances" },
+      { id: "refrigeration", label: "Refrigeration" },
+      { id: "ventilation", label: "Ventilation" },
+    ],
+  },
 ] as const;
 
 export type KitchenEditorCatalog = (typeof kitchenEditorCatalogs)[number];

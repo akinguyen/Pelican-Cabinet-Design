@@ -14,6 +14,10 @@ export function createWallFootprintDraftActions(
 > {
   return {
     updateWallFootprintDraftHover(pointInches) {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       const activeSceneOperation = get().designScene.activeSceneOperation;
 
       if (activeSceneOperation?.kind !== "wall-footprint-draft") {
@@ -36,6 +40,10 @@ export function createWallFootprintDraftActions(
     },
 
     clickWallFootprintDraftPoint(pointInches) {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       const activeSceneOperation = get().designScene.activeSceneOperation;
 
       if (activeSceneOperation?.kind !== "wall-footprint-draft") {

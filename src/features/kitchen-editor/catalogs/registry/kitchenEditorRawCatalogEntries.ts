@@ -17,10 +17,23 @@ import baseTwoDoorTwoDrawerCabinetRawDefinitionData from "../data/cabinets/base-
 import baseTwoDrawerCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-two-drawer-cabinet.json";
 import baseThreeDrawerCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-three-drawer-cabinet.json";
 import baseFourDrawerCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-four-drawer-cabinet.json";
+import baseSinkCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-sink-cabinet.json";
+import baseSinkTwoDoorCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-sink-two-door-cabinet.json";
+import baseFarmSinkCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-farm-sink-cabinet.json";
+import baseBlindLeftCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-blind-left-cabinet.json";
+import baseBlindRightCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-blind-right-cabinet.json";
+import baseSpiceRackCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-spice-rack-cabinet.json";
+import baseTrashCanCabinetRawDefinitionData from "../data/cabinets/base-cabinets/base-trash-can-cabinet.json";
+import rangeApplianceRawDefinitionData from "../data/cabinets/base-cabinets/range-appliance.json";
 import wallOneDoorCabinetRawDefinitionData from "../data/cabinets/wall-cabinets/wall-one-door-cabinet.json";
 import wallTwoDoorCabinetRawDefinitionData from "../data/cabinets/wall-cabinets/wall-two-door-cabinet.json";
 import pantryOneDoorCabinetRawDefinitionData from "../data/cabinets/pantry-cabinets/pantry-one-door-cabinet.json";
 import pantryTwoDoorCabinetRawDefinitionData from "../data/cabinets/pantry-cabinets/pantry-two-door-cabinet.json";
+import rangeHoodRawDefinitionData from "../data/appliances/ventilation/range-hood.json";
+import refrigeratorRawDefinitionData from "../data/appliances/refrigeration/refrigerator.json";
+import builtInOvenRawDefinitionData from "../data/appliances/cooking-appliances/built-in-oven.json";
+import microwaveRawDefinitionData from "../data/appliances/cooking-appliances/microwave.json";
+import builtInDoubleOvenRawDefinitionData from "../data/appliances/cooking-appliances/built-in-double-oven.json";
 
 export type KitchenEditorRawCatalogEntry = Readonly<{
   catalogId: KitchenEditorCatalogId;
@@ -127,6 +140,70 @@ export const kitchenEditorRawCatalogEntries = [
   },
   {
     catalogId: "cabinets",
+    categoryId: "base-cabinets",
+    rawDefinition: parseRawAssemblyDefinition(
+      baseSinkCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-sink-cabinet.json",
+    ),
+  },
+  {
+    catalogId: "cabinets",
+    categoryId: "base-cabinets",
+    rawDefinition: parseRawAssemblyDefinition(
+      baseSinkTwoDoorCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-sink-two-door-cabinet.json",
+    ),
+  },
+  {
+    catalogId: "cabinets",
+    categoryId: "base-cabinets",
+    rawDefinition: parseRawAssemblyDefinition(
+      baseFarmSinkCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-farm-sink-cabinet.json",
+    ),
+  },
+  {
+    catalogId: "cabinets",
+    categoryId: "base-cabinets",
+    rawDefinition: parseRawAssemblyDefinition(
+      baseBlindLeftCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-blind-left-cabinet.json",
+    ),
+  },
+  {
+    catalogId: "cabinets",
+    categoryId: "base-cabinets",
+    rawDefinition: parseRawAssemblyDefinition(
+      baseBlindRightCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-blind-right-cabinet.json",
+    ),
+  },
+  {
+    catalogId: "cabinets",
+    categoryId: "base-cabinets",
+    rawDefinition: parseRawAssemblyDefinition(
+      baseSpiceRackCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-spice-rack-cabinet.json",
+    ),
+  },
+  {
+    catalogId: "cabinets",
+    categoryId: "base-cabinets",
+    rawDefinition: parseRawAssemblyDefinition(
+      baseTrashCanCabinetRawDefinitionData,
+      "cabinets/base-cabinets/base-trash-can-cabinet.json",
+    ),
+  },
+  {
+    catalogId: "cabinets",
+    categoryId: "base-cabinets",
+    rawDefinition: parseRawAssemblyDefinition(
+      rangeApplianceRawDefinitionData,
+      "cabinets/base-cabinets/range-appliance.json",
+    ),
+  },
+  {
+    catalogId: "cabinets",
     categoryId: "wall-cabinets",
     rawDefinition: parseRawAssemblyDefinition(
       wallOneDoorCabinetRawDefinitionData,
@@ -155,6 +232,46 @@ export const kitchenEditorRawCatalogEntries = [
     rawDefinition: parseRawAssemblyDefinition(
       pantryTwoDoorCabinetRawDefinitionData,
       "cabinets/pantry-cabinets/pantry-two-door-cabinet.json",
+    ),
+  },
+  {
+    catalogId: "appliances",
+    categoryId: "ventilation",
+    rawDefinition: parseRawAssemblyDefinition(
+      rangeHoodRawDefinitionData,
+      "appliances/ventilation/range-hood.json",
+    ),
+  },
+  {
+    catalogId: "appliances",
+    categoryId: "refrigeration",
+    rawDefinition: parseRawAssemblyDefinition(
+      refrigeratorRawDefinitionData,
+      "appliances/refrigeration/refrigerator.json",
+    ),
+  },
+  {
+    catalogId: "appliances",
+    categoryId: "cooking-appliances",
+    rawDefinition: parseRawAssemblyDefinition(
+      builtInOvenRawDefinitionData,
+      "appliances/cooking-appliances/built-in-oven.json",
+    ),
+  },
+  {
+    catalogId: "appliances",
+    categoryId: "cooking-appliances",
+    rawDefinition: parseRawAssemblyDefinition(
+      microwaveRawDefinitionData,
+      "appliances/cooking-appliances/microwave.json",
+    ),
+  },
+  {
+    catalogId: "appliances",
+    categoryId: "cooking-appliances",
+    rawDefinition: parseRawAssemblyDefinition(
+      builtInDoubleOvenRawDefinitionData,
+      "appliances/cooking-appliances/built-in-double-oven.json",
     ),
   },
 ] as const satisfies readonly KitchenEditorRawCatalogEntry[];

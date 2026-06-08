@@ -1,5 +1,5 @@
 import { defaultWallSettings } from "@/engine/walls/wallTypes";
-import { createDefaultEditorCameraStates } from "@/features/kitchen-editor/editors/shared/editorCameraStateTypes";
+import { createDefaultSceneCameraStates } from "@/features/kitchen-editor/editors/shared/sceneCameraStateTypes";
 import { createEmptyDesignScene } from "./designSceneTypes";
 import type { DesignSceneStore } from "./designSceneStoreTypes";
 
@@ -7,23 +7,25 @@ export function createInitialDesignSceneStoreState(): Pick<
   DesignSceneStore,
   | "designScene"
   | "wallSettings"
-  | "activeEditorView"
+  | "workspaceMode"
+  | "activeSceneViewMode"
   | "activeWallElevationWallId"
   | "activeWallElevationEdgeIndex"
   | "activeToolbarTool"
   | "cameraCommand"
-  | "editorCameraStates"
+  | "sceneCameraStates"
   | "activeDrag"
 > {
   return {
     designScene: createEmptyDesignScene(),
     wallSettings: defaultWallSettings,
-    activeEditorView: "perspective",
+    workspaceMode: "editor",
+    activeSceneViewMode: "perspective",
     activeWallElevationWallId: null,
     activeWallElevationEdgeIndex: 0,
     activeToolbarTool: null,
     cameraCommand: null,
-    editorCameraStates: createDefaultEditorCameraStates(),
+    sceneCameraStates: createDefaultSceneCameraStates(),
     activeDrag: null,
   };
 }

@@ -11,6 +11,10 @@ export function createWallSplitDraftActions(
 ): Pick<DesignSceneStore, "updateWallSplitDraftHover" | "clickWallSplitDraftPoint" | "exitWallSplitDraftTool"> {
   return {
     updateWallSplitDraftHover(pointInches) {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       const activeSceneOperation = get().designScene.activeSceneOperation;
 
       if (activeSceneOperation?.kind !== "wall-split-draft") {
@@ -33,6 +37,10 @@ export function createWallSplitDraftActions(
     },
 
     clickWallSplitDraftPoint(pointInches) {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       const activeSceneOperation = get().designScene.activeSceneOperation;
 
       if (activeSceneOperation?.kind !== "wall-split-draft") {

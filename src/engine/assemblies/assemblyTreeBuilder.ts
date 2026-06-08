@@ -32,6 +32,8 @@ export type BuiltPrimitiveGeometry = Readonly<{
   geometry: PrimitiveGeometry;
   worldPositionInches: Point3DInches;
   worldRotationDegrees: Readonly<{
+    xDegrees: number;
+    yDegrees: number;
     zDegrees: number;
   }>;
   sizeInches: Size3DInches;
@@ -96,6 +98,8 @@ function buildAssemblyTreeFromDefinition(args: BuildAssemblyTreeArgs): BuiltAsse
       args.worldPositionInches,
       args.zDegrees,
     );
+    const componentXDegrees = component.localRotationDegrees?.xDegrees ?? 0;
+    const componentYDegrees = component.localRotationDegrees?.yDegrees ?? 0;
     const componentZDegrees = args.zDegrees + (component.localRotationDegrees?.zDegrees ?? 0);
 
     if (component.kind === "primitive-geometry") {
@@ -107,6 +111,8 @@ function buildAssemblyTreeFromDefinition(args: BuildAssemblyTreeArgs): BuiltAsse
         geometry: component.geometry,
         worldPositionInches: componentWorldPositionInches,
         worldRotationDegrees: {
+          xDegrees: componentXDegrees,
+          yDegrees: componentYDegrees,
           zDegrees: componentZDegrees,
         },
         sizeInches: component.sizeInches,

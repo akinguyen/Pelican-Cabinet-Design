@@ -1,0 +1,1043 @@
+{
+  "id": "range-hood",
+  "name": "Range Hood",
+  "catalogCategoryId": "appliances/ventilation",
+  "defaultDistanceFromFloorInches": 54,
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 36,
+      "optionsInches": [
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        },
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        },
+        {
+          "valueInches": 42,
+          "label": "42 in"
+        },
+        {
+          "valueInches": 48,
+          "label": "48 in"
+        },
+        {
+          "valueInches": 54,
+          "label": "54 in"
+        },
+        {
+          "valueInches": 60,
+          "label": "60 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 18,
+      "maxValueInches": 72,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 20,
+      "optionsInches": [
+        {
+          "valueInches": 18,
+          "label": "18 in"
+        },
+        {
+          "valueInches": 20,
+          "label": "20 in"
+        },
+        {
+          "valueInches": 22,
+          "label": "22 in"
+        },
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 14,
+      "maxValueInches": 30,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 30,
+      "optionsInches": [
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        },
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 18,
+      "maxValueInches": 48,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "body-color",
+          "label": "Body color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#d1d5db",
+          "choices": [
+            {
+              "value": "#d1d5db",
+              "label": "Light gray"
+            },
+            {
+              "value": "#e5e7eb",
+              "label": "Soft light gray"
+            },
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            }
+          ]
+        },
+        {
+          "id": "trim-color",
+          "label": "Trim color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#6b7280",
+          "choices": [
+            {
+              "value": "#6b7280",
+              "label": "Dark gray"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            },
+            {
+              "value": "#cbd5e1",
+              "label": "Soft silver"
+            },
+            {
+              "value": "#111827",
+              "label": "Near black"
+            }
+          ]
+        },
+        {
+          "id": "glass-color",
+          "label": "Glass color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#111827",
+          "choices": [
+            {
+              "value": "#111827",
+              "label": "Dark glass"
+            },
+            {
+              "value": "#1f2937",
+              "label": "Gray glass"
+            },
+            {
+              "value": "#334155",
+              "label": "Slate glass"
+            }
+          ]
+        },
+        {
+          "id": "detail-color",
+          "label": "Detail color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#1f2937",
+          "choices": [
+            {
+              "value": "#1f2937",
+              "label": "Dark gray"
+            },
+            {
+              "value": "#111827",
+              "label": "Near black"
+            },
+            {
+              "value": "#4b5563",
+              "label": "Medium gray"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "hood-base",
+      "label": "Hood Base",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 2.4
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "value": 2.4
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "hood-base"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "underside-black-panel",
+      "label": "Underside Black Panel",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.08
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.82
+          }
+        },
+        "depthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.68
+          }
+        },
+        "heightInches": {
+          "value": 0.16
+        }
+      },
+      "material": {
+        "colorHex": "#111827"
+      },
+      "role": "underside-panel"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "hood-canopy",
+      "label": "Hood Canopy",
+      "geometry": {
+        "kind": "custom-mesh",
+        "meshId": "rectangular-frustum",
+        "topWidthRatio": 0.34,
+        "topDepthRatio": 0.46
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "negate",
+                  "value": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                },
+                {
+                  "value": 2.4
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 10
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "value": 10
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "hood-canopy"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "chimney-body",
+      "label": "Chimney Body",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "add",
+                  "values": [
+                    {
+                      "op": "negate",
+                      "value": {
+                        "op": "divide",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    },
+                    {
+                      "value": 2.4
+                    }
+                  ]
+                },
+                {
+                  "value": 10
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "op": "add",
+                  "values": [
+                    {
+                      "value": 2.4
+                    },
+                    {
+                      "value": 10
+                    }
+                  ]
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.32
+            }
+          },
+          "min": {
+            "value": 10
+          },
+          "max": {
+            "value": 16
+          }
+        },
+        "depthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 0.42
+            }
+          },
+          "min": {
+            "value": 8
+          },
+          "max": {
+            "value": 12
+          }
+        },
+        "heightInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "op": "add",
+            "values": [
+              {
+                "value": 2.4
+              },
+              {
+                "value": 10
+              }
+            ]
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "chimney-body"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-button-1",
+      "label": "Control Button 1",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.12
+          }
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 0.35
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 2.4
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.025
+            }
+          },
+          "min": {
+            "value": 0.55
+          },
+          "max": {
+            "value": 0.85
+          }
+        },
+        "depthInches": {
+          "value": 0.7
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.025
+            }
+          },
+          "min": {
+            "value": 0.55
+          },
+          "max": {
+            "value": 0.85
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "detail-color"
+      },
+      "role": "control-button"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-button-2",
+      "label": "Control Button 2",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.06
+          }
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 0.35
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 2.4
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.025
+            }
+          },
+          "min": {
+            "value": 0.55
+          },
+          "max": {
+            "value": 0.85
+          }
+        },
+        "depthInches": {
+          "value": 0.7
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.025
+            }
+          },
+          "min": {
+            "value": 0.55
+          },
+          "max": {
+            "value": 0.85
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "detail-color"
+      },
+      "role": "control-button"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-button-3",
+      "label": "Control Button 3",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0
+          }
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 0.35
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 2.4
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.025
+            }
+          },
+          "min": {
+            "value": 0.55
+          },
+          "max": {
+            "value": 0.85
+          }
+        },
+        "depthInches": {
+          "value": 0.7
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.025
+            }
+          },
+          "min": {
+            "value": 0.55
+          },
+          "max": {
+            "value": 0.85
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "detail-color"
+      },
+      "role": "control-button"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-button-4",
+      "label": "Control Button 4",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.06
+          }
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 0.35
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 2.4
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.025
+            }
+          },
+          "min": {
+            "value": 0.55
+          },
+          "max": {
+            "value": 0.85
+          }
+        },
+        "depthInches": {
+          "value": 0.7
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.025
+            }
+          },
+          "min": {
+            "value": 0.55
+          },
+          "max": {
+            "value": 0.85
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "detail-color"
+      },
+      "role": "control-button"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-button-5",
+      "label": "Control Button 5",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.12
+          }
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 0.35
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 2.4
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.025
+            }
+          },
+          "min": {
+            "value": 0.55
+          },
+          "max": {
+            "value": 0.85
+          }
+        },
+        "depthInches": {
+          "value": 0.7
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.025
+            }
+          },
+          "min": {
+            "value": 0.55
+          },
+          "max": {
+            "value": 0.85
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "detail-color"
+      },
+      "role": "control-button"
+    }
+  ]
+}

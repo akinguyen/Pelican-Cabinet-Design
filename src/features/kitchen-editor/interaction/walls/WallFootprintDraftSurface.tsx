@@ -7,7 +7,8 @@ import { createWallGroundPlanePointerWorldPoint } from "./wallGroundPlanePointer
 const WALL_FOOTPRINT_DRAFT_DRAWING_SURFACE_SIZE_INCHES = 3200;
 
 export function WallFootprintDraftSurface() {
-  const activeEditorView = useDesignSceneStore((state) => state.activeEditorView);
+  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
+  const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const updateWallFootprintDraftHover = useDesignSceneStore(
     (state) => state.updateWallFootprintDraftHover,
@@ -17,7 +18,7 @@ export function WallFootprintDraftSurface() {
   );
   const isWallFootprintDraftDrawingActive = activeToolbarTool === "draw-wall-footprint";
 
-  if (!isWallFootprintDraftDrawingActive || activeEditorView === "elevation") {
+  if (workspaceMode !== "editor" || !isWallFootprintDraftDrawingActive || activeSceneViewMode === "elevation") {
     return null;
   }
 

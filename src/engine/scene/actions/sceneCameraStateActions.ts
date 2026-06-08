@@ -1,11 +1,11 @@
 import type {
-  ElevationEditorCameraState,
-  OrthographicEditorCameraState,
-  PerspectiveEditorCameraState,
-} from "@/features/kitchen-editor/editors/shared/editorCameraStateTypes";
+  ElevationCameraState,
+  OrthographicCameraState,
+  PerspectiveCameraState,
+} from "@/features/kitchen-editor/editors/shared/sceneCameraStateTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
-export function createEditorCameraStateActions(
+export function createSceneCameraStateActions(
   _get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
 ): Pick<
@@ -15,40 +15,40 @@ export function createEditorCameraStateActions(
   | "updateElevationCameraState"
 > {
   return {
-    updatePerspectiveCameraState(cameraState: PerspectiveEditorCameraState) {
+    updatePerspectiveCameraState(cameraState: PerspectiveCameraState) {
       set((state) => ({
-        editorCameraStates: {
-          ...state.editorCameraStates,
+        sceneCameraStates: {
+          ...state.sceneCameraStates,
           perspective: cameraState,
         },
       }));
     },
 
-    updateFloorPlanCameraState(cameraState: OrthographicEditorCameraState) {
+    updateFloorPlanCameraState(cameraState: OrthographicCameraState) {
       set((state) => ({
-        editorCameraStates: {
-          ...state.editorCameraStates,
+        sceneCameraStates: {
+          ...state.sceneCameraStates,
           floorPlan: cameraState,
         },
       }));
     },
 
-    updateElevationCameraState(cameraState: ElevationEditorCameraState) {
+    updateElevationCameraState(cameraState: ElevationCameraState) {
       set((state) => {
         if (cameraState.elevationViewKey === null) {
           return {
-            editorCameraStates: {
-              ...state.editorCameraStates,
+            sceneCameraStates: {
+              ...state.sceneCameraStates,
               elevationDefault: cameraState,
             },
           };
         }
 
         return {
-          editorCameraStates: {
-            ...state.editorCameraStates,
+          sceneCameraStates: {
+            ...state.sceneCameraStates,
             elevationByViewKey: {
-              ...state.editorCameraStates.elevationByViewKey,
+              ...state.sceneCameraStates.elevationByViewKey,
               [cameraState.elevationViewKey]: cameraState,
             },
           },

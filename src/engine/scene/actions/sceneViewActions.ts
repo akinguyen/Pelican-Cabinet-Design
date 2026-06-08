@@ -3,11 +3,11 @@ import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter }
 export function createSceneViewActions(
   _get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
-): Pick<DesignSceneStore, "setActiveEditorView"> {
+): Pick<DesignSceneStore, "setActiveSceneViewMode"> {
   return {
-    setActiveEditorView(editorView) {
+    setActiveSceneViewMode(sceneViewMode) {
       set({
-        activeEditorView: editorView,
+        activeSceneViewMode: sceneViewMode,
         cameraCommand: null,
       });
     },

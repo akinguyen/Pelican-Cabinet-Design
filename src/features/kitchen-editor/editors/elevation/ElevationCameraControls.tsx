@@ -17,8 +17,8 @@ import type { PlacedWallElevationSide } from "@/engine/walls/elevation/wallEleva
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
-import type { ElevationEditorCameraState } from "../shared/editorCameraStateTypes";
-import { getStoredElevationEditorCameraState } from "../shared/editorCameraStateTypes";
+import type { ElevationCameraState } from "../shared/sceneCameraStateTypes";
+import { getStoredElevationCameraState } from "../shared/sceneCameraStateTypes";
 import type { SceneFitFrame } from "../shared/cameraFit";
 import { useSceneFitFrame } from "../shared/useSceneFitFrame";
 
@@ -33,7 +33,7 @@ export function ElevationCameraControls() {
   const activeElevationViewKeyRef = useRef<string | null>(null);
   const { camera, size: canvasSizePixels } = useThree();
   const cameraCommand = useDesignSceneStore((state) => state.cameraCommand);
-  const editorCameraStates = useDesignSceneStore((state) => state.editorCameraStates);
+  const sceneCameraStates = useDesignSceneStore((state) => state.sceneCameraStates);
   const updateElevationCameraState = useDesignSceneStore((state) => state.updateElevationCameraState);
   const clearCameraCommand = useDesignSceneStore((state) => state.clearCameraCommand);
   const placedAssemblies = useDesignSceneStore((state) => state.designScene.placedAssemblies);
@@ -55,8 +55,8 @@ export function ElevationCameraControls() {
     : createWallElevationViewKey(activeElevationSide);
 
   useEffect(() => {
-    const storedCameraState = getStoredElevationEditorCameraState(
-      editorCameraStates,
+    const storedCameraState = getStoredElevationCameraState(
+      sceneCameraStates,
       activeElevationViewKey,
     );
     const nextCameraState = storedCameraState.elevationViewKey === activeElevationViewKey
@@ -79,8 +79,8 @@ export function ElevationCameraControls() {
       return;
     }
 
-    const storedCameraState = getStoredElevationEditorCameraState(
-      editorCameraStates,
+    const storedCameraState = getStoredElevationCameraState(
+      sceneCameraStates,
       activeElevationViewKey,
     );
     const nextCameraState = storedCameraState.elevationViewKey === activeElevationViewKey
@@ -101,14 +101,14 @@ export function ElevationCameraControls() {
     activeElevationViewKey,
     camera,
     canvasSizePixels,
-    editorCameraStates,
+    sceneCameraStates,
     placedAssemblies,
     sceneFitFrame,
     updateElevationCameraState,
   ]);
 
   useEffect(() => {
-    if (cameraCommand === null || cameraCommand.editorView !== "elevation") {
+    if (cameraCommand === null || cameraCommand.sceneViewMode !== "elevation") {
       return;
     }
 
@@ -118,7 +118,7 @@ export function ElevationCameraControls() {
       return;
     }
 
-    let nextCameraState: ElevationEditorCameraState;
+    let nextCameraState: ElevationCameraState;
 
     if (cameraCommand.tool === "zoom-in") {
       updateElevationZoom(camera as OrthographicCamera, camera.zoom * TOOLBAR_ZOOM_SCALE);
@@ -212,7 +212,7 @@ function createElevationCameraState(args: {
   placedAssemblies: readonly PlacedAssembly[];
   canvasSizePixels: Readonly<{ width: number; height: number }>;
   sceneFitFrame: SceneFitFrame;
-}): ElevationEditorCameraState {
+}): ElevationCameraState {
   if (args.activeElevationSide !== null) {
     return createElevationCameraStateForSide({
       activeElevationSide: args.activeElevationSide,
@@ -230,7 +230,7 @@ function createElevationCameraStateForSide(args: {
   elevationViewKey: string | null;
   placedAssemblies: readonly PlacedAssembly[];
   canvasSizePixels: Readonly<{ width: number; height: number }>;
-}): ElevationEditorCameraState {
+}): ElevationCameraState {
   const fitBounds = measureElevationViewFitBounds({
     activeElevationSide: args.activeElevationSide,
     placedAssemblies: args.placedAssemblies,
@@ -268,7 +268,7 @@ function createElevationCameraStateForSide(args: {
   };
 }
 
-function createElevationCameraStateForSceneFit(sceneFitFrame: SceneFitFrame): ElevationEditorCameraState {
+function createElevationCameraStateForSceneFit(sceneFitFrame: SceneFitFrame): ElevationCameraState {
   const { centerInches, sizeInches } = sceneFitFrame;
 
   return {
@@ -298,7 +298,7 @@ function computeElevationFitZoom(
 function applyElevationCameraState(
   camera: OrthographicCamera,
   controls: OrbitControlsImpl | null,
-  cameraState: ElevationEditorCameraState,
+  cameraState: ElevationCameraState,
 ): void {
   camera.up.set(0, 0, 1);
   camera.position.set(
@@ -327,7 +327,7 @@ function readElevationCameraState(args: {
   camera: OrthographicCamera;
   controls: OrbitControlsImpl;
   elevationViewKey: string | null;
-}): ElevationEditorCameraState {
+}): ElevationCameraState {
   return {
     cameraPositionInches: {
       xInches: args.camera.position.x,

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 
 export function KeyboardShortcuts() {
+  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const clearActiveInteraction = useDesignSceneStore((state) => state.clearActiveInteraction);
   const deleteSelectedAssembly = useDesignSceneStore((state) => state.deleteSelectedAssembly);
   const deleteSelectedPlacedWall = useDesignSceneStore((state) => state.deleteSelectedPlacedWall);
@@ -22,6 +23,10 @@ export function KeyboardShortcuts() {
 
       if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
+
+        if (workspaceMode !== "editor") {
+          return;
+        }
         deleteSelectedPlacedWall();
         deleteSelectedAssembly();
       }
@@ -32,7 +37,7 @@ export function KeyboardShortcuts() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [clearActiveInteraction, deleteSelectedAssembly, deleteSelectedPlacedWall]);
+  }, [clearActiveInteraction, deleteSelectedAssembly, deleteSelectedPlacedWall, workspaceMode]);
 
   return null;
 }

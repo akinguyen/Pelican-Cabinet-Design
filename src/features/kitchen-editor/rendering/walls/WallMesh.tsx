@@ -14,6 +14,7 @@ type WallMeshProps = Readonly<{
 }>;
 
 export function WallMesh({ builtWall, isSelected }: WallMeshProps) {
+  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const selectPlacedWall = useDesignSceneStore((state) => state.selectPlacedWall);
   const updateWallSplitDraftHover = useDesignSceneStore((state) => state.updateWallSplitDraftHover);
@@ -27,7 +28,7 @@ export function WallMesh({ builtWall, isSelected }: WallMeshProps) {
   );
 
   function handlePointerMove(event: ThreeEvent<PointerEvent>) {
-    if (activeToolbarTool !== "split-wall-footprint" || !isSelected) {
+    if (workspaceMode !== "editor" || activeToolbarTool !== "split-wall-footprint" || !isSelected) {
       return;
     }
 
@@ -41,6 +42,12 @@ export function WallMesh({ builtWall, isSelected }: WallMeshProps) {
 
   function handlePointerDown(event: ThreeEvent<PointerEvent>) {
     if (event.button !== 0 || activeToolbarTool === "draw-wall-footprint") {
+      return;
+    }
+
+    if (workspaceMode !== "editor") {
+      event.stopPropagation();
+      selectPlacedWall(builtWall.placedWallId);
       return;
     }
 

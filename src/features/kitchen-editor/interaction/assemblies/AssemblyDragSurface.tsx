@@ -8,12 +8,13 @@ import { createAssemblyDragPointerWorldPoint } from "./assemblyDragPointer";
 const DRAG_SURFACE_SIZE_INCHES = 3200;
 
 export function AssemblyDragSurface() {
+  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
   const updateAssemblyDrag = useDesignSceneStore((state) => state.updateAssemblyDrag);
   const finishAssemblyDrag = useDesignSceneStore((state) => state.finishAssemblyDrag);
 
   useEffect(() => {
-    if (activeDrag === null) {
+    if (workspaceMode !== "editor" || activeDrag === null) {
       return;
     }
 
@@ -26,20 +27,20 @@ export function AssemblyDragSurface() {
     return () => {
       window.removeEventListener("pointerup", handleWindowPointerUp);
     };
-  }, [activeDrag, finishAssemblyDrag]);
+  }, [activeDrag, finishAssemblyDrag, workspaceMode]);
 
-  if (activeDrag === null) {
+  if (workspaceMode !== "editor" || activeDrag === null) {
     return null;
   }
 
   function handlePointerMove(event: ThreeEvent<PointerEvent>) {
-    if (activeDrag === null) {
+    if (workspaceMode !== "editor" || activeDrag === null) {
       return;
     }
 
     event.stopPropagation();
     const pointerWorldInches = createAssemblyDragPointerWorldPoint(
-      activeDrag.editorView,
+      activeDrag.sceneViewMode,
       event.ray,
       activeDrag.dragStartWorldPositionInches.yInches,
     );
@@ -54,7 +55,7 @@ export function AssemblyDragSurface() {
     finishAssemblyDrag();
   }
 
-  if (activeDrag.editorView === "elevation") {
+  if (activeDrag.sceneViewMode === "elevation") {
     return (
       <mesh
         position={[0, activeDrag.dragStartWorldPositionInches.yInches, 120]}

@@ -1,37 +1,39 @@
 import { Maximize, Minus, PencilLine, Plus, Scissors } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { SceneCameraCommandTool } from "../editors/shared/sceneCameraCommandTypes";
 import type {
-  EditorActiveToolbarTool,
-  EditorCameraCommandTool,
-  EditorToolbarActionId,
-} from "./editorToolbarTypes";
+  KitchenEditorActiveToolbarTool,
+  KitchenEditorToolbarActionId,
+} from "./kitchenEditorToolbarTypes";
 
-export type EditorCameraToolbarAction = Readonly<{
-  id: EditorCameraCommandTool;
+export type KitchenEditorCameraToolbarAction = Readonly<{
+  id: SceneCameraCommandTool;
   kind: "camera-command";
   label: string;
   icon: LucideIcon;
   isDisabled?: boolean;
 }>;
 
-export type EditorActiveToolbarAction = Readonly<{
-  id: EditorActiveToolbarTool;
+export type KitchenEditorActiveToolbarAction = Readonly<{
+  id: KitchenEditorActiveToolbarTool;
   kind: "active-tool";
   label: string;
   icon: LucideIcon;
   isDisabled?: boolean;
 }>;
 
-export type EditorToolbarAction = EditorCameraToolbarAction | EditorActiveToolbarAction;
+export type KitchenEditorToolbarAction =
+  | KitchenEditorCameraToolbarAction
+  | KitchenEditorActiveToolbarAction;
 
-export const editorToolbarActions: readonly EditorToolbarAction[] = [
+export const kitchenEditorToolbarActions: readonly KitchenEditorToolbarAction[] = [
   { id: "zoom-out", kind: "camera-command", label: "Zoom out", icon: Minus },
   { id: "zoom-in", kind: "camera-command", label: "Zoom in", icon: Plus },
   { id: "fit-view", kind: "camera-command", label: "Fit view", icon: Maximize },
   { id: "draw-wall-footprint", kind: "active-tool", label: "Draw wall footprint", icon: PencilLine },
   { id: "split-wall-footprint", kind: "active-tool", label: "Split wall footprint", icon: Scissors },
 ] satisfies readonly Readonly<{
-  id: EditorToolbarActionId;
+  id: KitchenEditorToolbarActionId;
   kind: "camera-command" | "active-tool";
   label: string;
   icon: LucideIcon;

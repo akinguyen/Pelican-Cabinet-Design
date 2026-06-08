@@ -7,7 +7,8 @@ import { createWallGroundPlanePointerWorldPoint } from "./wallGroundPlanePointer
 const WALL_SPLIT_SURFACE_SIZE_INCHES = 3200;
 
 export function WallSplitDraftSurface() {
-  const activeEditorView = useDesignSceneStore((state) => state.activeEditorView);
+  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
+  const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const activeSelection = useDesignSceneStore((state) => state.designScene.activeSelection);
   const updateWallSplitDraftHover = useDesignSceneStore(
@@ -19,7 +20,7 @@ export function WallSplitDraftSurface() {
   const isWallSplitActive = activeToolbarTool === "split-wall-footprint";
   const hasSelectedWall = activeSelection?.kind === "placed-wall";
 
-  if (!isWallSplitActive || !hasSelectedWall || activeEditorView === "elevation") {
+  if (workspaceMode !== "editor" || !isWallSplitActive || !hasSelectedWall || activeSceneViewMode === "elevation") {
     return null;
   }
 

@@ -8,6 +8,7 @@ import type {
   AssemblyOptionGroup,
 } from "./assemblyDefinitionTypes";
 import type { PrimitiveBoxFrontOutlineEdge } from "./assemblyComponentTypes";
+import type { PrimitiveGeometry } from "@/engine/primitive-geometry/primitiveGeometryTypes";
 import type {
   RawAssemblyComponentDefinition,
   RawAssemblyConfigurationDefinition,
@@ -424,15 +425,52 @@ function parsePrimitiveGeometry(
   value: unknown,
   sourceLabel: string,
   path: string,
-): { readonly kind: "box" } {
+): PrimitiveGeometry {
   const geometry = readRecord(value, sourceLabel, path);
-  assertKnownKeys(geometry, sourceLabel, path, ["kind"]);
+  const kind = readEnumValue(geometry.kind, sourceLabel, `${path}.kind`, [
+    "box",
+    "cylinder",
+    "custom-mesh",
+  ] as const);
+
+  if (kind !== "custom-mesh") {
+    assertKnownKeys(geometry, sourceLabel, path, ["kind"]);
+
+    return { kind };
+  }
+
+  assertKnownKeys(geometry, sourceLabel, path, [
+    "kind",
+    "meshId",
+    "topWidthRatio",
+    "topDepthRatio",
+  ]);
+
+  const meshId = readEnumValue(geometry.meshId, sourceLabel, `${path}.meshId`, [
+    "rectangular-frustum",
+  ] as const);
+  const topWidthRatio = readNumber(geometry, sourceLabel, `${path}.topWidthRatio`);
+  const topDepthRatio = readNumber(geometry, sourceLabel, `${path}.topDepthRatio`);
+
+  validateCustomMeshRatio(topWidthRatio, sourceLabel, `${path}.topWidthRatio`);
+  validateCustomMeshRatio(topDepthRatio, sourceLabel, `${path}.topDepthRatio`);
 
   return {
-    kind: readEnumValue(geometry.kind, sourceLabel, `${path}.kind`, [
-      "box",
-    ] as const),
+    kind,
+    meshId,
+    topWidthRatio,
+    topDepthRatio,
   };
+}
+
+function validateCustomMeshRatio(
+  value: number,
+  sourceLabel: string,
+  path: string,
+): void {
+  if (value <= 0 || value > 1) {
+    throwInvalidRawAssemblyDefinition(sourceLabel, path, "number greater than 0 and less than or equal to 1");
+  }
 }
 
 function parsePrimitiveBoxFrontOutlineEdge(

@@ -10,7 +10,11 @@ export function createAssemblyDragActions(
   "startAssemblyDrag" | "updateAssemblyDrag" | "finishAssemblyDrag" | "cancelAssemblyDrag"
 > {
   return {
-    startAssemblyDrag({ assemblyId, pointerWorldInches, editorView }) {
+    startAssemblyDrag({ assemblyId, pointerWorldInches, sceneViewMode }) {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       const placedAssembly = get().designScene.placedAssemblies.find(
         (assembly) => assembly.id === assemblyId,
       );
@@ -24,12 +28,16 @@ export function createAssemblyDragActions(
           assemblyId,
           dragStartPointerWorldInches: pointerWorldInches,
           dragStartWorldPositionInches: placedAssembly.worldPositionInches,
-          editorView,
+          sceneViewMode,
         },
       });
     },
 
     updateAssemblyDrag(pointerWorldInches) {
+      if (get().workspaceMode !== "editor") {
+        return;
+      }
+
       const activeDrag = get().activeDrag;
 
       if (activeDrag === null) {
@@ -82,7 +90,7 @@ function createDraggedAssemblyWorldPosition(
 ): Point3DInches {
   const deltaXInches = pointerWorldInches.xInches - activeDrag.dragStartPointerWorldInches.xInches;
 
-  if (activeDrag.editorView === "elevation") {
+  if (activeDrag.sceneViewMode === "elevation") {
     const deltaZInches = pointerWorldInches.zInches - activeDrag.dragStartPointerWorldInches.zInches;
 
     return {

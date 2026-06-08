@@ -2,19 +2,20 @@ import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { WallSettings } from "@/engine/walls/wallTypes";
+import type { KitchenEditorActiveToolbarTool } from "@/features/kitchen-editor/editor-toolbar/kitchenEditorToolbarTypes";
 import type {
-  EditorActiveToolbarTool,
-  EditorCameraCommand,
-  EditorCameraCommandTool,
-} from "@/features/kitchen-editor/editor-toolbar/editorToolbarTypes";
+  SceneCameraCommand,
+  SceneCameraCommandTool,
+} from "@/features/kitchen-editor/editors/shared/sceneCameraCommandTypes";
 import type {
-  EditorCameraStates,
-  ElevationEditorCameraState,
-  OrthographicEditorCameraState,
-  PerspectiveEditorCameraState,
-} from "@/features/kitchen-editor/editors/shared/editorCameraStateTypes";
-import type { KitchenEditorView } from "@/features/kitchen-editor/editors/shared/editorViewTypes";
+  SceneCameraStates,
+  ElevationCameraState,
+  OrthographicCameraState,
+  PerspectiveCameraState,
+} from "@/features/kitchen-editor/editors/shared/sceneCameraStateTypes";
+import type { SceneViewMode } from "@/features/kitchen-editor/editors/shared/sceneViewModeTypes";
 import type { DesignScene } from "./designSceneTypes";
+import type { KitchenWorkspaceMode } from "./kitchenWorkspaceModeTypes";
 import type { AssemblyDragState } from "./sceneDragTypes";
 
 export type AssemblyDimensionId = "widthInches" | "depthInches" | "heightInches";
@@ -22,23 +23,25 @@ export type AssemblyDimensionId = "widthInches" | "depthInches" | "heightInches"
 export type DesignSceneStore = Readonly<{
   designScene: DesignScene;
   wallSettings: WallSettings;
-  activeEditorView: KitchenEditorView;
+  workspaceMode: KitchenWorkspaceMode;
+  activeSceneViewMode: SceneViewMode;
   activeWallElevationWallId: string | null;
   activeWallElevationEdgeIndex: number;
-  activeToolbarTool: EditorActiveToolbarTool | null;
-  cameraCommand: EditorCameraCommand | null;
-  editorCameraStates: EditorCameraStates;
+  activeToolbarTool: KitchenEditorActiveToolbarTool | null;
+  cameraCommand: SceneCameraCommand | null;
+  sceneCameraStates: SceneCameraStates;
   activeDrag: AssemblyDragState | null;
-  setActiveEditorView: (editorView: KitchenEditorView) => void;
+  setWorkspaceMode: (workspaceMode: KitchenWorkspaceMode) => void;
+  setActiveSceneViewMode: (sceneViewMode: SceneViewMode) => void;
   setActiveWallElevationWall: (placedWallId: string) => void;
   showPreviousWallElevationSide: () => void;
   showNextWallElevationSide: () => void;
-  runCameraCommand: (toolbarTool: EditorCameraCommandTool) => void;
+  runCameraCommand: (cameraCommandTool: SceneCameraCommandTool) => void;
   clearCameraCommand: (cameraCommandId: number) => void;
-  setActiveToolbarTool: (toolbarTool: EditorActiveToolbarTool | null) => void;
-  updatePerspectiveCameraState: (cameraState: PerspectiveEditorCameraState) => void;
-  updateFloorPlanCameraState: (cameraState: OrthographicEditorCameraState) => void;
-  updateElevationCameraState: (cameraState: ElevationEditorCameraState) => void;
+  setActiveToolbarTool: (toolbarTool: KitchenEditorActiveToolbarTool | null) => void;
+  updatePerspectiveCameraState: (cameraState: PerspectiveCameraState) => void;
+  updateFloorPlanCameraState: (cameraState: OrthographicCameraState) => void;
+  updateElevationCameraState: (cameraState: ElevationCameraState) => void;
   startAssemblyPlacementCandidate: (placedAssembly: PlacedAssembly) => void;
   updateAssemblyCandidateWorldPosition: (worldPositionInches: Point3DInches) => void;
   commitAssemblyPlacementCandidate: () => void;
@@ -49,7 +52,7 @@ export type DesignSceneStore = Readonly<{
   startAssemblyDrag: (args: {
     assemblyId: string;
     pointerWorldInches: Point3DInches;
-    editorView: KitchenEditorView;
+    sceneViewMode: SceneViewMode;
   }) => void;
   updateAssemblyDrag: (pointerWorldInches: Point3DInches) => void;
   finishAssemblyDrag: () => void;

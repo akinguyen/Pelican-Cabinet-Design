@@ -1,16 +1,16 @@
 "use client";
 
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { editorToolbarActions } from "./editorToolbarConfig";
+import { kitchenEditorToolbarActions } from "./kitchenEditorToolbarConfig";
 
-export function EditorToolbar() {
+export function KitchenEditorToolbar() {
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const runCameraCommand = useDesignSceneStore((state) => state.runCameraCommand);
   const setActiveToolbarTool = useDesignSceneStore((state) => state.setActiveToolbarTool);
 
   return (
     <div className="flex h-12 shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-3">
-      {editorToolbarActions.map((toolbarAction) => {
+      {kitchenEditorToolbarActions.map((toolbarAction) => {
         const Icon = toolbarAction.icon;
         const isActive = toolbarAction.kind === "active-tool" && toolbarAction.id === activeToolbarTool;
 
