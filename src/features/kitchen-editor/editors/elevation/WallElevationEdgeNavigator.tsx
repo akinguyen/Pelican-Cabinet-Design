@@ -60,18 +60,18 @@ export function WallElevationEdgeNavigator() {
         </select>
       </div>
       <div className="mt-2 flex items-center gap-2">
-        <span className="w-9 shrink-0 font-semibold text-slate-500">Edge</span>
+        <span className="w-9 shrink-0 font-semibold text-slate-500">Side</span>
         <button
           type="button"
           className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-600"
-          title="Previous wall edge"
+          title="Previous elevation side"
           onClick={showPreviousWallElevationSide}
           disabled={isSingleEdge}
         >
           <ChevronLeft aria-hidden="true" size={16} strokeWidth={2} />
         </button>
         <div className="min-w-0 flex-1 text-center font-medium text-slate-900">
-          Edge {activeElevationView.sideIndex + 1} / {edgeCount}
+          Side {activeElevationView.sideIndex + 1} / {edgeCount}
           <span className="ml-1 font-normal text-slate-500">
             {formatInchesLabel(activeElevationView.side.lengthInches)}
           </span>
@@ -79,7 +79,7 @@ export function WallElevationEdgeNavigator() {
         <button
           type="button"
           className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-600"
-          title="Next wall edge"
+          title="Next elevation side"
           onClick={showNextWallElevationSide}
           disabled={isSingleEdge}
         >

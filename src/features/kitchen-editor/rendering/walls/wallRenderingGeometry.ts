@@ -19,7 +19,7 @@ export function createWallFootprintGeometry(
   return new ShapeGeometry(createWallShape(polygonInches));
 }
 
-export const WALL_TOP_BOUNDARY_RENDER_OFFSET_INCHES = 0.08;
+export const WALL_TOP_BOUNDARY_RENDER_OFFSET_INCHES = 0.2;
 
 export function createTopBoundaryEdgePoints(args: {
   polygonInches: readonly Point3DInches[];

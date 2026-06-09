@@ -1,6 +1,8 @@
 "use client";
 
+import { shouldShowPlacedAssemblyInElevationView } from "@/engine/assemblies/elevation/assemblyElevationProjection";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import { getActivePlacedWallElevationView } from "@/engine/walls/elevation/wallElevationGeometry";
 import { AssemblyDragSurface } from "../../../interaction/assemblies/AssemblyDragSurface";
 import { WallFootprintDraftSurface } from "../../../interaction/walls/WallFootprintDraftSurface";
 import { WallSplitDraftSurface } from "../../../interaction/walls/WallSplitDraftSurface";
@@ -15,6 +17,8 @@ export function DesignSceneRenderer() {
   const placedWalls = useDesignSceneStore((state) => state.designScene.placedWalls);
   const activeSelection = useDesignSceneStore((state) => state.designScene.activeSelection);
   const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
+  const activeWallElevationWallId = useDesignSceneStore((state) => state.activeWallElevationWallId);
+  const activeWallElevationEdgeIndex = useDesignSceneStore((state) => state.activeWallElevationEdgeIndex);
   const wallFootprintDraft =
     activeSceneOperation?.kind === "wall-footprint-draft"
       ? activeSceneOperation.wallFootprintDraft
@@ -23,12 +27,28 @@ export function DesignSceneRenderer() {
     activeSceneOperation?.kind === "wall-split-draft"
       ? activeSceneOperation.wallSplitDraft
       : null;
+  const activeElevationView = activeSceneViewMode === "elevation"
+    ? getActivePlacedWallElevationView({
+        placedWalls,
+        activeWallElevationWallId,
+        activeWallElevationEdgeIndex,
+      })
+    : null;
+  const activeElevationSide = activeElevationView?.side ?? null;
 
   const showFrontOutlineLines = activeSceneViewMode === "elevation";
   const showWallPlanMeasurements =
     activeSceneViewMode === "floor-plan" &&
     wallFootprintDraft === null &&
     wallSplitDraft === null;
+  const visiblePlacedAssemblies = activeSceneViewMode === "elevation" && activeElevationSide !== null
+    ? placedAssemblies.filter((placedAssembly) =>
+        shouldShowPlacedAssemblyInElevationView({
+          placedAssembly,
+          activeElevationSide,
+        }),
+      )
+    : placedAssemblies;
 
   return (
     <>
@@ -38,9 +58,14 @@ export function DesignSceneRenderer() {
         wallFootprintDraft={wallFootprintDraft}
         wallSplitDraft={wallSplitDraft}
         showPlanMeasurements={showWallPlanMeasurements}
+        sceneViewMode={activeSceneViewMode}
+        activeElevationSide={activeElevationSide}
       />
-      <AssemblyLayer placedAssemblies={placedAssemblies} showFrontOutlineLines={showFrontOutlineLines} />
-      <SelectedAssemblyOutlineLayer placedAssemblies={placedAssemblies} activeSelection={activeSelection} />
+      <AssemblyLayer
+        placedAssemblies={visiblePlacedAssemblies}
+        showFrontOutlineLines={showFrontOutlineLines}
+      />
+      <SelectedAssemblyOutlineLayer placedAssemblies={visiblePlacedAssemblies} activeSelection={activeSelection} />
       <AssemblyPlacementCandidateRenderer
         activeSceneOperation={activeSceneOperation}
         showFrontOutlineLines={showFrontOutlineLines}

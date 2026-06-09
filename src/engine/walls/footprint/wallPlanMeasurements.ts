@@ -22,6 +22,14 @@ export type WallPlanEdgeMeasurement = Readonly<{
   endPointInches: Point3DInches;
   lengthInches: number;
   midpointInches: Point3DInches;
+  edgeDirectionInches: Readonly<{
+    xInches: number;
+    yInches: number;
+  }>;
+  normalDirectionInches: Readonly<{
+    xInches: number;
+    yInches: number;
+  }>;
   labelRotationDegrees: number;
 }>;
 
@@ -80,6 +88,15 @@ export function getWallPlanEdgeMeasurements(
         return [];
       }
 
+      const edgeDirectionInches = {
+        xInches: (edge.endPointInches.xInches - edge.startPointInches.xInches) / lengthInches,
+        yInches: (edge.endPointInches.yInches - edge.startPointInches.yInches) / lengthInches,
+      };
+      const normalDirectionInches = {
+        xInches: -edgeDirectionInches.yInches,
+        yInches: edgeDirectionInches.xInches,
+      };
+
       return [{
         id: `${placedWall.id}-wall-plan-edge-${edgeIndex}`,
         placedWallId: placedWall.id,
@@ -92,19 +109,18 @@ export function getWallPlanEdgeMeasurements(
           yInches: (edge.startPointInches.yInches + edge.endPointInches.yInches) / 2,
           zInches: 0,
         },
-        labelRotationDegrees: getReadableEdgeLabelRotationDegrees(edge.startPointInches, edge.endPointInches),
+        edgeDirectionInches,
+        normalDirectionInches,
+        labelRotationDegrees: getReadableEdgeLabelRotationDegrees(edgeDirectionInches),
       }];
     })
   ));
 }
 
 function getReadableEdgeLabelRotationDegrees(
-  startPointInches: Point3DInches,
-  endPointInches: Point3DInches,
+  edgeDirectionInches: Readonly<{ xInches: number; yInches: number }>,
 ): number {
-  const deltaXInches = endPointInches.xInches - startPointInches.xInches;
-  const deltaYInches = endPointInches.yInches - startPointInches.yInches;
-  let rotationDegrees = (Math.atan2(deltaYInches, deltaXInches) * 180) / Math.PI;
+  let rotationDegrees = (Math.atan2(edgeDirectionInches.yInches, edgeDirectionInches.xInches) * 180) / Math.PI;
 
   while (rotationDegrees > 90) {
     rotationDegrees -= 180;

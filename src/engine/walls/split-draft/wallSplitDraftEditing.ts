@@ -1,6 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedWall } from "../wallTypes";
-import { getAllWallFootprintEdgeIndices } from "../footprint/wallFootprintGeometry";
+import { getSplitWallViewableEdgeIndices } from "../elevation/wallDefaultViewableEdges";
 import { findWallSplitAnchor } from "./wallSplitDraftAnchors";
 import { createWallSplitDraftForTarget } from "./wallSplitDraftFactory";
 import { splitWallFootprintByStraightCut } from "./wallSplitDraftGeometry";
@@ -140,13 +140,19 @@ export function clickWallSplitDraftPoint(args: {
         id: firstPlacedWallId,
         footprint: firstFootprint,
         heightInches: targetWall.heightInches,
-        viewableEdgeIndices: getAllWallFootprintEdgeIndices(firstFootprint),
+        viewableEdgeIndices: getSplitWallViewableEdgeIndices({
+          sourceFootprint: targetWall.footprint,
+          splitFootprint: firstFootprint,
+        }),
       },
       {
         id: args.createId(),
         footprint: secondFootprint,
         heightInches: targetWall.heightInches,
-        viewableEdgeIndices: getAllWallFootprintEdgeIndices(secondFootprint),
+        viewableEdgeIndices: getSplitWallViewableEdgeIndices({
+          sourceFootprint: targetWall.footprint,
+          splitFootprint: secondFootprint,
+        }),
       },
     ],
     draft: createWallSplitDraftForTarget(firstPlacedWallId),

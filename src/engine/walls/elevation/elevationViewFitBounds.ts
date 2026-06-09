@@ -1,6 +1,7 @@
 import type { Bounds3DInches } from "@/core/geometry/boxBounds";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { measurePlacedAssemblyVisualBounds } from "@/engine/assemblies/assemblyBounds";
+import { shouldShowPlacedAssemblyInElevationView } from "@/engine/assemblies/elevation/assemblyElevationProjection";
 import type { AssemblyDefinitionRegistry } from "@/engine/assemblies/assemblyRegistry";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { PlacedWallElevationSide } from "./wallElevationGeometry";
@@ -23,18 +24,25 @@ export function measureElevationViewFitBounds(args: {
 }): ElevationViewFitBounds {
   const edgeDirectionInches = getElevationSideDirection(args.activeElevationSide);
   const wallBounds = createWallElevationFitBounds(args.activeElevationSide);
-  const combinedBounds = args.placedAssemblies.reduce(
-    (fitBounds, placedAssembly) =>
-      mergeElevationViewFitBounds(
-        fitBounds,
-        projectAssemblyBoundsToElevationView({
-          boundsInches: measurePlacedAssemblyVisualBounds(placedAssembly, args.registry),
-          activeElevationSide: args.activeElevationSide,
-          edgeDirectionInches,
-        }),
-      ),
-    wallBounds,
-  );
+  const combinedBounds = args.placedAssemblies.reduce((fitBounds, placedAssembly) => {
+    if (
+      !shouldShowPlacedAssemblyInElevationView({
+        placedAssembly,
+        activeElevationSide: args.activeElevationSide,
+      })
+    ) {
+      return fitBounds;
+    }
+
+    return mergeElevationViewFitBounds(
+      fitBounds,
+      projectAssemblyBoundsToElevationView({
+        boundsInches: measurePlacedAssemblyVisualBounds(placedAssembly, args.registry),
+        activeElevationSide: args.activeElevationSide,
+        edgeDirectionInches,
+      }),
+    );
+  }, wallBounds);
 
   return addElevationFitPadding(
     expandElevationFitBoundsToMinimumWidth(
