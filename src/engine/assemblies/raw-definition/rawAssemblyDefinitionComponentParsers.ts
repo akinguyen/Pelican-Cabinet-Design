@@ -205,7 +205,7 @@ function parsePrimitiveGeometry(
       geometry.cutoutCorner,
       sourceLabel,
       `${path}.cutoutCorner`,
-      ["front-left"] as const,
+      ["front-left", "front-right"] as const,
     );
 
     validateCustomMeshRatio(cutoutWidthRatio, sourceLabel, `${path}.cutoutWidthRatio`);

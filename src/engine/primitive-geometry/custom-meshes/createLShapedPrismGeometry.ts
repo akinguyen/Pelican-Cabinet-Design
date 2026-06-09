@@ -10,17 +10,31 @@ export function createLShapedPrismGeometry(
   const halfDepthInches = sizeInches.depthInches / 2;
   const cutoutWidthInches = sizeInches.widthInches * geometry.cutoutWidthRatio;
   const cutoutDepthInches = sizeInches.depthInches * geometry.cutoutDepthRatio;
-  const cutoutRightXInches = -halfWidthInches + cutoutWidthInches;
   const cutoutBackYInches = halfDepthInches - cutoutDepthInches;
 
   const shape = new Shape();
-  shape.moveTo(-halfWidthInches, -halfDepthInches);
-  shape.lineTo(halfWidthInches, -halfDepthInches);
-  shape.lineTo(halfWidthInches, halfDepthInches);
-  shape.lineTo(cutoutRightXInches, halfDepthInches);
-  shape.lineTo(cutoutRightXInches, cutoutBackYInches);
-  shape.lineTo(-halfWidthInches, cutoutBackYInches);
-  shape.lineTo(-halfWidthInches, -halfDepthInches);
+
+  if (geometry.cutoutCorner === "front-left") {
+    const cutoutRightXInches = -halfWidthInches + cutoutWidthInches;
+
+    shape.moveTo(-halfWidthInches, -halfDepthInches);
+    shape.lineTo(halfWidthInches, -halfDepthInches);
+    shape.lineTo(halfWidthInches, halfDepthInches);
+    shape.lineTo(cutoutRightXInches, halfDepthInches);
+    shape.lineTo(cutoutRightXInches, cutoutBackYInches);
+    shape.lineTo(-halfWidthInches, cutoutBackYInches);
+    shape.lineTo(-halfWidthInches, -halfDepthInches);
+  } else {
+    const cutoutLeftXInches = halfWidthInches - cutoutWidthInches;
+
+    shape.moveTo(-halfWidthInches, -halfDepthInches);
+    shape.lineTo(halfWidthInches, -halfDepthInches);
+    shape.lineTo(halfWidthInches, cutoutBackYInches);
+    shape.lineTo(cutoutLeftXInches, cutoutBackYInches);
+    shape.lineTo(cutoutLeftXInches, halfDepthInches);
+    shape.lineTo(-halfWidthInches, halfDepthInches);
+    shape.lineTo(-halfWidthInches, -halfDepthInches);
+  }
 
   const prismGeometry = new ExtrudeGeometry(shape, {
     bevelEnabled: false,

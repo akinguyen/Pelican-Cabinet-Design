@@ -1,22 +1,14 @@
 {
-  "id": "two-door-pantry-cabinet",
-  "name": "2 Door Pantry Cabinet",
-  "catalogCategoryId": "pantry-cabinets/standard-pantry-cabinets",
-  "defaultDistanceFromFloorInches": 0,
+  "id": "wall-two-door-pantry-cabinet",
+  "name": "Wall 2 Door Pantry Cabinet",
+  "catalogCategoryId": "pantry-cabinets/wall-pantry-cabinets",
+  "defaultDistanceFromFloorInches": 54,
   "dimensions": {
     "widthInches": {
       "label": "Width",
       "control": "select",
-      "defaultValueInches": 24,
+      "defaultValueInches": 36,
       "optionsInches": [
-        {
-          "valueInches": 18,
-          "label": "18 in"
-        },
-        {
-          "valueInches": 21,
-          "label": "21 in"
-        },
         {
           "valueInches": 24,
           "label": "24 in"
@@ -36,10 +28,26 @@
         {
           "valueInches": 36,
           "label": "36 in"
+        },
+        {
+          "valueInches": 39,
+          "label": "39 in"
+        },
+        {
+          "valueInches": 42,
+          "label": "42 in"
+        },
+        {
+          "valueInches": 45,
+          "label": "45 in"
+        },
+        {
+          "valueInches": 48,
+          "label": "48 in"
         }
       ],
       "allowCustomValue": true,
-      "minValueInches": 12,
+      "minValueInches": 24,
       "maxValueInches": 48,
       "stepInches": 0.25
     },
@@ -51,6 +59,10 @@
         {
           "valueInches": 24,
           "label": "24 in"
+        },
+        {
+          "valueInches": 26,
+          "label": "26 in"
         }
       ],
       "allowCustomValue": true,
@@ -61,24 +73,36 @@
     "heightInches": {
       "label": "Height",
       "control": "select",
-      "defaultValueInches": 84,
+      "defaultValueInches": 30,
       "optionsInches": [
         {
-          "valueInches": 84,
-          "label": "84 in"
+          "valueInches": 27,
+          "label": "27 in"
         },
         {
-          "valueInches": 90,
-          "label": "90 in"
+          "valueInches": 30,
+          "label": "30 in"
         },
         {
-          "valueInches": 96,
-          "label": "96 in"
+          "valueInches": 33,
+          "label": "33 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        },
+        {
+          "valueInches": 39,
+          "label": "39 in"
+        },
+        {
+          "valueInches": 42,
+          "label": "42 in"
         }
       ],
       "allowCustomValue": true,
-      "minValueInches": 72,
-      "maxValueInches": 108,
+      "minValueInches": 24,
+      "maxValueInches": 60,
       "stepInches": 0.25
     }
   },
@@ -210,16 +234,6 @@
           "minValue": 0.5,
           "maxValue": 1,
           "step": 0.25
-        },
-        {
-          "id": "toe-kick-height-inches",
-          "label": "Toe kick height",
-          "valueType": "number",
-          "control": "number",
-          "defaultValue": 4.5,
-          "minValue": 3,
-          "maxValue": 6,
-          "step": 0.25
         }
       ]
     },
@@ -308,30 +322,7 @@
               }
             },
             {
-              "op": "clamp",
-              "value": {
-                "ref": "option.toe-kick-height-inches"
-              },
-              "min": {
-                "value": 0
-              },
-              "max": {
-                "op": "max",
-                "values": [
-                  {
-                    "value": 0
-                  },
-                  {
-                    "op": "subtract",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "value": 1
-                    }
-                  }
-                ]
-              }
+              "value": 0
             },
             {
               "op": "divide",
@@ -347,30 +338,7 @@
                       "ref": "size.heightInches"
                     },
                     "right": {
-                      "op": "clamp",
-                      "value": {
-                        "ref": "option.toe-kick-height-inches"
-                      },
-                      "min": {
-                        "value": 0
-                      },
-                      "max": {
-                        "op": "max",
-                        "values": [
-                          {
-                            "value": 0
-                          },
-                          {
-                            "op": "subtract",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 1
-                            }
-                          }
-                        ]
-                      }
+                      "value": 0
                     }
                   }
                 ]
@@ -401,30 +369,7 @@
                 "ref": "size.heightInches"
               },
               "right": {
-                "op": "clamp",
-                "value": {
-                  "ref": "option.toe-kick-height-inches"
-                },
-                "min": {
-                  "value": 0
-                },
-                "max": {
-                  "op": "max",
-                  "values": [
-                    {
-                      "value": 0
-                    },
-                    {
-                      "op": "subtract",
-                      "left": {
-                        "ref": "size.heightInches"
-                      },
-                      "right": {
-                        "value": 1
-                      }
-                    }
-                  ]
-                }
+                "value": 0
               }
             }
           ]
@@ -483,30 +428,7 @@
               }
             },
             {
-              "op": "clamp",
-              "value": {
-                "ref": "option.toe-kick-height-inches"
-              },
-              "min": {
-                "value": 0
-              },
-              "max": {
-                "op": "max",
-                "values": [
-                  {
-                    "value": 0
-                  },
-                  {
-                    "op": "subtract",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "value": 1
-                    }
-                  }
-                ]
-              }
+              "value": 0
             },
             {
               "op": "divide",
@@ -522,30 +444,7 @@
                       "ref": "size.heightInches"
                     },
                     "right": {
-                      "op": "clamp",
-                      "value": {
-                        "ref": "option.toe-kick-height-inches"
-                      },
-                      "min": {
-                        "value": 0
-                      },
-                      "max": {
-                        "op": "max",
-                        "values": [
-                          {
-                            "value": 0
-                          },
-                          {
-                            "op": "subtract",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 1
-                            }
-                          }
-                        ]
-                      }
+                      "value": 0
                     }
                   }
                 ]
@@ -576,30 +475,7 @@
                 "ref": "size.heightInches"
               },
               "right": {
-                "op": "clamp",
-                "value": {
-                  "ref": "option.toe-kick-height-inches"
-                },
-                "min": {
-                  "value": 0
-                },
-                "max": {
-                  "op": "max",
-                  "values": [
-                    {
-                      "value": 0
-                    },
-                    {
-                      "op": "subtract",
-                      "left": {
-                        "ref": "size.heightInches"
-                      },
-                      "right": {
-                        "value": 1
-                      }
-                    }
-                  ]
-                }
+                "value": 0
               }
             }
           ]
@@ -663,30 +539,7 @@
               }
             },
             {
-              "op": "clamp",
-              "value": {
-                "ref": "option.toe-kick-height-inches"
-              },
-              "min": {
-                "value": 0
-              },
-              "max": {
-                "op": "max",
-                "values": [
-                  {
-                    "value": 0
-                  },
-                  {
-                    "op": "subtract",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "value": 1
-                    }
-                  }
-                ]
-              }
+              "value": 0
             },
             {
               "op": "divide",
@@ -702,30 +555,7 @@
                       "ref": "size.heightInches"
                     },
                     "right": {
-                      "op": "clamp",
-                      "value": {
-                        "ref": "option.toe-kick-height-inches"
-                      },
-                      "min": {
-                        "value": 0
-                      },
-                      "max": {
-                        "op": "max",
-                        "values": [
-                          {
-                            "value": 0
-                          },
-                          {
-                            "op": "subtract",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 1
-                            }
-                          }
-                        ]
-                      }
+                      "value": 0
                     }
                   }
                 ]
@@ -776,30 +606,7 @@
                 "ref": "size.heightInches"
               },
               "right": {
-                "op": "clamp",
-                "value": {
-                  "ref": "option.toe-kick-height-inches"
-                },
-                "min": {
-                  "value": 0
-                },
-                "max": {
-                  "op": "max",
-                  "values": [
-                    {
-                      "value": 0
-                    },
-                    {
-                      "op": "subtract",
-                      "left": {
-                        "ref": "size.heightInches"
-                      },
-                      "right": {
-                        "value": 1
-                      }
-                    }
-                  ]
-                }
+                "value": 0
               }
             }
           ]
@@ -849,30 +656,7 @@
                   }
                 },
                 {
-                  "op": "clamp",
-                  "value": {
-                    "ref": "option.toe-kick-height-inches"
-                  },
-                  "min": {
-                    "value": 0
-                  },
-                  "max": {
-                    "op": "max",
-                    "values": [
-                      {
-                        "value": 0
-                      },
-                      {
-                        "op": "subtract",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 1
-                        }
-                      }
-                    ]
-                  }
+                  "value": 0
                 },
                 {
                   "op": "divide",
@@ -888,30 +672,7 @@
                           "ref": "size.heightInches"
                         },
                         "right": {
-                          "op": "clamp",
-                          "value": {
-                            "ref": "option.toe-kick-height-inches"
-                          },
-                          "min": {
-                            "value": 0
-                          },
-                          "max": {
-                            "op": "max",
-                            "values": [
-                              {
-                                "value": 0
-                              },
-                              {
-                                "op": "subtract",
-                                "left": {
-                                  "ref": "size.heightInches"
-                                },
-                                "right": {
-                                  "value": 1
-                                }
-                              }
-                            ]
-                          }
+                          "value": 0
                         }
                       }
                     ]
@@ -938,30 +699,7 @@
                         "ref": "size.heightInches"
                       },
                       "right": {
-                        "op": "clamp",
-                        "value": {
-                          "ref": "option.toe-kick-height-inches"
-                        },
-                        "min": {
-                          "value": 0
-                        },
-                        "max": {
-                          "op": "max",
-                          "values": [
-                            {
-                              "value": 0
-                            },
-                            {
-                              "op": "subtract",
-                              "left": {
-                                "ref": "size.heightInches"
-                              },
-                              "right": {
-                                "value": 1
-                              }
-                            }
-                          ]
-                        }
+                        "value": 0
                       }
                     }
                   ]
@@ -1072,30 +810,7 @@
                   }
                 },
                 {
-                  "op": "clamp",
-                  "value": {
-                    "ref": "option.toe-kick-height-inches"
-                  },
-                  "min": {
-                    "value": 0
-                  },
-                  "max": {
-                    "op": "max",
-                    "values": [
-                      {
-                        "value": 0
-                      },
-                      {
-                        "op": "subtract",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 1
-                        }
-                      }
-                    ]
-                  }
+                  "value": 0
                 },
                 {
                   "op": "divide",
@@ -1111,30 +826,7 @@
                           "ref": "size.heightInches"
                         },
                         "right": {
-                          "op": "clamp",
-                          "value": {
-                            "ref": "option.toe-kick-height-inches"
-                          },
-                          "min": {
-                            "value": 0
-                          },
-                          "max": {
-                            "op": "max",
-                            "values": [
-                              {
-                                "value": 0
-                              },
-                              {
-                                "op": "subtract",
-                                "left": {
-                                  "ref": "size.heightInches"
-                                },
-                                "right": {
-                                  "value": 1
-                                }
-                              }
-                            ]
-                          }
+                          "value": 0
                         }
                       }
                     ]
@@ -1164,30 +856,7 @@
                             "ref": "size.heightInches"
                           },
                           "right": {
-                            "op": "clamp",
-                            "value": {
-                              "ref": "option.toe-kick-height-inches"
-                            },
-                            "min": {
-                              "value": 0
-                            },
-                            "max": {
-                              "op": "max",
-                              "values": [
-                                {
-                                  "value": 0
-                                },
-                                {
-                                  "op": "subtract",
-                                  "left": {
-                                    "ref": "size.heightInches"
-                                  },
-                                  "right": {
-                                    "value": 1
-                                  }
-                                }
-                              ]
-                            }
+                            "value": 0
                           }
                         }
                       ]
@@ -1260,171 +929,6 @@
         "colorOptionId": "cabinet-panel-color"
       },
       "role": "bottom-panel"
-    },
-    {
-      "kind": "primitive-geometry",
-      "id": "toe-kick",
-      "label": "Toe Kick",
-      "geometry": {
-        "kind": "box"
-      },
-      "localPositionInches": {
-        "xInches": {
-          "value": 0
-        },
-        "yInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "multiply",
-              "left": {
-                "ref": "size.depthInches"
-              },
-              "right": {
-                "value": -0.5
-              }
-            },
-            {
-              "op": "divide",
-              "left": {
-                "op": "max",
-                "values": [
-                  {
-                    "value": 1
-                  },
-                  {
-                    "op": "multiply",
-                    "left": {
-                      "ref": "size.depthInches"
-                    },
-                    "right": {
-                      "value": 0.85
-                    }
-                  }
-                ]
-              },
-              "right": {
-                "value": 2
-              }
-            }
-          ]
-        },
-        "zInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "negate",
-              "value": {
-                "op": "divide",
-                "left": {
-                  "ref": "size.heightInches"
-                },
-                "right": {
-                  "value": 2
-                }
-              }
-            },
-            {
-              "op": "divide",
-              "left": {
-                "op": "clamp",
-                "value": {
-                  "ref": "option.toe-kick-height-inches"
-                },
-                "min": {
-                  "value": 0
-                },
-                "max": {
-                  "op": "max",
-                  "values": [
-                    {
-                      "value": 0
-                    },
-                    {
-                      "op": "subtract",
-                      "left": {
-                        "ref": "size.heightInches"
-                      },
-                      "right": {
-                        "value": 1
-                      }
-                    }
-                  ]
-                }
-              },
-              "right": {
-                "value": 2
-              }
-            }
-          ]
-        }
-      },
-      "sizeInches": {
-        "widthInches": {
-          "op": "max",
-          "values": [
-            {
-              "value": 1
-            },
-            {
-              "op": "multiply",
-              "left": {
-                "ref": "size.widthInches"
-              },
-              "right": {
-                "value": 0.9
-              }
-            }
-          ]
-        },
-        "depthInches": {
-          "op": "max",
-          "values": [
-            {
-              "value": 1
-            },
-            {
-              "op": "multiply",
-              "left": {
-                "ref": "size.depthInches"
-              },
-              "right": {
-                "value": 0.85
-              }
-            }
-          ]
-        },
-        "heightInches": {
-          "op": "clamp",
-          "value": {
-            "ref": "option.toe-kick-height-inches"
-          },
-          "min": {
-            "value": 0
-          },
-          "max": {
-            "op": "max",
-            "values": [
-              {
-                "value": 0
-              },
-              {
-                "op": "subtract",
-                "left": {
-                  "ref": "size.heightInches"
-                },
-                "right": {
-                  "value": 1
-                }
-              }
-            ]
-          }
-        }
-      },
-      "material": {
-        "colorHex": "#111827"
-      },
-      "role": "toe-kick"
     },
     {
       "kind": "nested-assembly",
@@ -1515,30 +1019,7 @@
                   }
                 },
                 {
-                  "op": "clamp",
-                  "value": {
-                    "ref": "option.toe-kick-height-inches"
-                  },
-                  "min": {
-                    "value": 0
-                  },
-                  "max": {
-                    "op": "max",
-                    "values": [
-                      {
-                        "value": 0
-                      },
-                      {
-                        "op": "subtract",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 1
-                        }
-                      }
-                    ]
-                  }
+                  "value": 0
                 }
               ]
             },
@@ -1559,30 +1040,7 @@
                       "ref": "size.heightInches"
                     },
                     "right": {
-                      "op": "clamp",
-                      "value": {
-                        "ref": "option.toe-kick-height-inches"
-                      },
-                      "min": {
-                        "value": 0
-                      },
-                      "max": {
-                        "op": "max",
-                        "values": [
-                          {
-                            "value": 0
-                          },
-                          {
-                            "op": "subtract",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 1
-                            }
-                          }
-                        ]
-                      }
+                      "value": 0
                     }
                   }
                 ]
@@ -1620,30 +1078,7 @@
                   "ref": "size.heightInches"
                 },
                 "right": {
-                  "op": "clamp",
-                  "value": {
-                    "ref": "option.toe-kick-height-inches"
-                  },
-                  "min": {
-                    "value": 0
-                  },
-                  "max": {
-                    "op": "max",
-                    "values": [
-                      {
-                        "value": 0
-                      },
-                      {
-                        "op": "subtract",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 1
-                        }
-                      }
-                    ]
-                  }
+                  "value": 0
                 }
               }
             ]
@@ -1762,30 +1197,7 @@
                   }
                 },
                 {
-                  "op": "clamp",
-                  "value": {
-                    "ref": "option.toe-kick-height-inches"
-                  },
-                  "min": {
-                    "value": 0
-                  },
-                  "max": {
-                    "op": "max",
-                    "values": [
-                      {
-                        "value": 0
-                      },
-                      {
-                        "op": "subtract",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 1
-                        }
-                      }
-                    ]
-                  }
+                  "value": 0
                 }
               ]
             },
@@ -1806,30 +1218,7 @@
                       "ref": "size.heightInches"
                     },
                     "right": {
-                      "op": "clamp",
-                      "value": {
-                        "ref": "option.toe-kick-height-inches"
-                      },
-                      "min": {
-                        "value": 0
-                      },
-                      "max": {
-                        "op": "max",
-                        "values": [
-                          {
-                            "value": 0
-                          },
-                          {
-                            "op": "subtract",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 1
-                            }
-                          }
-                        ]
-                      }
+                      "value": 0
                     }
                   }
                 ]
@@ -1867,30 +1256,7 @@
                   "ref": "size.heightInches"
                 },
                 "right": {
-                  "op": "clamp",
-                  "value": {
-                    "ref": "option.toe-kick-height-inches"
-                  },
-                  "min": {
-                    "value": 0
-                  },
-                  "max": {
-                    "op": "max",
-                    "values": [
-                      {
-                        "value": 0
-                      },
-                      {
-                        "op": "subtract",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 1
-                        }
-                      }
-                    ]
-                  }
+                  "value": 0
                 }
               }
             ]

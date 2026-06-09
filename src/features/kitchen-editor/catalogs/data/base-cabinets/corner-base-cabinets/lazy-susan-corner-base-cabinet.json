@@ -243,22 +243,6 @@
             {
               "value": "right-center",
               "label": "Right center"
-            },
-            {
-              "value": "top-left",
-              "label": "Top left"
-            },
-            {
-              "value": "top-right",
-              "label": "Top right"
-            },
-            {
-              "value": "bottom-left",
-              "label": "Bottom left"
-            },
-            {
-              "value": "bottom-right",
-              "label": "Bottom right"
             }
           ]
         }
@@ -268,556 +252,6 @@
   "components": [
     {
       "kind": "primitive-geometry",
-      "id": "back-panel",
-      "label": "Back Panel",
-      "geometry": {
-        "kind": "box"
-      },
-      "localPositionInches": {
-        "xInches": {
-          "value": 0
-        },
-        "yInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "negate",
-              "value": {
-                "op": "divide",
-                "left": {
-                  "ref": "size.depthInches"
-                },
-                "right": {
-                  "value": 2
-                }
-              }
-            },
-            {
-              "op": "divide",
-              "left": {
-                "ref": "option.back-panel-thickness-inches"
-              },
-              "right": {
-                "value": 2
-              }
-            }
-          ]
-        },
-        "zInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "negate",
-              "value": {
-                "op": "divide",
-                "left": {
-                  "ref": "size.heightInches"
-                },
-                "right": {
-                  "value": 2
-                }
-              }
-            },
-            {
-              "op": "clamp",
-              "value": {
-                "ref": "option.toe-kick-height-inches"
-              },
-              "min": {
-                "value": 0
-              },
-              "max": {
-                "op": "max",
-                "values": [
-                  {
-                    "value": 0
-                  },
-                  {
-                    "op": "subtract",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "value": 1
-                    }
-                  }
-                ]
-              }
-            },
-            {
-              "op": "divide",
-              "left": {
-                "op": "max",
-                "values": [
-                  {
-                    "value": 1
-                  },
-                  {
-                    "op": "subtract",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "op": "clamp",
-                      "value": {
-                        "ref": "option.toe-kick-height-inches"
-                      },
-                      "min": {
-                        "value": 0
-                      },
-                      "max": {
-                        "op": "max",
-                        "values": [
-                          {
-                            "value": 0
-                          },
-                          {
-                            "op": "subtract",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 1
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  }
-                ]
-              },
-              "right": {
-                "value": 2
-              }
-            }
-          ]
-        }
-      },
-      "sizeInches": {
-        "widthInches": {
-          "ref": "size.widthInches"
-        },
-        "depthInches": {
-          "ref": "option.back-panel-thickness-inches"
-        },
-        "heightInches": {
-          "op": "max",
-          "values": [
-            {
-              "value": 1
-            },
-            {
-              "op": "subtract",
-              "left": {
-                "ref": "size.heightInches"
-              },
-              "right": {
-                "op": "clamp",
-                "value": {
-                  "ref": "option.toe-kick-height-inches"
-                },
-                "min": {
-                  "value": 0
-                },
-                "max": {
-                  "op": "max",
-                  "values": [
-                    {
-                      "value": 0
-                    },
-                    {
-                      "op": "subtract",
-                      "left": {
-                        "ref": "size.heightInches"
-                      },
-                      "right": {
-                        "value": 1
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          ]
-        }
-      },
-      "material": {
-        "colorOptionId": "cabinet-panel-color"
-      },
-      "role": "back-panel"
-    },
-    {
-      "kind": "primitive-geometry",
-      "id": "left-back-side-panel",
-      "label": "Left Side Panel",
-      "geometry": {
-        "kind": "box"
-      },
-      "localPositionInches": {
-        "xInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "negate",
-              "value": {
-                "op": "divide",
-                "left": {
-                  "ref": "size.widthInches"
-                },
-                "right": {
-                  "value": 2
-                }
-              }
-            },
-            {
-              "op": "divide",
-              "left": {
-                "ref": "option.side-panel-thickness-inches"
-              },
-              "right": {
-                "value": 2
-              }
-            }
-          ]
-        },
-        "yInches": {
-          "op": "negate",
-          "value": {
-            "op": "divide",
-            "left": {
-              "op": "subtract",
-              "left": {
-                "ref": "size.depthInches"
-              },
-              "right": {
-                "ref": "option.leg-depth-inches"
-              }
-            },
-            "right": {
-              "value": 2
-            }
-          }
-        },
-        "zInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "negate",
-              "value": {
-                "op": "divide",
-                "left": {
-                  "ref": "size.heightInches"
-                },
-                "right": {
-                  "value": 2
-                }
-              }
-            },
-            {
-              "op": "clamp",
-              "value": {
-                "ref": "option.toe-kick-height-inches"
-              },
-              "min": {
-                "value": 0
-              },
-              "max": {
-                "op": "max",
-                "values": [
-                  {
-                    "value": 0
-                  },
-                  {
-                    "op": "subtract",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "value": 1
-                    }
-                  }
-                ]
-              }
-            },
-            {
-              "op": "divide",
-              "left": {
-                "op": "max",
-                "values": [
-                  {
-                    "value": 1
-                  },
-                  {
-                    "op": "subtract",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "op": "clamp",
-                      "value": {
-                        "ref": "option.toe-kick-height-inches"
-                      },
-                      "min": {
-                        "value": 0
-                      },
-                      "max": {
-                        "op": "max",
-                        "values": [
-                          {
-                            "value": 0
-                          },
-                          {
-                            "op": "subtract",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 1
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  }
-                ]
-              },
-              "right": {
-                "value": 2
-              }
-            }
-          ]
-        }
-      },
-      "sizeInches": {
-        "widthInches": {
-          "ref": "option.side-panel-thickness-inches"
-        },
-        "depthInches": {
-          "ref": "option.leg-depth-inches"
-        },
-        "heightInches": {
-          "op": "max",
-          "values": [
-            {
-              "value": 1
-            },
-            {
-              "op": "subtract",
-              "left": {
-                "ref": "size.heightInches"
-              },
-              "right": {
-                "op": "clamp",
-                "value": {
-                  "ref": "option.toe-kick-height-inches"
-                },
-                "min": {
-                  "value": 0
-                },
-                "max": {
-                  "op": "max",
-                  "values": [
-                    {
-                      "value": 0
-                    },
-                    {
-                      "op": "subtract",
-                      "left": {
-                        "ref": "size.heightInches"
-                      },
-                      "right": {
-                        "value": 1
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          ]
-        }
-      },
-      "material": {
-        "colorOptionId": "cabinet-panel-color"
-      },
-      "role": "side-panel"
-    },
-    {
-      "kind": "primitive-geometry",
-      "id": "right-side-panel",
-      "label": "Right Back/Side Panel",
-      "geometry": {
-        "kind": "box"
-      },
-      "localPositionInches": {
-        "xInches": {
-          "op": "subtract",
-          "left": {
-            "op": "divide",
-            "left": {
-              "ref": "size.widthInches"
-            },
-            "right": {
-              "value": 2
-            }
-          },
-          "right": {
-            "op": "divide",
-            "left": {
-              "ref": "option.side-panel-thickness-inches"
-            },
-            "right": {
-              "value": 2
-            }
-          }
-        },
-        "yInches": {
-          "value": 0
-        },
-        "zInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "negate",
-              "value": {
-                "op": "divide",
-                "left": {
-                  "ref": "size.heightInches"
-                },
-                "right": {
-                  "value": 2
-                }
-              }
-            },
-            {
-              "op": "clamp",
-              "value": {
-                "ref": "option.toe-kick-height-inches"
-              },
-              "min": {
-                "value": 0
-              },
-              "max": {
-                "op": "max",
-                "values": [
-                  {
-                    "value": 0
-                  },
-                  {
-                    "op": "subtract",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "value": 1
-                    }
-                  }
-                ]
-              }
-            },
-            {
-              "op": "divide",
-              "left": {
-                "op": "max",
-                "values": [
-                  {
-                    "value": 1
-                  },
-                  {
-                    "op": "subtract",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "op": "clamp",
-                      "value": {
-                        "ref": "option.toe-kick-height-inches"
-                      },
-                      "min": {
-                        "value": 0
-                      },
-                      "max": {
-                        "op": "max",
-                        "values": [
-                          {
-                            "value": 0
-                          },
-                          {
-                            "op": "subtract",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 1
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  }
-                ]
-              },
-              "right": {
-                "value": 2
-              }
-            }
-          ]
-        }
-      },
-      "sizeInches": {
-        "widthInches": {
-          "ref": "option.side-panel-thickness-inches"
-        },
-        "depthInches": {
-          "ref": "size.depthInches"
-        },
-        "heightInches": {
-          "op": "max",
-          "values": [
-            {
-              "value": 1
-            },
-            {
-              "op": "subtract",
-              "left": {
-                "ref": "size.heightInches"
-              },
-              "right": {
-                "op": "clamp",
-                "value": {
-                  "ref": "option.toe-kick-height-inches"
-                },
-                "min": {
-                  "value": 0
-                },
-                "max": {
-                  "op": "max",
-                  "values": [
-                    {
-                      "value": 0
-                    },
-                    {
-                      "op": "subtract",
-                      "left": {
-                        "ref": "size.heightInches"
-                      },
-                      "right": {
-                        "value": 1
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          ]
-        }
-      },
-      "material": {
-        "colorOptionId": "cabinet-panel-color"
-      },
-      "role": "side-panel"
-    },
-    {
-      "kind": "primitive-geometry",
       "id": "top-l-shaped-panel",
       "label": "Top L-Shaped Panel",
       "geometry": {
@@ -825,7 +259,7 @@
         "meshId": "l-shaped-prism",
         "cutoutWidthRatio": 0.3333333333,
         "cutoutDepthRatio": 0.3333333333,
-        "cutoutCorner": "front-left"
+        "cutoutCorner": "front-right"
       },
       "localPositionInches": {
         "xInches": {
@@ -881,7 +315,7 @@
         "meshId": "l-shaped-prism",
         "cutoutWidthRatio": 0.3333333333,
         "cutoutDepthRatio": 0.3333333333,
-        "cutoutCorner": "front-left"
+        "cutoutCorner": "front-right"
       },
       "localPositionInches": {
         "xInches": {
@@ -961,8 +395,8 @@
     },
     {
       "kind": "primitive-geometry",
-      "id": "toe-kick-back-section",
-      "label": "Back Section Toe Kick",
+      "id": "rear-back-panel",
+      "label": "Rear Back Panel",
       "geometry": {
         "kind": "box"
       },
@@ -971,10 +405,1467 @@
           "value": 0
         },
         "yInches": {
-          "op": "negate",
-          "value": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "option.back-panel-thickness-inches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "clamp",
+              "value": {
+                "ref": "option.toe-kick-height-inches"
+              },
+              "min": {
+                "value": 0
+              },
+              "max": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 0
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 1
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "ref": "option.top-bottom-panel-thickness-inches"
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "op": "subtract",
+                      "left": {
+                        "ref": "size.heightInches"
+                      },
+                      "right": {
+                        "op": "clamp",
+                        "value": {
+                          "ref": "option.toe-kick-height-inches"
+                        },
+                        "min": {
+                          "value": 0
+                        },
+                        "max": {
+                          "op": "max",
+                          "values": [
+                            {
+                              "value": 0
+                            },
+                            {
+                              "op": "subtract",
+                              "left": {
+                                "ref": "size.heightInches"
+                              },
+                              "right": {
+                                "value": 1
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "right": {
+                      "op": "multiply",
+                      "left": {
+                        "ref": "option.top-bottom-panel-thickness-inches"
+                      },
+                      "right": {
+                        "value": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "option.back-panel-thickness-inches"
+        },
+        "heightInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "op": "clamp",
+                  "value": {
+                    "ref": "option.toe-kick-height-inches"
+                  },
+                  "min": {
+                    "value": 0
+                  },
+                  "max": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0
+                      },
+                      {
+                        "op": "subtract",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 1
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "right": {
+                "op": "multiply",
+                "left": {
+                  "ref": "option.top-bottom-panel-thickness-inches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "cabinet-panel-color"
+      },
+      "role": "back-panel"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "left-back-panel",
+      "label": "Left Back Panel",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "option.back-panel-thickness-inches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "yInches": {
+          "op": "divide",
+          "left": {
+            "ref": "option.back-panel-thickness-inches"
+          },
+          "right": {
+            "value": 2
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "clamp",
+              "value": {
+                "ref": "option.toe-kick-height-inches"
+              },
+              "min": {
+                "value": 0
+              },
+              "max": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 0
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 1
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "ref": "option.top-bottom-panel-thickness-inches"
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "op": "subtract",
+                      "left": {
+                        "ref": "size.heightInches"
+                      },
+                      "right": {
+                        "op": "clamp",
+                        "value": {
+                          "ref": "option.toe-kick-height-inches"
+                        },
+                        "min": {
+                          "value": 0
+                        },
+                        "max": {
+                          "op": "max",
+                          "values": [
+                            {
+                              "value": 0
+                            },
+                            {
+                              "op": "subtract",
+                              "left": {
+                                "ref": "size.heightInches"
+                              },
+                              "right": {
+                                "value": 1
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "right": {
+                      "op": "multiply",
+                      "left": {
+                        "ref": "option.top-bottom-panel-thickness-inches"
+                      },
+                      "right": {
+                        "value": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "option.back-panel-thickness-inches"
+        },
+        "depthInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "ref": "option.back-panel-thickness-inches"
+              }
+            }
+          ]
+        },
+        "heightInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "op": "clamp",
+                  "value": {
+                    "ref": "option.toe-kick-height-inches"
+                  },
+                  "min": {
+                    "value": 0
+                  },
+                  "max": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0
+                      },
+                      {
+                        "op": "subtract",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 1
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "right": {
+                "op": "multiply",
+                "left": {
+                  "ref": "option.top-bottom-panel-thickness-inches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "cabinet-panel-color"
+      },
+      "role": "back-panel"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "right-side-panel",
+      "label": "Right Side Panel",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
             "op": "divide",
             "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "option.side-panel-thickness-inches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "add",
+                "values": [
+                  {
+                    "ref": "option.leg-depth-inches"
+                  },
+                  {
+                    "ref": "option.back-panel-thickness-inches"
+                  }
+                ]
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "clamp",
+              "value": {
+                "ref": "option.toe-kick-height-inches"
+              },
+              "min": {
+                "value": 0
+              },
+              "max": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 0
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 1
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "ref": "option.top-bottom-panel-thickness-inches"
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "op": "subtract",
+                      "left": {
+                        "ref": "size.heightInches"
+                      },
+                      "right": {
+                        "op": "clamp",
+                        "value": {
+                          "ref": "option.toe-kick-height-inches"
+                        },
+                        "min": {
+                          "value": 0
+                        },
+                        "max": {
+                          "op": "max",
+                          "values": [
+                            {
+                              "value": 0
+                            },
+                            {
+                              "op": "subtract",
+                              "left": {
+                                "ref": "size.heightInches"
+                              },
+                              "right": {
+                                "value": 1
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "right": {
+                      "op": "multiply",
+                      "left": {
+                        "ref": "option.top-bottom-panel-thickness-inches"
+                      },
+                      "right": {
+                        "value": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "option.side-panel-thickness-inches"
+        },
+        "depthInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "option.leg-depth-inches"
+              },
+              "right": {
+                "ref": "option.back-panel-thickness-inches"
+              }
+            }
+          ]
+        },
+        "heightInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "op": "clamp",
+                  "value": {
+                    "ref": "option.toe-kick-height-inches"
+                  },
+                  "min": {
+                    "value": 0
+                  },
+                  "max": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0
+                      },
+                      {
+                        "op": "subtract",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 1
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "right": {
+                "op": "multiply",
+                "left": {
+                  "ref": "option.top-bottom-panel-thickness-inches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "cabinet-panel-color"
+      },
+      "role": "side-panel"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "front-side-panel",
+      "label": "Front Side Panel",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "add",
+                "values": [
+                  {
+                    "ref": "option.leg-depth-inches"
+                  },
+                  {
+                    "ref": "option.back-panel-thickness-inches"
+                  }
+                ]
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "option.side-panel-thickness-inches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "clamp",
+              "value": {
+                "ref": "option.toe-kick-height-inches"
+              },
+              "min": {
+                "value": 0
+              },
+              "max": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 0
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 1
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "ref": "option.top-bottom-panel-thickness-inches"
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "op": "subtract",
+                      "left": {
+                        "ref": "size.heightInches"
+                      },
+                      "right": {
+                        "op": "clamp",
+                        "value": {
+                          "ref": "option.toe-kick-height-inches"
+                        },
+                        "min": {
+                          "value": 0
+                        },
+                        "max": {
+                          "op": "max",
+                          "values": [
+                            {
+                              "value": 0
+                            },
+                            {
+                              "op": "subtract",
+                              "left": {
+                                "ref": "size.heightInches"
+                              },
+                              "right": {
+                                "value": 1
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "right": {
+                      "op": "multiply",
+                      "left": {
+                        "ref": "option.top-bottom-panel-thickness-inches"
+                      },
+                      "right": {
+                        "value": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "option.leg-depth-inches"
+              },
+              "right": {
+                "ref": "option.back-panel-thickness-inches"
+              }
+            }
+          ]
+        },
+        "depthInches": {
+          "ref": "option.side-panel-thickness-inches"
+        },
+        "heightInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "op": "clamp",
+                  "value": {
+                    "ref": "option.toe-kick-height-inches"
+                  },
+                  "min": {
+                    "value": 0
+                  },
+                  "max": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0
+                      },
+                      {
+                        "op": "subtract",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 1
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "right": {
+                "op": "multiply",
+                "left": {
+                  "ref": "option.top-bottom-panel-thickness-inches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "cabinet-panel-color"
+      },
+      "role": "side-panel"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "toe-kick-l-shaped-panel",
+      "label": "L-Shaped Toe Kick",
+      "geometry": {
+        "kind": "custom-mesh",
+        "meshId": "l-shaped-prism",
+        "cutoutWidthRatio": 0.3333333333,
+        "cutoutDepthRatio": 0.3333333333,
+        "cutoutCorner": "front-right"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "clamp",
+                "value": {
+                  "ref": "option.toe-kick-height-inches"
+                },
+                "min": {
+                  "value": 0
+                },
+                "max": {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "ref": "size.heightInches"
+                      },
+                      "right": {
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "ref": "option.toe-kick-height-inches"
+          },
+          "min": {
+            "value": 0
+          },
+          "max": {
+            "op": "max",
+            "values": [
+              {
+                "value": 0
+              },
+              {
+                "op": "subtract",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 1
+                }
+              }
+            ]
+          }
+        }
+      },
+      "material": {
+        "colorHex": "#05070b"
+      },
+      "role": "toe-kick"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "horizontal-opening-door",
+      "label": "Horizontal Opening Door",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "op": "max",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "ref": "size.widthInches"
+                  },
+                  "right": {
+                    "ref": "option.leg-depth-inches"
+                  }
+                }
+              ]
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              },
+              "right": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "ref": "option.leg-depth-inches"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.75
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "clamp",
+              "value": {
+                "ref": "option.toe-kick-height-inches"
+              },
+              "min": {
+                "value": 0
+              },
+              "max": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 0
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 1
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "op": "clamp",
+                      "value": {
+                        "ref": "option.toe-kick-height-inches"
+                      },
+                      "min": {
+                        "value": 0
+                      },
+                      "max": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0
+                          },
+                          {
+                            "op": "subtract",
+                            "left": {
+                              "ref": "size.heightInches"
+                            },
+                            "right": {
+                              "value": 1
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "size.widthInches"
+              },
+              "right": {
+                "ref": "option.leg-depth-inches"
+              }
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "op": "clamp",
+                "value": {
+                  "ref": "option.toe-kick-height-inches"
+                },
+                "min": {
+                  "value": 0
+                },
+                "max": {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "ref": "size.heightInches"
+                      },
+                      "right": {
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "door-color"
+      },
+      "role": "door-front",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-doors",
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "vertical-opening-door",
+      "label": "Vertical Opening Door",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              },
+              "right": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.widthInches"
+                    },
+                    "right": {
+                      "ref": "option.leg-depth-inches"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.75
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "op": "max",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "ref": "size.depthInches"
+                  },
+                  "right": {
+                    "ref": "option.leg-depth-inches"
+                  }
+                }
+              ]
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "clamp",
+              "value": {
+                "ref": "option.toe-kick-height-inches"
+              },
+              "min": {
+                "value": 0
+              },
+              "max": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 0
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 1
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "op": "clamp",
+                      "value": {
+                        "ref": "option.toe-kick-height-inches"
+                      },
+                      "min": {
+                        "value": 0
+                      },
+                      "max": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0
+                          },
+                          {
+                            "op": "subtract",
+                            "left": {
+                              "ref": "size.heightInches"
+                            },
+                            "right": {
+                              "value": 1
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.75
+        },
+        "depthInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
               "op": "subtract",
               "left": {
                 "ref": "size.depthInches"
@@ -982,30 +1873,21 @@
               "right": {
                 "ref": "option.leg-depth-inches"
               }
-            },
-            "right": {
-              "value": 2
             }
-          }
+          ]
         },
-        "zInches": {
-          "op": "add",
+        "heightInches": {
+          "op": "max",
           "values": [
             {
-              "op": "negate",
-              "value": {
-                "op": "divide",
-                "left": {
-                  "ref": "size.heightInches"
-                },
-                "right": {
-                  "value": 2
-                }
-              }
+              "value": 1
             },
             {
-              "op": "divide",
+              "op": "subtract",
               "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
                 "op": "clamp",
                 "value": {
                   "ref": "option.toe-kick-height-inches"
@@ -1030,122 +1912,92 @@
                     }
                   ]
                 }
-              },
-              "right": {
-                "value": 2
               }
             }
           ]
         }
       },
-      "sizeInches": {
-        "widthInches": {
-          "op": "multiply",
-          "left": {
-            "ref": "size.widthInches"
-          },
-          "right": {
-            "value": 0.9
-          }
-        },
-        "depthInches": {
-          "op": "multiply",
-          "left": {
-            "ref": "option.leg-depth-inches"
-          },
-          "right": {
-            "value": 0.85
-          }
-        },
-        "heightInches": {
-          "op": "clamp",
-          "value": {
-            "ref": "option.toe-kick-height-inches"
-          },
-          "min": {
-            "value": 0
-          },
-          "max": {
-            "op": "max",
-            "values": [
-              {
-                "value": 0
-              },
-              {
-                "op": "subtract",
-                "left": {
-                  "ref": "size.heightInches"
-                },
-                "right": {
-                  "value": 1
-                }
-              }
-            ]
-          }
-        }
-      },
       "material": {
-        "colorHex": "#111827"
+        "colorOptionId": "door-color"
       },
-      "role": "toe-kick"
+      "role": "door-front",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-doors",
+            "equals": true
+          }
+        ]
+      }
     },
     {
       "kind": "primitive-geometry",
-      "id": "toe-kick-return-section",
-      "label": "Return Section Toe Kick",
+      "id": "horizontal-door-bar-handle",
+      "label": "Horizontal Door Bar Handle",
       "geometry": {
         "kind": "box"
       },
       "localPositionInches": {
         "xInches": {
-          "op": "divide",
-          "left": {
-            "op": "subtract",
-            "left": {
-              "ref": "size.widthInches"
-            },
-            "right": {
-              "ref": "option.leg-depth-inches"
-            }
-          },
-          "right": {
-            "value": 2
-          }
-        },
-        "yInches": {
           "op": "subtract",
           "left": {
             "op": "divide",
             "left": {
-              "ref": "size.depthInches"
+              "ref": "size.widthInches"
             },
             "right": {
               "value": 2
             }
           },
           "right": {
-            "op": "divide",
-            "left": {
-              "op": "max",
-              "values": [
-                {
-                  "value": 1
-                },
-                {
-                  "op": "subtract",
-                  "left": {
-                    "ref": "size.depthInches"
-                  },
-                  "right": {
-                    "ref": "option.leg-depth-inches"
-                  }
-                }
-              ]
-            },
-            "right": {
-              "value": 2
-            }
+            "value": 1.25
           }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              },
+              "right": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "ref": "option.leg-depth-inches"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "value": 0.75
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.75
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
         },
         "zInches": {
           "op": "add",
@@ -1163,32 +2015,72 @@
               }
             },
             {
+              "op": "clamp",
+              "value": {
+                "ref": "option.toe-kick-height-inches"
+              },
+              "min": {
+                "value": 0
+              },
+              "max": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 0
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 1
+                    }
+                  }
+                ]
+              }
+            },
+            {
               "op": "divide",
               "left": {
-                "op": "clamp",
-                "value": {
-                  "ref": "option.toe-kick-height-inches"
-                },
-                "min": {
-                  "value": 0
-                },
-                "max": {
-                  "op": "max",
-                  "values": [
-                    {
-                      "value": 0
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
                     },
-                    {
-                      "op": "subtract",
-                      "left": {
-                        "ref": "size.heightInches"
+                    "right": {
+                      "op": "clamp",
+                      "value": {
+                        "ref": "option.toe-kick-height-inches"
                       },
-                      "right": {
-                        "value": 1
+                      "min": {
+                        "value": 0
+                      },
+                      "max": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0
+                          },
+                          {
+                            "op": "subtract",
+                            "left": {
+                              "ref": "size.heightInches"
+                            },
+                            "right": {
+                              "value": 1
+                            }
+                          }
+                        ]
                       }
                     }
-                  ]
-                }
+                  }
+                ]
               },
               "right": {
                 "value": 2
@@ -1199,93 +2091,123 @@
       },
       "sizeInches": {
         "widthInches": {
-          "op": "multiply",
-          "left": {
-            "ref": "option.leg-depth-inches"
-          },
-          "right": {
-            "value": 0.85
-          }
+          "value": 0.75
         },
         "depthInches": {
-          "op": "multiply",
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 5
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "op": "clamp",
+                    "value": {
+                      "ref": "option.toe-kick-height-inches"
+                    },
+                    "min": {
+                      "value": 0
+                    },
+                    "max": {
+                      "op": "max",
+                      "values": [
+                        {
+                          "value": 0
+                        },
+                        {
+                          "op": "subtract",
+                          "left": {
+                            "ref": "size.heightInches"
+                          },
+                          "right": {
+                            "value": 1
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-doors",
+            "equals": true
+          },
+          {
+            "ref": "option.show-handles",
+            "equals": true
+          },
+          {
+            "ref": "option.door-handle-type",
+            "equals": "bar"
+          },
+          {
+            "ref": "option.door-handle-position",
+            "equals": "left-center"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "horizontal-door-knob-handle",
+      "label": "Horizontal Door Knob Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
           "left": {
-            "op": "max",
-            "values": [
-              {
-                "value": 1
-              },
-              {
-                "op": "subtract",
+            "op": "divide",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 1.25
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "divide",
                 "left": {
                   "ref": "size.depthInches"
                 },
                 "right": {
-                  "ref": "option.leg-depth-inches"
-                }
-              }
-            ]
-          },
-          "right": {
-            "value": 0.85
-          }
-        },
-        "heightInches": {
-          "op": "clamp",
-          "value": {
-            "ref": "option.toe-kick-height-inches"
-          },
-          "min": {
-            "value": 0
-          },
-          "max": {
-            "op": "max",
-            "values": [
-              {
-                "value": 0
-              },
-              {
-                "op": "subtract",
-                "left": {
-                  "ref": "size.heightInches"
-                },
-                "right": {
-                  "value": 1
-                }
-              }
-            ]
-          }
-        }
-      },
-      "material": {
-        "colorHex": "#111827"
-      },
-      "role": "toe-kick"
-    },
-    {
-      "kind": "nested-assembly",
-      "id": "front-opening-door",
-      "label": "Front Opening Door",
-      "definitionId": "door",
-      "localPositionInches": {
-        "xInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "negate",
-              "value": {
-                "op": "divide",
-                "left": {
-                  "ref": "size.widthInches"
-                },
-                "right": {
                   "value": 2
                 }
-              }
-            },
-            {
-              "op": "divide",
-              "left": {
+              },
+              "right": {
                 "op": "max",
                 "values": [
                   {
@@ -1294,40 +2216,26 @@
                   {
                     "op": "subtract",
                     "left": {
-                      "ref": "size.widthInches"
+                      "ref": "size.depthInches"
                     },
                     "right": {
                       "ref": "option.leg-depth-inches"
                     }
                   }
                 ]
+              }
+            },
+            {
+              "value": 0.75
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.75
               },
               "right": {
                 "value": 2
               }
-            }
-          ]
-        },
-        "yInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "negate",
-              "value": {
-                "op": "divide",
-                "left": {
-                  "ref": "size.depthInches"
-                },
-                "right": {
-                  "value": 2
-                }
-              }
-            },
-            {
-              "ref": "option.leg-depth-inches"
-            },
-            {
-              "value": 0.375
             }
           ]
         },
@@ -1421,116 +2329,65 @@
           ]
         }
       },
-      "configuration": {
-        "sizeInches": {
-          "widthInches": {
-            "op": "max",
-            "values": [
-              {
-                "value": 1
-              },
-              {
-                "op": "subtract",
+      "sizeInches": {
+        "widthInches": {
+          "value": 1
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "value": 1
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-doors",
+            "equals": true
+          },
+          {
+            "ref": "option.show-handles",
+            "equals": true
+          },
+          {
+            "ref": "option.door-handle-type",
+            "equals": "knob"
+          },
+          {
+            "ref": "option.door-handle-position",
+            "equals": "left-center"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "vertical-door-bar-handle",
+      "label": "Vertical Door Bar Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "divide",
                 "left": {
                   "ref": "size.widthInches"
                 },
                 "right": {
-                  "ref": "option.leg-depth-inches"
-                }
-              }
-            ]
-          },
-          "depthInches": {
-            "value": 0.75
-          },
-          "heightInches": {
-            "op": "max",
-            "values": [
-              {
-                "value": 1
-              },
-              {
-                "op": "subtract",
-                "left": {
-                  "ref": "size.heightInches"
-                },
-                "right": {
-                  "op": "clamp",
-                  "value": {
-                    "ref": "option.toe-kick-height-inches"
-                  },
-                  "min": {
-                    "value": 0
-                  },
-                  "max": {
-                    "op": "max",
-                    "values": [
-                      {
-                        "value": 0
-                      },
-                      {
-                        "op": "subtract",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 1
-                        }
-                      }
-                    ]
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "optionValues": {
-          "door-color": {
-            "ref": "option.door-color"
-          },
-          "handle-color": {
-            "ref": "option.handle-color"
-          },
-          "show-handle": {
-            "ref": "option.show-handles"
-          },
-          "handle-type": {
-            "ref": "option.door-handle-type"
-          },
-          "handle-position": {
-            "value": "right-center"
-          }
-        }
-      },
-      "includeWhen": {
-        "ref": "option.show-doors",
-        "equals": true
-      }
-    },
-    {
-      "kind": "nested-assembly",
-      "id": "side-opening-door",
-      "label": "Side Opening Door",
-      "definitionId": "door",
-      "localPositionInches": {
-        "xInches": {
-          "op": "subtract",
-          "left": {
-            "op": "add",
-            "values": [
-              {
-                "op": "negate",
-                "value": {
-                  "op": "divide",
-                  "left": {
-                    "ref": "size.widthInches"
-                  },
-                  "right": {
-                    "value": 2
-                  }
+                  "value": 2
                 }
               },
-              {
+              "right": {
                 "op": "max",
                 "values": [
                   {
@@ -1547,11 +2404,11 @@
                   }
                 ]
               }
-            ]
-          },
-          "right": {
-            "value": 0.375
-          }
+            },
+            {
+              "value": 1.125
+            }
+          ]
         },
         "yInches": {
           "op": "subtract",
@@ -1565,27 +2422,7 @@
             }
           },
           "right": {
-            "op": "divide",
-            "left": {
-              "op": "max",
-              "values": [
-                {
-                  "value": 1
-                },
-                {
-                  "op": "subtract",
-                  "left": {
-                    "ref": "size.depthInches"
-                  },
-                  "right": {
-                    "ref": "option.leg-depth-inches"
-                  }
-                }
-              ]
-            },
-            "right": {
-              "value": 2
-            }
+            "value": 1.25
           }
         },
         "zInches": {
@@ -1678,95 +2515,271 @@
           ]
         }
       },
-      "configuration": {
-        "sizeInches": {
-          "widthInches": {
-            "op": "max",
-            "values": [
-              {
-                "value": 1
-              },
-              {
-                "op": "subtract",
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.75
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "min",
+          "values": [
+            {
+              "value": 5
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "op": "clamp",
+                    "value": {
+                      "ref": "option.toe-kick-height-inches"
+                    },
+                    "min": {
+                      "value": 0
+                    },
+                    "max": {
+                      "op": "max",
+                      "values": [
+                        {
+                          "value": 0
+                        },
+                        {
+                          "op": "subtract",
+                          "left": {
+                            "ref": "size.heightInches"
+                          },
+                          "right": {
+                            "value": 1
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "all": [
+          {
+            "ref": "option.show-doors",
+            "equals": true
+          },
+          {
+            "ref": "option.show-handles",
+            "equals": true
+          },
+          {
+            "ref": "option.door-handle-type",
+            "equals": "bar"
+          },
+          {
+            "ref": "option.door-handle-position",
+            "equals": "right-center"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "vertical-door-knob-handle",
+      "label": "Vertical Door Knob Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "divide",
                 "left": {
-                  "ref": "size.depthInches"
+                  "ref": "size.widthInches"
                 },
                 "right": {
-                  "ref": "option.leg-depth-inches"
+                  "value": 2
                 }
-              }
-            ]
-          },
-          "depthInches": {
-            "value": 0.75
-          },
-          "heightInches": {
-            "op": "max",
-            "values": [
-              {
-                "value": 1
               },
-              {
-                "op": "subtract",
+              "right": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.widthInches"
+                    },
+                    "right": {
+                      "ref": "option.leg-depth-inches"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "value": 1.125
+            }
+          ]
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 1.25
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
                 "left": {
                   "ref": "size.heightInches"
                 },
                 "right": {
-                  "op": "clamp",
-                  "value": {
-                    "ref": "option.toe-kick-height-inches"
-                  },
-                  "min": {
-                    "value": 0
-                  },
-                  "max": {
-                    "op": "max",
-                    "values": [
-                      {
-                        "value": 0
-                      },
-                      {
-                        "op": "subtract",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 1
-                        }
-                      }
-                    ]
-                  }
+                  "value": 2
                 }
               }
-            ]
-          }
+            },
+            {
+              "op": "clamp",
+              "value": {
+                "ref": "option.toe-kick-height-inches"
+              },
+              "min": {
+                "value": 0
+              },
+              "max": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 0
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 1
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "op": "clamp",
+                      "value": {
+                        "ref": "option.toe-kick-height-inches"
+                      },
+                      "min": {
+                        "value": 0
+                      },
+                      "max": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0
+                          },
+                          {
+                            "op": "subtract",
+                            "left": {
+                              "ref": "size.heightInches"
+                            },
+                            "right": {
+                              "value": 1
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.75
         },
-        "optionValues": {
-          "door-color": {
-            "ref": "option.door-color"
-          },
-          "handle-color": {
-            "ref": "option.handle-color"
-          },
-          "show-handle": {
-            "ref": "option.show-handles"
-          },
-          "handle-type": {
-            "ref": "option.door-handle-type"
-          },
-          "handle-position": {
-            "value": "left-center"
-          }
+        "depthInches": {
+          "value": 1
+        },
+        "heightInches": {
+          "value": 1
         }
       },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
       "includeWhen": {
-        "ref": "option.show-doors",
-        "equals": true
-      },
-      "localRotationDegrees": {
-        "zDegrees": {
-          "value": 90
-        }
+        "all": [
+          {
+            "ref": "option.show-doors",
+            "equals": true
+          },
+          {
+            "ref": "option.show-handles",
+            "equals": true
+          },
+          {
+            "ref": "option.door-handle-type",
+            "equals": "knob"
+          },
+          {
+            "ref": "option.door-handle-position",
+            "equals": "right-center"
+          }
+        ]
       }
     }
   ]

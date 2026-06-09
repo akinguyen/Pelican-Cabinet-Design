@@ -7,12 +7,8 @@
     "widthInches": {
       "label": "Width",
       "control": "select",
-      "defaultValueInches": 30,
+      "defaultValueInches": 36,
       "optionsInches": [
-        {
-          "valueInches": 30,
-          "label": "30 in"
-        },
         {
           "valueInches": 33,
           "label": "33 in"
@@ -32,7 +28,7 @@
       ],
       "allowCustomValue": true,
       "minValueInches": 30,
-      "maxValueInches": 60,
+      "maxValueInches": 48,
       "stepInches": 0.25
     },
     "depthInches": {
@@ -236,23 +232,33 @@
       "label": "Farm Sink Layout",
       "options": [
         {
-          "id": "apron-opening-height-inches",
-          "label": "Apron opening height",
+          "id": "farm-sink-width-inches",
+          "label": "Farm sink width",
           "valueType": "number",
           "control": "number",
-          "defaultValue": 8.375,
-          "minValue": 6,
-          "maxValue": 10.25,
-          "step": 0.125
+          "defaultValue": 30,
+          "minValue": 24,
+          "maxValue": 39,
+          "step": 0.25
         },
         {
-          "id": "apron-side-stile-width-inches",
-          "label": "Apron side stile width",
+          "id": "farm-sink-section-height-inches",
+          "label": "Farm sink section height",
           "valueType": "number",
           "control": "number",
-          "defaultValue": 1.5,
-          "minValue": 0.75,
-          "maxValue": 4,
+          "defaultValue": 12,
+          "minValue": 8,
+          "maxValue": 16,
+          "step": 0.25
+        },
+        {
+          "id": "farm-sink-height-inches",
+          "label": "Farm sink height",
+          "valueType": "number",
+          "control": "number",
+          "defaultValue": 10,
+          "minValue": 6,
+          "maxValue": 15.75,
           "step": 0.25
         }
       ]
@@ -1143,8 +1149,8 @@
     },
     {
       "kind": "primitive-geometry",
-      "id": "apron-left-stile",
-      "label": "Apron Left Stile",
+      "id": "farm-sink-left-stile",
+      "label": "Farm Sink Left Stile",
       "geometry": {
         "kind": "box"
       },
@@ -1173,7 +1179,55 @@
                     "ref": "option.side-panel-thickness-inches"
                   },
                   {
-                    "ref": "option.apron-side-stile-width-inches"
+                    "op": "divide",
+                    "left": {
+                      "op": "subtract",
+                      "left": {
+                        "ref": "size.widthInches"
+                      },
+                      "right": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 1
+                          },
+                          {
+                            "op": "min",
+                            "values": [
+                              {
+                                "ref": "option.farm-sink-width-inches"
+                              },
+                              {
+                                "op": "max",
+                                "values": [
+                                  {
+                                    "value": 1
+                                  },
+                                  {
+                                    "op": "subtract",
+                                    "left": {
+                                      "ref": "size.widthInches"
+                                    },
+                                    "right": {
+                                      "op": "multiply",
+                                      "left": {
+                                        "ref": "option.side-panel-thickness-inches"
+                                      },
+                                      "right": {
+                                        "value": 2
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "right": {
+                      "value": 2
+                    }
                   }
                 ]
               },
@@ -1220,7 +1274,30 @@
           "right": {
             "op": "divide",
             "left": {
-              "value": 11.25
+              "op": "clamp",
+              "value": {
+                "ref": "option.farm-sink-height-inches"
+              },
+              "min": {
+                "value": 6
+              },
+              "max": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 6
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "option.farm-sink-section-height-inches"
+                    },
+                    "right": {
+                      "value": 0.25
+                    }
+                  }
+                ]
+              }
             },
             "right": {
               "value": 2
@@ -1236,7 +1313,55 @@
               "ref": "option.side-panel-thickness-inches"
             },
             {
-              "ref": "option.apron-side-stile-width-inches"
+              "op": "divide",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 1
+                    },
+                    {
+                      "op": "min",
+                      "values": [
+                        {
+                          "ref": "option.farm-sink-width-inches"
+                        },
+                        {
+                          "op": "max",
+                          "values": [
+                            {
+                              "value": 1
+                            },
+                            {
+                              "op": "subtract",
+                              "left": {
+                                "ref": "size.widthInches"
+                              },
+                              "right": {
+                                "op": "multiply",
+                                "left": {
+                                  "ref": "option.side-panel-thickness-inches"
+                                },
+                                "right": {
+                                  "value": 2
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "right": {
+                "value": 2
+              }
             }
           ]
         },
@@ -1244,18 +1369,41 @@
           "ref": "option.side-panel-thickness-inches"
         },
         "heightInches": {
-          "value": 11.25
+          "op": "clamp",
+          "value": {
+            "ref": "option.farm-sink-height-inches"
+          },
+          "min": {
+            "value": 6
+          },
+          "max": {
+            "op": "max",
+            "values": [
+              {
+                "value": 6
+              },
+              {
+                "op": "subtract",
+                "left": {
+                  "ref": "option.farm-sink-section-height-inches"
+                },
+                "right": {
+                  "value": 0.25
+                }
+              }
+            ]
+          }
         }
       },
       "material": {
         "colorOptionId": "cabinet-panel-color"
       },
-      "role": "apron-side-stile"
+      "role": "farm-sink-side-stile"
     },
     {
       "kind": "primitive-geometry",
-      "id": "apron-right-stile",
-      "label": "Apron Right Stile",
+      "id": "farm-sink-right-stile",
+      "label": "Farm Sink Right Stile",
       "geometry": {
         "kind": "box"
       },
@@ -1280,7 +1428,55 @@
                   "ref": "option.side-panel-thickness-inches"
                 },
                 {
-                  "ref": "option.apron-side-stile-width-inches"
+                  "op": "divide",
+                  "left": {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.widthInches"
+                    },
+                    "right": {
+                      "op": "max",
+                      "values": [
+                        {
+                          "value": 1
+                        },
+                        {
+                          "op": "min",
+                          "values": [
+                            {
+                              "ref": "option.farm-sink-width-inches"
+                            },
+                            {
+                              "op": "max",
+                              "values": [
+                                {
+                                  "value": 1
+                                },
+                                {
+                                  "op": "subtract",
+                                  "left": {
+                                    "ref": "size.widthInches"
+                                  },
+                                  "right": {
+                                    "op": "multiply",
+                                    "left": {
+                                      "ref": "option.side-panel-thickness-inches"
+                                    },
+                                    "right": {
+                                      "value": 2
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "right": {
+                    "value": 2
+                  }
                 }
               ]
             },
@@ -1326,7 +1522,30 @@
           "right": {
             "op": "divide",
             "left": {
-              "value": 11.25
+              "op": "clamp",
+              "value": {
+                "ref": "option.farm-sink-height-inches"
+              },
+              "min": {
+                "value": 6
+              },
+              "max": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 6
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "option.farm-sink-section-height-inches"
+                    },
+                    "right": {
+                      "value": 0.25
+                    }
+                  }
+                ]
+              }
             },
             "right": {
               "value": 2
@@ -1342,7 +1561,55 @@
               "ref": "option.side-panel-thickness-inches"
             },
             {
-              "ref": "option.apron-side-stile-width-inches"
+              "op": "divide",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 1
+                    },
+                    {
+                      "op": "min",
+                      "values": [
+                        {
+                          "ref": "option.farm-sink-width-inches"
+                        },
+                        {
+                          "op": "max",
+                          "values": [
+                            {
+                              "value": 1
+                            },
+                            {
+                              "op": "subtract",
+                              "left": {
+                                "ref": "size.widthInches"
+                              },
+                              "right": {
+                                "op": "multiply",
+                                "left": {
+                                  "ref": "option.side-panel-thickness-inches"
+                                },
+                                "right": {
+                                  "value": 2
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "right": {
+                "value": 2
+              }
             }
           ]
         },
@@ -1350,18 +1617,193 @@
           "ref": "option.side-panel-thickness-inches"
         },
         "heightInches": {
-          "value": 11.25
+          "op": "clamp",
+          "value": {
+            "ref": "option.farm-sink-height-inches"
+          },
+          "min": {
+            "value": 6
+          },
+          "max": {
+            "op": "max",
+            "values": [
+              {
+                "value": 6
+              },
+              {
+                "op": "subtract",
+                "left": {
+                  "ref": "option.farm-sink-section-height-inches"
+                },
+                "right": {
+                  "value": 0.25
+                }
+              }
+            ]
+          }
         }
       },
       "material": {
         "colorOptionId": "cabinet-panel-color"
       },
-      "role": "apron-side-stile"
+      "role": "farm-sink-side-stile"
     },
     {
       "kind": "primitive-geometry",
-      "id": "apron-bottom-rail",
-      "label": "Apron Bottom Rail",
+      "id": "farm-sink-apron-placeholder",
+      "label": "Farm Sink Apron Placeholder",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.25
+            }
+          ]
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "op": "clamp",
+              "value": {
+                "ref": "option.farm-sink-height-inches"
+              },
+              "min": {
+                "value": 6
+              },
+              "max": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 6
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "option.farm-sink-section-height-inches"
+                    },
+                    "right": {
+                      "value": 0.25
+                    }
+                  }
+                ]
+              }
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "min",
+              "values": [
+                {
+                  "ref": "option.farm-sink-width-inches"
+                },
+                {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 1
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "ref": "size.widthInches"
+                      },
+                      "right": {
+                        "op": "multiply",
+                        "left": {
+                          "ref": "option.side-panel-thickness-inches"
+                        },
+                        "right": {
+                          "value": 2
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "depthInches": {
+          "value": 0.5
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "ref": "option.farm-sink-height-inches"
+          },
+          "min": {
+            "value": 6
+          },
+          "max": {
+            "op": "max",
+            "values": [
+              {
+                "value": 6
+              },
+              {
+                "op": "subtract",
+                "left": {
+                  "ref": "option.farm-sink-section-height-inches"
+                },
+                "right": {
+                  "value": 0.25
+                }
+              }
+            ]
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "apron-sink-color"
+      },
+      "role": "farm-sink-apron-placeholder",
+      "includeWhen": {
+        "ref": "option.show-apron-sink-placeholder",
+        "equals": true
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "farm-sink-horizontal-front-panel",
+      "label": "Farm Sink Horizontal Front Panel",
       "geometry": {
         "kind": "box"
       },
@@ -1408,406 +1850,71 @@
             "right": {
               "op": "clamp",
               "value": {
-                "ref": "option.apron-opening-height-inches"
+                "ref": "option.farm-sink-height-inches"
               },
               "min": {
                 "value": 6
               },
               "max": {
-                "value": 10.25
-              }
-            }
-          },
-          "right": {
-            "op": "divide",
-            "left": {
-              "op": "subtract",
-              "left": {
-                "value": 11.25
-              },
-              "right": {
-                "op": "clamp",
-                "value": {
-                  "ref": "option.apron-opening-height-inches"
-                },
-                "min": {
-                  "value": 6
-                },
-                "max": {
-                  "value": 10.25
-                }
-              }
-            },
-            "right": {
-              "value": 2
-            }
-          }
-        }
-      },
-      "sizeInches": {
-        "widthInches": {
-          "op": "max",
-          "values": [
-            {
-              "value": 1
-            },
-            {
-              "op": "subtract",
-              "left": {
-                "ref": "size.widthInches"
-              },
-              "right": {
-                "op": "multiply",
-                "left": {
-                  "op": "max",
-                  "values": [
-                    {
-                      "ref": "option.side-panel-thickness-inches"
-                    },
-                    {
-                      "ref": "option.apron-side-stile-width-inches"
-                    }
-                  ]
-                },
-                "right": {
-                  "value": 2
-                }
-              }
-            }
-          ]
-        },
-        "depthInches": {
-          "ref": "option.side-panel-thickness-inches"
-        },
-        "heightInches": {
-          "op": "subtract",
-          "left": {
-            "value": 11.25
-          },
-          "right": {
-            "op": "clamp",
-            "value": {
-              "ref": "option.apron-opening-height-inches"
-            },
-            "min": {
-              "value": 6
-            },
-            "max": {
-              "value": 10.25
-            }
-          }
-        }
-      },
-      "material": {
-        "colorOptionId": "cabinet-panel-color"
-      },
-      "role": "apron-bottom-rail"
-    },
-    {
-      "kind": "primitive-geometry",
-      "id": "lower-front-vertical-rail",
-      "label": "Lower Front Vertical Rail",
-      "geometry": {
-        "kind": "box"
-      },
-      "localPositionInches": {
-        "xInches": {
-          "value": 0
-        },
-        "yInches": {
-          "op": "subtract",
-          "left": {
-            "op": "divide",
-            "left": {
-              "ref": "size.depthInches"
-            },
-            "right": {
-              "value": 2
-            }
-          },
-          "right": {
-            "op": "divide",
-            "left": {
-              "ref": "option.side-panel-thickness-inches"
-            },
-            "right": {
-              "value": 2
-            }
-          }
-        },
-        "zInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "add",
-              "values": [
-                {
-                  "op": "negate",
-                  "value": {
-                    "op": "divide",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "value": 2
-                    }
-                  }
-                },
-                {
-                  "op": "clamp",
-                  "value": {
-                    "ref": "option.toe-kick-height-inches"
-                  },
-                  "min": {
-                    "value": 0
-                  },
-                  "max": {
-                    "op": "max",
-                    "values": [
-                      {
-                        "value": 0
-                      },
-                      {
-                        "op": "subtract",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 1
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  "ref": "option.bottom-panel-thickness-inches"
-                }
-              ]
-            },
-            {
-              "op": "divide",
-              "left": {
                 "op": "max",
                 "values": [
                   {
-                    "value": 1
+                    "value": 6
                   },
                   {
                     "op": "subtract",
                     "left": {
-                      "op": "subtract",
-                      "left": {
-                        "op": "divide",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 2
-                        }
-                      },
-                      "right": {
-                        "value": 11.25
-                      }
+                      "ref": "option.farm-sink-section-height-inches"
                     },
                     "right": {
-                      "op": "add",
-                      "values": [
-                        {
-                          "op": "negate",
-                          "value": {
-                            "op": "divide",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 2
-                            }
-                          }
-                        },
-                        {
-                          "op": "clamp",
-                          "value": {
-                            "ref": "option.toe-kick-height-inches"
-                          },
-                          "min": {
-                            "value": 0
-                          },
-                          "max": {
-                            "op": "max",
-                            "values": [
-                              {
-                                "value": 0
-                              },
-                              {
-                                "op": "subtract",
-                                "left": {
-                                  "ref": "size.heightInches"
-                                },
-                                "right": {
-                                  "value": 1
-                                }
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "ref": "option.bottom-panel-thickness-inches"
-                        }
-                      ]
+                      "value": 0.25
                     }
                   }
                 ]
-              },
-              "right": {
-                "value": 2
               }
             }
-          ]
-        }
-      },
-      "sizeInches": {
-        "widthInches": {
-          "value": 1.5
-        },
-        "depthInches": {
-          "ref": "option.side-panel-thickness-inches"
-        },
-        "heightInches": {
-          "op": "max",
-          "values": [
-            {
-              "value": 1
-            },
-            {
-              "op": "subtract",
-              "left": {
-                "op": "subtract",
-                "left": {
-                  "op": "divide",
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "op": "max",
+              "values": [
+                {
+                  "value": 0.25
+                },
+                {
+                  "op": "subtract",
                   "left": {
-                    "ref": "size.heightInches"
+                    "ref": "option.farm-sink-section-height-inches"
                   },
                   "right": {
-                    "value": 2
-                  }
-                },
-                "right": {
-                  "value": 11.25
-                }
-              },
-              "right": {
-                "op": "add",
-                "values": [
-                  {
-                    "op": "negate",
-                    "value": {
-                      "op": "divide",
-                      "left": {
-                        "ref": "size.heightInches"
-                      },
-                      "right": {
-                        "value": 2
-                      }
-                    }
-                  },
-                  {
                     "op": "clamp",
                     "value": {
-                      "ref": "option.toe-kick-height-inches"
+                      "ref": "option.farm-sink-height-inches"
                     },
                     "min": {
-                      "value": 0
+                      "value": 6
                     },
                     "max": {
                       "op": "max",
                       "values": [
                         {
-                          "value": 0
+                          "value": 6
                         },
                         {
                           "op": "subtract",
                           "left": {
-                            "ref": "size.heightInches"
+                            "ref": "option.farm-sink-section-height-inches"
                           },
                           "right": {
-                            "value": 1
+                            "value": 0.25
                           }
                         }
                       ]
                     }
-                  },
-                  {
-                    "ref": "option.bottom-panel-thickness-inches"
                   }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "material": {
-        "colorOptionId": "cabinet-panel-color"
-      },
-      "role": "front-vertical-rail"
-    },
-    {
-      "kind": "primitive-geometry",
-      "id": "farm-sink-apron-placeholder",
-      "label": "Farm Sink Apron Placeholder",
-      "geometry": {
-        "kind": "box"
-      },
-      "localPositionInches": {
-        "xInches": {
-          "value": 0
-        },
-        "yInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "divide",
-              "left": {
-                "ref": "size.depthInches"
-              },
-              "right": {
-                "value": 2
-              }
-            },
-            {
-              "op": "divide",
-              "left": {
-                "value": 0.75
-              },
-              "right": {
-                "value": 2
-              }
-            }
-          ]
-        },
-        "zInches": {
-          "op": "subtract",
-          "left": {
-            "op": "divide",
-            "left": {
-              "ref": "size.heightInches"
-            },
-            "right": {
-              "value": 2
-            }
-          },
-          "right": {
-            "op": "divide",
-            "left": {
-              "op": "clamp",
-              "value": {
-                "ref": "option.apron-opening-height-inches"
-              },
-              "min": {
-                "value": 6
-              },
-              "max": {
-                "value": 10.25
-              }
+                }
+              ]
             },
             "right": {
               "value": 2
@@ -1817,60 +1924,56 @@
       },
       "sizeInches": {
         "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "option.side-panel-thickness-inches"
+        },
+        "heightInches": {
           "op": "max",
           "values": [
             {
-              "value": 1
+              "value": 0.25
             },
             {
               "op": "subtract",
               "left": {
-                "ref": "size.widthInches"
+                "ref": "option.farm-sink-section-height-inches"
               },
               "right": {
-                "op": "multiply",
-                "left": {
+                "op": "clamp",
+                "value": {
+                  "ref": "option.farm-sink-height-inches"
+                },
+                "min": {
+                  "value": 6
+                },
+                "max": {
                   "op": "max",
                   "values": [
                     {
-                      "ref": "option.side-panel-thickness-inches"
+                      "value": 6
                     },
                     {
-                      "ref": "option.apron-side-stile-width-inches"
+                      "op": "subtract",
+                      "left": {
+                        "ref": "option.farm-sink-section-height-inches"
+                      },
+                      "right": {
+                        "value": 0.25
+                      }
                     }
                   ]
-                },
-                "right": {
-                  "value": 2
                 }
               }
             }
           ]
-        },
-        "depthInches": {
-          "value": 0.75
-        },
-        "heightInches": {
-          "op": "clamp",
-          "value": {
-            "ref": "option.apron-opening-height-inches"
-          },
-          "min": {
-            "value": 6
-          },
-          "max": {
-            "value": 10.25
-          }
         }
       },
       "material": {
-        "colorOptionId": "apron-sink-color"
+        "colorOptionId": "cabinet-panel-color"
       },
-      "role": "farm-sink-apron-placeholder",
-      "includeWhen": {
-        "ref": "option.show-apron-sink-placeholder",
-        "equals": true
-      }
+      "role": "farm-sink-horizontal-front-panel"
     },
     {
       "kind": "nested-assembly",
@@ -1908,127 +2011,57 @@
           ]
         },
         "zInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "add",
-              "values": [
-                {
-                  "op": "negate",
-                  "value": {
-                    "op": "divide",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "value": 2
-                    }
-                  }
-                },
-                {
-                  "op": "clamp",
-                  "value": {
-                    "ref": "option.toe-kick-height-inches"
-                  },
-                  "min": {
-                    "value": 0
-                  },
-                  "max": {
-                    "op": "max",
-                    "values": [
-                      {
-                        "value": 0
-                      },
-                      {
-                        "op": "subtract",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 1
-                        }
-                      }
-                    ]
-                  }
-                }
-              ]
-            },
-            {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
               "op": "divide",
               "left": {
-                "op": "max",
-                "values": [
-                  {
-                    "value": 1
-                  },
-                  {
-                    "op": "subtract",
-                    "left": {
-                      "op": "subtract",
-                      "left": {
-                        "op": "divide",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 2
-                        }
-                      },
-                      "right": {
-                        "value": 11.25
-                      }
-                    },
-                    "right": {
-                      "op": "add",
-                      "values": [
-                        {
-                          "op": "negate",
-                          "value": {
-                            "op": "divide",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 2
-                            }
-                          }
-                        },
-                        {
-                          "op": "clamp",
-                          "value": {
-                            "ref": "option.toe-kick-height-inches"
-                          },
-                          "min": {
-                            "value": 0
-                          },
-                          "max": {
-                            "op": "max",
-                            "values": [
-                              {
-                                "value": 0
-                              },
-                              {
-                                "op": "subtract",
-                                "left": {
-                                  "ref": "size.heightInches"
-                                },
-                                "right": {
-                                  "value": 1
-                                }
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
+                "ref": "size.heightInches"
               },
               "right": {
                 "value": 2
               }
+            },
+            "right": {
+              "ref": "option.farm-sink-section-height-inches"
             }
-          ]
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "op": "max",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "subtract",
+                    "left": {
+                      "op": "subtract",
+                      "left": {
+                        "ref": "size.heightInches"
+                      },
+                      "right": {
+                        "ref": "option.toe-kick-height-inches"
+                      }
+                    },
+                    "right": {
+                      "ref": "option.bottom-panel-thickness-inches"
+                    }
+                  },
+                  "right": {
+                    "ref": "option.farm-sink-section-height-inches"
+                  }
+                }
+              ]
+            },
+            "right": {
+              "value": 2
+            }
+          }
         }
       },
       "configuration": {
@@ -2056,60 +2089,20 @@
                 "left": {
                   "op": "subtract",
                   "left": {
-                    "op": "divide",
+                    "op": "subtract",
                     "left": {
                       "ref": "size.heightInches"
                     },
                     "right": {
-                      "value": 2
+                      "ref": "option.toe-kick-height-inches"
                     }
                   },
                   "right": {
-                    "value": 11.25
+                    "ref": "option.bottom-panel-thickness-inches"
                   }
                 },
                 "right": {
-                  "op": "add",
-                  "values": [
-                    {
-                      "op": "negate",
-                      "value": {
-                        "op": "divide",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 2
-                        }
-                      }
-                    },
-                    {
-                      "op": "clamp",
-                      "value": {
-                        "ref": "option.toe-kick-height-inches"
-                      },
-                      "min": {
-                        "value": 0
-                      },
-                      "max": {
-                        "op": "max",
-                        "values": [
-                          {
-                            "value": 0
-                          },
-                          {
-                            "op": "subtract",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 1
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  ]
+                  "ref": "option.farm-sink-section-height-inches"
                 }
               }
             ]
@@ -2172,127 +2165,57 @@
           ]
         },
         "zInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "add",
-              "values": [
-                {
-                  "op": "negate",
-                  "value": {
-                    "op": "divide",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "value": 2
-                    }
-                  }
-                },
-                {
-                  "op": "clamp",
-                  "value": {
-                    "ref": "option.toe-kick-height-inches"
-                  },
-                  "min": {
-                    "value": 0
-                  },
-                  "max": {
-                    "op": "max",
-                    "values": [
-                      {
-                        "value": 0
-                      },
-                      {
-                        "op": "subtract",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 1
-                        }
-                      }
-                    ]
-                  }
-                }
-              ]
-            },
-            {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
               "op": "divide",
               "left": {
-                "op": "max",
-                "values": [
-                  {
-                    "value": 1
-                  },
-                  {
-                    "op": "subtract",
-                    "left": {
-                      "op": "subtract",
-                      "left": {
-                        "op": "divide",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 2
-                        }
-                      },
-                      "right": {
-                        "value": 11.25
-                      }
-                    },
-                    "right": {
-                      "op": "add",
-                      "values": [
-                        {
-                          "op": "negate",
-                          "value": {
-                            "op": "divide",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 2
-                            }
-                          }
-                        },
-                        {
-                          "op": "clamp",
-                          "value": {
-                            "ref": "option.toe-kick-height-inches"
-                          },
-                          "min": {
-                            "value": 0
-                          },
-                          "max": {
-                            "op": "max",
-                            "values": [
-                              {
-                                "value": 0
-                              },
-                              {
-                                "op": "subtract",
-                                "left": {
-                                  "ref": "size.heightInches"
-                                },
-                                "right": {
-                                  "value": 1
-                                }
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
+                "ref": "size.heightInches"
               },
               "right": {
                 "value": 2
               }
+            },
+            "right": {
+              "ref": "option.farm-sink-section-height-inches"
             }
-          ]
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "op": "max",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "subtract",
+                    "left": {
+                      "op": "subtract",
+                      "left": {
+                        "ref": "size.heightInches"
+                      },
+                      "right": {
+                        "ref": "option.toe-kick-height-inches"
+                      }
+                    },
+                    "right": {
+                      "ref": "option.bottom-panel-thickness-inches"
+                    }
+                  },
+                  "right": {
+                    "ref": "option.farm-sink-section-height-inches"
+                  }
+                }
+              ]
+            },
+            "right": {
+              "value": 2
+            }
+          }
         }
       },
       "configuration": {
@@ -2320,60 +2243,20 @@
                 "left": {
                   "op": "subtract",
                   "left": {
-                    "op": "divide",
+                    "op": "subtract",
                     "left": {
                       "ref": "size.heightInches"
                     },
                     "right": {
-                      "value": 2
+                      "ref": "option.toe-kick-height-inches"
                     }
                   },
                   "right": {
-                    "value": 11.25
+                    "ref": "option.bottom-panel-thickness-inches"
                   }
                 },
                 "right": {
-                  "op": "add",
-                  "values": [
-                    {
-                      "op": "negate",
-                      "value": {
-                        "op": "divide",
-                        "left": {
-                          "ref": "size.heightInches"
-                        },
-                        "right": {
-                          "value": 2
-                        }
-                      }
-                    },
-                    {
-                      "op": "clamp",
-                      "value": {
-                        "ref": "option.toe-kick-height-inches"
-                      },
-                      "min": {
-                        "value": 0
-                      },
-                      "max": {
-                        "op": "max",
-                        "values": [
-                          {
-                            "value": 0
-                          },
-                          {
-                            "op": "subtract",
-                            "left": {
-                              "ref": "size.heightInches"
-                            },
-                            "right": {
-                              "value": 1
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  ]
+                  "ref": "option.farm-sink-section-height-inches"
                 }
               }
             ]

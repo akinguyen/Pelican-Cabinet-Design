@@ -18,7 +18,7 @@ export type PrimitiveLShapedPrismGeometry = Readonly<{
   meshId: "l-shaped-prism";
   cutoutWidthRatio: number;
   cutoutDepthRatio: number;
-  cutoutCorner: "front-left";
+  cutoutCorner: "front-left" | "front-right";
 }>;
 
 export type PrimitiveCustomMeshGeometry =

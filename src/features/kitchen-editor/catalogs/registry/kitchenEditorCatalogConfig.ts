@@ -39,7 +39,8 @@ export const kitchenEditorCatalogs = [
     iconId: "pantry-cabinets",
     categories: [
       { id: "all", label: "All" },
-      { id: "standard-pantry-cabinets", label: "Standard Pantry Cabinets" },
+      { id: "base-pantry-cabinets", label: "Base Pantry Cabinets" },
+      { id: "wall-pantry-cabinets", label: "Wall Pantry Cabinets" },
     ],
   },
   {
