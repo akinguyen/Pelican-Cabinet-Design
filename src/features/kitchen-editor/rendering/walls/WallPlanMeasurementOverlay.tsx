@@ -2,7 +2,6 @@
 
 import { Html, Line } from "@react-three/drei";
 import type { WallPlanMeasurementFrame } from "@/engine/walls/footprint/wallPlanMeasurements";
-import { formatFeetInchesLabel } from "../../shared/formatFeetInchesLabel";
 import { formatSquareFeetLabel } from "../../shared/formatSquareFeetLabel";
 
 const PLAN_MEASUREMENT_Z_INCHES = 2.6;
@@ -24,8 +23,6 @@ export function WallPlanMeasurementOverlay({ measurementFrame }: WallPlanMeasure
   const topYInches = measurementFrame.maxYInches + PLAN_MEASUREMENT_OFFSET_INCHES;
   const centerXInches = measurementFrame.centerPointInches.xInches;
   const centerYInches = measurementFrame.centerPointInches.yInches;
-  const widthLabel = formatFeetInchesLabel(measurementFrame.widthInches);
-  const depthLabel = formatFeetInchesLabel(measurementFrame.depthInches);
 
   return (
     <group>
@@ -45,52 +42,24 @@ export function WallPlanMeasurementOverlay({ measurementFrame }: WallPlanMeasure
         depthTest={false}
         renderOrder={80}
       />
-      <PlanMeasurementLabel
-        positionInches={[centerXInches, topYInches, PLAN_MEASUREMENT_LABEL_Z_INCHES]}
-        label={widthLabel}
-      />
-      <PlanMeasurementLabel
-        positionInches={[centerXInches, bottomYInches, PLAN_MEASUREMENT_LABEL_Z_INCHES]}
-        label={widthLabel}
-      />
-      <PlanMeasurementLabel
-        positionInches={[leftXInches, centerYInches, PLAN_MEASUREMENT_LABEL_Z_INCHES]}
-        label={depthLabel}
-        rotateLabel
-      />
-      <PlanMeasurementLabel
-        positionInches={[rightXInches, centerYInches, PLAN_MEASUREMENT_LABEL_Z_INCHES]}
-        label={depthLabel}
-        rotateLabel
-      />
-      <PlanMeasurementLabel
+      <PlanAreaMeasurementLabel
         positionInches={[centerXInches, centerYInches, PLAN_MEASUREMENT_LABEL_Z_INCHES]}
         label={formatSquareFeetLabel(measurementFrame.areaSquareFeet)}
-        large
       />
     </group>
   );
 }
 
-function PlanMeasurementLabel({
+function PlanAreaMeasurementLabel({
   positionInches,
   label,
-  large = false,
-  rotateLabel = false,
 }: Readonly<{
   positionInches: [number, number, number];
   label: string;
-  large?: boolean;
-  rotateLabel?: boolean;
 }>) {
   return (
-    <Html center position={positionInches} style={{ pointerEvents: "none" }}>
-      <div
-        className={large
-          ? "rounded bg-white/75 px-2 py-1 text-sm font-bold text-slate-900"
-          : "rounded bg-white/80 px-1.5 py-0.5 text-[11px] font-bold text-slate-800"}
-        style={rotateLabel ? { transform: "rotate(-90deg)" } : undefined}
-      >
+    <Html center position={positionInches} style={{ pointerEvents: "none", whiteSpace: "nowrap" }}>
+      <div className="whitespace-nowrap rounded bg-white/75 px-2 py-1 text-sm font-bold leading-none text-slate-900">
         {label}
       </div>
     </Html>

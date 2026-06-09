@@ -1,5 +1,6 @@
 import type { PlacedWall } from "../wallTypes";
 import { getWallFootprintEdgeCount } from "../footprint/wallFootprintGeometry";
+import { getDefaultWallViewableEdgeIndices } from "./wallDefaultViewableEdges";
 
 export function sanitizeWallViewableEdgeIndices(args: {
   edgeCount: number;
@@ -27,10 +28,17 @@ export function sanitizeWallViewableEdgeIndices(args: {
 }
 
 export function getPlacedWallViewableEdgeIndices(placedWall: PlacedWall): readonly number[] {
-  return sanitizeWallViewableEdgeIndices({
-    edgeCount: getWallFootprintEdgeCount(placedWall.footprint),
+  const edgeCount = getWallFootprintEdgeCount(placedWall.footprint);
+  const sanitizedEdgeIndices = sanitizeWallViewableEdgeIndices({
+    edgeCount,
     viewableEdgeIndices: placedWall.viewableEdgeIndices,
   });
+
+  if (sanitizedEdgeIndices.length === edgeCount) {
+    return getDefaultWallViewableEdgeIndices(placedWall.footprint);
+  }
+
+  return sanitizedEdgeIndices;
 }
 
 export function getPlacedWallFirstViewableEdgeIndex(placedWall: PlacedWall): number | null {

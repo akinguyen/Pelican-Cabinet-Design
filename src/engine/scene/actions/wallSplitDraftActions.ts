@@ -4,6 +4,7 @@ import {
   updateWallSplitDraftHover as updateWallSplitDraftHoverInEngine,
 } from "@/engine/walls/split-draft/wallSplitDraftEditing";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { getPlacedWallFirstViewableEdgeIndex } from "@/engine/walls/elevation/wallViewableEdges";
 import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createWallSplitDraftActions(
@@ -68,26 +69,35 @@ export function createWallSplitDraftActions(
         return;
       }
 
-      set((state) => ({
-        activeWallElevationEdgeIndex: 0,
-        designScene: {
-          ...state.designScene,
-          placedWalls: [
-            ...state.designScene.placedWalls.filter(
-              (placedWall) => placedWall.id !== clickResult.removedPlacedWallId,
-            ),
-            ...clickResult.createdPlacedWalls,
-          ],
-          activeSceneOperation: {
-            kind: "wall-split-draft",
-            wallSplitDraft: clickResult.draft,
+      set((state) => {
+        const selectedPlacedWall = clickResult.createdPlacedWalls.find(
+          (placedWall) => placedWall.id === clickResult.selectedPlacedWallId,
+        );
+
+        return {
+          activeWallElevationWallId: clickResult.selectedPlacedWallId,
+          activeWallElevationEdgeIndex: selectedPlacedWall === undefined
+            ? 0
+            : getPlacedWallFirstViewableEdgeIndex(selectedPlacedWall) ?? 0,
+          designScene: {
+            ...state.designScene,
+            placedWalls: [
+              ...state.designScene.placedWalls.filter(
+                (placedWall) => placedWall.id !== clickResult.removedPlacedWallId,
+              ),
+              ...clickResult.createdPlacedWalls,
+            ],
+            activeSceneOperation: {
+              kind: "wall-split-draft",
+              wallSplitDraft: clickResult.draft,
+            },
+            activeSelection: {
+              kind: "placed-wall",
+              placedWallId: clickResult.selectedPlacedWallId,
+            },
           },
-          activeSelection: {
-            kind: "placed-wall",
-            placedWallId: clickResult.selectedPlacedWallId,
-          },
-        },
-      }));
+        };
+      });
     },
 
     exitWallSplitDraftTool() {

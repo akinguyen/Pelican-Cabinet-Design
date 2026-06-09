@@ -7,7 +7,7 @@ import type {
   WallFootprintSnapTarget,
 } from "./wallFootprintDraftTypes";
 import { createWallFootprint } from "../footprint/wallFootprintFactory";
-import { getAllWallFootprintEdgeIndices } from "../footprint/wallFootprintGeometry";
+import { getDefaultWallViewableEdgeIndices } from "../elevation/wallDefaultViewableEdges";
 import { createEmptyWallFootprintDraft } from "./wallFootprintDraftFactory";
 import {
   getActiveWallFootprintDraftPoint,
@@ -108,7 +108,7 @@ export function clickWallFootprintDraftPoint(args: {
         id: args.createId(),
         footprint,
         heightInches: draft.heightInches,
-        viewableEdgeIndices: getAllWallFootprintEdgeIndices(footprint),
+        viewableEdgeIndices: getDefaultWallViewableEdgeIndices(footprint),
       },
       draft: createEmptyWallFootprintDraft(draft.heightInches),
     };

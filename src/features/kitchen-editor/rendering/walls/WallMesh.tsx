@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { DoubleSide } from "three";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
+import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { BuiltWall } from "@/engine/walls/footprint/wallFootprintTypes";
 import { createExtrudedWallGeometry } from "./wallRenderingGeometry";
 import { WallBoundaryEdges } from "./WallBoundaryEdges";
@@ -12,14 +13,16 @@ import { WallBoundaryEdges } from "./WallBoundaryEdges";
 type WallMeshProps = Readonly<{
   builtWall: BuiltWall;
   isSelected: boolean;
+  sceneViewMode: SceneViewMode;
 }>;
 
-export function WallMesh({ builtWall, isSelected }: WallMeshProps) {
+export function WallMesh({ builtWall, isSelected, sceneViewMode }: WallMeshProps) {
   const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const selectPlacedWall = useDesignSceneStore((state) => state.selectPlacedWall);
   const updateWallSplitDraftHover = useDesignSceneStore((state) => state.updateWallSplitDraftHover);
   const clickWallSplitDraftPoint = useDesignSceneStore((state) => state.clickWallSplitDraftPoint);
+  const shouldShowBoundaryEdges = sceneViewMode === "floor-plan";
   const geometry = useMemo(
     () => createExtrudedWallGeometry(
       builtWall.footprint.boundaryPointsInches,
@@ -82,7 +85,9 @@ export function WallMesh({ builtWall, isSelected }: WallMeshProps) {
       >
         <meshStandardMaterial color={isSelected ? "#22d3ee" : "#cbd5e1"} side={DoubleSide} />
       </mesh>
-      <WallBoundaryEdges builtWall={builtWall} isSelected={isSelected} />
+      {shouldShowBoundaryEdges ? (
+        <WallBoundaryEdges builtWall={builtWall} isSelected={isSelected} />
+      ) : null}
     </group>
   );
 }

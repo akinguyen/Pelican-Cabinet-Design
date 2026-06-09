@@ -25,8 +25,8 @@ export function WallViewableEdgesSection({ placedWall }: WallViewableEdgesSectio
 
   return (
     <PropertySection
-      title="Viewable edges"
-      description="Checked edges are available in the elevation view. When this wall is selected, checked edges render with a red boundary edge."
+      title="Elevation sides"
+      description="Checked sides are available in the elevation view. Keep the meaningful wall faces selected and leave short thickness or cut edges off."
     >
       <div className="mt-3 space-y-2">
         {edgeMeasurements.map((measurement) => (
@@ -36,7 +36,7 @@ export function WallViewableEdgesSection({ placedWall }: WallViewableEdgesSectio
           >
             <span>
               <span className="font-semibold text-slate-900">
-                Edge {measurement.edgeIndex + 1}
+                Side {measurement.edgeIndex + 1}
               </span>
               <span className="ml-2 text-slate-500">{formatInchesLabel(measurement.lengthInches)}</span>
             </span>
