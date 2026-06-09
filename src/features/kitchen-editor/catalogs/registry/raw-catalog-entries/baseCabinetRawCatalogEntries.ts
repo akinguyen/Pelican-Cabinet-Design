@@ -8,17 +8,14 @@ import oneDrawerTwoDoorBaseCabinetRawDefinitionData from "../../data/base-cabine
 import twoDrawerTwoDoorBaseCabinetRawDefinitionData from "../../data/base-cabinets/standard-base-cabinets/two-drawer-two-door-base-cabinet.json";
 import twoDrawerBaseCabinetRawDefinitionData from "../../data/base-cabinets/drawer-base-cabinets/two-drawer-base-cabinet.json";
 import threeDrawerBaseCabinetRawDefinitionData from "../../data/base-cabinets/drawer-base-cabinets/three-drawer-base-cabinet.json";
-import leftBlindBaseCabinetRawDefinitionData from "../../data/base-cabinets/blind-base-cabinets/left-blind-base-cabinet.json";
-import rightBlindBaseCabinetRawDefinitionData from "../../data/base-cabinets/blind-base-cabinets/right-blind-base-cabinet.json";
+import leftBlindBaseCabinetRawDefinitionData from "../../data/base-cabinets/corner-base-cabinets/left-blind-base-cabinet.json";
+import rightBlindBaseCabinetRawDefinitionData from "../../data/base-cabinets/corner-base-cabinets/right-blind-base-cabinet.json";
+import lazySusanCornerBaseCabinetRawDefinitionData from "../../data/base-cabinets/corner-base-cabinets/lazy-susan-corner-base-cabinet.json";
 import twoDoorSinkBaseCabinetRawDefinitionData from "../../data/base-cabinets/sink-base-cabinets/two-door-sink-base-cabinet.json";
 import oneFalseFrontTwoDoorSinkBaseCabinetRawDefinitionData from "../../data/base-cabinets/sink-base-cabinets/one-false-front-two-door-sink-base-cabinet.json";
 import twoDoorFarmSinkBaseCabinetRawDefinitionData from "../../data/base-cabinets/sink-base-cabinets/two-door-farm-sink-base-cabinet.json";
 import spiceRackPulloutBaseCabinetRawDefinitionData from "../../data/base-cabinets/pullout-rack-base-cabinets/spice-rack-pullout-base-cabinet.json";
-import trashPulloutBaseCabinetRawDefinitionData from "../../data/base-cabinets/pullout-rack-base-cabinets/trash-pullout-base-cabinet.json";
-import twoDoorCooktopBaseCabinetRawDefinitionData from "../../data/base-cabinets/cooktop-base-cabinets/two-door-cooktop-base-cabinet.json";
-import oneFalseFrontTwoDoorCooktopBaseCabinetRawDefinitionData from "../../data/base-cabinets/cooktop-base-cabinets/one-false-front-two-door-cooktop-base-cabinet.json";
-import twoDrawerCooktopBaseCabinetRawDefinitionData from "../../data/base-cabinets/cooktop-base-cabinets/two-drawer-cooktop-base-cabinet.json";
-import oneFalseFrontTwoDrawerCooktopBaseCabinetRawDefinitionData from "../../data/base-cabinets/cooktop-base-cabinets/one-false-front-two-drawer-cooktop-base-cabinet.json";
+import oneDrawerOneTrashCanPulloutBaseCabinetRawDefinitionData from "../../data/base-cabinets/pullout-rack-base-cabinets/one-drawer-one-trash-can-pullout-base-cabinet.json";
 
 export const baseCabinetRawCatalogEntries = [
   {
@@ -79,18 +76,26 @@ export const baseCabinetRawCatalogEntries = [
   },
   {
     catalogId: "base-cabinets",
-    categoryId: "blind-base-cabinets",
+    categoryId: "corner-base-cabinets",
     rawDefinition: parseRawAssemblyDefinition(
       leftBlindBaseCabinetRawDefinitionData,
-      "base-cabinets/blind-base-cabinets/left-blind-base-cabinet.json",
+      "base-cabinets/corner-base-cabinets/left-blind-base-cabinet.json",
     ),
   },
   {
     catalogId: "base-cabinets",
-    categoryId: "blind-base-cabinets",
+    categoryId: "corner-base-cabinets",
     rawDefinition: parseRawAssemblyDefinition(
       rightBlindBaseCabinetRawDefinitionData,
-      "base-cabinets/blind-base-cabinets/right-blind-base-cabinet.json",
+      "base-cabinets/corner-base-cabinets/right-blind-base-cabinet.json",
+    ),
+  },
+  {
+    catalogId: "base-cabinets",
+    categoryId: "corner-base-cabinets",
+    rawDefinition: parseRawAssemblyDefinition(
+      lazySusanCornerBaseCabinetRawDefinitionData,
+      "base-cabinets/corner-base-cabinets/lazy-susan-corner-base-cabinet.json",
     ),
   },
   {
@@ -129,40 +134,8 @@ export const baseCabinetRawCatalogEntries = [
     catalogId: "base-cabinets",
     categoryId: "pullout-rack-base-cabinets",
     rawDefinition: parseRawAssemblyDefinition(
-      trashPulloutBaseCabinetRawDefinitionData,
-      "base-cabinets/pullout-rack-base-cabinets/trash-pullout-base-cabinet.json",
-    ),
-  },
-  {
-    catalogId: "base-cabinets",
-    categoryId: "cooktop-base-cabinets",
-    rawDefinition: parseRawAssemblyDefinition(
-      twoDoorCooktopBaseCabinetRawDefinitionData,
-      "base-cabinets/cooktop-base-cabinets/two-door-cooktop-base-cabinet.json",
-    ),
-  },
-  {
-    catalogId: "base-cabinets",
-    categoryId: "cooktop-base-cabinets",
-    rawDefinition: parseRawAssemblyDefinition(
-      oneFalseFrontTwoDoorCooktopBaseCabinetRawDefinitionData,
-      "base-cabinets/cooktop-base-cabinets/one-false-front-two-door-cooktop-base-cabinet.json",
-    ),
-  },
-  {
-    catalogId: "base-cabinets",
-    categoryId: "cooktop-base-cabinets",
-    rawDefinition: parseRawAssemblyDefinition(
-      twoDrawerCooktopBaseCabinetRawDefinitionData,
-      "base-cabinets/cooktop-base-cabinets/two-drawer-cooktop-base-cabinet.json",
-    ),
-  },
-  {
-    catalogId: "base-cabinets",
-    categoryId: "cooktop-base-cabinets",
-    rawDefinition: parseRawAssemblyDefinition(
-      oneFalseFrontTwoDrawerCooktopBaseCabinetRawDefinitionData,
-      "base-cabinets/cooktop-base-cabinets/one-false-front-two-drawer-cooktop-base-cabinet.json",
+      oneDrawerOneTrashCanPulloutBaseCabinetRawDefinitionData,
+      "base-cabinets/pullout-rack-base-cabinets/one-drawer-one-trash-can-pullout-base-cabinet.json",
     ),
   },
 ] as const satisfies readonly KitchenEditorRawCatalogEntry[];

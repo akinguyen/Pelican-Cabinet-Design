@@ -185,6 +185,41 @@ function parsePrimitiveGeometry(
     return { kind };
   }
 
+  const meshId = readEnumValue(geometry.meshId, sourceLabel, `${path}.meshId`, [
+    "l-shaped-prism",
+    "rectangular-frustum",
+  ] as const);
+
+  if (meshId === "l-shaped-prism") {
+    assertKnownKeys(geometry, sourceLabel, path, [
+      "kind",
+      "meshId",
+      "cutoutWidthRatio",
+      "cutoutDepthRatio",
+      "cutoutCorner",
+    ]);
+
+    const cutoutWidthRatio = readNumber(geometry, sourceLabel, `${path}.cutoutWidthRatio`);
+    const cutoutDepthRatio = readNumber(geometry, sourceLabel, `${path}.cutoutDepthRatio`);
+    const cutoutCorner = readEnumValue(
+      geometry.cutoutCorner,
+      sourceLabel,
+      `${path}.cutoutCorner`,
+      ["front-left"] as const,
+    );
+
+    validateCustomMeshRatio(cutoutWidthRatio, sourceLabel, `${path}.cutoutWidthRatio`);
+    validateCustomMeshRatio(cutoutDepthRatio, sourceLabel, `${path}.cutoutDepthRatio`);
+
+    return {
+      kind,
+      meshId,
+      cutoutWidthRatio,
+      cutoutDepthRatio,
+      cutoutCorner,
+    };
+  }
+
   assertKnownKeys(geometry, sourceLabel, path, [
     "kind",
     "meshId",
@@ -192,9 +227,6 @@ function parsePrimitiveGeometry(
     "topDepthRatio",
   ]);
 
-  const meshId = readEnumValue(geometry.meshId, sourceLabel, `${path}.meshId`, [
-    "rectangular-frustum",
-  ] as const);
   const topWidthRatio = readNumber(geometry, sourceLabel, `${path}.topWidthRatio`);
   const topDepthRatio = readNumber(geometry, sourceLabel, `${path}.topDepthRatio`);
 

@@ -171,14 +171,7 @@ type CustomMeshGeometryProps = Readonly<{
 function CustomMeshGeometry({ geometry: customMeshGeometry, sizeInches }: CustomMeshGeometryProps) {
   const threeGeometry = useMemo(
     () => createCustomMeshGeometry(customMeshGeometry, sizeInches),
-    [
-      customMeshGeometry.meshId,
-      customMeshGeometry.topWidthRatio,
-      customMeshGeometry.topDepthRatio,
-      sizeInches.widthInches,
-      sizeInches.depthInches,
-      sizeInches.heightInches,
-    ],
+    [customMeshGeometry, sizeInches.widthInches, sizeInches.depthInches, sizeInches.heightInches],
   );
 
   return <primitive attach="geometry" object={threeGeometry} />;

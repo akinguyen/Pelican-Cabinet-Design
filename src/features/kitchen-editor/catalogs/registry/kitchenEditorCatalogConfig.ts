@@ -18,9 +18,8 @@ export const kitchenEditorCatalogs = [
       { id: "all", label: "All" },
       { id: "standard-base-cabinets", label: "Standard Base Cabinets" },
       { id: "drawer-base-cabinets", label: "Drawer Base Cabinets" },
-      { id: "blind-base-cabinets", label: "Blind Base Cabinets" },
+      { id: "corner-base-cabinets", label: "Corner Base Cabinets" },
       { id: "sink-base-cabinets", label: "Sink Base Cabinets" },
-      { id: "cooktop-base-cabinets", label: "Cooktop Base Cabinets" },
       { id: "pullout-rack-base-cabinets", label: "Pullout Rack Base Cabinets" },
     ],
   },
@@ -31,6 +30,7 @@ export const kitchenEditorCatalogs = [
     categories: [
       { id: "all", label: "All" },
       { id: "standard-wall-cabinets", label: "Standard Wall Cabinets" },
+      { id: "blind-wall-cabinets", label: "Blind Wall Cabinets" },
     ],
   },
   {

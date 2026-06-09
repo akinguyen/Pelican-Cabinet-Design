@@ -7,20 +7,8 @@
     "widthInches": {
       "label": "Width",
       "control": "select",
-      "defaultValueInches": 24,
+      "defaultValueInches": 36,
       "optionsInches": [
-        {
-          "valueInches": 24,
-          "label": "24 in"
-        },
-        {
-          "valueInches": 27,
-          "label": "27 in"
-        },
-        {
-          "valueInches": 30,
-          "label": "30 in"
-        },
         {
           "valueInches": 33,
           "label": "33 in"
@@ -39,8 +27,8 @@
         }
       ],
       "allowCustomValue": true,
-      "minValueInches": 18,
-      "maxValueInches": 60,
+      "minValueInches": 30,
+      "maxValueInches": 48,
       "stepInches": 0.25
     },
     "depthInches": {
@@ -246,7 +234,7 @@
       "options": [
         {
           "id": "top-false-panel-height-inches",
-          "label": "Top false panel height",
+          "label": "False front height",
           "valueType": "number",
           "control": "number",
           "defaultValue": 6,

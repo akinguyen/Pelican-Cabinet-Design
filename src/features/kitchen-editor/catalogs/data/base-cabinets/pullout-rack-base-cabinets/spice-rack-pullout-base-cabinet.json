@@ -10,20 +10,12 @@
       "defaultValueInches": 9,
       "optionsInches": [
         {
-          "valueInches": 6,
-          "label": "6 in"
-        },
-        {
           "valueInches": 9,
           "label": "9 in"
         },
         {
           "valueInches": 12,
           "label": "12 in"
-        },
-        {
-          "valueInches": 15,
-          "label": "15 in"
         }
       ],
       "allowCustomValue": true,

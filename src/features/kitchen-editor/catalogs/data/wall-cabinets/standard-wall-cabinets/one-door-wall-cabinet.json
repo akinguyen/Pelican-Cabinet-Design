@@ -7,7 +7,7 @@
     "widthInches": {
       "label": "Width",
       "control": "select",
-      "defaultValueInches": 30,
+      "defaultValueInches": 12,
       "optionsInches": [
         {
           "valueInches": 9,
@@ -32,11 +32,33 @@
         {
           "valueInches": 24,
           "label": "24 in"
-        },
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 6,
+      "maxValueInches": 36,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 12,
+      "optionsInches": [
         {
-          "valueInches": 27,
-          "label": "27 in"
-        },
+          "valueInches": 12,
+          "label": "12 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 8,
+      "maxValueInches": 24,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 30,
+      "optionsInches": [
         {
           "valueInches": 30,
           "label": "30 in"
@@ -56,84 +78,10 @@
         {
           "valueInches": 42,
           "label": "42 in"
-        },
-        {
-          "valueInches": 45,
-          "label": "45 in"
-        },
-        {
-          "valueInches": 48,
-          "label": "48 in"
         }
       ],
       "allowCustomValue": true,
-      "minValueInches": 6,
-      "maxValueInches": 60,
-      "stepInches": 0.25
-    },
-    "depthInches": {
-      "label": "Depth",
-      "control": "select",
-      "defaultValueInches": 12,
-      "optionsInches": [
-        {
-          "valueInches": 12,
-          "label": "12 in"
-        },
-        {
-          "valueInches": 14,
-          "label": "14 in"
-        },
-        {
-          "valueInches": 15,
-          "label": "15 in"
-        },
-        {
-          "valueInches": 16,
-          "label": "16 in"
-        }
-      ],
-      "allowCustomValue": true,
-      "minValueInches": 8,
-      "maxValueInches": 24,
-      "stepInches": 0.25
-    },
-    "heightInches": {
-      "label": "Height",
-      "control": "select",
-      "defaultValueInches": 30,
-      "optionsInches": [
-        {
-          "valueInches": 12,
-          "label": "12 in"
-        },
-        {
-          "valueInches": 15,
-          "label": "15 in"
-        },
-        {
-          "valueInches": 18,
-          "label": "18 in"
-        },
-        {
-          "valueInches": 24,
-          "label": "24 in"
-        },
-        {
-          "valueInches": 30,
-          "label": "30 in"
-        },
-        {
-          "valueInches": 36,
-          "label": "36 in"
-        },
-        {
-          "valueInches": 42,
-          "label": "42 in"
-        }
-      ],
-      "allowCustomValue": true,
-      "minValueInches": 9,
+      "minValueInches": 12,
       "maxValueInches": 60,
       "stepInches": 0.25
     }
