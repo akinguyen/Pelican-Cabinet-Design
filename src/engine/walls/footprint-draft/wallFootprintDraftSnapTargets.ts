@@ -5,7 +5,7 @@ import { getClosedPolygonEdges, projectPointToSegment } from "../footprint/wallF
 import type { WallFootprintDraft, WallFootprintSnapTarget } from "./wallFootprintDraftTypes";
 import { getActiveWallFootprintDraftPoint } from "./wallFootprintDraftSelectors";
 
-const WALL_FOOTPRINT_DRAFT_POINT_SNAP_THRESHOLD_INCHES = 6;
+const WALL_FOOTPRINT_DRAFT_POINT_SNAP_THRESHOLD_INCHES = 3;
 const WALL_FOOTPRINT_DRAFT_EDGE_SNAP_THRESHOLD_INCHES = 5;
 const MIN_CLOSE_LOOP_POINT_COUNT = 3;
 

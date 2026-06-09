@@ -1,7 +1,7 @@
 "use client";
 
 import { buildWall } from "@/engine/walls/wallBuilding";
-import { getWallPlanMeasurementFrame } from "@/engine/walls/footprint/wallPlanMeasurements";
+import { getWallPlanEdgeMeasurements, getWallPlanMeasurementFrame } from "@/engine/walls/footprint/wallPlanMeasurements";
 import type { PlacedWall } from "@/engine/walls/wallTypes";
 import type { WallFootprintDraft } from "@/engine/walls/footprint-draft/wallFootprintDraftTypes";
 import type { WallSplitDraft } from "@/engine/walls/split-draft/wallSplitDraftTypes";
@@ -11,6 +11,7 @@ import { WallFootprintDraftRenderer } from "./WallFootprintDraftRenderer";
 import { SelectedWallBoundaryOverlay } from "./SelectedWallBoundaryOverlay";
 import { WallSplitDraftRenderer } from "./WallSplitDraftRenderer";
 import { WallPlanMeasurementOverlay } from "./WallPlanMeasurementOverlay";
+import { WallPlanEdgeMeasurementLabels } from "./WallPlanEdgeMeasurementLabels";
 
 type WallLayerProps = Readonly<{
   placedWalls: readonly PlacedWall[];
@@ -41,6 +42,9 @@ export function WallLayer({
   const planMeasurementFrame = showPlanMeasurements
     ? getWallPlanMeasurementFrame(placedWalls)
     : null;
+  const planEdgeMeasurements = showPlanMeasurements
+    ? getWallPlanEdgeMeasurements(placedWalls)
+    : [];
 
   return (
     <group>
@@ -66,6 +70,7 @@ export function WallLayer({
         <SelectedWallBoundaryOverlay builtWall={highlightedBuiltWall} />
       ) : null}
       <WallPlanMeasurementOverlay measurementFrame={planMeasurementFrame} />
+      <WallPlanEdgeMeasurementLabels measurements={planEdgeMeasurements} />
       <WallFootprintDraftRenderer draft={wallFootprintDraft} />
       <WallSplitDraftRenderer draft={wallSplitDraft} />
     </group>
