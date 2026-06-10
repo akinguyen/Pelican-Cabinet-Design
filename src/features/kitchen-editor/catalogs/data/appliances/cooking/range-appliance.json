@@ -424,7 +424,7 @@
             "ref": "size.depthInches"
           },
           "right": {
-            "value": 0.64
+            "value": 0.6
           }
         },
         "heightInches": {
@@ -490,7 +490,7 @@
             "ref": "size.depthInches"
           },
           "right": {
-            "value": 0.64
+            "value": 0.6
           }
         },
         "heightInches": {
@@ -556,7 +556,7 @@
             "ref": "size.depthInches"
           },
           "right": {
-            "value": 0.64
+            "value": 0.6
           }
         },
         "heightInches": {
@@ -585,7 +585,7 @@
             "ref": "size.depthInches"
           },
           "right": {
-            "value": -0.2
+            "value": -0.23
           }
         },
         "zInches": {
@@ -613,7 +613,7 @@
             "ref": "size.widthInches"
           },
           "right": {
-            "value": 0.82
+            "value": 0.78
           }
         },
         "depthInches": {
@@ -645,7 +645,7 @@
             "ref": "size.depthInches"
           },
           "right": {
-            "value": 0
+            "value": -0.03
           }
         },
         "zInches": {
@@ -673,7 +673,7 @@
             "ref": "size.widthInches"
           },
           "right": {
-            "value": 0.82
+            "value": 0.78
           }
         },
         "depthInches": {
@@ -705,7 +705,7 @@
             "ref": "size.depthInches"
           },
           "right": {
-            "value": 0.2
+            "value": 0.17
           }
         },
         "zInches": {
@@ -733,7 +733,7 @@
             "ref": "size.widthInches"
           },
           "right": {
-            "value": 0.82
+            "value": 0.78
           }
         },
         "depthInches": {
@@ -771,7 +771,7 @@
             "ref": "size.depthInches"
           },
           "right": {
-            "value": -0.2
+            "value": -0.23
           }
         },
         "zInches": {
@@ -866,7 +866,7 @@
             "ref": "size.depthInches"
           },
           "right": {
-            "value": -0.2
+            "value": -0.23
           }
         },
         "zInches": {
@@ -961,7 +961,7 @@
             "ref": "size.depthInches"
           },
           "right": {
-            "value": 0
+            "value": -0.03
           }
         },
         "zInches": {
@@ -1056,7 +1056,7 @@
             "ref": "size.depthInches"
           },
           "right": {
-            "value": 0.2
+            "value": 0.17
           }
         },
         "zInches": {
@@ -1151,7 +1151,7 @@
             "ref": "size.depthInches"
           },
           "right": {
-            "value": 0.2
+            "value": 0.17
           }
         },
         "zInches": {

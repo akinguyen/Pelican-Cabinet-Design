@@ -5,6 +5,7 @@ import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { AssemblyDimensionSection } from "./AssemblyDimensionSection";
 import { AssemblyOptionGroupsSection } from "./AssemblyOptionGroupsSection";
 import { AssemblyPlacementSection } from "./AssemblyPlacementSection";
+import { COUNTERTOP_SLAB_DEFINITION_ID, CountertopOpeningsSection } from "./CountertopOpeningsSection";
 
 type AssemblyPropertiesPanelProps = Readonly<{
   placedAssembly: PlacedAssembly;
@@ -30,6 +31,9 @@ export function AssemblyPropertiesPanel({
       <AssemblyPlacementSection placedAssembly={placedAssembly} />
       <AssemblyDimensionSection placedAssembly={placedAssembly} definition={definition} />
       <AssemblyOptionGroupsSection placedAssembly={placedAssembly} definition={definition} />
+      {definition.id === COUNTERTOP_SLAB_DEFINITION_ID ? (
+        <CountertopOpeningsSection placedAssembly={placedAssembly} />
+      ) : null}
 
       <section className="rounded-lg border border-red-200 bg-red-50 p-3">
         <div className="text-[11px] font-semibold uppercase tracking-wide text-red-700">

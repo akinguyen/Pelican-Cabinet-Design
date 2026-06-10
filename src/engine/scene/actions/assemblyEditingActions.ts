@@ -1,5 +1,6 @@
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import { fitCountertopOpeningToHost } from "@/engine/countertops/countertopOpeningValidation";
 import {
   updateAssemblyDistanceFromFloor,
   updateAssemblyHeightPreservingDistanceFromFloor,
@@ -42,6 +43,9 @@ export function createAssemblyEditingActions(
           ...state.designScene,
           placedAssemblies: state.designScene.placedAssemblies.filter(
             (assembly) => assembly.id !== activeSelection.placedAssemblyId,
+          ),
+          countertopOpenings: state.designScene.countertopOpenings.filter(
+            (opening) => opening.hostCountertopId !== activeSelection.placedAssemblyId,
           ),
           activeSelection: null,
         },
@@ -157,12 +161,31 @@ function updateSelectedAssembly(
     return;
   }
 
-  set((state) => ({
-    designScene: {
-      ...state.designScene,
-      placedAssemblies: state.designScene.placedAssemblies.map((assembly) =>
-        assembly.id === activeSelection.placedAssemblyId ? updateAssembly(assembly) : assembly,
-      ),
-    },
-  }));
+  set((state) => {
+    let updatedSelectedAssembly: PlacedAssembly | undefined;
+    const placedAssemblies = state.designScene.placedAssemblies.map((assembly) => {
+      if (assembly.id !== activeSelection.placedAssemblyId) {
+        return assembly;
+      }
+
+      updatedSelectedAssembly = updateAssembly(assembly);
+      return updatedSelectedAssembly;
+    });
+    const updatedSelectedAssemblySizeInches = updatedSelectedAssembly?.configuration.sizeInches;
+
+    return {
+      designScene: {
+        ...state.designScene,
+        placedAssemblies,
+        countertopOpenings:
+          updatedSelectedAssemblySizeInches === undefined
+            ? state.designScene.countertopOpenings
+            : state.designScene.countertopOpenings.map((opening) =>
+                opening.hostCountertopId === activeSelection.placedAssemblyId
+                  ? fitCountertopOpeningToHost(opening, updatedSelectedAssemblySizeInches)
+                  : opening,
+              ),
+      },
+    };
+  });
 }

@@ -1,0 +1,150 @@
+{
+  "id": "countertop-slab",
+  "name": "Countertop Slab",
+  "catalogCategoryId": "surfaces/countertops",
+  "defaultDistanceFromFloorInches": 34.5,
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 96,
+      "optionsInches": [
+        {
+          "valueInches": 48,
+          "label": "48 in"
+        },
+        {
+          "valueInches": 72,
+          "label": "72 in"
+        },
+        {
+          "valueInches": 96,
+          "label": "96 in"
+        },
+        {
+          "valueInches": 120,
+          "label": "120 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 12,
+      "maxValueInches": 240,
+      "stepInches": 1
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 25.5,
+      "optionsInches": [
+        {
+          "valueInches": 25.5,
+          "label": "25.5 in"
+        },
+        {
+          "valueInches": 27,
+          "label": "27 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 12,
+      "maxValueInches": 60,
+      "stepInches": 0.5
+    },
+    "heightInches": {
+      "label": "Thickness",
+      "control": "select",
+      "defaultValueInches": 1.5,
+      "optionsInches": [
+        {
+          "valueInches": 1.25,
+          "label": "1.25 in"
+        },
+        {
+          "valueInches": 1.5,
+          "label": "1.5 in"
+        },
+        {
+          "valueInches": 2,
+          "label": "2 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 0.5,
+      "maxValueInches": 4,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "slab-color",
+          "label": "Slab color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#f8fafc",
+          "choices": [
+            {
+              "value": "#f8fafc",
+              "label": "White quartz"
+            },
+            {
+              "value": "#e5e7eb",
+              "label": "Light gray stone"
+            },
+            {
+              "value": "#111827",
+              "label": "Black stone"
+            },
+            {
+              "value": "#f5f5dc",
+              "label": "Warm stone"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "slab",
+      "label": "Slab",
+      "role": "countertop-slab",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "ref": "size.heightInches"
+        }
+      },
+      "material": {
+        "colorOptionId": "slab-color"
+      }
+    }
+  ]
+}

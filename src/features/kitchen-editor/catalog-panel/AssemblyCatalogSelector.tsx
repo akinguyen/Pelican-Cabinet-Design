@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, Box, Package, Workflow } from "lucide-react";
+import { Archive, Box, Package, Puzzle, Workflow } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { KitchenEditorCatalogId } from "../catalogs/registry/kitchenEditorCatalogConfig";
 import { kitchenEditorCatalogs } from "../catalogs/registry/kitchenEditorCatalogConfig";
@@ -10,7 +10,10 @@ const catalogSelectorIcons = {
   "base-cabinets": Workflow,
   "wall-cabinets": Box,
   "pantry-cabinets": Archive,
+  "built-in-cabinets": Package,
   appliances: Package,
+  fixtures: Puzzle,
+  surfaces: Box,
 } satisfies Readonly<Record<string, LucideIcon>>;
 
 type AssemblyCatalogSelectorProps = Readonly<{

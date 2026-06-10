@@ -1,9 +1,9 @@
 import { BufferGeometry, Float32BufferAttribute } from "three";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
-import type { PrimitiveCustomMeshGeometry } from "../primitiveGeometryTypes";
+import type { PrimitiveRectangularFrustumGeometry } from "../primitiveGeometryTypes";
 
 export function createRectangularFrustumGeometry(
-  geometry: PrimitiveCustomMeshGeometry,
+  geometry: PrimitiveRectangularFrustumGeometry,
   sizeInches: Size3DInches,
 ): BufferGeometry {
   const bottomWidthInches = sizeInches.widthInches;

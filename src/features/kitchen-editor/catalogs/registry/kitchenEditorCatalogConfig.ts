@@ -44,14 +44,45 @@ export const kitchenEditorCatalogs = [
     ],
   },
   {
+    id: "built-in-cabinets",
+    label: "Built-in Cabinets",
+    iconId: "built-in-cabinets",
+    categories: [
+      { id: "all", label: "All" },
+      { id: "oven-cabinets", label: "Oven Cabinets" },
+      { id: "microwave-cabinets", label: "Microwave Cabinets" },
+    ],
+  },
+
+  {
+    id: "surfaces",
+    label: "Surfaces",
+    iconId: "surfaces",
+    categories: [
+      { id: "all", label: "All" },
+      { id: "countertops", label: "Countertops" },
+    ],
+  },
+  {
     id: "appliances",
     label: "Appliances",
     iconId: "appliances",
     categories: [
       { id: "all", label: "All" },
       { id: "cooking", label: "Cooking" },
+      { id: "dishwashers", label: "Dishwashers" },
+      { id: "cooktops", label: "Cooktops" },
       { id: "refrigeration", label: "Refrigeration" },
       { id: "ventilation", label: "Ventilation" },
+    ],
+  },
+  {
+    id: "fixtures",
+    label: "Fixtures",
+    iconId: "fixtures",
+    categories: [
+      { id: "all", label: "All" },
+      { id: "sinks", label: "Sinks" },
     ],
   },
 ] as const;

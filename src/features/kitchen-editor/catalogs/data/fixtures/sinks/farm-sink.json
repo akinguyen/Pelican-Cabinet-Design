@@ -1,0 +1,720 @@
+{
+  "id": "farm-sink",
+  "name": "Farm Sink",
+  "catalogCategoryId": "fixtures/sinks",
+  "defaultDistanceFromFloorInches": 26.5,
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 30,
+      "optionsInches": [
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        },
+        {
+          "valueInches": 27,
+          "label": "27 in"
+        },
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
+        {
+          "valueInches": 33,
+          "label": "33 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 18,
+      "maxValueInches": 48,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 22,
+      "optionsInches": [
+        {
+          "valueInches": 20,
+          "label": "20 in"
+        },
+        {
+          "valueInches": 22,
+          "label": "22 in"
+        },
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 16,
+      "maxValueInches": 30,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 9,
+      "optionsInches": [
+        {
+          "valueInches": 8,
+          "label": "8 in"
+        },
+        {
+          "valueInches": 9,
+          "label": "9 in"
+        },
+        {
+          "valueInches": 10,
+          "label": "10 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 4,
+      "maxValueInches": 14,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "sink-color",
+          "label": "Sink color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#f8fafc",
+          "choices": [
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#d1d5db",
+              "label": "Light gray"
+            },
+            {
+              "value": "#cbd5e1",
+              "label": "Soft silver"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            }
+          ]
+        },
+        {
+          "id": "basin-color",
+          "label": "Basin color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#f8fafc",
+          "choices": [
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#f1f5f9",
+              "label": "Soft white"
+            },
+            {
+              "value": "#d1d5db",
+              "label": "Light gray"
+            },
+            {
+              "value": "#cbd5e1",
+              "label": "Soft silver"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            }
+          ]
+        },
+        {
+          "id": "drain-color",
+          "label": "Drain color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#6b7280",
+          "choices": [
+            {
+              "value": "#6b7280",
+              "label": "Dark gray"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            },
+            {
+              "value": "#111827",
+              "label": "Black"
+            }
+          ]
+        },
+        {
+          "id": "faucet-color",
+          "label": "Faucet color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#cbd5e1",
+          "choices": [
+            {
+              "value": "#cbd5e1",
+              "label": "Soft silver"
+            },
+            {
+              "value": "#d1d5db",
+              "label": "Light gray"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            },
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "basin-floor",
+      "label": "Basin Floor",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.25
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 1.3
+          }
+        },
+        "depthInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 1.3
+          }
+        },
+        "heightInches": {
+          "value": 0.5
+        }
+      },
+      "material": {
+        "colorOptionId": "basin-color"
+      },
+      "role": "sink-basin"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "front-apron-panel",
+      "label": "Front Apron Panel",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 0.325
+          }
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "value": 0.65
+        },
+        "heightInches": {
+          "ref": "size.heightInches"
+        }
+      },
+      "material": {
+        "colorOptionId": "sink-color"
+      },
+      "role": "sink-apron"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "basin-back-wall",
+      "label": "Basin Back Wall",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.325
+            }
+          ]
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "value": 0.65
+        },
+        "heightInches": {
+          "ref": "size.heightInches"
+        }
+      },
+      "material": {
+        "colorOptionId": "sink-color"
+      },
+      "role": "sink-basin-wall"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "basin-left-wall",
+      "label": "Basin Left Wall",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.325
+            }
+          ]
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.65
+        },
+        "depthInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 1.3
+          }
+        },
+        "heightInches": {
+          "ref": "size.heightInches"
+        }
+      },
+      "material": {
+        "colorOptionId": "sink-color"
+      },
+      "role": "sink-basin-wall"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "basin-right-wall",
+      "label": "Basin Right Wall",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 0.325
+          }
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.65
+        },
+        "depthInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 1.3
+          }
+        },
+        "heightInches": {
+          "ref": "size.heightInches"
+        }
+      },
+      "material": {
+        "colorOptionId": "sink-color"
+      },
+      "role": "sink-basin-wall"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "drain",
+      "label": "Drain",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.62
+            }
+          ]
+        }
+      },
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 2.2
+        },
+        "depthInches": {
+          "value": 0.2
+        },
+        "heightInches": {
+          "value": 2.2
+        }
+      },
+      "material": {
+        "colorOptionId": "drain-color"
+      },
+      "role": "sink-drain"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "faucet-mounting-deck",
+      "label": "Faucet Mounting Deck",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 1.45
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.18
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 4.5
+        },
+        "depthInches": {
+          "value": 1.25
+        },
+        "heightInches": {
+          "value": 0.35
+        }
+      },
+      "material": {
+        "colorOptionId": "sink-color"
+      },
+      "role": "sink-faucet-mount"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "faucet-stem",
+      "label": "Faucet Stem",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 1.45
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 3
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.65
+        },
+        "depthInches": {
+          "value": 6
+        },
+        "heightInches": {
+          "value": 6
+        }
+      },
+      "material": {
+        "colorOptionId": "faucet-color"
+      },
+      "role": "sink-faucet",
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "faucet-spout",
+      "label": "Faucet Spout",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 3.35
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 6.1
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.8
+        },
+        "depthInches": {
+          "value": 4
+        },
+        "heightInches": {
+          "value": 0.55
+        }
+      },
+      "material": {
+        "colorOptionId": "faucet-color"
+      },
+      "role": "sink-faucet"
+    }
+  ]
+}

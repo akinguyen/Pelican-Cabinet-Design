@@ -21,9 +21,26 @@ export type PrimitiveLShapedPrismGeometry = Readonly<{
   cutoutCorner: "front-left" | "front-right";
 }>;
 
+export type CountertopSlabOpening = Readonly<{
+  shape: "rectangle" | "rounded-rectangle";
+  centerXInches: number;
+  centerYInches: number;
+  widthInches: number;
+  depthInches: number;
+  rotationDegrees: number;
+  cornerRadiusInches: number;
+}>;
+
+export type PrimitiveCountertopSlabGeometry = Readonly<{
+  kind: "custom-mesh";
+  meshId: "countertop-slab";
+  openingsInches: readonly CountertopSlabOpening[];
+}>;
+
 export type PrimitiveCustomMeshGeometry =
   | PrimitiveRectangularFrustumGeometry
-  | PrimitiveLShapedPrismGeometry;
+  | PrimitiveLShapedPrismGeometry
+  | PrimitiveCountertopSlabGeometry;
 
 export type PrimitiveGeometry =
   | PrimitiveBoxGeometry

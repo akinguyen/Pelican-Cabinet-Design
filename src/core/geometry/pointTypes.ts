@@ -1,5 +1,10 @@
 import { degreesToUserFacingZRadians } from "./rotationTypes";
 
+export type Point2DInches = Readonly<{
+  xInches: number;
+  yInches: number;
+}>;
+
 export type Point3DInches = Readonly<{
   xInches: number;
   yInches: number;

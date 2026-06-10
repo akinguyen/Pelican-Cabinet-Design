@@ -1,0 +1,1676 @@
+{
+  "id": "drop-in-cooktop",
+  "name": "Drop-In Cooktop",
+  "catalogCategoryId": "appliances/cooktops",
+  "defaultDistanceFromFloorInches": 34.5,
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 30,
+      "optionsInches": [
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        },
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 18,
+      "maxValueInches": 48,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 21,
+      "optionsInches": [
+        {
+          "valueInches": 21,
+          "label": "21 in"
+        },
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 18,
+      "maxValueInches": 30,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 1.5,
+      "optionsInches": [
+        {
+          "valueInches": 1,
+          "label": "1 in"
+        },
+        {
+          "valueInches": 1.5,
+          "label": "1.5 in"
+        },
+        {
+          "valueInches": 2,
+          "label": "2 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 0.5,
+      "maxValueInches": 4,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "surface-color",
+          "label": "Cooktop surface color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#e5e7eb",
+          "choices": [
+            {
+              "value": "#e5e7eb",
+              "label": "Light stainless"
+            },
+            {
+              "value": "#cbd5e1",
+              "label": "Soft silver"
+            },
+            {
+              "value": "#111827",
+              "label": "Black glass"
+            }
+          ]
+        },
+        {
+          "id": "trim-color",
+          "label": "Trim color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#9ca3af",
+          "choices": [
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            },
+            {
+              "value": "#cbd5e1",
+              "label": "Silver"
+            },
+            {
+              "value": "#111827",
+              "label": "Black"
+            }
+          ]
+        },
+        {
+          "id": "cooking-container-color",
+          "label": "Cooking container color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#6b7280",
+          "choices": [
+            {
+              "value": "#6b7280",
+              "label": "Dark gray"
+            },
+            {
+              "value": "#4b5563",
+              "label": "Slate gray"
+            },
+            {
+              "value": "#111827",
+              "label": "Black"
+            }
+          ]
+        },
+        {
+          "id": "burner-color",
+          "label": "Burner color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#111827",
+          "choices": [
+            {
+              "value": "#111827",
+              "label": "Black"
+            },
+            {
+              "value": "#1f2937",
+              "label": "Dark gray"
+            }
+          ]
+        },
+        {
+          "id": "grate-color",
+          "label": "Grate color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#111827",
+          "choices": [
+            {
+              "value": "#111827",
+              "label": "Black"
+            },
+            {
+              "value": "#1f2937",
+              "label": "Dark gray"
+            }
+          ]
+        },
+        {
+          "id": "knob-color",
+          "label": "Knob color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#6b7280",
+          "choices": [
+            {
+              "value": "#6b7280",
+              "label": "Dark gray"
+            },
+            {
+              "value": "#111827",
+              "label": "Black"
+            },
+            {
+              "value": "#cbd5e1",
+              "label": "Silver"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "cooktop-surface",
+      "label": "Cooktop Surface",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "ref": "size.heightInches"
+        }
+      },
+      "material": {
+        "colorOptionId": "surface-color"
+      },
+      "role": "cooktop-surface"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "cooktop-front-trim",
+      "label": "Cooktop Front Trim",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 0.3
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.08
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "value": 0.6
+        },
+        "heightInches": {
+          "value": 0.18
+        }
+      },
+      "material": {
+        "colorOptionId": "trim-color"
+      },
+      "role": "cooktop-trim"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "cooktop-back-trim",
+      "label": "Cooktop Back Trim",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.3
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.08
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "value": 0.6
+        },
+        "heightInches": {
+          "value": 0.18
+        }
+      },
+      "material": {
+        "colorOptionId": "trim-color"
+      },
+      "role": "cooktop-trim"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "cooktop-left-trim",
+      "label": "Cooktop Left Trim",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.3
+            }
+          ]
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.08
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.6
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "value": 0.18
+        }
+      },
+      "material": {
+        "colorOptionId": "trim-color"
+      },
+      "role": "cooktop-trim"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "cooktop-right-trim",
+      "label": "Cooktop Right Trim",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 0.3
+          }
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.08
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.6
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "value": 0.18
+        }
+      },
+      "material": {
+        "colorOptionId": "trim-color"
+      },
+      "role": "cooktop-trim"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "cooking-container",
+      "label": "Cooking Container",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.1
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.16
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.86
+          }
+        },
+        "depthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.58
+          }
+        },
+        "heightInches": {
+          "value": 0.16
+        }
+      },
+      "material": {
+        "colorOptionId": "cooking-container-color"
+      },
+      "role": "cooktop-tray"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "left-front-burner",
+      "label": "Left Front Burner",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.23
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.08
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.52
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        },
+        "depthInches": {
+          "value": 0.3
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "burner-color"
+      },
+      "role": "burner-cap",
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "left-back-burner",
+      "label": "Left Back Burner",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.23
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.28
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.52
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        },
+        "depthInches": {
+          "value": 0.3
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "burner-color"
+      },
+      "role": "burner-cap",
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "right-front-burner",
+      "label": "Right Front Burner",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.23
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.08
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.52
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        },
+        "depthInches": {
+          "value": 0.3
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "burner-color"
+      },
+      "role": "burner-cap",
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "right-back-burner",
+      "label": "Right Back Burner",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.23
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.28
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.52
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        },
+        "depthInches": {
+          "value": 0.3
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "burner-color"
+      },
+      "role": "burner-cap",
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "center-burner",
+      "label": "Center Burner",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.1
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.52
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        },
+        "depthInches": {
+          "value": 0.3
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "burner-color"
+      },
+      "role": "burner-cap",
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "left-grate-horizontal",
+      "label": "Back Horizontal Grate",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.28
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.35
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.72
+          }
+        },
+        "depthInches": {
+          "value": 0.35
+        },
+        "heightInches": {
+          "value": 0.28
+        }
+      },
+      "material": {
+        "colorOptionId": "grate-color"
+      },
+      "role": "cooktop-grate"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "left-grate-vertical",
+      "label": "Left Vertical Grate",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.23
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.1
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.35
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.35
+        },
+        "depthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.5
+          }
+        },
+        "heightInches": {
+          "value": 0.28
+        }
+      },
+      "material": {
+        "colorOptionId": "grate-color"
+      },
+      "role": "cooktop-grate"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "center-grate-horizontal",
+      "label": "Center Horizontal Grate",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.1
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.35
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.72
+          }
+        },
+        "depthInches": {
+          "value": 0.35
+        },
+        "heightInches": {
+          "value": 0.28
+        }
+      },
+      "material": {
+        "colorOptionId": "grate-color"
+      },
+      "role": "cooktop-grate"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "center-grate-vertical",
+      "label": "Center Vertical Grate",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.1
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.35
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.35
+        },
+        "depthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.5
+          }
+        },
+        "heightInches": {
+          "value": 0.28
+        }
+      },
+      "material": {
+        "colorOptionId": "grate-color"
+      },
+      "role": "cooktop-grate"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "right-grate-horizontal",
+      "label": "Front Horizontal Grate",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.08
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.35
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.72
+          }
+        },
+        "depthInches": {
+          "value": 0.35
+        },
+        "heightInches": {
+          "value": 0.28
+        }
+      },
+      "material": {
+        "colorOptionId": "grate-color"
+      },
+      "role": "cooktop-grate"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "right-grate-vertical",
+      "label": "Right Vertical Grate",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.23
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.1
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.35
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.35
+        },
+        "depthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.5
+          }
+        },
+        "heightInches": {
+          "value": 0.28
+        }
+      },
+      "material": {
+        "colorOptionId": "grate-color"
+      },
+      "role": "cooktop-grate"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-knob-1",
+      "label": "Control Knob 1",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.18
+          }
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 2.3
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.35
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 1.15
+        },
+        "depthInches": {
+          "value": 0.45
+        },
+        "heightInches": {
+          "value": 0.45
+        }
+      },
+      "material": {
+        "colorOptionId": "knob-color"
+      },
+      "role": "control-knob",
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-knob-2",
+      "label": "Control Knob 2",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.06
+          }
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 2.3
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.35
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 1.15
+        },
+        "depthInches": {
+          "value": 0.45
+        },
+        "heightInches": {
+          "value": 0.45
+        }
+      },
+      "material": {
+        "colorOptionId": "knob-color"
+      },
+      "role": "control-knob",
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-knob-3",
+      "label": "Control Knob 3",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.06
+          }
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 2.3
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.35
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 1.15
+        },
+        "depthInches": {
+          "value": 0.45
+        },
+        "heightInches": {
+          "value": 0.45
+        }
+      },
+      "material": {
+        "colorOptionId": "knob-color"
+      },
+      "role": "control-knob",
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-knob-4",
+      "label": "Control Knob 4",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.18
+          }
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 2.3
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.35
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 1.15
+        },
+        "depthInches": {
+          "value": 0.45
+        },
+        "heightInches": {
+          "value": 0.45
+        }
+      },
+      "material": {
+        "colorOptionId": "knob-color"
+      },
+      "role": "control-knob",
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      }
+    }
+  ]
+}

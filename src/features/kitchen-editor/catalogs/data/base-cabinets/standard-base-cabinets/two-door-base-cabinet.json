@@ -1361,21 +1361,7 @@
       },
       "sizeInches": {
         "widthInches": {
-          "op": "max",
-          "values": [
-            {
-              "value": 1
-            },
-            {
-              "op": "multiply",
-              "left": {
-                "ref": "size.widthInches"
-              },
-              "right": {
-                "value": 0.9
-              }
-            }
-          ]
+          "ref": "size.widthInches"
         },
         "depthInches": {
           "op": "max",

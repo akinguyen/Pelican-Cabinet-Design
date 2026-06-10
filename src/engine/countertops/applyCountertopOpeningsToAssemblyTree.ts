@@ -1,0 +1,56 @@
+import type {
+  BuiltAssemblyTree,
+  BuiltPrimitiveGeometry,
+} from "@/engine/assemblies/assemblyTreeBuilder";
+import type { CountertopOpening } from "./countertopOpeningTypes";
+
+const COUNTERTOP_SLAB_PRIMITIVE_ROLE = "countertop-slab";
+
+export function applyCountertopOpeningsToAssemblyTree(
+  builtAssemblyTree: BuiltAssemblyTree,
+  countertopOpenings: readonly CountertopOpening[],
+): BuiltAssemblyTree {
+  const matchingOpenings = countertopOpenings.filter(
+    (opening) => opening.hostCountertopId === builtAssemblyTree.rootAssemblyId,
+  );
+
+  if (matchingOpenings.length === 0) {
+    return builtAssemblyTree;
+  }
+
+  return {
+    ...builtAssemblyTree,
+    primitiveGeometries: builtAssemblyTree.primitiveGeometries.map((primitiveGeometry) =>
+      applyOpeningsToCountertopSlabPrimitive(primitiveGeometry, matchingOpenings),
+    ),
+    childAssemblies: builtAssemblyTree.childAssemblies.map((childAssembly) =>
+      applyCountertopOpeningsToAssemblyTree(childAssembly, countertopOpenings),
+    ),
+  };
+}
+
+function applyOpeningsToCountertopSlabPrimitive(
+  primitiveGeometry: BuiltPrimitiveGeometry,
+  countertopOpenings: readonly CountertopOpening[],
+): BuiltPrimitiveGeometry {
+  if (primitiveGeometry.role !== COUNTERTOP_SLAB_PRIMITIVE_ROLE) {
+    return primitiveGeometry;
+  }
+
+  return {
+    ...primitiveGeometry,
+    geometry: {
+      kind: "custom-mesh",
+      meshId: "countertop-slab",
+      openingsInches: countertopOpenings.map((opening) => ({
+        shape: opening.shape,
+        centerXInches: opening.localCenterInches.xInches,
+        centerYInches: opening.localCenterInches.yInches,
+        widthInches: opening.widthInches,
+        depthInches: opening.depthInches,
+        rotationDegrees: opening.localRotationDegrees,
+        cornerRadiusInches: opening.cornerRadiusInches,
+      })),
+    },
+  };
+}

@@ -1,4 +1,5 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
+import type { CountertopOpeningShape } from "@/engine/countertops/countertopOpeningTypes";
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { WallSettings } from "@/engine/walls/wallTypes";
@@ -64,6 +65,15 @@ export type DesignSceneStore = Readonly<{
   updateSelectedAssemblyRotationZ: (zDegrees: number) => void;
   updateSelectedAssemblyDimension: (dimensionId: AssemblyDimensionId, valueInches: number) => void;
   updateSelectedAssemblyOptionValue: (optionId: string, value: AssemblyOptionValue) => void;
+  addCountertopOpening: (hostCountertopId: string) => void;
+  updateCountertopOpeningShape: (openingId: string, shape: CountertopOpeningShape) => void;
+  updateCountertopOpeningLocalCenterX: (openingId: string, xInches: number) => void;
+  updateCountertopOpeningLocalCenterY: (openingId: string, yInches: number) => void;
+  updateCountertopOpeningWidth: (openingId: string, widthInches: number) => void;
+  updateCountertopOpeningDepth: (openingId: string, depthInches: number) => void;
+  updateCountertopOpeningCornerRadius: (openingId: string, cornerRadiusInches: number) => void;
+  updateCountertopOpeningEdgeClearance: (openingId: string, edgeClearanceInches: number) => void;
+  deleteCountertopOpening: (openingId: string) => void;
   updateWallFootprintDraftHover: (pointInches: Point3DInches) => void;
   clickWallFootprintDraftPoint: (pointInches: Point3DInches) => void;
   exitWallFootprintDraftTool: () => void;

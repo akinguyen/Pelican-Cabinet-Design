@@ -1,14 +1,18 @@
 {
-  "id": "two-door-farm-sink-base-cabinet",
-  "name": "2 Door Farm Sink Base Cabinet",
-  "catalogCategoryId": "base-cabinets/sink-base-cabinets",
+  "id": "double-oven-cabinet",
+  "name": "Double Oven Cabinet",
+  "catalogCategoryId": "built-in-cabinets/oven-cabinets",
   "defaultDistanceFromFloorInches": 0,
   "dimensions": {
     "widthInches": {
       "label": "Width",
       "control": "select",
-      "defaultValueInches": 36,
+      "defaultValueInches": 30,
       "optionsInches": [
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
         {
           "valueInches": 33,
           "label": "33 in"
@@ -16,19 +20,11 @@
         {
           "valueInches": 36,
           "label": "36 in"
-        },
-        {
-          "valueInches": 39,
-          "label": "39 in"
-        },
-        {
-          "valueInches": 42,
-          "label": "42 in"
         }
       ],
       "allowCustomValue": true,
-      "minValueInches": 30,
-      "maxValueInches": 48,
+      "minValueInches": 24,
+      "maxValueInches": 42,
       "stepInches": 0.25
     },
     "depthInches": {
@@ -39,26 +35,30 @@
         {
           "valueInches": 24,
           "label": "24 in"
+        },
+        {
+          "valueInches": 26,
+          "label": "26 in"
         }
       ],
       "allowCustomValue": true,
-      "minValueInches": 15,
+      "minValueInches": 18,
       "maxValueInches": 30,
       "stepInches": 0.25
     },
     "heightInches": {
       "label": "Height",
       "control": "select",
-      "defaultValueInches": 34.5,
+      "defaultValueInches": 69,
       "optionsInches": [
         {
-          "valueInches": 34.5,
-          "label": "34 1/2 in"
+          "valueInches": 69,
+          "label": "69 in"
         }
       ],
       "allowCustomValue": true,
-      "minValueInches": 24,
-      "maxValueInches": 42,
+      "minValueInches": 54,
+      "maxValueInches": 84,
       "stepInches": 0.25
     }
   },
@@ -93,8 +93,8 @@
           ]
         },
         {
-          "id": "door-color",
-          "label": "Door color",
+          "id": "drawer-color",
+          "label": "Drawer color",
           "valueType": "string",
           "control": "select",
           "defaultValue": "#fff9d6",
@@ -145,8 +145,8 @@
       "label": "Front Visibility",
       "options": [
         {
-          "id": "show-doors",
-          "label": "Show doors",
+          "id": "show-drawer",
+          "label": "Show drawer",
           "valueType": "boolean",
           "control": "checkbox",
           "defaultValue": true
@@ -178,8 +178,18 @@
           "step": 0.25
         },
         {
-          "id": "bottom-panel-thickness-inches",
-          "label": "Bottom panel thickness",
+          "id": "top-bottom-panel-thickness-inches",
+          "label": "Top/bottom panel thickness",
+          "valueType": "number",
+          "control": "number",
+          "defaultValue": 0.75,
+          "minValue": 0.5,
+          "maxValue": 1,
+          "step": 0.25
+        },
+        {
+          "id": "middle-horizontal-panel-thickness-inches",
+          "label": "Middle horizontal panel thickness",
           "valueType": "number",
           "control": "number",
           "defaultValue": 0.75,
@@ -210,17 +220,17 @@
       ]
     },
     {
-      "id": "farm-sink-layout",
-      "label": "Farm Sink Layout",
+      "id": "drawer-layout",
+      "label": "Drawer Layout",
       "options": [
         {
-          "id": "door-section-height-inches",
-          "label": "Door section height",
+          "id": "drawer-section-height-inches",
+          "label": "Drawer section height",
           "valueType": "number",
           "control": "number",
-          "defaultValue": 20,
-          "minValue": 12,
-          "maxValue": 28,
+          "defaultValue": 12,
+          "minValue": 6,
+          "maxValue": 24,
           "step": 0.25
         }
       ]
@@ -237,8 +247,8 @@
           "defaultValue": true
         },
         {
-          "id": "door-handle-type",
-          "label": "Door handle type",
+          "id": "drawer-handle-type",
+          "label": "Drawer handle type",
           "valueType": "string",
           "control": "select",
           "defaultValue": "bar",
@@ -252,11 +262,182 @@
               "label": "Knob"
             }
           ]
+        },
+        {
+          "id": "drawer-handle-position",
+          "label": "Drawer handle position",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "center",
+          "choices": [
+            {
+              "value": "top-center",
+              "label": "Top center"
+            },
+            {
+              "value": "center",
+              "label": "Center"
+            },
+            {
+              "value": "bottom-center",
+              "label": "Bottom center"
+            }
+          ]
         }
       ]
     }
   ],
   "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "top-panel",
+      "label": "Top Panel",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "negate",
+                  "value": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                },
+                {
+                  "ref": "option.toe-kick-height-inches"
+                }
+              ]
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "ref": "option.toe-kick-height-inches"
+                  }
+                }
+              ]
+            },
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "option.top-bottom-panel-thickness-inches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "ref": "option.top-bottom-panel-thickness-inches"
+        }
+      },
+      "material": {
+        "colorOptionId": "cabinet-panel-color"
+      },
+      "role": "top-panel"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "bottom-panel",
+      "label": "Bottom Panel",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "negate",
+                  "value": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                },
+                {
+                  "ref": "option.toe-kick-height-inches"
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "ref": "option.top-bottom-panel-thickness-inches"
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "ref": "option.top-bottom-panel-thickness-inches"
+        }
+      },
+      "material": {
+        "colorOptionId": "cabinet-panel-color"
+      },
+      "role": "bottom-panel"
+    },
     {
       "kind": "primitive-geometry",
       "id": "left-side-panel",
@@ -318,6 +499,9 @@
               ]
             },
             {
+              "ref": "option.top-bottom-panel-thickness-inches"
+            },
+            {
               "op": "divide",
               "left": {
                 "op": "max",
@@ -328,10 +512,30 @@
                   {
                     "op": "subtract",
                     "left": {
-                      "ref": "size.heightInches"
+                      "op": "max",
+                      "values": [
+                        {
+                          "value": 1
+                        },
+                        {
+                          "op": "subtract",
+                          "left": {
+                            "ref": "size.heightInches"
+                          },
+                          "right": {
+                            "ref": "option.toe-kick-height-inches"
+                          }
+                        }
+                      ]
                     },
                     "right": {
-                      "ref": "option.toe-kick-height-inches"
+                      "op": "multiply",
+                      "left": {
+                        "ref": "option.top-bottom-panel-thickness-inches"
+                      },
+                      "right": {
+                        "value": 2
+                      }
                     }
                   }
                 ]
@@ -359,10 +563,30 @@
             {
               "op": "subtract",
               "left": {
-                "ref": "size.heightInches"
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "ref": "option.toe-kick-height-inches"
+                    }
+                  }
+                ]
               },
               "right": {
-                "ref": "option.toe-kick-height-inches"
+                "op": "multiply",
+                "left": {
+                  "ref": "option.top-bottom-panel-thickness-inches"
+                },
+                "right": {
+                  "value": 2
+                }
               }
             }
           ]
@@ -429,6 +653,9 @@
               ]
             },
             {
+              "ref": "option.top-bottom-panel-thickness-inches"
+            },
+            {
               "op": "divide",
               "left": {
                 "op": "max",
@@ -439,10 +666,30 @@
                   {
                     "op": "subtract",
                     "left": {
-                      "ref": "size.heightInches"
+                      "op": "max",
+                      "values": [
+                        {
+                          "value": 1
+                        },
+                        {
+                          "op": "subtract",
+                          "left": {
+                            "ref": "size.heightInches"
+                          },
+                          "right": {
+                            "ref": "option.toe-kick-height-inches"
+                          }
+                        }
+                      ]
                     },
                     "right": {
-                      "ref": "option.toe-kick-height-inches"
+                      "op": "multiply",
+                      "left": {
+                        "ref": "option.top-bottom-panel-thickness-inches"
+                      },
+                      "right": {
+                        "value": 2
+                      }
                     }
                   }
                 ]
@@ -470,10 +717,30 @@
             {
               "op": "subtract",
               "left": {
-                "ref": "size.heightInches"
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "ref": "option.toe-kick-height-inches"
+                    }
+                  }
+                ]
               },
               "right": {
-                "ref": "option.toe-kick-height-inches"
+                "op": "multiply",
+                "left": {
+                  "ref": "option.top-bottom-panel-thickness-inches"
+                },
+                "right": {
+                  "value": 2
+                }
               }
             }
           ]
@@ -545,6 +812,9 @@
               ]
             },
             {
+              "ref": "option.top-bottom-panel-thickness-inches"
+            },
+            {
               "op": "divide",
               "left": {
                 "op": "max",
@@ -555,10 +825,30 @@
                   {
                     "op": "subtract",
                     "left": {
-                      "ref": "size.heightInches"
+                      "op": "max",
+                      "values": [
+                        {
+                          "value": 1
+                        },
+                        {
+                          "op": "subtract",
+                          "left": {
+                            "ref": "size.heightInches"
+                          },
+                          "right": {
+                            "ref": "option.toe-kick-height-inches"
+                          }
+                        }
+                      ]
                     },
                     "right": {
-                      "ref": "option.toe-kick-height-inches"
+                      "op": "multiply",
+                      "left": {
+                        "ref": "option.top-bottom-panel-thickness-inches"
+                      },
+                      "right": {
+                        "value": 2
+                      }
                     }
                   }
                 ]
@@ -606,10 +896,30 @@
             {
               "op": "subtract",
               "left": {
-                "ref": "size.heightInches"
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "ref": "option.toe-kick-height-inches"
+                    }
+                  }
+                ]
               },
               "right": {
-                "ref": "option.toe-kick-height-inches"
+                "op": "multiply",
+                "left": {
+                  "ref": "option.top-bottom-panel-thickness-inches"
+                },
+                "right": {
+                  "value": 2
+                }
               }
             }
           ]
@@ -619,111 +929,6 @@
         "colorOptionId": "cabinet-panel-color"
       },
       "role": "back-panel"
-    },
-    {
-      "kind": "primitive-geometry",
-      "id": "bottom-panel",
-      "label": "Bottom Panel",
-      "geometry": {
-        "kind": "box"
-      },
-      "localPositionInches": {
-        "xInches": {
-          "value": 0
-        },
-        "yInches": {
-          "op": "divide",
-          "left": {
-            "ref": "option.back-panel-thickness-inches"
-          },
-          "right": {
-            "value": 2
-          }
-        },
-        "zInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "add",
-              "values": [
-                {
-                  "op": "negate",
-                  "value": {
-                    "op": "divide",
-                    "left": {
-                      "ref": "size.heightInches"
-                    },
-                    "right": {
-                      "value": 2
-                    }
-                  }
-                },
-                {
-                  "ref": "option.toe-kick-height-inches"
-                }
-              ]
-            },
-            {
-              "op": "divide",
-              "left": {
-                "ref": "option.bottom-panel-thickness-inches"
-              },
-              "right": {
-                "value": 2
-              }
-            }
-          ]
-        }
-      },
-      "sizeInches": {
-        "widthInches": {
-          "op": "max",
-          "values": [
-            {
-              "value": 1
-            },
-            {
-              "op": "subtract",
-              "left": {
-                "ref": "size.widthInches"
-              },
-              "right": {
-                "op": "multiply",
-                "left": {
-                  "ref": "option.side-panel-thickness-inches"
-                },
-                "right": {
-                  "value": 2
-                }
-              }
-            }
-          ]
-        },
-        "depthInches": {
-          "op": "max",
-          "values": [
-            {
-              "value": 1
-            },
-            {
-              "op": "subtract",
-              "left": {
-                "ref": "size.depthInches"
-              },
-              "right": {
-                "ref": "option.back-panel-thickness-inches"
-              }
-            }
-          ]
-        },
-        "heightInches": {
-          "ref": "option.bottom-panel-thickness-inches"
-        }
-      },
-      "material": {
-        "colorOptionId": "cabinet-panel-color"
-      },
-      "role": "bottom-panel"
     },
     {
       "kind": "primitive-geometry",
@@ -834,39 +1039,24 @@
       "role": "toe-kick"
     },
     {
-      "kind": "nested-assembly",
-      "id": "left-door",
-      "label": "Left Door",
-      "definitionId": "door",
+      "kind": "primitive-geometry",
+      "id": "middle-horizontal-panel",
+      "label": "Middle Horizontal Panel",
+      "geometry": {
+        "kind": "box"
+      },
       "localPositionInches": {
         "xInches": {
-          "op": "negate",
-          "value": {
-            "op": "divide",
-            "left": {
-              "ref": "size.widthInches"
-            },
-            "right": {
-              "value": 4
-            }
-          }
+          "value": 0
         },
         "yInches": {
-          "op": "add",
-          "values": [
-            {
-              "op": "divide",
-              "left": {
-                "ref": "size.depthInches"
-              },
-              "right": {
-                "value": 2
-              }
-            },
-            {
-              "value": 0.375
-            }
-          ]
+          "op": "divide",
+          "left": {
+            "ref": "option.back-panel-thickness-inches"
+          },
+          "right": {
+            "value": 2
+          }
         },
         "zInches": {
           "op": "add",
@@ -892,9 +1082,12 @@
               ]
             },
             {
+              "ref": "option.drawer-section-height-inches"
+            },
+            {
               "op": "divide",
               "left": {
-                "ref": "option.door-section-height-inches"
+                "ref": "option.middle-horizontal-panel-thickness-inches"
               },
               "right": {
                 "value": 2
@@ -903,62 +1096,64 @@
           ]
         }
       },
-      "configuration": {
-        "sizeInches": {
-          "widthInches": {
-            "op": "divide",
-            "left": {
-              "ref": "size.widthInches"
+      "sizeInches": {
+        "widthInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
             },
-            "right": {
-              "value": 2
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "size.widthInches"
+              },
+              "right": {
+                "op": "multiply",
+                "left": {
+                  "ref": "option.side-panel-thickness-inches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
             }
-          },
-          "depthInches": {
-            "value": 0.75
-          },
-          "heightInches": {
-            "ref": "option.door-section-height-inches"
-          }
+          ]
         },
-        "optionValues": {
-          "door-color": {
-            "ref": "option.door-color"
-          },
-          "handle-color": {
-            "ref": "option.handle-color"
-          },
-          "show-handle": {
-            "ref": "option.show-handles"
-          },
-          "handle-type": {
-            "ref": "option.door-handle-type"
-          },
-          "handle-position": {
-            "value": "right-center"
-          }
+        "depthInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "ref": "option.back-panel-thickness-inches"
+              }
+            }
+          ]
+        },
+        "heightInches": {
+          "ref": "option.middle-horizontal-panel-thickness-inches"
         }
       },
-      "role": "door",
-      "includeWhen": {
-        "ref": "option.show-doors",
-        "equals": true
-      }
+      "material": {
+        "colorOptionId": "cabinet-panel-color"
+      },
+      "role": "middle-horizontal-panel"
     },
     {
       "kind": "nested-assembly",
-      "id": "right-door",
-      "label": "Right Door",
-      "definitionId": "door",
+      "id": "bottom-drawer-front",
+      "label": "Bottom Drawer Front",
+      "definitionId": "drawer",
       "localPositionInches": {
         "xInches": {
-          "op": "divide",
-          "left": {
-            "ref": "size.widthInches"
-          },
-          "right": {
-            "value": 4
-          }
+          "value": 0
         },
         "yInches": {
           "op": "add",
@@ -1003,7 +1198,7 @@
             {
               "op": "divide",
               "left": {
-                "ref": "option.door-section-height-inches"
+                "ref": "option.drawer-section-height-inches"
               },
               "right": {
                 "value": 2
@@ -1015,24 +1210,18 @@
       "configuration": {
         "sizeInches": {
           "widthInches": {
-            "op": "divide",
-            "left": {
-              "ref": "size.widthInches"
-            },
-            "right": {
-              "value": 2
-            }
+            "ref": "size.widthInches"
           },
           "depthInches": {
             "value": 0.75
           },
           "heightInches": {
-            "ref": "option.door-section-height-inches"
+            "ref": "option.drawer-section-height-inches"
           }
         },
         "optionValues": {
-          "door-color": {
-            "ref": "option.door-color"
+          "drawer-color": {
+            "ref": "option.drawer-color"
           },
           "handle-color": {
             "ref": "option.handle-color"
@@ -1041,16 +1230,16 @@
             "ref": "option.show-handles"
           },
           "handle-type": {
-            "ref": "option.door-handle-type"
+            "ref": "option.drawer-handle-type"
           },
           "handle-position": {
-            "value": "left-center"
+            "ref": "option.drawer-handle-position"
           }
         }
       },
-      "role": "door",
+      "role": "drawer",
       "includeWhen": {
-        "ref": "option.show-doors",
+        "ref": "option.show-drawer",
         "equals": true
       }
     }
