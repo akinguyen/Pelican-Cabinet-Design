@@ -4,8 +4,22 @@ import type {
   KitchenEditorCatalogId,
 } from "./kitchenEditorCatalogConfig";
 
-export type KitchenEditorRawCatalogEntry = Readonly<{
+export type KitchenEditorVisibleRawCatalogEntry = Readonly<{
   catalogId: KitchenEditorCatalogId;
   categoryId: KitchenEditorCatalogCategoryId;
   rawDefinition: RawAssemblyDefinition;
 }>;
+
+export type KitchenEditorInternalRawCatalogEntry = Readonly<{
+  rawDefinition: RawAssemblyDefinition;
+}>;
+
+export type KitchenEditorRawCatalogEntry =
+  | KitchenEditorVisibleRawCatalogEntry
+  | KitchenEditorInternalRawCatalogEntry;
+
+export function isKitchenEditorVisibleRawCatalogEntry(
+  catalogEntry: KitchenEditorRawCatalogEntry,
+): catalogEntry is KitchenEditorVisibleRawCatalogEntry {
+  return "catalogId" in catalogEntry && "categoryId" in catalogEntry;
+}

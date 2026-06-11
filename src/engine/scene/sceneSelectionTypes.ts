@@ -6,4 +6,8 @@ export type SceneSelection =
   | Readonly<{
       kind: "placed-wall";
       placedWallId: string;
+    }>
+  | Readonly<{
+      kind: "countertop-opening";
+      countertopOpeningId: string;
     }>;

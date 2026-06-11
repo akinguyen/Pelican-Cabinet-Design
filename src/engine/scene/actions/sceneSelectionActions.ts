@@ -6,7 +6,7 @@ import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 export function createSceneSelectionActions(
   _get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
-): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedWall" | "clearSelection"> {
+): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedWall" | "selectCountertopOpening" | "clearSelection"> {
   return {
     selectPlacedAssembly(placedAssemblyId) {
       const selection: SceneSelection = {
@@ -19,6 +19,7 @@ export function createSceneSelectionActions(
           ...state.designScene,
           activeSelection: selection,
         },
+        assemblyPlacementFeedback: null,
       }));
     },
 
@@ -38,6 +39,20 @@ export function createSceneSelectionActions(
                 }
               : state.designScene.activeSceneOperation,
         },
+        assemblyPlacementFeedback: null,
+      }));
+    },
+
+    selectCountertopOpening(countertopOpeningId) {
+      set((state) => ({
+        designScene: {
+          ...state.designScene,
+          activeSelection: {
+            kind: "countertop-opening",
+            countertopOpeningId,
+          },
+        },
+        assemblyPlacementFeedback: null,
       }));
     },
 
@@ -47,6 +62,7 @@ export function createSceneSelectionActions(
           ...state.designScene,
           activeSelection: null,
         },
+        assemblyPlacementFeedback: null,
       }));
     },
   };

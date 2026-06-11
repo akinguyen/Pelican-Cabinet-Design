@@ -74,6 +74,16 @@ export function createSceneToolbarActions(
           };
         }
 
+        if (isCountertopCutoutTool(toolbarTool)) {
+          return {
+            activeToolbarTool: toolbarTool,
+            designScene: {
+              ...state.designScene,
+              activeSceneOperation: null,
+            },
+          };
+        }
+
         return {
           activeToolbarTool: null,
           designScene: {
@@ -93,6 +103,15 @@ function isToolbarSceneOperation(
 ): boolean {
   return (
     activeSceneOperation?.kind === "wall-footprint-draft" ||
-    activeSceneOperation?.kind === "wall-split-draft"
+    activeSceneOperation?.kind === "wall-split-draft" ||
+    activeSceneOperation?.kind === "countertop-cutout-draft" ||
+    activeSceneOperation?.kind === "countertop-opening-drag"
+  );
+}
+
+
+function isCountertopCutoutTool(toolbarTool: DesignSceneStore["activeToolbarTool"]): boolean {
+  return (
+    toolbarTool === "draw-countertop-cutout-rectangle"
   );
 }

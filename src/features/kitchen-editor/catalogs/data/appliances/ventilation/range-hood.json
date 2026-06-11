@@ -320,8 +320,7 @@
       "id": "hood-canopy",
       "label": "Hood Canopy",
       "geometry": {
-        "kind": "custom-mesh",
-        "meshId": "rectangular-frustum",
+        "kind": "rectangular-frustum",
         "topWidthRatio": 0.34,
         "topDepthRatio": 0.46
       },

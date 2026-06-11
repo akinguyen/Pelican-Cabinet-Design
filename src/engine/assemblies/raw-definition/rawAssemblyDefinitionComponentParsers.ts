@@ -176,24 +176,19 @@ function parsePrimitiveGeometry(
   const kind = readEnumValue(geometry.kind, sourceLabel, `${path}.kind`, [
     "box",
     "cylinder",
-    "custom-mesh",
+    "rectangular-frustum",
+    "l-shaped-prism",
   ] as const);
 
-  if (kind !== "custom-mesh") {
+  if (kind === "box" || kind === "cylinder") {
     assertKnownKeys(geometry, sourceLabel, path, ["kind"]);
 
     return { kind };
   }
 
-  const meshId = readEnumValue(geometry.meshId, sourceLabel, `${path}.meshId`, [
-    "l-shaped-prism",
-    "rectangular-frustum",
-  ] as const);
-
-  if (meshId === "l-shaped-prism") {
+  if (kind === "l-shaped-prism") {
     assertKnownKeys(geometry, sourceLabel, path, [
       "kind",
-      "meshId",
       "cutoutWidthRatio",
       "cutoutDepthRatio",
       "cutoutCorner",
@@ -208,12 +203,11 @@ function parsePrimitiveGeometry(
       ["front-left", "front-right"] as const,
     );
 
-    validateCustomMeshRatio(cutoutWidthRatio, sourceLabel, `${path}.cutoutWidthRatio`);
-    validateCustomMeshRatio(cutoutDepthRatio, sourceLabel, `${path}.cutoutDepthRatio`);
+    validatePrimitiveRatio(cutoutWidthRatio, sourceLabel, `${path}.cutoutWidthRatio`);
+    validatePrimitiveRatio(cutoutDepthRatio, sourceLabel, `${path}.cutoutDepthRatio`);
 
     return {
       kind,
-      meshId,
       cutoutWidthRatio,
       cutoutDepthRatio,
       cutoutCorner,
@@ -222,7 +216,6 @@ function parsePrimitiveGeometry(
 
   assertKnownKeys(geometry, sourceLabel, path, [
     "kind",
-    "meshId",
     "topWidthRatio",
     "topDepthRatio",
   ]);
@@ -230,18 +223,17 @@ function parsePrimitiveGeometry(
   const topWidthRatio = readNumber(geometry, sourceLabel, `${path}.topWidthRatio`);
   const topDepthRatio = readNumber(geometry, sourceLabel, `${path}.topDepthRatio`);
 
-  validateCustomMeshRatio(topWidthRatio, sourceLabel, `${path}.topWidthRatio`);
-  validateCustomMeshRatio(topDepthRatio, sourceLabel, `${path}.topDepthRatio`);
+  validatePrimitiveRatio(topWidthRatio, sourceLabel, `${path}.topWidthRatio`);
+  validatePrimitiveRatio(topDepthRatio, sourceLabel, `${path}.topDepthRatio`);
 
   return {
     kind,
-    meshId,
     topWidthRatio,
     topDepthRatio,
   };
 }
 
-function validateCustomMeshRatio(
+function validatePrimitiveRatio(
   value: number,
   sourceLabel: string,
   path: string,

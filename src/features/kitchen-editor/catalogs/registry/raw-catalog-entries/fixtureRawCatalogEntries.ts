@@ -3,6 +3,7 @@ import type { KitchenEditorRawCatalogEntry } from "../kitchenEditorRawCatalogEnt
 
 import dropInSinkRawDefinitionData from "../../data/fixtures/sinks/drop-in-sink.json";
 import farmSinkRawDefinitionData from "../../data/fixtures/sinks/farm-sink.json";
+import faucetRawDefinitionData from "../../data/fixtures/faucets/faucet.json";
 
 export const fixtureRawCatalogEntries = [
   {
@@ -19,6 +20,14 @@ export const fixtureRawCatalogEntries = [
     rawDefinition: parseRawAssemblyDefinition(
       farmSinkRawDefinitionData,
       "fixtures/sinks/farm-sink.json",
+    ),
+  },
+  {
+    catalogId: "fixtures",
+    categoryId: "faucets",
+    rawDefinition: parseRawAssemblyDefinition(
+      faucetRawDefinitionData,
+      "fixtures/faucets/faucet.json",
     ),
   },
 ] as const satisfies readonly KitchenEditorRawCatalogEntry[];

@@ -7,28 +7,20 @@ export type PrimitiveCylinderGeometry = Readonly<{
 }>;
 
 export type PrimitiveRectangularFrustumGeometry = Readonly<{
-  kind: "custom-mesh";
-  meshId: "rectangular-frustum";
+  kind: "rectangular-frustum";
   topWidthRatio: number;
   topDepthRatio: number;
 }>;
 
 export type PrimitiveLShapedPrismGeometry = Readonly<{
-  kind: "custom-mesh";
-  meshId: "l-shaped-prism";
+  kind: "l-shaped-prism";
   cutoutWidthRatio: number;
   cutoutDepthRatio: number;
   cutoutCorner: "front-left" | "front-right";
 }>;
 
 export type CountertopSlabOpening = Readonly<{
-  shape: "rectangle" | "rounded-rectangle";
-  centerXInches: number;
-  centerYInches: number;
-  widthInches: number;
-  depthInches: number;
-  rotationDegrees: number;
-  cornerRadiusInches: number;
+  clippedPolygonInches: readonly Readonly<{ xInches: number; yInches: number }>[];
 }>;
 
 export type PrimitiveCountertopSlabGeometry = Readonly<{
@@ -37,12 +29,11 @@ export type PrimitiveCountertopSlabGeometry = Readonly<{
   openingsInches: readonly CountertopSlabOpening[];
 }>;
 
-export type PrimitiveCustomMeshGeometry =
-  | PrimitiveRectangularFrustumGeometry
-  | PrimitiveLShapedPrismGeometry
-  | PrimitiveCountertopSlabGeometry;
+export type PrimitiveCustomMeshGeometry = PrimitiveCountertopSlabGeometry;
 
 export type PrimitiveGeometry =
   | PrimitiveBoxGeometry
   | PrimitiveCylinderGeometry
+  | PrimitiveRectangularFrustumGeometry
+  | PrimitiveLShapedPrismGeometry
   | PrimitiveCustomMeshGeometry;

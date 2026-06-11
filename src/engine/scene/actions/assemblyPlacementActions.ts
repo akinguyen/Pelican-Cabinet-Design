@@ -1,3 +1,4 @@
+import { applyAssemblyWallPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
@@ -27,20 +28,39 @@ export function createAssemblyPlacementActions(
           },
           activeSelection: null,
         },
+        assemblyPlacementFeedback: null,
         activeToolbarTool: null,
       }));
     },
 
-    updateAssemblyCandidateWorldPosition(worldPositionInches) {
+    updateAssemblyCandidateWorldPosition(worldPositionInches, sceneViewMode) {
       if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
 
-      const activeSceneOperation = get().designScene.activeSceneOperation;
+      const { designScene } = get();
+      const activeSceneOperation = designScene.activeSceneOperation;
 
       if (activeSceneOperation?.kind !== "assembly-placement") {
         return;
       }
+
+      const proposedPlacedAssembly = {
+        ...activeSceneOperation.placedAssembly,
+        worldPositionInches,
+      };
+      const placementResult = sceneViewMode === "elevation"
+        ? {
+            placedAssembly: proposedPlacedAssembly,
+            feedback: createAssemblyPlacementFeedback({
+              placedAssembly: proposedPlacedAssembly,
+              placedWalls: designScene.placedWalls,
+            }),
+          }
+        : applyAssemblyWallPlacementRules({
+            placedAssembly: proposedPlacedAssembly,
+            placedWalls: designScene.placedWalls,
+          });
 
       set((state) => ({
         designScene: {
@@ -48,12 +68,10 @@ export function createAssemblyPlacementActions(
           activeSceneOperation: {
             ...activeSceneOperation,
             placementState: "positioned",
-            placedAssembly: {
-              ...activeSceneOperation.placedAssembly,
-              worldPositionInches,
-            },
+            placedAssembly: placementResult.placedAssembly,
           },
         },
+        assemblyPlacementFeedback: placementResult.feedback,
       }));
     },
 
@@ -62,9 +80,20 @@ export function createAssemblyPlacementActions(
         return;
       }
 
-      const activeSceneOperation = get().designScene.activeSceneOperation;
+      const { designScene, assemblyPlacementFeedback } = get();
+      const activeSceneOperation = designScene.activeSceneOperation;
 
       if (activeSceneOperation?.kind !== "assembly-placement" || activeSceneOperation.placementState !== "positioned") {
+        return;
+      }
+
+      const placementFeedback = assemblyPlacementFeedback ?? createAssemblyPlacementFeedback({
+        placedAssembly: activeSceneOperation.placedAssembly,
+        placedWalls: designScene.placedWalls,
+      });
+
+      if (!placementFeedback.isValid) {
+        set({ assemblyPlacementFeedback: placementFeedback });
         return;
       }
 
@@ -78,6 +107,7 @@ export function createAssemblyPlacementActions(
           },
           activeSceneOperation: null,
         },
+        assemblyPlacementFeedback: null,
       }));
     },
 
@@ -87,6 +117,7 @@ export function createAssemblyPlacementActions(
           ...state.designScene,
           activeSceneOperation: null,
         },
+        assemblyPlacementFeedback: null,
       }));
     },
   };

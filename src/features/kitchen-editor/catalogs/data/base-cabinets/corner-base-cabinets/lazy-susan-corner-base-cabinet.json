@@ -255,8 +255,7 @@
       "id": "top-l-shaped-panel",
       "label": "Top L-Shaped Panel",
       "geometry": {
-        "kind": "custom-mesh",
-        "meshId": "l-shaped-prism",
+        "kind": "l-shaped-prism",
         "cutoutWidthRatio": 0.3333333333,
         "cutoutDepthRatio": 0.3333333333,
         "cutoutCorner": "front-right"
@@ -311,8 +310,7 @@
       "id": "bottom-l-shaped-panel",
       "label": "Bottom L-Shaped Panel",
       "geometry": {
-        "kind": "custom-mesh",
-        "meshId": "l-shaped-prism",
+        "kind": "l-shaped-prism",
         "cutoutWidthRatio": 0.3333333333,
         "cutoutDepthRatio": 0.3333333333,
         "cutoutCorner": "front-right"
@@ -1326,8 +1324,7 @@
       "id": "toe-kick-l-shaped-panel",
       "label": "L-Shaped Toe Kick",
       "geometry": {
-        "kind": "custom-mesh",
-        "meshId": "l-shaped-prism",
+        "kind": "l-shaped-prism",
         "cutoutWidthRatio": 0.3333333333,
         "cutoutDepthRatio": 0.3333333333,
         "cutoutCorner": "front-right"

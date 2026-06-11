@@ -93,7 +93,7 @@ export function FloorPlanCameraControls() {
   return (
     <OrbitControls
       ref={controlsRef}
-      enabled={activeDrag === null}
+      enabled={activeDrag === null && activeSceneOperation?.kind !== "countertop-opening-drag"}
       makeDefault
       enableRotate={false}
       enablePan={!isEditorOperationActive}

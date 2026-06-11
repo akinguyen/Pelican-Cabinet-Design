@@ -76,7 +76,7 @@ export function PerspectiveCameraControls() {
   return (
     <OrbitControls
       ref={controlsRef}
-      enabled={activeDrag === null}
+      enabled={activeDrag === null && activeSceneOperation?.kind !== "countertop-opening-drag"}
       makeDefault
       enableDamping
       dampingFactor={PERSPECTIVE_CAMERA_DAMPING_FACTOR}

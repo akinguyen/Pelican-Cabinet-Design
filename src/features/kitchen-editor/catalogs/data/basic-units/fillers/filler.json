@@ -1,0 +1,96 @@
+{
+  "id": "filler",
+  "name": "Filler",
+  "catalogCategoryId": "basic-units/fillers",
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 3,
+      "optionsInches": [
+        { "valueInches": 3, "label": "3 in" },
+        { "valueInches": 4, "label": "4 in" },
+        { "valueInches": 5, "label": "5 in" },
+        { "valueInches": 6, "label": "6 in" }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 3,
+      "maxValueInches": 12,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 0.75,
+      "optionsInches": [
+        { "valueInches": 0.75, "label": "3/4 in" },
+        { "valueInches": 1, "label": "1 in" }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 0.25,
+      "maxValueInches": 3,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 34.5,
+      "optionsInches": [
+        { "valueInches": 30, "label": "30 in" },
+        { "valueInches": 34.5, "label": "34 1/2 in" },
+        { "valueInches": 36, "label": "36 in" },
+        { "valueInches": 42, "label": "42 in" },
+        { "valueInches": 84, "label": "84 in" },
+        { "valueInches": 90, "label": "90 in" },
+        { "valueInches": 96, "label": "96 in" }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 6,
+      "maxValueInches": 96,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "filler-color",
+          "label": "Filler color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#fef3c7",
+          "choices": [
+            { "value": "#fef3c7", "label": "Light yellow" },
+            { "value": "#fde68a", "label": "Warm yellow" },
+            { "value": "#f8fafc", "label": "White" },
+            { "value": "#d8b27a", "label": "Natural maple" },
+            { "value": "#9ca3af", "label": "Gray" }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "filler-body",
+      "label": "Filler Body",
+      "geometry": { "kind": "box" },
+      "localPositionInches": {
+        "xInches": { "value": 0 },
+        "yInches": { "value": 0 },
+        "zInches": { "value": 0 }
+      },
+      "sizeInches": {
+        "widthInches": { "ref": "size.widthInches" },
+        "depthInches": { "ref": "size.depthInches" },
+        "heightInches": { "ref": "size.heightInches" }
+      },
+      "material": { "colorOptionId": "filler-color" },
+      "role": "filler-body",
+      "frontOutlineEdges": ["top", "right", "bottom", "left"]
+    }
+  ]
+}

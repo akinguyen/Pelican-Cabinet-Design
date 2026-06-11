@@ -5,9 +5,8 @@ export const kitchenEditorCatalogs = [
     iconId: "basic-units",
     categories: [
       { id: "all", label: "All" },
-      { id: "doors", label: "Doors" },
-      { id: "drawers", label: "Drawers" },
       { id: "panels", label: "Panels" },
+      { id: "fillers", label: "Fillers" },
     ],
   },
   {
@@ -53,7 +52,6 @@ export const kitchenEditorCatalogs = [
       { id: "microwave-cabinets", label: "Microwave Cabinets" },
     ],
   },
-
   {
     id: "surfaces",
     label: "Surfaces",
@@ -77,20 +75,80 @@ export const kitchenEditorCatalogs = [
     ],
   },
   {
+    id: "openings",
+    label: "Openings",
+    iconId: "openings",
+    categories: [
+      { id: "all", label: "All" },
+      { id: "doors", label: "Doors" },
+      { id: "windows", label: "Windows" },
+    ],
+  },
+  {
     id: "fixtures",
     label: "Fixtures",
     iconId: "fixtures",
     categories: [
       { id: "all", label: "All" },
       { id: "sinks", label: "Sinks" },
+      { id: "faucets", label: "Faucets" },
     ],
+  },
+] as const;
+
+export const kitchenEditorCabinetCatalogIds = [
+  "base-cabinets",
+  "wall-cabinets",
+  "pantry-cabinets",
+  "built-in-cabinets",
+] as const;
+
+export const kitchenEditorCatalogSelectorItems = [
+  {
+    id: "basic-units",
+    label: "Basic Units",
+    iconId: "basic-units",
+    catalogIds: ["basic-units"],
+  },
+  {
+    id: "cabinets",
+    label: "Cabinets",
+    iconId: "cabinets",
+    catalogIds: kitchenEditorCabinetCatalogIds,
+  },
+  {
+    id: "surfaces",
+    label: "Surfaces",
+    iconId: "surfaces",
+    catalogIds: ["surfaces"],
+  },
+  {
+    id: "appliances",
+    label: "Appliances",
+    iconId: "appliances",
+    catalogIds: ["appliances"],
+  },
+  {
+    id: "openings",
+    label: "Openings",
+    iconId: "openings",
+    catalogIds: ["openings"],
+  },
+  {
+    id: "fixtures",
+    label: "Fixtures",
+    iconId: "fixtures",
+    catalogIds: ["fixtures"],
   },
 ] as const;
 
 export type KitchenEditorCatalog = (typeof kitchenEditorCatalogs)[number];
 export type KitchenEditorCatalogId = KitchenEditorCatalog["id"];
+export type KitchenEditorCabinetCatalogId = (typeof kitchenEditorCabinetCatalogIds)[number];
 export type KitchenEditorCatalogCategory = KitchenEditorCatalog["categories"][number];
 export type KitchenEditorCatalogCategoryId = KitchenEditorCatalogCategory["id"];
+export type KitchenEditorCatalogSelectorItem = (typeof kitchenEditorCatalogSelectorItems)[number];
+export type KitchenEditorCatalogSelectorItemId = KitchenEditorCatalogSelectorItem["id"];
 
 export function getKitchenEditorCatalog(
   catalogId: KitchenEditorCatalogId,
@@ -108,4 +166,32 @@ export function getDefaultKitchenEditorCatalogCategoryId(
   catalogId: KitchenEditorCatalogId,
 ): KitchenEditorCatalogCategoryId {
   return getKitchenEditorCatalog(catalogId).categories[0].id;
+}
+
+export function isKitchenEditorCabinetCatalogId(
+  catalogId: KitchenEditorCatalogId,
+): catalogId is KitchenEditorCabinetCatalogId {
+  return (kitchenEditorCabinetCatalogIds as readonly string[]).includes(catalogId);
+}
+
+export function getDefaultKitchenEditorCabinetCatalogId(): KitchenEditorCabinetCatalogId {
+  return kitchenEditorCabinetCatalogIds[0];
+}
+
+export function getKitchenEditorCabinetCatalogs(): readonly KitchenEditorCatalog[] {
+  return kitchenEditorCabinetCatalogIds.map(getKitchenEditorCatalog);
+}
+
+export function getKitchenEditorCatalogSelectorItemForCatalogId(
+  catalogId: KitchenEditorCatalogId,
+): KitchenEditorCatalogSelectorItem {
+  const selectorItem = kitchenEditorCatalogSelectorItems.find((item) =>
+    (item.catalogIds as readonly string[]).includes(catalogId),
+  );
+
+  if (selectorItem === undefined) {
+    throw new Error(`Unknown kitchen editor catalog selector item for catalog "${catalogId}".`);
+  }
+
+  return selectorItem;
 }

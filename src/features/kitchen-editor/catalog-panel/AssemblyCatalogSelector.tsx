@@ -1,39 +1,45 @@
 "use client";
 
-import { Archive, Box, Package, Puzzle, Workflow } from "lucide-react";
+import { Archive, Box, DoorOpen, Package, Puzzle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { KitchenEditorCatalogId } from "../catalogs/registry/kitchenEditorCatalogConfig";
-import { kitchenEditorCatalogs } from "../catalogs/registry/kitchenEditorCatalogConfig";
+import type {
+  KitchenEditorCatalogId,
+  KitchenEditorCatalogSelectorItemId,
+} from "../catalogs/registry/kitchenEditorCatalogConfig";
+import {
+  getKitchenEditorCatalogSelectorItemForCatalogId,
+  kitchenEditorCatalogSelectorItems,
+} from "../catalogs/registry/kitchenEditorCatalogConfig";
 
 const catalogSelectorIcons = {
   "basic-units": Box,
-  "base-cabinets": Workflow,
-  "wall-cabinets": Box,
-  "pantry-cabinets": Archive,
-  "built-in-cabinets": Package,
+  cabinets: Archive,
   appliances: Package,
   fixtures: Puzzle,
   surfaces: Box,
+  openings: DoorOpen,
 } satisfies Readonly<Record<string, LucideIcon>>;
 
 type AssemblyCatalogSelectorProps = Readonly<{
   activeCatalogId: KitchenEditorCatalogId;
-  onSelectCatalog: (catalogId: KitchenEditorCatalogId) => void;
+  onSelectCatalogGroup: (selectorItemId: KitchenEditorCatalogSelectorItemId) => void;
 }>;
 
-export function AssemblyCatalogSelector({ activeCatalogId, onSelectCatalog }: AssemblyCatalogSelectorProps) {
+export function AssemblyCatalogSelector({ activeCatalogId, onSelectCatalogGroup }: AssemblyCatalogSelectorProps) {
+  const activeSelectorItem = getKitchenEditorCatalogSelectorItemForCatalogId(activeCatalogId);
+
   return (
     <nav className="flex w-20 shrink-0 flex-col border-l border-slate-200 bg-white py-3">
-      {kitchenEditorCatalogs.map((catalog) => {
-        const Icon = catalogSelectorIcons[catalog.iconId] ?? Box;
-        const isActive = catalog.id === activeCatalogId;
+      {kitchenEditorCatalogSelectorItems.map((selectorItem) => {
+        const Icon = catalogSelectorIcons[selectorItem.iconId] ?? Box;
+        const isActive = selectorItem.id === activeSelectorItem.id;
 
         return (
           <button
-            key={catalog.id}
+            key={selectorItem.id}
             type="button"
             className="mx-2 mb-2 rounded-xl px-2 py-3 text-center transition hover:bg-slate-100"
-            onClick={() => onSelectCatalog(catalog.id)}
+            onClick={() => onSelectCatalogGroup(selectorItem.id)}
             aria-pressed={isActive}
           >
             <span
@@ -52,7 +58,7 @@ export function AssemblyCatalogSelector({ activeCatalogId, onSelectCatalog }: As
                   : "mt-1.5 block text-[11px] font-medium leading-4 text-slate-500"
               }
             >
-              {catalog.label}
+              {selectorItem.label}
             </span>
           </button>
         );

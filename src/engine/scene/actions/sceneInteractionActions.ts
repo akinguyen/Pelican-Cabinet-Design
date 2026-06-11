@@ -18,12 +18,31 @@ export function createSceneInteractionActions(
         return;
       }
 
+      if (designScene.activeSceneOperation?.kind === "countertop-opening-drag") {
+        get().finishCountertopOpeningDrag();
+        return;
+      }
+
+      if (
+        activeToolbarTool === "draw-countertop-cutout-rectangle" ||
+        designScene.activeSceneOperation?.kind === "countertop-cutout-draft"
+      ) {
+        get().cancelCountertopCutoutDraft();
+        set({ activeToolbarTool: null });
+        return;
+      }
+
       if (designScene.activeSceneOperation !== null) {
         get().cancelActiveSceneOperation();
         return;
       }
 
-      if (activeDrag !== null) {
+      if (activeDrag?.kind === "assembly-rotation") {
+        get().cancelAssemblyRotationDrag();
+        return;
+      }
+
+      if (activeDrag?.kind === "assembly-move") {
         get().cancelAssemblyDrag();
         return;
       }

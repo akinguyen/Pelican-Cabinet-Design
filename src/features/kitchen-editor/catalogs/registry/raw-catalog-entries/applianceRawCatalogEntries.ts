@@ -9,6 +9,7 @@ import builtInDoubleOvenRawDefinitionData from "../../data/appliances/cooking/bu
 import rangeApplianceRawDefinitionData from "../../data/appliances/cooking/range-appliance.json";
 import dishwasherRawDefinitionData from "../../data/appliances/dishwashers/dishwasher.json";
 import dropInCooktopRawDefinitionData from "../../data/appliances/cooktops/drop-in-cooktop.json";
+import rangetopRawDefinitionData from "../../data/appliances/cooktops/rangetop.json";
 
 export const applianceRawCatalogEntries = [
   {
@@ -73,6 +74,14 @@ export const applianceRawCatalogEntries = [
     rawDefinition: parseRawAssemblyDefinition(
       dropInCooktopRawDefinitionData,
       "appliances/cooktops/drop-in-cooktop.json",
+    ),
+  },
+  {
+    catalogId: "appliances",
+    categoryId: "cooktops",
+    rawDefinition: parseRawAssemblyDefinition(
+      rangetopRawDefinitionData,
+      "appliances/cooktops/rangetop.json",
     ),
   },
 ] as const satisfies readonly KitchenEditorRawCatalogEntry[];

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { createAssemblyDragActions } from "./actions/assemblyDragActions";
 import { createAssemblyEditingActions } from "./actions/assemblyEditingActions";
 import { createAssemblyPlacementActions } from "./actions/assemblyPlacementActions";
+import { createAssemblyRotationActions } from "./actions/assemblyRotationActions";
 import { createCountertopOpeningActions } from "./actions/countertopOpeningActions";
 import { createSceneCameraStateActions } from "./actions/sceneCameraStateActions";
 import { createSceneInteractionActions } from "./actions/sceneInteractionActions";
@@ -26,6 +27,7 @@ export const useDesignSceneStore = create<DesignSceneStore>((set, get) => ({
   ...createAssemblyPlacementActions(get, set),
   ...createSceneSelectionActions(get, set),
   ...createAssemblyDragActions(get, set),
+  ...createAssemblyRotationActions(get, set),
   ...createAssemblyEditingActions(get, set),
   ...createCountertopOpeningActions(get, set),
   ...createWallFootprintDraftActions(get, set),

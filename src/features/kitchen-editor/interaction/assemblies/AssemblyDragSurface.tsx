@@ -13,9 +13,10 @@ export function AssemblyDragSurface() {
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
   const updateAssemblyDrag = useDesignSceneStore((state) => state.updateAssemblyDrag);
   const finishAssemblyDrag = useDesignSceneStore((state) => state.finishAssemblyDrag);
+  const moveDrag = activeDrag?.kind === "assembly-move" ? activeDrag : null;
 
   useEffect(() => {
-    if (!canManuallyEditScene(workspaceMode) || activeDrag === null) {
+    if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
       return;
     }
 
@@ -28,22 +29,22 @@ export function AssemblyDragSurface() {
     return () => {
       window.removeEventListener("pointerup", handleWindowPointerUp);
     };
-  }, [activeDrag, finishAssemblyDrag, workspaceMode]);
+  }, [finishAssemblyDrag, moveDrag, workspaceMode]);
 
-  if (!canManuallyEditScene(workspaceMode) || activeDrag === null) {
+  if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
     return null;
   }
 
   function handlePointerMove(event: ThreeEvent<PointerEvent>) {
-    if (!canManuallyEditScene(workspaceMode) || activeDrag === null) {
+    if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
       return;
     }
 
     event.stopPropagation();
     const pointerWorldInches = createAssemblyDragPointerWorldPoint(
-      activeDrag.sceneViewMode,
+      moveDrag.sceneViewMode,
       event.ray,
-      activeDrag.dragStartWorldPositionInches.yInches,
+      moveDrag.dragStartWorldPositionInches.yInches,
     );
 
     if (pointerWorldInches !== null) {
@@ -56,10 +57,10 @@ export function AssemblyDragSurface() {
     finishAssemblyDrag();
   }
 
-  if (activeDrag.sceneViewMode === "elevation") {
+  if (moveDrag.sceneViewMode === "elevation") {
     return (
       <mesh
-        position={[0, activeDrag.dragStartWorldPositionInches.yInches, 120]}
+        position={[0, moveDrag.dragStartWorldPositionInches.yInches, 120]}
         rotation={[Math.PI / 2, 0, 0]}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

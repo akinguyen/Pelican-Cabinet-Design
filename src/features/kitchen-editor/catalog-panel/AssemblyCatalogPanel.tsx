@@ -8,16 +8,20 @@ import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type {
   KitchenEditorCatalogCategoryId,
   KitchenEditorCatalogId,
+  KitchenEditorCatalogSelectorItemId,
 } from "../catalogs/registry/kitchenEditorCatalogConfig";
 import {
+  getDefaultKitchenEditorCabinetCatalogId,
   getDefaultKitchenEditorCatalogCategoryId,
   getKitchenEditorCatalog,
+  isKitchenEditorCabinetCatalogId,
   kitchenEditorCatalogs,
 } from "../catalogs/registry/kitchenEditorCatalogConfig";
 import { AssemblyCatalogCategorySelect } from "./AssemblyCatalogCategorySelect";
 import { AssemblyCatalogGrid } from "./AssemblyCatalogGrid";
 import { AssemblyCatalogHeader } from "./AssemblyCatalogHeader";
 import { AssemblyCatalogSelector } from "./AssemblyCatalogSelector";
+import { AssemblyCatalogTypeSelect } from "./AssemblyCatalogTypeSelect";
 
 const initialAssemblyCandidatePositionInches: Point3DInches = {
   xInches: 0,
@@ -40,6 +44,15 @@ export function AssemblyCatalogPanel() {
     setActiveCategoryId(getDefaultKitchenEditorCatalogCategoryId(catalogId));
   }
 
+  function handleSelectCatalogGroup(selectorItemId: KitchenEditorCatalogSelectorItemId) {
+    if (selectorItemId === "cabinets") {
+      handleSelectCatalog(getDefaultKitchenEditorCabinetCatalogId());
+      return;
+    }
+
+    handleSelectCatalog(selectorItemId as KitchenEditorCatalogId);
+  }
+
   function handleSelectAssemblyDefinition(definition: AssemblyDefinition) {
     startAssemblyPlacementCandidate(
       createPlacedAssemblyFromDefinition(definition, initialAssemblyCandidatePositionInches),
@@ -51,6 +64,12 @@ export function AssemblyCatalogPanel() {
       <div className="flex min-w-0 flex-1 flex-col p-3">
         <div className="shrink-0 space-y-3 pb-3">
           <AssemblyCatalogHeader catalog={activeCatalog} />
+          {isKitchenEditorCabinetCatalogId(activeCatalogId) ? (
+            <AssemblyCatalogTypeSelect
+              activeCatalogId={activeCatalogId}
+              onSelectCatalogType={handleSelectCatalog}
+            />
+          ) : null}
           <AssemblyCatalogCategorySelect
             activeCatalogId={activeCatalogId}
             activeCategoryId={activeCategoryId}
@@ -65,7 +84,7 @@ export function AssemblyCatalogPanel() {
           />
         </div>
       </div>
-      <AssemblyCatalogSelector activeCatalogId={activeCatalogId} onSelectCatalog={handleSelectCatalog} />
+      <AssemblyCatalogSelector activeCatalogId={activeCatalogId} onSelectCatalogGroup={handleSelectCatalogGroup} />
     </div>
   );
 }

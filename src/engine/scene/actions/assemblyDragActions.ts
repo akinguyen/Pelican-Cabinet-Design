@@ -1,5 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { AssemblyDragState } from "../sceneDragTypes";
+import { applyAssemblyWallPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
+import type { AssemblyMoveDragState } from "../sceneDragTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
@@ -26,11 +27,17 @@ export function createAssemblyDragActions(
 
       set({
         activeDrag: {
+          kind: "assembly-move",
           assemblyId,
           dragStartPointerWorldInches: pointerWorldInches,
           dragStartWorldPositionInches: placedAssembly.worldPositionInches,
+          latestValidWorldPositionInches: placedAssembly.worldPositionInches,
           sceneViewMode,
         },
+        assemblyPlacementFeedback: createAssemblyPlacementFeedback({
+          placedAssembly,
+          placedWalls: get().designScene.placedWalls,
+        }),
       });
     },
 
@@ -41,7 +48,7 @@ export function createAssemblyDragActions(
 
       const activeDrag = get().activeDrag;
 
-      if (activeDrag === null) {
+      if (activeDrag?.kind !== "assembly-move") {
         return;
       }
 
@@ -53,11 +60,86 @@ export function createAssemblyDragActions(
         return;
       }
 
-      const nextWorldPositionInches = createDraggedAssemblyWorldPosition(
+      const proposedWorldPositionInches = createDraggedAssemblyWorldPosition(
         activeDrag,
         pointerWorldInches,
         placedAssembly.configuration.sizeInches.heightInches,
       );
+      const proposedPlacedAssembly = {
+        ...placedAssembly,
+        worldPositionInches: proposedWorldPositionInches,
+      };
+      const placementResult = activeDrag.sceneViewMode === "elevation"
+        ? {
+            placedAssembly: proposedPlacedAssembly,
+            feedback: createAssemblyPlacementFeedback({
+              placedAssembly: proposedPlacedAssembly,
+              placedWalls: get().designScene.placedWalls,
+            }),
+          }
+        : applyAssemblyWallPlacementRules({
+            placedAssembly: proposedPlacedAssembly,
+            placedWalls: get().designScene.placedWalls,
+          });
+      const nextActiveDrag: AssemblyMoveDragState = {
+        ...activeDrag,
+        latestValidWorldPositionInches: placementResult.feedback.isValid
+          ? placementResult.placedAssembly.worldPositionInches
+          : activeDrag.latestValidWorldPositionInches,
+      };
+
+      set((state) => ({
+        designScene: {
+          ...state.designScene,
+          placedAssemblies: state.designScene.placedAssemblies.map((assembly) =>
+            assembly.id === activeDrag.assemblyId
+              ? placementResult.placedAssembly
+              : assembly,
+          ),
+        },
+        activeDrag: nextActiveDrag,
+        assemblyPlacementFeedback: placementResult.feedback,
+      }));
+    },
+
+    finishAssemblyDrag() {
+      const activeDrag = get().activeDrag;
+      const placementFeedback = get().assemblyPlacementFeedback;
+
+      if (activeDrag?.kind !== "assembly-move") {
+        set({ activeDrag: null, assemblyPlacementFeedback: null });
+        return;
+      }
+
+      if (placementFeedback?.isValid === false) {
+        set((state) => ({
+          designScene: {
+            ...state.designScene,
+            placedAssemblies: state.designScene.placedAssemblies.map((assembly) =>
+              assembly.id === activeDrag.assemblyId
+                ? {
+                    ...assembly,
+                    worldPositionInches: activeDrag.latestValidWorldPositionInches,
+                  }
+                : assembly,
+            ),
+          },
+          activeDrag: null,
+          assemblyPlacementFeedback: null,
+        }));
+        return;
+      }
+
+      set({ activeDrag: null, assemblyPlacementFeedback: null });
+    },
+
+    cancelAssemblyDrag() {
+      const activeDrag = get().activeDrag;
+
+      if (activeDrag?.kind !== "assembly-move") {
+        set({ activeDrag: null, assemblyPlacementFeedback: null });
+        return;
+      }
 
       set((state) => ({
         designScene: {
@@ -66,26 +148,20 @@ export function createAssemblyDragActions(
             assembly.id === activeDrag.assemblyId
               ? {
                   ...assembly,
-                  worldPositionInches: nextWorldPositionInches,
+                  worldPositionInches: activeDrag.dragStartWorldPositionInches,
                 }
               : assembly,
           ),
         },
+        activeDrag: null,
+        assemblyPlacementFeedback: null,
       }));
-    },
-
-    finishAssemblyDrag() {
-      set({ activeDrag: null });
-    },
-
-    cancelAssemblyDrag() {
-      set({ activeDrag: null });
     },
   };
 }
 
 function createDraggedAssemblyWorldPosition(
-  activeDrag: AssemblyDragState,
+  activeDrag: AssemblyMoveDragState,
   pointerWorldInches: Point3DInches,
   assemblyHeightInches: number,
 ): Point3DInches {

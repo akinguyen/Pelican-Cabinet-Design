@@ -37,6 +37,7 @@ export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
         heightInches,
         distanceFromFloorInches,
       ),
+      sceneViewMode,
     );
   }
 

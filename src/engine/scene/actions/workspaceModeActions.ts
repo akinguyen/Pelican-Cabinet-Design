@@ -17,6 +17,7 @@ export function createWorkspaceModeActions(
             activeToolbarTool: null,
             cameraCommand: null,
             activeDrag: null,
+            assemblyPlacementFeedback: null,
             designScene: {
               ...state.designScene,
               activeSceneOperation: null,

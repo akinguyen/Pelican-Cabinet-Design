@@ -2,6 +2,7 @@ import type {
   BuiltAssemblyTree,
   BuiltPrimitiveGeometry,
 } from "@/engine/assemblies/assemblyTreeBuilder";
+import { createCountertopOpeningClippedPolygon } from "./countertopOpeningGeometry";
 import type { CountertopOpening } from "./countertopOpeningTypes";
 
 const COUNTERTOP_SLAB_PRIMITIVE_ROLE = "countertop-slab";
@@ -13,10 +14,6 @@ export function applyCountertopOpeningsToAssemblyTree(
   const matchingOpenings = countertopOpenings.filter(
     (opening) => opening.hostCountertopId === builtAssemblyTree.rootAssemblyId,
   );
-
-  if (matchingOpenings.length === 0) {
-    return builtAssemblyTree;
-  }
 
   return {
     ...builtAssemblyTree,
@@ -42,15 +39,14 @@ function applyOpeningsToCountertopSlabPrimitive(
     geometry: {
       kind: "custom-mesh",
       meshId: "countertop-slab",
-      openingsInches: countertopOpenings.map((opening) => ({
-        shape: opening.shape,
-        centerXInches: opening.localCenterInches.xInches,
-        centerYInches: opening.localCenterInches.yInches,
-        widthInches: opening.widthInches,
-        depthInches: opening.depthInches,
-        rotationDegrees: opening.localRotationDegrees,
-        cornerRadiusInches: opening.cornerRadiusInches,
-      })),
+      openingsInches: countertopOpenings
+        .map((opening) => ({
+          clippedPolygonInches: createCountertopOpeningClippedPolygon(
+            opening,
+            primitiveGeometry.sizeInches,
+          ),
+        }))
+        .filter((opening) => opening.clippedPolygonInches.length >= 3),
     },
   };
 }

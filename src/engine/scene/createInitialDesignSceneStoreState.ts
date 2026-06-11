@@ -15,6 +15,7 @@ export function createInitialDesignSceneStoreState(): Pick<
   | "cameraCommand"
   | "sceneCameraStates"
   | "activeDrag"
+  | "assemblyPlacementFeedback"
 > {
   return {
     designScene: createEmptyDesignScene(),
@@ -27,5 +28,6 @@ export function createInitialDesignSceneStoreState(): Pick<
     cameraCommand: null,
     sceneCameraStates: createDefaultSceneCameraStates(),
     activeDrag: null,
+    assemblyPlacementFeedback: null,
   };
 }

@@ -1,0 +1,1816 @@
+{
+  "id": "rangetop-appliance",
+  "name": "Rangetop",
+  "catalogCategoryId": "appliances/cooktops",
+  "defaultDistanceFromFloorInches": 28,
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 36,
+      "optionsInches": [
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        },
+        {
+          "valueInches": 48,
+          "label": "48 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 24,
+      "maxValueInches": 60,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 27,
+      "optionsInches": [
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        },
+        {
+          "valueInches": 27,
+          "label": "27 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 20,
+      "maxValueInches": 30,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 8,
+      "optionsInches": [
+        {
+          "valueInches": 7,
+          "label": "7 in"
+        },
+        {
+          "valueInches": 8,
+          "label": "8 in"
+        },
+        {
+          "valueInches": 10,
+          "label": "10 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 6,
+      "maxValueInches": 12,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "body-color",
+          "label": "Body color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#d1d5db",
+          "choices": [
+            {
+              "value": "#d1d5db",
+              "label": "Stainless steel"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray stainless"
+            },
+            {
+              "value": "#111827",
+              "label": "Black"
+            }
+          ]
+        },
+        {
+          "id": "burner-color",
+          "label": "Burner color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#374151",
+          "choices": [
+            {
+              "value": "#05070b",
+              "label": "Black"
+            },
+            {
+              "value": "#1f2937",
+              "label": "Dark gray"
+            }
+          ]
+        },
+        {
+          "id": "grate-color",
+          "label": "Grate color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#374151",
+          "choices": [
+            {
+              "value": "#05070b",
+              "label": "Black"
+            },
+            {
+              "value": "#1f2937",
+              "label": "Dark gray"
+            }
+          ]
+        },
+        {
+          "id": "knob-color",
+          "label": "Knob color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#6b7280",
+          "choices": [
+            {
+              "value": "#6b7280",
+              "label": "Dark gray"
+            },
+            {
+              "value": "#111827",
+              "label": "Black"
+            },
+            {
+              "value": "#cbd5e1",
+              "label": "Silver"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "lower-body",
+      "label": "Lower Drop-In Body",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "value": 1.25
+          },
+          "right": {
+            "value": -0.5
+          }
+        },
+        "zInches": {
+          "op": "multiply",
+          "left": {
+            "value": 0.5
+          },
+          "right": {
+            "value": -0.5
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 1
+          }
+        },
+        "depthInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 1.25
+          }
+        },
+        "heightInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "value": 0.5
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "rangetop-lower-body"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "top-panel",
+      "label": "Light Gray Top Surface Panel",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "value": 0.5
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "value": 0.5
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "rangetop-top-surface"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "cooking-container",
+      "label": "Dark Cooking Container",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.04
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.08
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.9
+          }
+        },
+        "depthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.72
+          }
+        },
+        "heightInches": {
+          "value": 0.16
+        }
+      },
+      "material": {
+        "colorHex": "#6b7280"
+      },
+      "role": "rangetop-cooking-container"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "front-control-apron",
+      "label": "Front Control Apron",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "value": 1.25
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "value": 0.5
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "value": 4
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "value": 1.25
+        },
+        "heightInches": {
+          "value": 4
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "rangetop-front-apron"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "grate-vertical-1",
+      "label": "Left Vertical Grate Rail",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.26
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.03
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.7
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.35
+        },
+        "depthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.6
+          }
+        },
+        "heightInches": {
+          "value": 0.35
+        }
+      },
+      "material": {
+        "colorOptionId": "grate-color"
+      },
+      "role": "rangetop-grate-rail"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "grate-vertical-2",
+      "label": "Center Vertical Grate Rail",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.03
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.7
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.35
+        },
+        "depthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.6
+          }
+        },
+        "heightInches": {
+          "value": 0.35
+        }
+      },
+      "material": {
+        "colorOptionId": "grate-color"
+      },
+      "role": "rangetop-grate-rail"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "grate-vertical-3",
+      "label": "Right Vertical Grate Rail",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.26
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.03
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.7
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.35
+        },
+        "depthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.6
+          }
+        },
+        "heightInches": {
+          "value": 0.35
+        }
+      },
+      "material": {
+        "colorOptionId": "grate-color"
+      },
+      "role": "rangetop-grate-rail"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "grate-horizontal-1",
+      "label": "Rear Horizontal Grate Rail",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.23
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.7
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.78
+          }
+        },
+        "depthInches": {
+          "value": 0.35
+        },
+        "heightInches": {
+          "value": 0.35
+        }
+      },
+      "material": {
+        "colorOptionId": "grate-color"
+      },
+      "role": "rangetop-grate-rail"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "grate-horizontal-2",
+      "label": "Middle Horizontal Grate Rail",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.03
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.7
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.78
+          }
+        },
+        "depthInches": {
+          "value": 0.35
+        },
+        "heightInches": {
+          "value": 0.35
+        }
+      },
+      "material": {
+        "colorOptionId": "grate-color"
+      },
+      "role": "rangetop-grate-rail"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "grate-horizontal-3",
+      "label": "Front Horizontal Grate Rail",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.17
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.7
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.78
+          }
+        },
+        "depthInches": {
+          "value": 0.35
+        },
+        "heightInches": {
+          "value": 0.35
+        }
+      },
+      "material": {
+        "colorOptionId": "grate-color"
+      },
+      "role": "rangetop-grate-rail"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "burner-cap-1",
+      "label": "Left Rear Burner Cap",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.26
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.23
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.92
+            }
+          ]
+        }
+      },
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        },
+        "depthInches": {
+          "value": 0.3
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "burner-color"
+      },
+      "role": "rangetop-burner-cap"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "burner-cap-2",
+      "label": "Right Rear Burner Cap",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.26
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.23
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.92
+            }
+          ]
+        }
+      },
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        },
+        "depthInches": {
+          "value": 0.3
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "burner-color"
+      },
+      "role": "rangetop-burner-cap"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "burner-cap-3",
+      "label": "Center Burner Cap",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": -0.03
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.92
+            }
+          ]
+        }
+      },
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        },
+        "depthInches": {
+          "value": 0.3
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "burner-color"
+      },
+      "role": "rangetop-burner-cap"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "burner-cap-4",
+      "label": "Left Front Burner Cap",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.26
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.17
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.92
+            }
+          ]
+        }
+      },
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        },
+        "depthInches": {
+          "value": 0.3
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "burner-color"
+      },
+      "role": "rangetop-burner-cap"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "burner-cap-5",
+      "label": "Right Front Burner Cap",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.26
+          }
+        },
+        "yInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 0.17
+          }
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.92
+            }
+          ]
+        }
+      },
+      "localRotationDegrees": {
+        "xDegrees": {
+          "value": 90
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        },
+        "depthInches": {
+          "value": 0.3
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 0.1
+            }
+          },
+          "min": {
+            "value": 2.2
+          },
+          "max": {
+            "value": 4.4
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "burner-color"
+      },
+      "role": "rangetop-burner-cap"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-knob-1",
+      "label": "Control Knob 1",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.35
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.5
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "op": "divide",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "value": 2
+                  }
+                },
+                "right": {
+                  "value": 0.5
+                }
+              },
+              "right": {
+                "op": "divide",
+                "left": {
+                  "value": 4
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.2
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 1.6
+        },
+        "depthInches": {
+          "value": 0.5
+        },
+        "heightInches": {
+          "value": 1.6
+        }
+      },
+      "material": {
+        "colorOptionId": "knob-color"
+      },
+      "role": "rangetop-control-knob"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-knob-2",
+      "label": "Control Knob 2",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.21
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.5
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "op": "divide",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "value": 2
+                  }
+                },
+                "right": {
+                  "value": 0.5
+                }
+              },
+              "right": {
+                "op": "divide",
+                "left": {
+                  "value": 4
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.2
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 1.6
+        },
+        "depthInches": {
+          "value": 0.5
+        },
+        "heightInches": {
+          "value": 1.6
+        }
+      },
+      "material": {
+        "colorOptionId": "knob-color"
+      },
+      "role": "rangetop-control-knob"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-knob-3",
+      "label": "Control Knob 3",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.07
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.5
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "op": "divide",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "value": 2
+                  }
+                },
+                "right": {
+                  "value": 0.5
+                }
+              },
+              "right": {
+                "op": "divide",
+                "left": {
+                  "value": 4
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.2
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 1.6
+        },
+        "depthInches": {
+          "value": 0.5
+        },
+        "heightInches": {
+          "value": 1.6
+        }
+      },
+      "material": {
+        "colorOptionId": "knob-color"
+      },
+      "role": "rangetop-control-knob"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-knob-4",
+      "label": "Control Knob 4",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.07
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.5
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "op": "divide",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "value": 2
+                  }
+                },
+                "right": {
+                  "value": 0.5
+                }
+              },
+              "right": {
+                "op": "divide",
+                "left": {
+                  "value": 4
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.2
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 1.6
+        },
+        "depthInches": {
+          "value": 0.5
+        },
+        "heightInches": {
+          "value": 1.6
+        }
+      },
+      "material": {
+        "colorOptionId": "knob-color"
+      },
+      "role": "rangetop-control-knob"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-knob-5",
+      "label": "Control Knob 5",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.21
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.5
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "op": "divide",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "value": 2
+                  }
+                },
+                "right": {
+                  "value": 0.5
+                }
+              },
+              "right": {
+                "op": "divide",
+                "left": {
+                  "value": 4
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.2
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 1.6
+        },
+        "depthInches": {
+          "value": 0.5
+        },
+        "heightInches": {
+          "value": 1.6
+        }
+      },
+      "material": {
+        "colorOptionId": "knob-color"
+      },
+      "role": "rangetop-control-knob"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "control-knob-6",
+      "label": "Control Knob 6",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.35
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.5
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "op": "divide",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "value": 2
+                  }
+                },
+                "right": {
+                  "value": 0.5
+                }
+              },
+              "right": {
+                "op": "divide",
+                "left": {
+                  "value": 4
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 0.2
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 1.6
+        },
+        "depthInches": {
+          "value": 0.5
+        },
+        "heightInches": {
+          "value": 1.6
+        }
+      },
+      "material": {
+        "colorOptionId": "knob-color"
+      },
+      "role": "rangetop-control-knob"
+    }
+  ]
+}

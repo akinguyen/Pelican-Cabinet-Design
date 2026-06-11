@@ -1,8 +1,11 @@
 "use client";
 
-import { Edges } from "@react-three/drei";
+import { useMemo } from "react";
 import { DoubleSide } from "three";
+import type { Size3DInches } from "@/core/geometry/sizeTypes";
+import { createBoxEdgeSegments } from "@/engine/primitive-geometry/edge-segments/createBoxEdgeSegments";
 import type { PlacedWallElevationSide } from "@/engine/walls/elevation/wallElevationGeometry";
+import { EdgeSegmentLines } from "../shared/EdgeSegmentLines";
 
 const WALL_ELEVATION_SIDE_DEPTH_INCHES = 1;
 const WALL_ELEVATION_SIDE_NORMAL_OFFSET_INCHES = 0.35;
@@ -15,6 +18,19 @@ export function WallElevationSideRenderer({
   const edgeAngleRadians = Math.atan2(
     activeElevationSide.endPointInches.yInches - activeElevationSide.startPointInches.yInches,
     activeElevationSide.endPointInches.xInches - activeElevationSide.startPointInches.xInches,
+  );
+  const wallElevationSideSizeInches: Size3DInches = {
+    widthInches: activeElevationSide.lengthInches,
+    depthInches: WALL_ELEVATION_SIDE_DEPTH_INCHES,
+    heightInches: activeElevationSide.wallHeightInches,
+  };
+  const edgeSegmentsInches = useMemo(
+    () => createBoxEdgeSegments(wallElevationSideSizeInches),
+    [
+      wallElevationSideSizeInches.widthInches,
+      wallElevationSideSizeInches.depthInches,
+      wallElevationSideSizeInches.heightInches,
+    ],
   );
 
   return (
@@ -37,7 +53,7 @@ export function WallElevationSideRenderer({
         ]}
       />
       <meshStandardMaterial color="#9ca3af" side={DoubleSide} />
-      <Edges color="#111827" threshold={1} lineWidth={2} />
+      <EdgeSegmentLines edgeSegmentsInches={edgeSegmentsInches} />
     </mesh>
   );
 }

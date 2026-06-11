@@ -34,11 +34,12 @@ export function DesignSceneCanvas() {
   const hasElevationViews = getPlacedWallElevationWallViews(placedWalls).length > 0;
   const hasActivePlacementOrDraftTool =
     activeToolbarTool === "draw-wall-footprint" ||
-    activeToolbarTool === "split-wall-footprint";
+    activeToolbarTool === "split-wall-footprint" ||
+    activeToolbarTool === "draw-countertop-cutout-rectangle";
   const cursorClassName = getCanvasCursorClassName(
     activeSceneViewMode,
     activeSceneOperation !== null || hasActivePlacementOrDraftTool,
-    activeDrag !== null,
+    activeDrag !== null || activeSceneOperation?.kind === "countertop-opening-drag",
   );
 
   useSceneViewportGestureGuard(containerRef);

@@ -1,16 +1,22 @@
 "use client";
 
-import { Edges } from "@react-three/drei";
 import { useMemo } from "react";
 import type { ThreeEvent } from "@react-three/fiber";
 import { degreesToRadians, degreesToUserFacingZRadians } from "@/core/geometry/rotationTypes";
 import type { BuiltPrimitiveGeometry } from "@/engine/assemblies/assemblyTreeBuilder";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import { createCustomMeshGeometry } from "@/engine/primitive-geometry/custom-meshes/createCustomMeshGeometry";
-import type { PrimitiveCustomMeshGeometry } from "@/engine/primitive-geometry/primitiveGeometryTypes";
+import { createLShapedPrismGeometry } from "@/engine/primitive-geometry/l-shaped-prism/createLShapedPrismGeometry";
+import type {
+  PrimitiveCustomMeshGeometry,
+  PrimitiveLShapedPrismGeometry,
+  PrimitiveRectangularFrustumGeometry,
+} from "@/engine/primitive-geometry/primitiveGeometryTypes";
+import { createRectangularFrustumGeometry } from "@/engine/primitive-geometry/rectangular-frustum/createRectangularFrustumGeometry";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import { createAssemblyDragPointerWorldPoint } from "../../interaction/assemblies/assemblyDragPointer";
+import { AssemblyPrimitiveEdgeSegments } from "./AssemblyPrimitiveEdgeSegments";
 
 type AssemblyPrimitiveMeshProps = Readonly<{
   primitiveGeometry: BuiltPrimitiveGeometry;
@@ -22,6 +28,7 @@ export function AssemblyPrimitiveMesh({ primitiveGeometry, renderState }: Assemb
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
+  const activeDrag = useDesignSceneStore((state) => state.activeDrag);
   const placedAssemblies = useDesignSceneStore((state) => state.designScene.placedAssemblies);
   const selectPlacedAssembly = useDesignSceneStore((state) => state.selectPlacedAssembly);
   const startAssemblyDrag = useDesignSceneStore((state) => state.startAssemblyDrag);
@@ -33,7 +40,8 @@ export function AssemblyPrimitiveMesh({ primitiveGeometry, renderState }: Assemb
     if (
       renderState !== "default" ||
       activeSceneOperation !== null ||
-      activeToolbarTool === "draw-wall-footprint" ||
+      activeDrag !== null ||
+      activeToolbarTool !== null ||
       event.button !== 0 ||
       event.ctrlKey
     ) {
@@ -100,14 +108,17 @@ export function AssemblyPrimitiveMesh({ primitiveGeometry, renderState }: Assemb
           opacity={opacity}
         />
       )}
-      <Edges color="#111827" threshold={15} lineWidth={2} />
+      <AssemblyPrimitiveEdgeSegments primitiveGeometry={primitiveGeometry} />
     </mesh>
   );
 }
 
 
 function shouldUseEvenColorMaterial(primitiveGeometry: BuiltPrimitiveGeometry): boolean {
-  if (primitiveGeometry.geometry.kind === "custom-mesh") {
+  if (
+    primitiveGeometry.geometry.kind === "rectangular-frustum" ||
+    primitiveGeometry.geometry.kind === "l-shaped-prism"
+  ) {
     return true;
   }
 
@@ -139,6 +150,24 @@ function PrimitiveGeometry({ primitiveGeometry }: PrimitiveGeometryProps) {
     );
   }
 
+  if (primitiveGeometry.geometry.kind === "rectangular-frustum") {
+    return (
+      <RectangularFrustumGeometry
+        geometry={primitiveGeometry.geometry}
+        sizeInches={primitiveGeometry.sizeInches}
+      />
+    );
+  }
+
+  if (primitiveGeometry.geometry.kind === "l-shaped-prism") {
+    return (
+      <LShapedPrismGeometry
+        geometry={primitiveGeometry.geometry}
+        sizeInches={primitiveGeometry.sizeInches}
+      />
+    );
+  }
+
   if (primitiveGeometry.geometry.kind === "cylinder") {
     return (
       <cylinderGeometry
@@ -161,6 +190,35 @@ function PrimitiveGeometry({ primitiveGeometry }: PrimitiveGeometryProps) {
       ]}
     />
   );
+}
+
+
+type RectangularFrustumGeometryProps = Readonly<{
+  geometry: PrimitiveRectangularFrustumGeometry;
+  sizeInches: Size3DInches;
+}>;
+
+function RectangularFrustumGeometry({ geometry, sizeInches }: RectangularFrustumGeometryProps) {
+  const threeGeometry = useMemo(
+    () => createRectangularFrustumGeometry(geometry, sizeInches),
+    [geometry, sizeInches.widthInches, sizeInches.depthInches, sizeInches.heightInches],
+  );
+
+  return <primitive attach="geometry" object={threeGeometry} />;
+}
+
+type LShapedPrismGeometryProps = Readonly<{
+  geometry: PrimitiveLShapedPrismGeometry;
+  sizeInches: Size3DInches;
+}>;
+
+function LShapedPrismGeometry({ geometry, sizeInches }: LShapedPrismGeometryProps) {
+  const threeGeometry = useMemo(
+    () => createLShapedPrismGeometry(geometry, sizeInches),
+    [geometry, sizeInches.widthInches, sizeInches.depthInches, sizeInches.heightInches],
+  );
+
+  return <primitive attach="geometry" object={threeGeometry} />;
 }
 
 type CustomMeshGeometryProps = Readonly<{

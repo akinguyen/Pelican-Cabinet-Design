@@ -1,7 +1,8 @@
-import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { CountertopOpeningShape } from "@/engine/countertops/countertopOpeningTypes";
+import type { Point2DInches, Point3DInches } from "@/core/geometry/pointTypes";
+import type { CountertopCutoutDraftShapeKind, CountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import type { AssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementTypes";
 import type { WallSettings } from "@/engine/walls/wallTypes";
 import type { SceneEditingTool } from "./sceneEditingToolTypes";
 import type {
@@ -32,6 +33,7 @@ export type DesignSceneStore = Readonly<{
   cameraCommand: SceneCameraCommand | null;
   sceneCameraStates: SceneCameraStates;
   activeDrag: AssemblyDragState | null;
+  assemblyPlacementFeedback: AssemblyPlacementFeedback | null;
   setWorkspaceMode: (workspaceMode: KitchenWorkspaceMode) => void;
   setActiveSceneViewMode: (sceneViewMode: SceneViewMode) => void;
   setActiveWallElevationWall: (placedWallId: string) => void;
@@ -44,11 +46,12 @@ export type DesignSceneStore = Readonly<{
   updateFloorPlanCameraState: (cameraState: OrthographicCameraState) => void;
   updateElevationCameraState: (cameraState: ElevationCameraState) => void;
   startAssemblyPlacementCandidate: (placedAssembly: PlacedAssembly) => void;
-  updateAssemblyCandidateWorldPosition: (worldPositionInches: Point3DInches) => void;
+  updateAssemblyCandidateWorldPosition: (worldPositionInches: Point3DInches, sceneViewMode: SceneViewMode) => void;
   commitAssemblyPlacementCandidate: () => void;
   cancelActiveSceneOperation: () => void;
   selectPlacedAssembly: (placedAssemblyId: string) => void;
   selectPlacedWall: (placedWallId: string) => void;
+  selectCountertopOpening: (countertopOpeningId: string) => void;
   clearSelection: () => void;
   startAssemblyDrag: (args: {
     assemblyId: string;
@@ -58,22 +61,40 @@ export type DesignSceneStore = Readonly<{
   updateAssemblyDrag: (pointerWorldInches: Point3DInches) => void;
   finishAssemblyDrag: () => void;
   cancelAssemblyDrag: () => void;
+  startAssemblyRotationDrag: (args: {
+    assemblyId: string;
+    centerPointInches: Point3DInches;
+    pointerWorldInches: Point3DInches;
+  }) => void;
+  updateAssemblyRotationDrag: (pointerWorldInches: Point3DInches) => void;
+  finishAssemblyRotationDrag: () => void;
+  cancelAssemblyRotationDrag: () => void;
   deleteSelectedAssembly: () => void;
+  duplicateSelectedAssembly: () => void;
   updateSelectedAssemblyWorldPositionX: (xInches: number) => void;
   updateSelectedAssemblyWorldPositionY: (yInches: number) => void;
   updateSelectedAssemblyDistanceFromFloor: (distanceFromFloorInches: number) => void;
   updateSelectedAssemblyRotationZ: (zDegrees: number) => void;
   updateSelectedAssemblyDimension: (dimensionId: AssemblyDimensionId, valueInches: number) => void;
   updateSelectedAssemblyOptionValue: (optionId: string, value: AssemblyOptionValue) => void;
-  addCountertopOpening: (hostCountertopId: string) => void;
-  updateCountertopOpeningShape: (openingId: string, shape: CountertopOpeningShape) => void;
+  createManualCountertopOpening: (opening: CountertopOpening) => void;
+  updateCountertopOpeningLocalCenter: (openingId: string, localCenterInches: Point2DInches) => void;
   updateCountertopOpeningLocalCenterX: (openingId: string, xInches: number) => void;
   updateCountertopOpeningLocalCenterY: (openingId: string, yInches: number) => void;
-  updateCountertopOpeningWidth: (openingId: string, widthInches: number) => void;
-  updateCountertopOpeningDepth: (openingId: string, depthInches: number) => void;
-  updateCountertopOpeningCornerRadius: (openingId: string, cornerRadiusInches: number) => void;
-  updateCountertopOpeningEdgeClearance: (openingId: string, edgeClearanceInches: number) => void;
+  updateCountertopOpeningRectangleSize: (openingId: string, widthInches: number, depthInches: number) => void;
+  updateCountertopOpeningRotation: (openingId: string, localRotationDegrees: number) => void;
   deleteCountertopOpening: (openingId: string) => void;
+  startCountertopCutoutDraft: (args: {
+    hostCountertopId: string;
+    shapeKind: CountertopCutoutDraftShapeKind;
+    startLocalInches: Point2DInches;
+  }) => void;
+  updateCountertopCutoutDraft: (currentLocalInches: Point2DInches) => void;
+  commitCountertopCutoutDraft: () => void;
+  cancelCountertopCutoutDraft: () => void;
+  startCountertopOpeningDrag: (args: { countertopOpeningId: string; grabLocalInches: Point2DInches }) => void;
+  updateCountertopOpeningDrag: (grabLocalInches: Point2DInches) => void;
+  finishCountertopOpeningDrag: () => void;
   updateWallFootprintDraftHover: (pointInches: Point3DInches) => void;
   clickWallFootprintDraftPoint: (pointInches: Point3DInches) => void;
   exitWallFootprintDraftTool: () => void;

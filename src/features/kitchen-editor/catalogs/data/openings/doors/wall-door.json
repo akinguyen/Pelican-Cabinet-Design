@@ -1,0 +1,594 @@
+{
+  "id": "wall-door",
+  "name": "Wall Door",
+  "catalogCategoryId": "openings/doors",
+  "defaultDistanceFromFloorInches": 0,
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 36,
+      "optionsInches": [
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
+        {
+          "valueInches": 32,
+          "label": "32 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 24,
+      "maxValueInches": 48,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 4,
+      "optionsInches": [
+        {
+          "valueInches": 3.5,
+          "label": "3 1/2 in"
+        },
+        {
+          "valueInches": 4,
+          "label": "4 in"
+        },
+        {
+          "valueInches": 4.5,
+          "label": "4 1/2 in"
+        },
+        {
+          "valueInches": 6,
+          "label": "6 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 2,
+      "maxValueInches": 8,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 80,
+      "optionsInches": [
+        {
+          "valueInches": 78,
+          "label": "78 in"
+        },
+        {
+          "valueInches": 80,
+          "label": "80 in"
+        },
+        {
+          "valueInches": 84,
+          "label": "84 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 72,
+      "maxValueInches": 96,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "frame-color",
+          "label": "Frame color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#f8fafc",
+          "choices": [
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#d1d5db",
+              "label": "Light gray"
+            },
+            {
+              "value": "#92400e",
+              "label": "Wood"
+            },
+            {
+              "value": "#111827",
+              "label": "Black"
+            }
+          ]
+        },
+        {
+          "id": "panel-color",
+          "label": "Door panel color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#e5e7eb",
+          "choices": [
+            {
+              "value": "#e5e7eb",
+              "label": "Light gray"
+            },
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#92400e",
+              "label": "Wood"
+            },
+            {
+              "value": "#111827",
+              "label": "Black"
+            }
+          ]
+        },
+        {
+          "id": "handle-color",
+          "label": "Handle color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#111827",
+          "choices": [
+            {
+              "value": "#111827",
+              "label": "Black"
+            },
+            {
+              "value": "#6b7280",
+              "label": "Dark gray"
+            },
+            {
+              "value": "#d1d5db",
+              "label": "Silver"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "top-frame",
+      "label": "Top Frame",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "value": 3
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "value": 3
+        }
+      },
+      "material": {
+        "colorOptionId": "frame-color"
+      },
+      "role": "wall-door-frame",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "bottom-frame",
+      "label": "Bottom Frame",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 3
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "value": 3
+        }
+      },
+      "material": {
+        "colorOptionId": "frame-color"
+      },
+      "role": "wall-door-frame",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "left-frame",
+      "label": "Left Side Frame",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 3
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 3
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "op": "multiply",
+            "left": {
+              "value": 3
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "frame-color"
+      },
+      "role": "wall-door-frame",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "right-frame",
+      "label": "Right Side Frame",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "value": 3
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 3
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "op": "multiply",
+            "left": {
+              "value": 3
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "frame-color"
+      },
+      "role": "wall-door-frame",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-panel",
+      "label": "Door Panel",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "value": 0.75
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "op": "multiply",
+            "left": {
+              "value": 3
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "op": "multiply",
+            "left": {
+              "value": 3
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "panel-color"
+      },
+      "role": "wall-door-panel",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "door-handle",
+      "label": "Door Handle",
+      "geometry": {
+        "kind": "cylinder"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "value": 3
+            }
+          },
+          "right": {
+            "value": 4.5
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 1.25
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "value": 36
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 2
+        },
+        "depthInches": {
+          "value": 1.25
+        },
+        "heightInches": {
+          "value": 2
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "wall-door-handle"
+    }
+  ]
+}

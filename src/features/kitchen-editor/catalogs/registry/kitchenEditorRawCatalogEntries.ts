@@ -7,6 +7,7 @@ import { pantryCabinetRawCatalogEntries } from "./raw-catalog-entries/pantryCabi
 import { wallCabinetRawCatalogEntries } from "./raw-catalog-entries/wallCabinetRawCatalogEntries";
 import { fixtureRawCatalogEntries } from "./raw-catalog-entries/fixtureRawCatalogEntries";
 import { surfaceRawCatalogEntries } from "./raw-catalog-entries/surfaceRawCatalogEntries";
+import { openingRawCatalogEntries } from "./raw-catalog-entries/openingRawCatalogEntries";
 
 export const kitchenEditorRawCatalogEntries = [
   ...basicUnitRawCatalogEntries,
@@ -17,4 +18,5 @@ export const kitchenEditorRawCatalogEntries = [
   ...applianceRawCatalogEntries,
   ...fixtureRawCatalogEntries,
   ...surfaceRawCatalogEntries,
+  ...openingRawCatalogEntries,
 ] as const satisfies readonly KitchenEditorRawCatalogEntry[];

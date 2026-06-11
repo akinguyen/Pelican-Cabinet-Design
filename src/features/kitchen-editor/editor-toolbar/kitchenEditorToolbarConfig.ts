@@ -1,4 +1,4 @@
-import { Maximize, Minus, PencilLine, Plus, Scissors } from "lucide-react";
+import { Maximize, Minus, PencilLine, Plus, Scissors, Square } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { SceneCameraCommandTool } from "@/engine/scene/sceneCameraCommandTypes";
 import type { SceneEditingTool } from "@/engine/scene/sceneEditingToolTypes";
@@ -30,6 +30,7 @@ export const kitchenEditorToolbarActions: readonly KitchenEditorToolbarAction[] 
   { id: "fit-view", kind: "camera-command", label: "Fit view", icon: Maximize },
   { id: "draw-wall-footprint", kind: "active-tool", label: "Draw wall footprint", icon: PencilLine },
   { id: "split-wall-footprint", kind: "active-tool", label: "Split wall footprint", icon: Scissors },
+  { id: "draw-countertop-cutout-rectangle", kind: "active-tool", label: "Rectangle cutout", icon: Square },
 ] satisfies readonly Readonly<{
   id: KitchenEditorToolbarActionId;
   kind: "camera-command" | "active-tool";
