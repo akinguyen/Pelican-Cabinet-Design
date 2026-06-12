@@ -4,22 +4,22 @@ import { useMemo } from "react";
 import { combineBounds3DInches } from "@/core/geometry/boxBounds";
 import { measurePlacedAssembliesVisualBounds } from "@/engine/assemblies/assemblyBounds";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { measurePlacedWallsBounds } from "@/engine/walls/wallBounds";
+import { measurePlacedWallGraphsBounds } from "@/engine/walls/wallBounds";
 import { kitchenEditorCatalogRegistry } from "../../../catalogs/registry/kitchenEditorCatalogRegistry";
 import { createSceneFitFrame } from "./cameraFit";
 
 export function useSceneFitFrame() {
   const placedAssemblies = useDesignSceneStore((state) => state.designScene.placedAssemblies);
-  const placedWalls = useDesignSceneStore((state) => state.designScene.placedWalls);
+  const placedWallGraphs = useDesignSceneStore((state) => state.designScene.placedWallGraphs);
 
   return useMemo(
     () =>
       createSceneFitFrame(
         combineBounds3DInches(
           measurePlacedAssembliesVisualBounds(placedAssemblies, kitchenEditorCatalogRegistry),
-          measurePlacedWallsBounds(placedWalls),
+          measurePlacedWallGraphsBounds({ placedWallGraphs }),
         ),
       ),
-    [placedAssemblies, placedWalls],
+    [placedAssemblies, placedWallGraphs],
   );
 }

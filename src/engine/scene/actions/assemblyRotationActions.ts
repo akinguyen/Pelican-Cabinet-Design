@@ -1,7 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
 import { updateAssemblyPlacementRotationDegrees } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
-import { isAssemblyPlacementValid } from "@/engine/assemblies/placement/assemblyWallCollision";
 import { snapAssemblyRotationDegrees } from "@/engine/assemblies/placement/assemblyRotationSnapping";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
@@ -43,7 +42,6 @@ export function createAssemblyRotationActions(
         },
         assemblyPlacementFeedback: createAssemblyPlacementFeedback({
           placedAssembly,
-          placedWalls: get().designScene.placedWalls,
         }),
       });
     },
@@ -76,12 +74,8 @@ export function createAssemblyRotationActions(
       );
       const feedback = createAssemblyPlacementFeedback({
         placedAssembly: rotatedAssembly,
-        placedWalls: get().designScene.placedWalls,
       });
-      const isValidPlacement = isAssemblyPlacementValid({
-        placedAssembly: rotatedAssembly,
-        placedWalls: get().designScene.placedWalls,
-      });
+      const isValidPlacement = true;
 
       set((state) => ({
         designScene: {

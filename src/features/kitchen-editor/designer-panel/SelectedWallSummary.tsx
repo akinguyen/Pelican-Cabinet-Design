@@ -1,30 +1,36 @@
 "use client";
 
-import type { PlacedWall } from "@/engine/walls/wallTypes";
-import { getWallFootprintEdgeMeasurements } from "@/engine/walls/footprint/wallFootprintMeasurements";
+import type { PlacedWallNode } from "@/engine/walls/placedWallNodeTypes";
+import type { PlacedWallSegment } from "@/engine/walls/placedWallSegmentTypes";
+import {
+  getPlanDistanceInches,
+  getWallSegmentEndpointPoint,
+} from "@/engine/walls/wallSegmentGeometry";
 import { formatInchesLabel } from "../shared/formatInchesLabel";
 
 type SelectedWallSummaryProps = Readonly<{
-  placedWall: PlacedWall;
+  wallSegment: PlacedWallSegment;
+  wallGraphNodes: readonly PlacedWallNode[];
 }>;
 
-export function SelectedWallSummary({ placedWall }: SelectedWallSummaryProps) {
-  const edgeMeasurements = getWallFootprintEdgeMeasurements(placedWall.footprint);
-  const viewableEdgeLabel = placedWall.viewableEdgeIndices.length === 0
-    ? "None"
-    : placedWall.viewableEdgeIndices.join(", ");
+export function SelectedWallSummary({ wallSegment, wallGraphNodes }: SelectedWallSummaryProps) {
+  const startPointInches = getWallSegmentEndpointPoint(wallGraphNodes, wallSegment.startNodeId);
+  const endPointInches = getWallSegmentEndpointPoint(wallGraphNodes, wallSegment.endNodeId);
+  const lengthInches = startPointInches !== null && endPointInches !== null
+    ? getPlanDistanceInches(startPointInches, endPointInches)
+    : 0;
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="mb-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Selected Wall</p>
-        <h2 className="mt-1 text-sm font-semibold text-slate-950">Wall</h2>
-        <p className="mt-0.5 break-all text-xs text-slate-500">{placedWall.id}</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Selected Wall Segment</p>
+        <h2 className="mt-1 text-sm font-semibold text-slate-950">{wallSegment.name}</h2>
+        <p className="mt-0.5 break-all text-xs text-slate-500">{wallSegment.id}</p>
       </div>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
-        <SummaryField label="Height" value={formatInchesLabel(placedWall.heightInches)} />
-        <SummaryField label="Edges" value={`${edgeMeasurements.length}`} />
-        <SummaryField label="Viewable edges" value={viewableEdgeLabel} />
+        <SummaryField label="Length" value={formatInchesLabel(lengthInches)} />
+        <SummaryField label="Height" value={formatInchesLabel(wallSegment.heightInches)} />
+        <SummaryField label="Thickness" value={formatInchesLabel(wallSegment.thicknessInches)} />
       </dl>
     </section>
   );

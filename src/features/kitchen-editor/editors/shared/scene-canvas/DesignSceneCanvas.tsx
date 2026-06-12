@@ -5,7 +5,6 @@ import { Canvas } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import { getPlacedWallElevationWallViews } from "@/engine/walls/elevation/wallElevationGeometry";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { ElevationCameraControls } from "../../elevation/ElevationCameraControls";
 import { FloorPlanCameraControls } from "../../floor-plan/FloorPlanCameraControls";
@@ -26,15 +25,13 @@ import {
 export function DesignSceneCanvas() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
-  const placedWalls = useDesignSceneStore((state) => state.designScene.placedWalls);
   const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
   const clearSelection = useDesignSceneStore((state) => state.clearSelection);
-  const hasElevationViews = getPlacedWallElevationWallViews(placedWalls).length > 0;
+  const hasElevationViews = useDesignSceneStore((state) => state.designScene.placedWallGraphs.some((wallGraph) => wallGraph.segments.length > 0));
   const hasActivePlacementOrDraftTool =
-    activeToolbarTool === "draw-wall-footprint" ||
-    activeToolbarTool === "split-wall-footprint" ||
+    activeToolbarTool === "draw-wall-segment" ||
     activeToolbarTool === "draw-countertop-cutout-rectangle";
   const cursorClassName = getCanvasCursorClassName(
     activeSceneViewMode,

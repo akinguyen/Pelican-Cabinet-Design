@@ -36,7 +36,6 @@ export function createAssemblyDragActions(
         },
         assemblyPlacementFeedback: createAssemblyPlacementFeedback({
           placedAssembly,
-          placedWalls: get().designScene.placedWalls,
         }),
       });
     },
@@ -74,12 +73,10 @@ export function createAssemblyDragActions(
             placedAssembly: proposedPlacedAssembly,
             feedback: createAssemblyPlacementFeedback({
               placedAssembly: proposedPlacedAssembly,
-              placedWalls: get().designScene.placedWalls,
             }),
           }
         : applyAssemblyWallPlacementRules({
             placedAssembly: proposedPlacedAssembly,
-            placedWalls: get().designScene.placedWalls,
           });
       const nextActiveDrag: AssemblyMoveDragState = {
         ...activeDrag,

@@ -1,7 +1,6 @@
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { CountertopCutoutDraft, CountertopOpeningDrag } from "@/engine/countertops/countertopOpeningTypes";
-import type { WallFootprintDraft } from "@/engine/walls/footprint-draft/wallFootprintDraftTypes";
-import type { WallSplitDraft } from "@/engine/walls/split-draft/wallSplitDraftTypes";
+import type { WallSegmentDraft } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
 
 export type SceneOperation =
   | Readonly<{
@@ -18,10 +17,6 @@ export type SceneOperation =
       countertopOpeningDrag: CountertopOpeningDrag;
     }>
   | Readonly<{
-      kind: "wall-footprint-draft";
-      wallFootprintDraft: WallFootprintDraft;
-    }>
-  | Readonly<{
-      kind: "wall-split-draft";
-      wallSplitDraft: WallSplitDraft;
+      kind: "wall-segment-draft";
+      wallSegmentDraft: WallSegmentDraft;
     }>;

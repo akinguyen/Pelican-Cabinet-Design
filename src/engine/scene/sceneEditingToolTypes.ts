@@ -1,4 +1,3 @@
 export type SceneEditingTool =
-  | "draw-wall-footprint"
-  | "split-wall-footprint"
+  | "draw-wall-segment"
   | "draw-countertop-cutout-rectangle";

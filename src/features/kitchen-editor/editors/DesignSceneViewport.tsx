@@ -1,13 +1,13 @@
 "use client";
 
-import { WallElevationEdgeNavigator } from "./elevation/WallElevationEdgeNavigator";
+import { WallElevationFaceNavigator } from "./elevation/WallElevationFaceNavigator";
 import { DesignSceneCanvas } from "./shared/scene-canvas/DesignSceneCanvas";
 
 export function DesignSceneViewport() {
   return (
     <div className="relative h-full min-h-0">
       <DesignSceneCanvas />
-      <WallElevationEdgeNavigator />
+      <WallElevationFaceNavigator />
     </div>
   );
 }

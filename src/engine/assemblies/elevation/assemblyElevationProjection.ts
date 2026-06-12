@@ -1,7 +1,7 @@
 import type { Bounds3DInches } from "@/core/geometry/boxBounds";
 import { measurePlacedAssemblyPlacementBounds } from "../assemblyBounds";
 import type { PlacedAssembly } from "../placedAssemblyTypes";
-import type { PlacedWallElevationSide } from "@/engine/walls/elevation/wallElevationGeometry";
+import type { WallSegmentFace } from "@/engine/walls/connectedWallGeometryTypes";
 
 const ELEVATION_ASSEMBLY_HORIZONTAL_TOLERANCE_INCHES = 6;
 const ELEVATION_ASSEMBLY_BACK_DEPTH_TOLERANCE_INCHES = 8;
@@ -9,7 +9,7 @@ const ELEVATION_ASSEMBLY_FRONT_DEPTH_TOLERANCE_INCHES = 36;
 
 export function shouldShowPlacedAssemblyInElevationView(args: {
   placedAssembly: PlacedAssembly;
-  activeElevationSide: PlacedWallElevationSide;
+  activeElevationSide: WallSegmentFace;
 }): boolean {
   const boundsInches = measurePlacedAssemblyPlacementBounds(args.placedAssembly);
   const projectedBounds = projectBoundsToElevationSide({
@@ -37,7 +37,7 @@ type ProjectedElevationSideBounds = Readonly<{
 
 function projectBoundsToElevationSide(args: {
   boundsInches: Bounds3DInches;
-  activeElevationSide: PlacedWallElevationSide;
+  activeElevationSide: WallSegmentFace;
 }): ProjectedElevationSideBounds {
   const edgeDirectionInches = getElevationSideDirection(args.activeElevationSide);
   const projectedPoints = getBoundsFloorCornerPoints(args.boundsInches).map((pointInches) => {
@@ -49,8 +49,8 @@ function projectBoundsToElevationSide(args: {
         offsetXInches * edgeDirectionInches.xInches +
         offsetYInches * edgeDirectionInches.yInches,
       depthInches:
-        offsetXInches * args.activeElevationSide.outwardNormalInches.xInches +
-        offsetYInches * args.activeElevationSide.outwardNormalInches.yInches,
+        offsetXInches * args.activeElevationSide.normalInches.xInches +
+        offsetYInches * args.activeElevationSide.normalInches.yInches,
     };
   });
 
@@ -63,7 +63,7 @@ function projectBoundsToElevationSide(args: {
 }
 
 function getElevationSideDirection(
-  activeElevationSide: PlacedWallElevationSide,
+  activeElevationSide: WallSegmentFace,
 ): Readonly<{ xInches: number; yInches: number }> {
   return {
     xInches:

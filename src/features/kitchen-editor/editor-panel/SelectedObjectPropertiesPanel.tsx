@@ -5,11 +5,11 @@ import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { kitchenEditorCatalogRegistry } from "../catalogs/registry/kitchenEditorCatalogRegistry";
 import { AssemblyPropertiesPanel } from "../properties-panel/assemblies/AssemblyPropertiesPanel";
 import { CountertopOpeningPropertiesPanel } from "../properties-panel/countertops/CountertopOpeningPropertiesPanel";
-import { WallPropertiesPanel } from "../properties-panel/walls/WallPropertiesPanel";
+import { WallSegmentPropertiesPanel } from "../properties-panel/walls/WallSegmentPropertiesPanel";
 
 export function SelectedObjectPropertiesPanel() {
   const placedAssemblies = useDesignSceneStore((state) => state.designScene.placedAssemblies);
-  const placedWalls = useDesignSceneStore((state) => state.designScene.placedWalls);
+  const placedWallGraphs = useDesignSceneStore((state) => state.designScene.placedWallGraphs);
   const countertopOpenings = useDesignSceneStore((state) => state.designScene.countertopOpenings);
   const activeSelection = useDesignSceneStore((state) => state.designScene.activeSelection);
   const deleteSelectedAssembly = useDesignSceneStore((state) => state.deleteSelectedAssembly);
@@ -24,10 +24,12 @@ export function SelectedObjectPropertiesPanel() {
       ? null
       : getAssemblyDefinition(kitchenEditorCatalogRegistry, selectedAssembly.definitionId);
 
-  const selectedPlacedWall =
-    activeSelection?.kind === "placed-wall"
-      ? placedWalls.find((placedWall) => placedWall.id === activeSelection.placedWallId)
-      : undefined;
+  const selectedWallGraph = activeSelection?.kind === "placed-wall-segment"
+    ? placedWallGraphs.find((wallGraph) => wallGraph.id === activeSelection.wallGraphId)
+    : undefined;
+  const selectedWallSegment = activeSelection?.kind === "placed-wall-segment"
+    ? selectedWallGraph?.segments.find((wallSegment) => wallSegment.id === activeSelection.wallSegmentId)
+    : undefined;
 
   const selectedCountertopOpening =
     activeSelection?.kind === "countertop-opening"
@@ -48,10 +50,10 @@ export function SelectedObjectPropertiesPanel() {
     );
   }
 
-  if (selectedPlacedWall !== undefined) {
+  if (selectedWallSegment !== undefined && selectedWallGraph !== undefined) {
     return (
       <div className="absolute inset-0 z-10 h-full min-h-0 overflow-y-auto bg-white p-4">
-        <WallPropertiesPanel placedWall={selectedPlacedWall} />
+        <WallSegmentPropertiesPanel wallSegment={selectedWallSegment} wallGraphNodes={selectedWallGraph.nodes} />
       </div>
     );
   }

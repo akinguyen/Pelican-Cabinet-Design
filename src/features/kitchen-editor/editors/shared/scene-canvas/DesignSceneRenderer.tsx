@@ -1,13 +1,10 @@
 "use client";
 
-import { shouldShowPlacedAssemblyInElevationView } from "@/engine/assemblies/elevation/assemblyElevationProjection";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { getActivePlacedWallElevationView } from "@/engine/walls/elevation/wallElevationGeometry";
 import { AssemblyDragSurface } from "../../../interaction/assemblies/AssemblyDragSurface";
 import { AssemblyRotationSurface } from "../../../interaction/assemblies/AssemblyRotationSurface";
 import { CountertopCutoutDraftSurface } from "../../../interaction/countertops/CountertopCutoutDraftSurface";
-import { WallFootprintDraftSurface } from "../../../interaction/walls/WallFootprintDraftSurface";
-import { WallSplitDraftSurface } from "../../../interaction/walls/WallSplitDraftSurface";
+import { WallSegmentDraftSurface } from "../../../interaction/walls/WallSegmentDraftSurface";
 import { AssemblyLayer } from "../../../rendering/assemblies/AssemblyLayer";
 import { AssemblyPlacementCandidateRenderer } from "../../../rendering/assemblies/AssemblyPlacementCandidateRenderer";
 import { AssemblyPlacementFeedbackLayer } from "../../../rendering/assemblies/AssemblyPlacementFeedbackLayer";
@@ -19,60 +16,32 @@ import { WallLayer } from "../../../rendering/walls/WallLayer";
 export function DesignSceneRenderer() {
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const placedAssemblies = useDesignSceneStore((state) => state.designScene.placedAssemblies);
-  const placedWalls = useDesignSceneStore((state) => state.designScene.placedWalls);
+  const placedWallGraphs = useDesignSceneStore((state) => state.designScene.placedWallGraphs);
   const activeSelection = useDesignSceneStore((state) => state.designScene.activeSelection);
   const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
-  const activeWallElevationWallId = useDesignSceneStore((state) => state.activeWallElevationWallId);
-  const activeWallElevationEdgeIndex = useDesignSceneStore((state) => state.activeWallElevationEdgeIndex);
   const assemblyPlacementFeedback = useDesignSceneStore((state) => state.assemblyPlacementFeedback);
-  const wallFootprintDraft =
-    activeSceneOperation?.kind === "wall-footprint-draft"
-      ? activeSceneOperation.wallFootprintDraft
+  const wallSegmentDraft =
+    activeSceneOperation?.kind === "wall-segment-draft"
+      ? activeSceneOperation.wallSegmentDraft
       : null;
-  const wallSplitDraft =
-    activeSceneOperation?.kind === "wall-split-draft"
-      ? activeSceneOperation.wallSplitDraft
-      : null;
-  const activeElevationView = activeSceneViewMode === "elevation"
-    ? getActivePlacedWallElevationView({
-        placedWalls,
-        activeWallElevationWallId,
-        activeWallElevationEdgeIndex,
-      })
-    : null;
-  const activeElevationSide = activeElevationView?.side ?? null;
-
   const showFrontOutlineLines = activeSceneViewMode === "elevation";
-  const showWallPlanMeasurements =
-    activeSceneViewMode === "floor-plan" &&
-    wallFootprintDraft === null &&
-    wallSplitDraft === null;
-  const visiblePlacedAssemblies = activeSceneViewMode === "elevation" && activeElevationSide !== null
-    ? placedAssemblies.filter((placedAssembly) =>
-        shouldShowPlacedAssemblyInElevationView({
-          placedAssembly,
-          activeElevationSide,
-        }),
-      )
-    : placedAssemblies;
+  const showWallPlanMeasurements = activeSceneViewMode === "floor-plan" && wallSegmentDraft === null;
 
   return (
     <>
       <WallLayer
-        placedWalls={placedWalls}
+        placedWallGraphs={placedWallGraphs}
         activeSelection={activeSelection}
-        wallFootprintDraft={wallFootprintDraft}
-        wallSplitDraft={wallSplitDraft}
+        wallSegmentDraft={wallSegmentDraft}
         showPlanMeasurements={showWallPlanMeasurements}
         sceneViewMode={activeSceneViewMode}
-        activeElevationSide={activeElevationSide}
       />
       <AssemblyLayer
-        placedAssemblies={visiblePlacedAssemblies}
+        placedAssemblies={placedAssemblies}
         showFrontOutlineLines={showFrontOutlineLines}
       />
       <SelectedAssemblyOutlineLayer
-        placedAssemblies={visiblePlacedAssemblies}
+        placedAssemblies={placedAssemblies}
         activeSelection={activeSelection}
         sceneViewMode={activeSceneViewMode}
       />
@@ -89,8 +58,7 @@ export function DesignSceneRenderer() {
       <AssemblyDragSurface />
       <AssemblyRotationSurface />
       <CountertopCutoutDraftSurface />
-      <WallFootprintDraftSurface />
-      <WallSplitDraftSurface />
+      <WallSegmentDraftSurface />
     </>
   );
 }

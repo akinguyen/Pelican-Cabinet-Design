@@ -12,8 +12,7 @@ import { createSceneViewModeActions } from "./actions/sceneViewModeActions";
 import { createWallEditingActions } from "./actions/wallEditingActions";
 import { createWorkspaceModeActions } from "./actions/workspaceModeActions";
 import { createWallElevationNavigationActions } from "./actions/wallElevationNavigationActions";
-import { createWallFootprintDraftActions } from "./actions/wallFootprintDraftActions";
-import { createWallSplitDraftActions } from "./actions/wallSplitDraftActions";
+import { createWallSegmentDraftActions } from "./actions/wallSegmentDraftActions";
 import { createInitialDesignSceneStoreState } from "./createInitialDesignSceneStoreState";
 import type { DesignSceneStore } from "./designSceneStoreTypes";
 
@@ -30,8 +29,7 @@ export const useDesignSceneStore = create<DesignSceneStore>((set, get) => ({
   ...createAssemblyRotationActions(get, set),
   ...createAssemblyEditingActions(get, set),
   ...createCountertopOpeningActions(get, set),
-  ...createWallFootprintDraftActions(get, set),
-  ...createWallSplitDraftActions(get, set),
+  ...createWallSegmentDraftActions(get, set),
   ...createWallEditingActions(get, set),
   ...createSceneInteractionActions(get, set),
 }));

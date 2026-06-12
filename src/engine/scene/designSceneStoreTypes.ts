@@ -3,7 +3,8 @@ import type { CountertopCutoutDraftShapeKind, CountertopOpening } from "@/engine
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { AssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementTypes";
-import type { WallSettings } from "@/engine/walls/wallTypes";
+import type { WallSettings } from "@/engine/walls/placedWallSegmentTypes";
+import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
 import type { SceneEditingTool } from "./sceneEditingToolTypes";
 import type {
   SceneCameraCommand,
@@ -27,8 +28,7 @@ export type DesignSceneStore = Readonly<{
   wallSettings: WallSettings;
   workspaceMode: KitchenWorkspaceMode;
   activeSceneViewMode: SceneViewMode;
-  activeWallElevationWallId: string | null;
-  activeWallElevationEdgeIndex: number;
+  activeWallElevationTarget: WallElevationTarget | null;
   activeToolbarTool: SceneEditingTool | null;
   cameraCommand: SceneCameraCommand | null;
   sceneCameraStates: SceneCameraStates;
@@ -36,9 +36,9 @@ export type DesignSceneStore = Readonly<{
   assemblyPlacementFeedback: AssemblyPlacementFeedback | null;
   setWorkspaceMode: (workspaceMode: KitchenWorkspaceMode) => void;
   setActiveSceneViewMode: (sceneViewMode: SceneViewMode) => void;
-  setActiveWallElevationWall: (placedWallId: string) => void;
-  showPreviousWallElevationSide: () => void;
-  showNextWallElevationSide: () => void;
+  setActiveWallElevationTarget: (target: WallElevationTarget) => void;
+  showPreviousWallElevationFace: () => void;
+  showNextWallElevationFace: () => void;
   runCameraCommand: (cameraCommandTool: SceneCameraCommandTool) => void;
   clearCameraCommand: (cameraCommandId: number) => void;
   setActiveToolbarTool: (toolbarTool: SceneEditingTool | null) => void;
@@ -50,7 +50,7 @@ export type DesignSceneStore = Readonly<{
   commitAssemblyPlacementCandidate: () => void;
   cancelActiveSceneOperation: () => void;
   selectPlacedAssembly: (placedAssemblyId: string) => void;
-  selectPlacedWall: (placedWallId: string) => void;
+  selectPlacedWallSegment: (wallGraphId: string, wallSegmentId: string) => void;
   selectCountertopOpening: (countertopOpeningId: string) => void;
   clearSelection: () => void;
   startAssemblyDrag: (args: {
@@ -95,15 +95,12 @@ export type DesignSceneStore = Readonly<{
   startCountertopOpeningDrag: (args: { countertopOpeningId: string; grabLocalInches: Point2DInches }) => void;
   updateCountertopOpeningDrag: (grabLocalInches: Point2DInches) => void;
   finishCountertopOpeningDrag: () => void;
-  updateWallFootprintDraftHover: (pointInches: Point3DInches) => void;
-  clickWallFootprintDraftPoint: (pointInches: Point3DInches) => void;
-  exitWallFootprintDraftTool: () => void;
-  updateWallSplitDraftHover: (pointInches: Point3DInches) => void;
-  clickWallSplitDraftPoint: (pointInches: Point3DInches) => void;
-  exitWallSplitDraftTool: () => void;
-  updateSelectedPlacedWallHeight: (heightInches: number) => void;
-  updateSelectedPlacedWallViewableEdge: (edgeIndex: number, isViewable: boolean) => void;
-  deleteSelectedPlacedWall: () => void;
+  updateWallSegmentDraftHover: (pointInches: Point3DInches) => void;
+  clickWallSegmentDraftPoint: (pointInches: Point3DInches) => void;
+  exitWallSegmentDraftTool: () => void;
+  updateSelectedWallSegmentHeight: (heightInches: number) => void;
+  updateSelectedWallSegmentThickness: (thicknessInches: number) => void;
+  deleteSelectedWallSegment: () => void;
   clearActiveInteraction: () => void;
 }>;
 

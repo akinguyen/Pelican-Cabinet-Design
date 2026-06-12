@@ -8,7 +8,7 @@ export function KeyboardShortcuts() {
   const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const clearActiveInteraction = useDesignSceneStore((state) => state.clearActiveInteraction);
   const deleteSelectedAssembly = useDesignSceneStore((state) => state.deleteSelectedAssembly);
-  const deleteSelectedPlacedWall = useDesignSceneStore((state) => state.deleteSelectedPlacedWall);
+  const deleteSelectedWallSegment = useDesignSceneStore((state) => state.deleteSelectedWallSegment);
   const activeSelection = useDesignSceneStore((state) => state.designScene.activeSelection);
   const deleteCountertopOpening = useDesignSceneStore((state) => state.deleteCountertopOpening);
 
@@ -35,7 +35,7 @@ export function KeyboardShortcuts() {
           return;
         }
 
-        deleteSelectedPlacedWall();
+        deleteSelectedWallSegment();
         deleteSelectedAssembly();
       }
     }
@@ -45,7 +45,7 @@ export function KeyboardShortcuts() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [activeSelection, clearActiveInteraction, deleteCountertopOpening, deleteSelectedAssembly, deleteSelectedPlacedWall, workspaceMode]);
+  }, [activeSelection, clearActiveInteraction, deleteCountertopOpening, deleteSelectedAssembly, deleteSelectedWallSegment, workspaceMode]);
 
   return null;
 }

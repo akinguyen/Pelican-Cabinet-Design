@@ -1,4 +1,10 @@
-import { getActivePlacedWallElevationView, getPlacedWallElevationWallViews } from "@/engine/walls/elevation/wallElevationGeometry";
+import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
+import {
+  createWallElevationTargetFromFace,
+  getActiveWallSegmentElevationFace,
+  getWallSegmentElevationFaces,
+} from "@/engine/walls/wallSegmentElevation";
+import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
 export function createWallElevationNavigationActions(
@@ -6,58 +12,59 @@ export function createWallElevationNavigationActions(
   set: DesignSceneStoreSetter,
 ): Pick<
   DesignSceneStore,
-  "setActiveWallElevationWall" | "showPreviousWallElevationSide" | "showNextWallElevationSide"
+  "setActiveWallElevationTarget" | "showPreviousWallElevationFace" | "showNextWallElevationFace"
 > {
   return {
-    setActiveWallElevationWall(placedWallId) {
-      const wallView = getPlacedWallElevationWallViews(get().designScene.placedWalls).find(
-        (candidateWallView) => candidateWallView.placedWallId === placedWallId,
-      );
-
-      if (wallView === undefined) {
-        return;
-      }
-
-      set({
-        activeWallElevationWallId: wallView.placedWallId,
-        activeWallElevationEdgeIndex: wallView.viewableSides[0].edgeIndex,
-      });
+    setActiveWallElevationTarget(target: WallElevationTarget) {
+      set({ activeWallElevationTarget: target });
     },
 
-    showPreviousWallElevationSide() {
-      updateWallElevationEdgeIndex(-1, get, set);
+    showPreviousWallElevationFace() {
+      updateWallElevationFaceIndex(-1, get, set);
     },
 
-    showNextWallElevationSide() {
-      updateWallElevationEdgeIndex(1, get, set);
+    showNextWallElevationFace() {
+      updateWallElevationFaceIndex(1, get, set);
     },
   };
 }
 
-function updateWallElevationEdgeIndex(
+function updateWallElevationFaceIndex(
   delta: number,
   get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
 ): void {
   const state = get();
-  const activeElevationView = getActivePlacedWallElevationView({
-    placedWalls: state.designScene.placedWalls,
-    activeWallElevationWallId: state.activeWallElevationWallId,
-    activeWallElevationEdgeIndex: state.activeWallElevationEdgeIndex,
-  });
+  const faces = state.designScene.placedWallGraphs.flatMap((wallGraph) => (
+    getWallSegmentElevationFaces(buildConnectedWallGeometry(wallGraph))
+  ));
 
-  if (activeElevationView === null) {
+  if (faces.length === 0) {
+    set({ activeWallElevationTarget: null });
     return;
   }
 
-  const viewableSideCount = activeElevationView.wallView.viewableSides.length;
-  const nextSideIndex =
-    ((activeElevationView.sideIndex + delta) % viewableSideCount + viewableSideCount) %
-    viewableSideCount;
-  const nextSide = activeElevationView.wallView.viewableSides[nextSideIndex];
+  const activeFace = findActiveFace(state);
+  const activeFaceIndex = Math.max(
+    0,
+    faces.findIndex((face) => face.id === activeFace?.id),
+  );
+  const nextFaceIndex = ((activeFaceIndex + delta) % faces.length + faces.length) % faces.length;
 
-  set({
-    activeWallElevationWallId: activeElevationView.wallView.placedWallId,
-    activeWallElevationEdgeIndex: nextSide.edgeIndex,
-  });
+  set({ activeWallElevationTarget: createWallElevationTargetFromFace(faces[nextFaceIndex]) });
+}
+
+function findActiveFace(state: DesignSceneStore) {
+  for (const wallGraph of state.designScene.placedWallGraphs) {
+    const activeFace = getActiveWallSegmentElevationFace({
+      topology: buildConnectedWallGeometry(wallGraph),
+      activeWallElevationTarget: state.activeWallElevationTarget,
+    });
+
+    if (activeFace !== null) {
+      return activeFace;
+    }
+  }
+
+  return null;
 }

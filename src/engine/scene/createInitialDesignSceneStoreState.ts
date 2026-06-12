@@ -1,4 +1,4 @@
-import { defaultWallSettings } from "@/engine/walls/wallTypes";
+import { defaultWallSettings } from "@/engine/walls/placedWallSegmentTypes";
 import { createDefaultSceneCameraStates } from "@/engine/scene/sceneCameraStateTypes";
 import { createEmptyDesignScene } from "./designSceneTypes";
 import type { DesignSceneStore } from "./designSceneStoreTypes";
@@ -9,8 +9,7 @@ export function createInitialDesignSceneStoreState(): Pick<
   | "wallSettings"
   | "workspaceMode"
   | "activeSceneViewMode"
-  | "activeWallElevationWallId"
-  | "activeWallElevationEdgeIndex"
+  | "activeWallElevationTarget"
   | "activeToolbarTool"
   | "cameraCommand"
   | "sceneCameraStates"
@@ -22,8 +21,7 @@ export function createInitialDesignSceneStoreState(): Pick<
     wallSettings: defaultWallSettings,
     workspaceMode: "editor",
     activeSceneViewMode: "perspective",
-    activeWallElevationWallId: null,
-    activeWallElevationEdgeIndex: 0,
+    activeWallElevationTarget: null,
     activeToolbarTool: null,
     cameraCommand: null,
     sceneCameraStates: createDefaultSceneCameraStates(),

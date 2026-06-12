@@ -1,5 +1,4 @@
-import { createWallSplitDraftForTarget } from "@/engine/walls/split-draft/wallSplitDraftFactory";
-import { createEmptyWallFootprintDraft } from "@/engine/walls/footprint-draft/wallFootprintDraftFactory";
+import { createEmptyWallSegmentDraft } from "@/engine/walls/segment-draft/wallSegmentDraftFactory";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
@@ -41,35 +40,19 @@ export function createSceneToolbarActions(
       }
 
       set((state) => {
-        const selectedPlacedWallId = state.designScene.activeSelection?.kind === "placed-wall"
-          ? state.designScene.activeSelection.placedWallId
-          : null;
-
-        if (toolbarTool === "draw-wall-footprint") {
+        if (toolbarTool === "draw-wall-segment") {
           return {
             activeToolbarTool: toolbarTool,
             designScene: {
               ...state.designScene,
               activeSceneOperation: {
-                kind: "wall-footprint-draft",
-                wallFootprintDraft: createEmptyWallFootprintDraft(
-                  state.wallSettings.defaultHeightInches,
-                ),
+                kind: "wall-segment-draft",
+                wallSegmentDraft: createEmptyWallSegmentDraft({
+                  heightInches: state.wallSettings.defaultHeightInches,
+                  thicknessInches: state.wallSettings.defaultThicknessInches,
+                }),
               },
               activeSelection: null,
-            },
-          };
-        }
-
-        if (toolbarTool === "split-wall-footprint") {
-          return {
-            activeToolbarTool: toolbarTool,
-            designScene: {
-              ...state.designScene,
-              activeSceneOperation: {
-                kind: "wall-split-draft",
-                wallSplitDraft: createWallSplitDraftForTarget(selectedPlacedWallId),
-              },
             },
           };
         }
@@ -102,16 +85,12 @@ function isToolbarSceneOperation(
   activeSceneOperation: DesignSceneStore["designScene"]["activeSceneOperation"],
 ): boolean {
   return (
-    activeSceneOperation?.kind === "wall-footprint-draft" ||
-    activeSceneOperation?.kind === "wall-split-draft" ||
+    activeSceneOperation?.kind === "wall-segment-draft" ||
     activeSceneOperation?.kind === "countertop-cutout-draft" ||
     activeSceneOperation?.kind === "countertop-opening-drag"
   );
 }
 
-
 function isCountertopCutoutTool(toolbarTool: DesignSceneStore["activeToolbarTool"]): boolean {
-  return (
-    toolbarTool === "draw-countertop-cutout-rectangle"
-  );
+  return toolbarTool === "draw-countertop-cutout-rectangle";
 }
