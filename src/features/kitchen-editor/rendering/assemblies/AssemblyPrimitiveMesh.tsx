@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { ThreeEvent } from "@react-three/fiber";
 import { degreesToRadians, degreesToUserFacingZRadians } from "@/core/geometry/rotationTypes";
 import type { BuiltPrimitiveGeometry } from "@/engine/assemblies/assemblyTreeBuilder";
+import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import { createCustomMeshGeometry } from "@/engine/primitive-geometry/custom-meshes/createCustomMeshGeometry";
 import { createLShapedPrismGeometry } from "@/engine/primitive-geometry/l-shaped-prism/createLShapedPrismGeometry";
@@ -15,6 +16,10 @@ import type {
 import { createRectangularFrustumGeometry } from "@/engine/primitive-geometry/rectangular-frustum/createRectangularFrustumGeometry";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
+import type { AssemblyElevationMoveFrame } from "@/engine/scene/sceneDragTypes";
+import { getWallElevationViewZoneForTarget } from "@/engine/walls/wallElevationViewZone";
+import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
+import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
 import { createAssemblyDragPointerWorldPoint } from "../../interaction/assemblies/assemblyDragPointer";
 import { AssemblyPrimitiveEdgeSegments } from "./AssemblyPrimitiveEdgeSegments";
 
@@ -30,6 +35,8 @@ export function AssemblyPrimitiveMesh({ primitiveGeometry, renderState }: Assemb
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
   const placedAssemblies = useDesignSceneStore((state) => state.designScene.placedAssemblies);
+  const placedWallGraphs = useDesignSceneStore((state) => state.designScene.placedWallGraphs);
+  const activeWallElevationTarget = useDesignSceneStore((state) => state.activeWallElevationTarget);
   const selectPlacedAssembly = useDesignSceneStore((state) => state.selectPlacedAssembly);
   const startAssemblyDrag = useDesignSceneStore((state) => state.startAssemblyDrag);
 
@@ -63,10 +70,18 @@ export function AssemblyPrimitiveMesh({ primitiveGeometry, renderState }: Assemb
       return;
     }
 
+    const elevationMoveFrame = activeSceneViewMode === "elevation"
+      ? createAssemblyElevationMoveFrame({
+          placedAssemblyWorldPositionInches: placedAssembly.worldPositionInches,
+          placedWallGraphs,
+          activeWallElevationTarget,
+        })
+      : undefined;
     const pointerWorldInches = createAssemblyDragPointerWorldPoint(
       activeSceneViewMode,
       event.ray,
       placedAssembly.worldPositionInches.yInches,
+      elevationMoveFrame,
     );
 
     if (pointerWorldInches === null) {
@@ -77,6 +92,7 @@ export function AssemblyPrimitiveMesh({ primitiveGeometry, renderState }: Assemb
       assemblyId: primitiveGeometry.rootAssemblyId,
       pointerWorldInches,
       sceneViewMode: activeSceneViewMode,
+      elevationMoveFrame,
     });
   }
 
@@ -113,6 +129,37 @@ export function AssemblyPrimitiveMesh({ primitiveGeometry, renderState }: Assemb
   );
 }
 
+
+function createAssemblyElevationMoveFrame(args: {
+  placedAssemblyWorldPositionInches: Point3DInches;
+  placedWallGraphs: readonly PlacedWallGraph[];
+  activeWallElevationTarget: WallElevationTarget | null;
+}): AssemblyElevationMoveFrame | undefined {
+  const viewZone = getWallElevationViewZoneForTarget({
+    placedWallGraphs: args.placedWallGraphs,
+    activeWallElevationTarget: args.activeWallElevationTarget,
+  });
+
+  if (viewZone === null) {
+    return undefined;
+  }
+
+  const faceLengthInches = Math.max(viewZone.faceLengthInches, 0.000001);
+
+  return {
+    faceDirectionInches: {
+      xInches: (viewZone.faceEndInches.xInches - viewZone.faceStartInches.xInches) / faceLengthInches,
+      yInches: (viewZone.faceEndInches.yInches - viewZone.faceStartInches.yInches) / faceLengthInches,
+      zInches: 0,
+    },
+    outwardDirectionInches: {
+      xInches: viewZone.outwardDirectionInches.xInches,
+      yInches: viewZone.outwardDirectionInches.yInches,
+      zInches: 0,
+    },
+    planeOriginInches: args.placedAssemblyWorldPositionInches,
+  };
+}
 
 function shouldUseEvenColorMaterial(primitiveGeometry: BuiltPrimitiveGeometry): boolean {
   if (

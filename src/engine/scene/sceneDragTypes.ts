@@ -1,6 +1,12 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 
+export type AssemblyElevationMoveFrame = Readonly<{
+  faceDirectionInches: Point3DInches;
+  outwardDirectionInches: Point3DInches;
+  planeOriginInches: Point3DInches;
+}>;
+
 export type AssemblyMoveDragState = Readonly<{
   kind: "assembly-move";
   assemblyId: string;
@@ -8,6 +14,7 @@ export type AssemblyMoveDragState = Readonly<{
   dragStartWorldPositionInches: Point3DInches;
   latestValidWorldPositionInches: Point3DInches;
   sceneViewMode: SceneViewMode;
+  elevationMoveFrame?: AssemblyElevationMoveFrame;
 }>;
 
 export type AssemblyRotationDragState = Readonly<{

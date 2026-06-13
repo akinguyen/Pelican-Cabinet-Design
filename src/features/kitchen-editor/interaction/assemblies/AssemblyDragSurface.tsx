@@ -1,8 +1,10 @@
 "use client";
 
 import type { ThreeEvent } from "@react-three/fiber";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { Matrix4, Vector3 } from "three";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import type { AssemblyElevationMoveFrame } from "@/engine/scene/sceneDragTypes";
 import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import { createAssemblyDragPointerWorldPoint } from "./assemblyDragPointer";
 
@@ -31,6 +33,13 @@ export function AssemblyDragSurface() {
     };
   }, [finishAssemblyDrag, moveDrag, workspaceMode]);
 
+  const elevationDragSurfaceMatrix = useMemo(
+    () => moveDrag?.sceneViewMode === "elevation" && moveDrag.elevationMoveFrame !== undefined
+      ? createElevationDragSurfaceMatrix(moveDrag.elevationMoveFrame)
+      : null,
+    [moveDrag],
+  );
+
   if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
     return null;
   }
@@ -45,6 +54,7 @@ export function AssemblyDragSurface() {
       moveDrag.sceneViewMode,
       event.ray,
       moveDrag.dragStartWorldPositionInches.yInches,
+      moveDrag.elevationMoveFrame,
     );
 
     if (pointerWorldInches !== null) {
@@ -57,11 +67,12 @@ export function AssemblyDragSurface() {
     finishAssemblyDrag();
   }
 
-  if (moveDrag.sceneViewMode === "elevation") {
+
+  if (moveDrag.sceneViewMode === "elevation" && elevationDragSurfaceMatrix !== null) {
     return (
       <mesh
-        position={[0, moveDrag.dragStartWorldPositionInches.yInches, 120]}
-        rotation={[Math.PI / 2, 0, 0]}
+        matrix={elevationDragSurfaceMatrix}
+        matrixAutoUpdate={false}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
@@ -77,4 +88,27 @@ export function AssemblyDragSurface() {
       <meshBasicMaterial transparent opacity={0} depthWrite={false} />
     </mesh>
   );
+}
+
+function createElevationDragSurfaceMatrix(
+  elevationMoveFrame: AssemblyElevationMoveFrame,
+): Matrix4 {
+  const xAxis = new Vector3(
+    elevationMoveFrame.faceDirectionInches.xInches,
+    elevationMoveFrame.faceDirectionInches.yInches,
+    elevationMoveFrame.faceDirectionInches.zInches,
+  ).normalize();
+  const yAxis = new Vector3(0, 0, 1);
+  const zAxis = new Vector3(
+    elevationMoveFrame.outwardDirectionInches.xInches,
+    elevationMoveFrame.outwardDirectionInches.yInches,
+    elevationMoveFrame.outwardDirectionInches.zInches,
+  ).normalize();
+  const origin = new Vector3(
+    elevationMoveFrame.planeOriginInches.xInches,
+    elevationMoveFrame.planeOriginInches.yInches,
+    elevationMoveFrame.planeOriginInches.zInches,
+  );
+
+  return new Matrix4().makeBasis(xAxis, yAxis, zAxis).setPosition(origin);
 }

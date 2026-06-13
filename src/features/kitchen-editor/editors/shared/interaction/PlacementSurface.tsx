@@ -1,42 +1,75 @@
 "use client";
 
 import type { ThreeEvent } from "@react-three/fiber";
+import { useMemo } from "react";
+import { Matrix4, Vector3 } from "three";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { getAssemblyDistanceFromFloorInches } from "@/engine/assemblies/placedAssemblyTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
+import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
+import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
+import { getWallElevationViewZoneForTarget } from "@/engine/walls/wallElevationViewZone";
 
 const PLACEMENT_SURFACE_SIZE_INCHES = 3200;
+const MIN_FACE_LENGTH_INCHES = 0.000001;
 
 type PlacementSurfaceProps = Readonly<{
   sceneViewMode: SceneViewMode;
 }>;
 
+type ElevationPlacementFrame = Readonly<{
+  faceDirectionInches: Point3DInches;
+  outwardDirectionInches: Point3DInches;
+  planeOriginInches: Point3DInches;
+}>;
+
 export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
   const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
+  const placedWallGraphs = useDesignSceneStore((state) => state.designScene.placedWallGraphs);
+  const activeWallElevationTarget = useDesignSceneStore((state) => state.activeWallElevationTarget);
   const updateAssemblyCandidateWorldPosition = useDesignSceneStore(
     (state) => state.updateAssemblyCandidateWorldPosition,
   );
   const commitAssemblyPlacementCandidate = useDesignSceneStore((state) => state.commitAssemblyPlacementCandidate);
+
+  const elevationPlacementFrame = useMemo(
+    () => sceneViewMode === "elevation"
+      ? createElevationPlacementFrame({
+          placedWallGraphs,
+          activeWallElevationTarget,
+        })
+      : null,
+    [activeWallElevationTarget, placedWallGraphs, sceneViewMode],
+  );
+  const elevationPlacementSurfaceMatrix = useMemo(
+    () => elevationPlacementFrame === null
+      ? null
+      : createElevationPlacementSurfaceMatrix(elevationPlacementFrame),
+    [elevationPlacementFrame],
+  );
 
   if (!canManuallyEditScene(workspaceMode) || activeSceneOperation?.kind !== "assembly-placement") {
     return null;
   }
 
   const heightInches = activeSceneOperation.placedAssembly.configuration.sizeInches.heightInches;
+  const depthInches = activeSceneOperation.placedAssembly.configuration.sizeInches.depthInches;
   const distanceFromFloorInches = getAssemblyDistanceFromFloorInches(activeSceneOperation.placedAssembly);
 
   function handlePointerMove(event: ThreeEvent<PointerEvent>) {
     event.stopPropagation();
     updateAssemblyCandidateWorldPosition(
-      createAssemblyCandidatePositionFromPointerPoint(
+      createAssemblyCandidatePositionFromPointerPoint({
         sceneViewMode,
-        event.point,
+        point: event.point,
         heightInches,
+        depthInches,
         distanceFromFloorInches,
-      ),
+        elevationPlacementFrame,
+      }),
       sceneViewMode,
     );
   }
@@ -46,11 +79,11 @@ export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
     commitAssemblyPlacementCandidate();
   }
 
-  if (sceneViewMode === "elevation") {
+  if (sceneViewMode === "elevation" && elevationPlacementSurfaceMatrix !== null) {
     return (
       <mesh
-        position={[0, 0, 120]}
-        rotation={[Math.PI / 2, 0, 0]}
+        matrix={elevationPlacementSurfaceMatrix}
+        matrixAutoUpdate={false}
         onPointerMove={handlePointerMove}
         onClick={handleClick}
       >
@@ -68,23 +101,90 @@ export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
   );
 }
 
-function createAssemblyCandidatePositionFromPointerPoint(
-  sceneViewMode: SceneViewMode,
-  point: { x: number; y: number; z: number },
-  heightInches: number,
-  distanceFromFloorInches: number,
-): Point3DInches {
-  if (sceneViewMode === "elevation") {
+function createAssemblyCandidatePositionFromPointerPoint(args: {
+  sceneViewMode: SceneViewMode;
+  point: { x: number; y: number; z: number };
+  heightInches: number;
+  depthInches: number;
+  distanceFromFloorInches: number;
+  elevationPlacementFrame: ElevationPlacementFrame | null;
+}): Point3DInches {
+  if (args.sceneViewMode === "elevation" && args.elevationPlacementFrame !== null) {
     return {
-      xInches: point.x,
+      xInches:
+        args.point.x +
+        args.elevationPlacementFrame.outwardDirectionInches.xInches * (args.depthInches / 2),
+      yInches:
+        args.point.y +
+        args.elevationPlacementFrame.outwardDirectionInches.yInches * (args.depthInches / 2),
+      zInches: Math.max(args.heightInches / 2, args.point.z),
+    };
+  }
+
+  if (args.sceneViewMode === "elevation") {
+    return {
+      xInches: args.point.x,
       yInches: 0,
-      zInches: Math.max(heightInches / 2, point.z),
+      zInches: Math.max(args.heightInches / 2, args.point.z),
     };
   }
 
   return {
-    xInches: point.x,
-    yInches: point.y,
-    zInches: distanceFromFloorInches + heightInches / 2,
+    xInches: args.point.x,
+    yInches: args.point.y,
+    zInches: args.distanceFromFloorInches + args.heightInches / 2,
   };
+}
+
+function createElevationPlacementFrame(args: {
+  placedWallGraphs: readonly PlacedWallGraph[];
+  activeWallElevationTarget: WallElevationTarget | null;
+}): ElevationPlacementFrame | null {
+  const viewZone = getWallElevationViewZoneForTarget({
+    placedWallGraphs: args.placedWallGraphs,
+    activeWallElevationTarget: args.activeWallElevationTarget,
+  });
+
+  if (viewZone === null) {
+    return null;
+  }
+
+  const faceLengthInches = Math.max(viewZone.faceLengthInches, MIN_FACE_LENGTH_INCHES);
+
+  return {
+    faceDirectionInches: {
+      xInches: (viewZone.faceEndInches.xInches - viewZone.faceStartInches.xInches) / faceLengthInches,
+      yInches: (viewZone.faceEndInches.yInches - viewZone.faceStartInches.yInches) / faceLengthInches,
+      zInches: 0,
+    },
+    outwardDirectionInches: {
+      xInches: viewZone.outwardDirectionInches.xInches,
+      yInches: viewZone.outwardDirectionInches.yInches,
+      zInches: 0,
+    },
+    planeOriginInches: viewZone.faceCenterInches,
+  };
+}
+
+function createElevationPlacementSurfaceMatrix(
+  elevationPlacementFrame: ElevationPlacementFrame,
+): Matrix4 {
+  const xAxis = new Vector3(
+    elevationPlacementFrame.faceDirectionInches.xInches,
+    elevationPlacementFrame.faceDirectionInches.yInches,
+    elevationPlacementFrame.faceDirectionInches.zInches,
+  ).normalize();
+  const yAxis = new Vector3(0, 0, 1);
+  const zAxis = new Vector3(
+    elevationPlacementFrame.outwardDirectionInches.xInches,
+    elevationPlacementFrame.outwardDirectionInches.yInches,
+    elevationPlacementFrame.outwardDirectionInches.zInches,
+  ).normalize();
+  const origin = new Vector3(
+    elevationPlacementFrame.planeOriginInches.xInches,
+    elevationPlacementFrame.planeOriginInches.yInches,
+    elevationPlacementFrame.planeOriginInches.zInches,
+  );
+
+  return new Matrix4().makeBasis(xAxis, yAxis, zAxis).setPosition(origin);
 }

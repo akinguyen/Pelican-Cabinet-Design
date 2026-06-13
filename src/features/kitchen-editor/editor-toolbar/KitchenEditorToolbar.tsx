@@ -15,6 +15,7 @@ export function KitchenEditorToolbar() {
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const activeSelection = useDesignSceneStore((state) => state.designScene.activeSelection);
+  const activeWallElevationTarget = useDesignSceneStore((state) => state.activeWallElevationTarget);
   const placedAssemblies = useDesignSceneStore((state) => state.designScene.placedAssemblies);
   const runCameraCommand = useDesignSceneStore((state) => state.runCameraCommand);
   const setActiveToolbarTool = useDesignSceneStore((state) => state.setActiveToolbarTool);
@@ -27,6 +28,7 @@ export function KitchenEditorToolbar() {
         const isDisabled = toolbarAction.isDisabled === true || isToolbarActionDisabled({
           activeSceneViewMode,
           activeSelection,
+          activeWallElevationTarget,
           placedAssemblies,
           toolbarTool: toolbarAction.kind === "active-tool" ? toolbarAction.id : null,
           workspaceMode,
@@ -64,6 +66,7 @@ export function KitchenEditorToolbar() {
 type ToolbarDisabledArgs = Readonly<{
   activeSceneViewMode: DesignSceneStore["activeSceneViewMode"];
   activeSelection: DesignSceneStore["designScene"]["activeSelection"];
+  activeWallElevationTarget: DesignSceneStore["activeWallElevationTarget"];
   placedAssemblies: DesignSceneStore["designScene"]["placedAssemblies"];
   toolbarTool: SceneEditingTool | null;
   workspaceMode: DesignSceneStore["workspaceMode"];
@@ -79,7 +82,7 @@ function isToolbarActionDisabled(args: ToolbarDisabledArgs): boolean {
   }
 
   if (args.activeSceneViewMode === "elevation") {
-    return true;
+    return args.activeWallElevationTarget === null;
   }
 
   if (args.activeSelection?.kind !== "placed-assembly") {

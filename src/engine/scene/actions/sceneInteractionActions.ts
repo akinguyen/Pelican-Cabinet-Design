@@ -13,6 +13,11 @@ export function createSceneInteractionActions(
         return;
       }
 
+      if (designScene.activeSceneOperation?.kind === "wall-opening-draft") {
+        get().cancelWallOpeningDraft();
+        return;
+      }
+
       if (designScene.activeSceneOperation !== null) {
         get().cancelActiveSceneOperation();
         return;

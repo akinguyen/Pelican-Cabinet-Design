@@ -1,7 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { createId } from "@/core/ids/createId";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
-import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
 import {
   createGuidedWallSegmentDrawAnchor,
   createWallSegmentDrawAnchor,
@@ -9,7 +8,7 @@ import {
 } from "@/engine/walls/segment-draft/wallSegmentDraftAnchors";
 import { buildWallSegmentDraftGraph } from "@/engine/walls/segment-draft/wallSegmentDraftPreview";
 import type { WallSegmentDrawAnchor } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
-import { createWallElevationTargetFromFace, getActiveWallSegmentElevationFace } from "@/engine/walls/wallSegmentElevation";
+import { getWallElevationFaceSideForSegment, rememberWallElevationFaceSide } from "@/engine/walls/wallElevationFaceSideMemory";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
@@ -122,15 +121,11 @@ export function createWallSegmentDraftActions(
           wallSegmentName: `Wall Segment ${countWallSegments(currentState.designScene.placedWallGraphs) + 1}`,
           createId,
         });
-        const selectedGraph = commitResult.placedWallGraphs.find((wallGraph) => wallGraph.id === commitResult.wallGraphId);
-        const activeElevationFace = selectedGraph === undefined
-          ? null
-          : getActiveWallSegmentElevationFace({
-            topology: buildConnectedWallGeometry(selectedGraph),
-            activeWallElevationTarget: currentState.activeWallElevationTarget?.wallGraphId === selectedGraph.id
-              ? currentState.activeWallElevationTarget
-              : null,
-          });
+        const faceSide = getWallElevationFaceSideForSegment({
+          faceSideBySegmentKey: currentState.activeWallElevationFaceSideBySegmentKey,
+          wallGraphId: commitResult.wallGraphId,
+          wallSegmentId: commitResult.wallSegmentId,
+        });
         const nextStartAnchor: WallSegmentDrawAnchor = {
           kind: "existing-node",
           wallGraphId: commitResult.wallGraphId,
@@ -139,9 +134,17 @@ export function createWallSegmentDraftActions(
         };
 
         return {
-          activeWallElevationTarget: activeElevationFace === null
-            ? null
-            : createWallElevationTargetFromFace(activeElevationFace),
+          activeWallElevationTarget: {
+            wallGraphId: commitResult.wallGraphId,
+            wallSegmentId: commitResult.wallSegmentId,
+            faceSide,
+          },
+          activeWallElevationFaceSideBySegmentKey: rememberWallElevationFaceSide({
+            faceSideBySegmentKey: currentState.activeWallElevationFaceSideBySegmentKey,
+            wallGraphId: commitResult.wallGraphId,
+            wallSegmentId: commitResult.wallSegmentId,
+            faceSide,
+          }),
           designScene: {
             ...currentState.designScene,
             placedWallGraphs: commitResult.placedWallGraphs,

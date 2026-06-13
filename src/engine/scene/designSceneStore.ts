@@ -13,6 +13,7 @@ import { createWallEditingActions } from "./actions/wallEditingActions";
 import { createWorkspaceModeActions } from "./actions/workspaceModeActions";
 import { createWallElevationNavigationActions } from "./actions/wallElevationNavigationActions";
 import { createWallSegmentDraftActions } from "./actions/wallSegmentDraftActions";
+import { createWallOpeningActions } from "./actions/wallOpeningActions";
 import { createInitialDesignSceneStoreState } from "./createInitialDesignSceneStoreState";
 import type { DesignSceneStore } from "./designSceneStoreTypes";
 
@@ -30,6 +31,7 @@ export const useDesignSceneStore = create<DesignSceneStore>((set, get) => ({
   ...createAssemblyEditingActions(get, set),
   ...createCountertopOpeningActions(get, set),
   ...createWallSegmentDraftActions(get, set),
+  ...createWallOpeningActions(get, set),
   ...createWallEditingActions(get, set),
   ...createSceneInteractionActions(get, set),
 }));

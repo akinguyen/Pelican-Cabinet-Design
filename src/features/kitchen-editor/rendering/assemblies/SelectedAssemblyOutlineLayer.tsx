@@ -1,6 +1,5 @@
 "use client";
 
-import { measurePlacedAssemblyPlacementBounds } from "@/engine/assemblies/assemblyBounds";
 import { createAssemblyPlacementFootprint } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
@@ -10,7 +9,6 @@ import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { AssemblyFloorPlanEditControls } from "./AssemblyFloorPlanEditControls";
 import { AssemblyFloorPlanRotationControl } from "./AssemblyFloorPlanRotationControl";
 import { AssemblyPlacementBoundingBox } from "./AssemblyPlacementBoundingBox";
-import { SelectedAssemblyOutlineMesh } from "./SelectedAssemblyOutlineMesh";
 
 type SelectedAssemblyOutlineLayerProps = Readonly<{
   placedAssemblies: readonly PlacedAssembly[];
@@ -40,14 +38,6 @@ export function SelectedAssemblyOutlineLayer({
 
   if (selectedAssembly === undefined) {
     return null;
-  }
-
-  if (sceneViewMode === "elevation") {
-    return (
-      <SelectedAssemblyOutlineMesh
-        boundsInches={measurePlacedAssemblyPlacementBounds(selectedAssembly)}
-      />
-    );
   }
 
   const footprint = createAssemblyPlacementFootprint(selectedAssembly);

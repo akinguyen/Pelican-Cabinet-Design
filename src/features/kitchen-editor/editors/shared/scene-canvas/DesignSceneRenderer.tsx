@@ -18,6 +18,7 @@ export function DesignSceneRenderer() {
   const placedAssemblies = useDesignSceneStore((state) => state.designScene.placedAssemblies);
   const placedWallGraphs = useDesignSceneStore((state) => state.designScene.placedWallGraphs);
   const activeSelection = useDesignSceneStore((state) => state.designScene.activeSelection);
+  const activeWallElevationTarget = useDesignSceneStore((state) => state.activeWallElevationTarget);
   const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
   const assemblyPlacementFeedback = useDesignSceneStore((state) => state.assemblyPlacementFeedback);
   const wallSegmentDraft =
@@ -32,6 +33,7 @@ export function DesignSceneRenderer() {
       <WallLayer
         placedWallGraphs={placedWallGraphs}
         activeSelection={activeSelection}
+        activeWallElevationTarget={activeWallElevationTarget}
         wallSegmentDraft={wallSegmentDraft}
         showPlanMeasurements={showWallPlanMeasurements}
         sceneViewMode={activeSceneViewMode}

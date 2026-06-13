@@ -11,4 +11,10 @@ export type SceneSelection =
   | Readonly<{
       kind: "countertop-opening";
       countertopOpeningId: string;
+    }>
+  | Readonly<{
+      kind: "wall-opening";
+      wallGraphId: string;
+      wallSegmentId: string;
+      wallOpeningId: string;
     }>;

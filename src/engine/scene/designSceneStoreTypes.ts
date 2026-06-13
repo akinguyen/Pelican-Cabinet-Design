@@ -3,8 +3,10 @@ import type { CountertopCutoutDraftShapeKind, CountertopOpening } from "@/engine
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { AssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementTypes";
-import type { WallSettings } from "@/engine/walls/placedWallSegmentTypes";
+import type { WallOpening, WallSettings } from "@/engine/walls/placedWallSegmentTypes";
 import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
+import type { WallOpeningDraftPointInches } from "@/engine/walls/openings/wallOpeningDraftTypes";
+import type { WallElevationFaceSideBySegmentKey } from "@/engine/walls/wallElevationFaceSideMemory";
 import type { SceneEditingTool } from "./sceneEditingToolTypes";
 import type {
   SceneCameraCommand,
@@ -19,7 +21,7 @@ import type {
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { DesignScene } from "./designSceneTypes";
 import type { KitchenWorkspaceMode } from "./kitchenWorkspaceModeTypes";
-import type { AssemblyDragState } from "./sceneDragTypes";
+import type { AssemblyDragState, AssemblyElevationMoveFrame } from "./sceneDragTypes";
 
 export type AssemblyDimensionId = "widthInches" | "depthInches" | "heightInches";
 
@@ -29,6 +31,7 @@ export type DesignSceneStore = Readonly<{
   workspaceMode: KitchenWorkspaceMode;
   activeSceneViewMode: SceneViewMode;
   activeWallElevationTarget: WallElevationTarget | null;
+  activeWallElevationFaceSideBySegmentKey: WallElevationFaceSideBySegmentKey;
   activeToolbarTool: SceneEditingTool | null;
   cameraCommand: SceneCameraCommand | null;
   sceneCameraStates: SceneCameraStates;
@@ -37,8 +40,10 @@ export type DesignSceneStore = Readonly<{
   setWorkspaceMode: (workspaceMode: KitchenWorkspaceMode) => void;
   setActiveSceneViewMode: (sceneViewMode: SceneViewMode) => void;
   setActiveWallElevationTarget: (target: WallElevationTarget) => void;
-  showPreviousWallElevationFace: () => void;
-  showNextWallElevationFace: () => void;
+  showPreviousWallElevationSegment: () => void;
+  showNextWallElevationSegment: () => void;
+  showPreviousWallElevationSide: () => void;
+  showNextWallElevationSide: () => void;
   runCameraCommand: (cameraCommandTool: SceneCameraCommandTool) => void;
   clearCameraCommand: (cameraCommandId: number) => void;
   setActiveToolbarTool: (toolbarTool: SceneEditingTool | null) => void;
@@ -57,6 +62,7 @@ export type DesignSceneStore = Readonly<{
     assemblyId: string;
     pointerWorldInches: Point3DInches;
     sceneViewMode: SceneViewMode;
+    elevationMoveFrame?: AssemblyElevationMoveFrame;
   }) => void;
   updateAssemblyDrag: (pointerWorldInches: Point3DInches) => void;
   finishAssemblyDrag: () => void;
@@ -95,6 +101,17 @@ export type DesignSceneStore = Readonly<{
   startCountertopOpeningDrag: (args: { countertopOpeningId: string; grabLocalInches: Point2DInches }) => void;
   updateCountertopOpeningDrag: (grabLocalInches: Point2DInches) => void;
   finishCountertopOpeningDrag: () => void;
+  startWallOpeningDraft: (args: {
+    wallGraphId: string;
+    wallSegmentId: string;
+    faceSide: WallOpening["faceSide"];
+    startFacePointInches: WallOpeningDraftPointInches;
+  }) => void;
+  updateWallOpeningDraft: (currentFacePointInches: WallOpeningDraftPointInches) => void;
+  commitWallOpeningDraft: () => void;
+  cancelWallOpeningDraft: () => void;
+  selectWallOpening: (wallGraphId: string, wallSegmentId: string, wallOpeningId: string) => void;
+  deleteSelectedWallOpening: () => void;
   updateWallSegmentDraftHover: (pointInches: Point3DInches) => void;
   clickWallSegmentDraftPoint: (pointInches: Point3DInches) => void;
   exitWallSegmentDraftTool: () => void;

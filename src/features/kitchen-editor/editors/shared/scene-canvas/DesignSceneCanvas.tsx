@@ -7,6 +7,7 @@ import type { RefObject } from "react";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { ElevationCameraControls } from "../../elevation/ElevationCameraControls";
+import { ElevationViewClippingPlanes } from "../../elevation/ElevationViewClippingPlanes";
 import { FloorPlanCameraControls } from "../../floor-plan/FloorPlanCameraControls";
 import { PerspectiveCameraControls } from "../../perspective/PerspectiveCameraControls";
 import { PerspectiveViewGizmo } from "../../perspective/PerspectiveViewGizmo";
@@ -72,6 +73,7 @@ export function DesignSceneCanvas() {
         {activeSceneViewMode === "perspective" ? <PerspectiveCameraControls /> : null}
         {activeSceneViewMode === "floor-plan" ? <FloorPlanCameraControls /> : null}
         {activeSceneViewMode === "elevation" ? <ElevationCameraControls /> : null}
+        {activeSceneViewMode === "elevation" ? <ElevationViewClippingPlanes /> : null}
         {activeSceneViewMode === "perspective" ? <PerspectiveViewGizmo /> : null}
       </Canvas>
     </div>

@@ -1,7 +1,8 @@
 import { createId } from "@/core/ids/createId";
 import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
 import { splitDisconnectedWallGraph } from "@/engine/walls/wallSegmentGraphEditing";
-import { createWallElevationTargetFromFace, getActiveWallSegmentElevationFace } from "@/engine/walls/wallSegmentElevation";
+import { getActiveWallSegmentElevationFace } from "@/engine/walls/wallSegmentElevation";
+import { getWallElevationFaceSideForSegment } from "@/engine/walls/wallElevationFaceSideMemory";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
@@ -109,10 +110,22 @@ export function createWallEditingActions(
           activeWallElevationTarget: state.activeWallElevationTarget,
         });
 
+        const nextElevationFaceSide = nextElevationFace === null
+          ? null
+          : getWallElevationFaceSideForSegment({
+            faceSideBySegmentKey: state.activeWallElevationFaceSideBySegmentKey,
+            wallGraphId: nextElevationFace.wallGraphId,
+            wallSegmentId: nextElevationFace.wallSegmentId,
+          });
+
         return {
-          activeWallElevationTarget: nextElevationFace === null
+          activeWallElevationTarget: nextElevationFace === null || nextElevationFaceSide === null
             ? null
-            : createWallElevationTargetFromFace(nextElevationFace),
+            : {
+              wallGraphId: nextElevationFace.wallGraphId,
+              wallSegmentId: nextElevationFace.wallSegmentId,
+              faceSide: nextElevationFaceSide,
+            },
           designScene: {
             ...state.designScene,
             placedWallGraphs: updatedWallGraphs,

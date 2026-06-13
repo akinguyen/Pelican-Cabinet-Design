@@ -10,6 +10,7 @@ export function createInitialDesignSceneStoreState(): Pick<
   | "workspaceMode"
   | "activeSceneViewMode"
   | "activeWallElevationTarget"
+  | "activeWallElevationFaceSideBySegmentKey"
   | "activeToolbarTool"
   | "cameraCommand"
   | "sceneCameraStates"
@@ -22,6 +23,7 @@ export function createInitialDesignSceneStoreState(): Pick<
     workspaceMode: "editor",
     activeSceneViewMode: "perspective",
     activeWallElevationTarget: null,
+    activeWallElevationFaceSideBySegmentKey: {},
     activeToolbarTool: null,
     cameraCommand: null,
     sceneCameraStates: createDefaultSceneCameraStates(),

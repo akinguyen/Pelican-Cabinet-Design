@@ -12,7 +12,7 @@ export function createAssemblyDragActions(
   "startAssemblyDrag" | "updateAssemblyDrag" | "finishAssemblyDrag" | "cancelAssemblyDrag"
 > {
   return {
-    startAssemblyDrag({ assemblyId, pointerWorldInches, sceneViewMode }) {
+    startAssemblyDrag({ assemblyId, pointerWorldInches, sceneViewMode, elevationMoveFrame }) {
       if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
@@ -33,6 +33,7 @@ export function createAssemblyDragActions(
           dragStartWorldPositionInches: placedAssembly.worldPositionInches,
           latestValidWorldPositionInches: placedAssembly.worldPositionInches,
           sceneViewMode,
+          elevationMoveFrame,
         },
         assemblyPlacementFeedback: createAssemblyPlacementFeedback({
           placedAssembly,
@@ -162,6 +163,32 @@ function createDraggedAssemblyWorldPosition(
   pointerWorldInches: Point3DInches,
   assemblyHeightInches: number,
 ): Point3DInches {
+  if (activeDrag.sceneViewMode === "elevation" && activeDrag.elevationMoveFrame !== undefined) {
+    const pointerDeltaInches = {
+      xInches: pointerWorldInches.xInches - activeDrag.dragStartPointerWorldInches.xInches,
+      yInches: pointerWorldInches.yInches - activeDrag.dragStartPointerWorldInches.yInches,
+      zInches: pointerWorldInches.zInches - activeDrag.dragStartPointerWorldInches.zInches,
+    };
+    const deltaAlongFaceInches =
+      pointerDeltaInches.xInches * activeDrag.elevationMoveFrame.faceDirectionInches.xInches +
+      pointerDeltaInches.yInches * activeDrag.elevationMoveFrame.faceDirectionInches.yInches +
+      pointerDeltaInches.zInches * activeDrag.elevationMoveFrame.faceDirectionInches.zInches;
+    const deltaZInches = pointerDeltaInches.zInches;
+
+    return {
+      xInches:
+        activeDrag.dragStartWorldPositionInches.xInches +
+        activeDrag.elevationMoveFrame.faceDirectionInches.xInches * deltaAlongFaceInches,
+      yInches:
+        activeDrag.dragStartWorldPositionInches.yInches +
+        activeDrag.elevationMoveFrame.faceDirectionInches.yInches * deltaAlongFaceInches,
+      zInches: Math.max(
+        assemblyHeightInches / 2,
+        activeDrag.dragStartWorldPositionInches.zInches + deltaZInches,
+      ),
+    };
+  }
+
   const deltaXInches = pointerWorldInches.xInches - activeDrag.dragStartPointerWorldInches.xInches;
 
   if (activeDrag.sceneViewMode === "elevation") {

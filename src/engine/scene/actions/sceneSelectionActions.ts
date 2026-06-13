@@ -1,10 +1,11 @@
 import type { SceneSelection } from "../sceneSelectionTypes";
+import { getWallElevationFaceSideForSegment, rememberWallElevationFaceSide } from "@/engine/walls/wallElevationFaceSideMemory";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
 export function createSceneSelectionActions(
-  _get: DesignSceneStoreGetter,
+  get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
-): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedWallSegment" | "selectCountertopOpening" | "clearSelection"> {
+): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedWallSegment" | "selectCountertopOpening" | "selectWallOpening" | "clearSelection"> {
   return {
     selectPlacedAssembly(placedAssemblyId) {
       const selection: SceneSelection = {
@@ -22,7 +23,24 @@ export function createSceneSelectionActions(
     },
 
     selectPlacedWallSegment(wallGraphId, wallSegmentId) {
+      const faceSide = getWallElevationFaceSideForSegment({
+        faceSideBySegmentKey: get().activeWallElevationFaceSideBySegmentKey,
+        wallGraphId,
+        wallSegmentId,
+      });
+
       set((state) => ({
+        activeWallElevationTarget: {
+          wallGraphId,
+          wallSegmentId,
+          faceSide,
+        },
+        activeWallElevationFaceSideBySegmentKey: rememberWallElevationFaceSide({
+          faceSideBySegmentKey: state.activeWallElevationFaceSideBySegmentKey,
+          wallGraphId,
+          wallSegmentId,
+          faceSide,
+        }),
         designScene: {
           ...state.designScene,
           activeSelection: {
@@ -42,6 +60,21 @@ export function createSceneSelectionActions(
           activeSelection: {
             kind: "countertop-opening",
             countertopOpeningId,
+          },
+        },
+        assemblyPlacementFeedback: null,
+      }));
+    },
+
+    selectWallOpening(wallGraphId, wallSegmentId, wallOpeningId) {
+      set((state) => ({
+        designScene: {
+          ...state.designScene,
+          activeSelection: {
+            kind: "wall-opening",
+            wallGraphId,
+            wallSegmentId,
+            wallOpeningId,
           },
         },
         assemblyPlacementFeedback: null,

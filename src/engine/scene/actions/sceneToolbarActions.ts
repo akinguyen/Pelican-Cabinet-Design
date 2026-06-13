@@ -87,7 +87,8 @@ function isToolbarSceneOperation(
   return (
     activeSceneOperation?.kind === "wall-segment-draft" ||
     activeSceneOperation?.kind === "countertop-cutout-draft" ||
-    activeSceneOperation?.kind === "countertop-opening-drag"
+    activeSceneOperation?.kind === "countertop-opening-drag" ||
+    activeSceneOperation?.kind === "wall-opening-draft"
   );
 }
 

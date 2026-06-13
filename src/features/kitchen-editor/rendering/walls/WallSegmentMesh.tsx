@@ -6,8 +6,11 @@ import { DoubleSide } from "three";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
-import { createExtrudedWallGeometry } from "./wallRenderingGeometry";
+import type { PlacedWallSegment } from "@/engine/walls/placedWallSegmentTypes";
+import { createWallSegmentGeometry } from "./wallRenderingGeometry";
+import { EdgeSegmentLines } from "../shared/EdgeSegmentLines";
 import { WallSegmentActiveOverlay } from "./WallSegmentActiveOverlay";
+import { WallOpeningOverlay } from "./WallOpeningOverlay";
 import { WallSegmentVertexMarkers } from "./WallSegmentVertexMarkers";
 import { wallSegmentRenderColors } from "./wallSegmentRenderColors";
 
@@ -17,19 +20,20 @@ type WallSegmentRenderState = "committed" | "preview-existing" | "preview-draft"
 
 type WallSegmentMeshProps = Readonly<{
   segmentBody: BuiltWallSegmentBody;
+  wallSegment: PlacedWallSegment;
   renderState: WallSegmentRenderState;
   sceneViewMode: SceneViewMode;
 }>;
 
-export function WallSegmentMesh({ segmentBody, renderState }: WallSegmentMeshProps) {
+export function WallSegmentMesh({ segmentBody, wallSegment, renderState, sceneViewMode }: WallSegmentMeshProps) {
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const selectPlacedWallSegment = useDesignSceneStore((state) => state.selectPlacedWallSegment);
-  const geometry = useMemo(
-    () => createExtrudedWallGeometry(
-      segmentBody.footprintPolygonInches,
-      segmentBody.heightInches,
-    ),
-    [segmentBody.footprintPolygonInches, segmentBody.heightInches],
+  const geometryResult = useMemo(
+    () => createWallSegmentGeometry({
+      segmentBody,
+      openings: wallSegment.openings,
+    }),
+    [segmentBody, wallSegment.openings],
   );
   const isActiveWallSegment = renderState === "selected" || renderState === "preview-draft";
   const renderOrder = isActiveWallSegment ? 10 : 1;
@@ -48,7 +52,7 @@ export function WallSegmentMesh({ segmentBody, renderState }: WallSegmentMeshPro
   return (
     <group renderOrder={renderOrder}>
       <mesh
-        geometry={geometry}
+        geometry={geometryResult.geometry}
         onPointerDown={handlePointerDown}
         renderOrder={renderOrder}
       >
@@ -67,6 +71,18 @@ export function WallSegmentMesh({ segmentBody, renderState }: WallSegmentMeshPro
           />
         )}
       </mesh>
+      {sceneViewMode !== "floor-plan" && geometryResult.openingEdgeSegmentsInches.length > 0 ? (
+        <EdgeSegmentLines
+          edgeSegmentsInches={geometryResult.openingEdgeSegmentsInches}
+          lineWidthPixels={1}
+          renderOrder={renderOrder + 1}
+        />
+      ) : null}
+      <WallOpeningOverlay
+        segmentBody={segmentBody}
+        openings={wallSegment.openings}
+        sceneViewMode={sceneViewMode}
+      />
       {isActiveWallSegment ? <WallSegmentActiveOverlay segmentBody={segmentBody} /> : null}
       {SHOW_WALL_DEBUG_VERTEX_MARKERS && isActiveWallSegment ? (
         <WallSegmentVertexMarkers segmentBody={segmentBody} />

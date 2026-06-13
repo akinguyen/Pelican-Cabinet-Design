@@ -11,6 +11,7 @@ export function KeyboardShortcuts() {
   const deleteSelectedWallSegment = useDesignSceneStore((state) => state.deleteSelectedWallSegment);
   const activeSelection = useDesignSceneStore((state) => state.designScene.activeSelection);
   const deleteCountertopOpening = useDesignSceneStore((state) => state.deleteCountertopOpening);
+  const deleteSelectedWallOpening = useDesignSceneStore((state) => state.deleteSelectedWallOpening);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -35,6 +36,11 @@ export function KeyboardShortcuts() {
           return;
         }
 
+        if (activeSelection?.kind === "wall-opening") {
+          deleteSelectedWallOpening();
+          return;
+        }
+
         deleteSelectedWallSegment();
         deleteSelectedAssembly();
       }
@@ -45,7 +51,7 @@ export function KeyboardShortcuts() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [activeSelection, clearActiveInteraction, deleteCountertopOpening, deleteSelectedAssembly, deleteSelectedWallSegment, workspaceMode]);
+  }, [activeSelection, clearActiveInteraction, deleteCountertopOpening, deleteSelectedAssembly, deleteSelectedWallOpening, deleteSelectedWallSegment, workspaceMode]);
 
   return null;
 }

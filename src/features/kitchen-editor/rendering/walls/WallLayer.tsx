@@ -1,18 +1,25 @@
 "use client";
 
 import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
+import { getWallElevationViewZoneForTarget } from "@/engine/walls/wallElevationViewZone";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import { buildWallSegmentDraftPreviewGraph } from "@/engine/walls/segment-draft/wallSegmentDraftPreview";
 import type { WallSegmentDraft } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
 import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
+import type { PlacedWallSegment } from "@/engine/walls/placedWallSegmentTypes";
 import type { SceneSelection } from "@/engine/scene/sceneSelectionTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
+import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
 import { WallSegmentMesh } from "./WallSegmentMesh";
 import { WallSegmentDraftRenderer } from "./WallSegmentDraftRenderer";
+import { WallElevationViewZoneOverlay } from "./WallElevationViewZoneOverlay";
+
+const SHOW_WALL_ELEVATION_VIEW_ZONE_OVERLAY = true;
 
 type WallLayerProps = Readonly<{
   placedWallGraphs: readonly PlacedWallGraph[];
   activeSelection: SceneSelection | null;
+  activeWallElevationTarget: WallElevationTarget | null;
   wallSegmentDraft: WallSegmentDraft | null;
   showPlanMeasurements: boolean;
   sceneViewMode: SceneViewMode;
@@ -21,12 +28,14 @@ type WallLayerProps = Readonly<{
 type WallSegmentRenderItem = Readonly<{
   key: string;
   segmentBody: BuiltWallSegmentBody;
+  wallSegment: PlacedWallSegment;
   renderState: "committed" | "preview-existing" | "preview-draft" | "selected";
 }>;
 
 export function WallLayer({
   placedWallGraphs,
   activeSelection,
+  activeWallElevationTarget,
   wallSegmentDraft,
   sceneViewMode,
 }: WallLayerProps) {
@@ -44,6 +53,20 @@ export function WallLayer({
     previewGraph,
     selectedWallSegment,
   });
+  const shouldShowElevationViewZone = (
+    sceneViewMode === "floor-plan" &&
+    SHOW_WALL_ELEVATION_VIEW_ZONE_OVERLAY &&
+    selectedWallSegment !== null &&
+    activeWallElevationTarget !== null &&
+    selectedWallSegment.wallGraphId === activeWallElevationTarget.wallGraphId &&
+    selectedWallSegment.wallSegmentId === activeWallElevationTarget.wallSegmentId
+  );
+  const elevationViewZone = shouldShowElevationViewZone
+    ? getWallElevationViewZoneForTarget({
+      placedWallGraphs,
+      activeWallElevationTarget,
+    })
+    : null;
 
   return (
     <group>
@@ -51,10 +74,14 @@ export function WallLayer({
         <WallSegmentMesh
           key={renderItem.key}
           segmentBody={renderItem.segmentBody}
+          wallSegment={renderItem.wallSegment}
           renderState={renderItem.renderState}
           sceneViewMode={sceneViewMode}
         />
       ))}
+      {elevationViewZone !== null ? (
+        <WallElevationViewZoneOverlay viewZone={elevationViewZone} />
+      ) : null}
       <WallSegmentDraftRenderer
         draft={wallSegmentDraft}
         previewGraph={previewGraph}
@@ -78,25 +105,43 @@ function buildWallSegmentRenderItems(args: {
     });
   const committedItems = args.committedWallGraphs
     .filter((wallGraph) => !affectedGraphIds.has(wallGraph.id))
-    .flatMap((wallGraph) => buildConnectedWallGeometry(wallGraph).segmentBodies.map<WallSegmentRenderItem>((segmentBody) => ({
-      key: `committed-${segmentBody.id}`,
-      segmentBody,
-      renderState: isSelectedSegment(segmentBody, args.selectedWallSegment) ? "selected" : "committed",
-    })));
+    .flatMap((wallGraph) => buildConnectedWallGeometry(wallGraph).segmentBodies.flatMap<WallSegmentRenderItem>((segmentBody) => {
+      const wallSegment = findWallSegment(wallGraph, segmentBody.wallSegmentId);
+
+      return wallSegment === null
+        ? []
+        : [{
+            key: `committed-${segmentBody.id}`,
+            segmentBody,
+            wallSegment,
+            renderState: isSelectedSegment(segmentBody, args.selectedWallSegment) ? "selected" : "committed",
+          }];
+    }));
   const previewItems = (args.previewGraph?.previewWallGraphIds ?? [])
     .flatMap((wallGraphId) => args.previewGraph?.placedWallGraphs.filter((wallGraph) => wallGraph.id === wallGraphId) ?? [])
-    .flatMap((wallGraph) => buildConnectedWallGeometry(wallGraph).segmentBodies.map<WallSegmentRenderItem>((segmentBody) => {
+    .flatMap((wallGraph) => buildConnectedWallGeometry(wallGraph).segmentBodies.flatMap<WallSegmentRenderItem>((segmentBody) => {
+      const wallSegment = findWallSegment(wallGraph, segmentBody.wallSegmentId);
+
+      if (wallSegment === null) {
+        return [];
+      }
+
       const segmentKey = createWallSegmentKey(segmentBody);
-      return {
+      return [{
         key: `preview-${segmentBody.id}`,
         segmentBody,
+        wallSegment,
         renderState: segmentKey === previewDraftKey || previewSegmentKeys.has(segmentKey) && segmentBody.wallSegmentId === args.previewGraph?.previewWallSegmentId
           ? "preview-draft"
           : "preview-existing",
-      };
+      }];
     }));
 
   return [...committedItems, ...previewItems];
+}
+
+function findWallSegment(wallGraph: PlacedWallGraph, wallSegmentId: string): PlacedWallSegment | null {
+  return wallGraph.segments.find((wallSegment) => wallSegment.id === wallSegmentId) ?? null;
 }
 
 function createWallSegmentKey(args: { wallGraphId: string; wallSegmentId: string }): string {

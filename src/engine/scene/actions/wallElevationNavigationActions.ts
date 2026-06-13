@@ -1,9 +1,13 @@
-import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
 import {
-  createWallElevationTargetFromFace,
-  getActiveWallSegmentElevationFace,
-  getWallSegmentElevationFaces,
-} from "@/engine/walls/wallSegmentElevation";
+  createWallElevationTargetFromNavigationItem,
+  getActiveWallElevationSegmentNavigationItem,
+  getWallElevationSegmentNavigationItems,
+  toggleWallElevationFaceSide,
+} from "@/engine/walls/wallSegmentElevationNavigation";
+import {
+  getWallElevationFaceSideForSegment,
+  rememberWallElevationFaceSide,
+} from "@/engine/walls/wallElevationFaceSideMemory";
 import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
@@ -12,59 +16,122 @@ export function createWallElevationNavigationActions(
   set: DesignSceneStoreSetter,
 ): Pick<
   DesignSceneStore,
-  "setActiveWallElevationTarget" | "showPreviousWallElevationFace" | "showNextWallElevationFace"
+  | "setActiveWallElevationTarget"
+  | "showPreviousWallElevationSegment"
+  | "showNextWallElevationSegment"
+  | "showPreviousWallElevationSide"
+  | "showNextWallElevationSide"
 > {
   return {
     setActiveWallElevationTarget(target: WallElevationTarget) {
-      set({ activeWallElevationTarget: target });
+      set((state) => ({
+        activeWallElevationTarget: target,
+        activeWallElevationFaceSideBySegmentKey: rememberWallElevationFaceSide({
+          faceSideBySegmentKey: state.activeWallElevationFaceSideBySegmentKey,
+          wallGraphId: target.wallGraphId,
+          wallSegmentId: target.wallSegmentId,
+          faceSide: target.faceSide,
+        }),
+      }));
     },
 
-    showPreviousWallElevationFace() {
-      updateWallElevationFaceIndex(-1, get, set);
+    showPreviousWallElevationSegment() {
+      updateWallElevationSegmentIndex(-1, get, set);
     },
 
-    showNextWallElevationFace() {
-      updateWallElevationFaceIndex(1, get, set);
+    showNextWallElevationSegment() {
+      updateWallElevationSegmentIndex(1, get, set);
+    },
+
+    showPreviousWallElevationSide() {
+      toggleActiveWallElevationSide(get, set);
+    },
+
+    showNextWallElevationSide() {
+      toggleActiveWallElevationSide(get, set);
     },
   };
 }
 
-function updateWallElevationFaceIndex(
+function updateWallElevationSegmentIndex(
   delta: number,
   get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
 ): void {
   const state = get();
-  const faces = state.designScene.placedWallGraphs.flatMap((wallGraph) => (
-    getWallSegmentElevationFaces(buildConnectedWallGeometry(wallGraph))
-  ));
+  const items = getWallElevationSegmentNavigationItems(state.designScene.placedWallGraphs);
 
-  if (faces.length === 0) {
+  if (items.length === 0) {
     set({ activeWallElevationTarget: null });
     return;
   }
 
-  const activeFace = findActiveFace(state);
-  const activeFaceIndex = Math.max(
-    0,
-    faces.findIndex((face) => face.id === activeFace?.id),
-  );
-  const nextFaceIndex = ((activeFaceIndex + delta) % faces.length + faces.length) % faces.length;
+  const activeItem = getActiveWallElevationSegmentNavigationItem({
+    items,
+    activeWallElevationTarget: state.activeWallElevationTarget,
+  });
+  const activeSegmentIndex = activeItem?.segmentIndex ?? 0;
+  const nextSegmentIndex = ((activeSegmentIndex + delta) % items.length + items.length) % items.length;
+  const nextItem = items[nextSegmentIndex];
+  const rememberedFaceSide = getWallElevationFaceSideForSegment({
+    faceSideBySegmentKey: state.activeWallElevationFaceSideBySegmentKey,
+    wallGraphId: nextItem.wallGraphId,
+    wallSegmentId: nextItem.wallSegmentId,
+  });
+  const nextTarget = createWallElevationTargetFromNavigationItem({
+    item: nextItem,
+    faceSide: rememberedFaceSide,
+  });
 
-  set({ activeWallElevationTarget: createWallElevationTargetFromFace(faces[nextFaceIndex]) });
+  set((currentState) => ({
+    activeWallElevationTarget: nextTarget,
+    designScene: {
+      ...currentState.designScene,
+      activeSelection: currentState.designScene.activeSelection?.kind === "placed-wall-segment"
+        ? {
+          kind: "placed-wall-segment",
+          wallGraphId: nextTarget.wallGraphId,
+          wallSegmentId: nextTarget.wallSegmentId,
+        }
+        : currentState.designScene.activeSelection,
+    },
+  }));
 }
 
-function findActiveFace(state: DesignSceneStore) {
-  for (const wallGraph of state.designScene.placedWallGraphs) {
-    const activeFace = getActiveWallSegmentElevationFace({
-      topology: buildConnectedWallGeometry(wallGraph),
-      activeWallElevationTarget: state.activeWallElevationTarget,
-    });
+function toggleActiveWallElevationSide(
+  get: DesignSceneStoreGetter,
+  set: DesignSceneStoreSetter,
+): void {
+  const state = get();
+  const items = getWallElevationSegmentNavigationItems(state.designScene.placedWallGraphs);
+  const activeItem = getActiveWallElevationSegmentNavigationItem({
+    items,
+    activeWallElevationTarget: state.activeWallElevationTarget,
+  });
 
-    if (activeFace !== null) {
-      return activeFace;
-    }
+  if (activeItem === null) {
+    set({ activeWallElevationTarget: null });
+    return;
   }
 
-  return null;
+  const activeFaceSide = getWallElevationFaceSideForSegment({
+    faceSideBySegmentKey: state.activeWallElevationFaceSideBySegmentKey,
+    wallGraphId: activeItem.wallGraphId,
+    wallSegmentId: activeItem.wallSegmentId,
+  });
+  const nextFaceSide = toggleWallElevationFaceSide(activeFaceSide);
+  const nextTarget = createWallElevationTargetFromNavigationItem({
+    item: activeItem,
+    faceSide: nextFaceSide,
+  });
+
+  set((currentState) => ({
+    activeWallElevationTarget: nextTarget,
+    activeWallElevationFaceSideBySegmentKey: rememberWallElevationFaceSide({
+      faceSideBySegmentKey: currentState.activeWallElevationFaceSideBySegmentKey,
+      wallGraphId: nextTarget.wallGraphId,
+      wallSegmentId: nextTarget.wallSegmentId,
+      faceSide: nextTarget.faceSide,
+    }),
+  }));
 }
