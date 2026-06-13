@@ -3,17 +3,20 @@
 import type { ThreeEvent } from "@react-three/fiber";
 import { useEffect } from "react";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import { createAssemblyDragPointerWorldPoint } from "./assemblyDragPointer";
 
 const DRAG_SURFACE_SIZE_INCHES = 3200;
 
 export function AssemblyDragSurface() {
+  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
   const updateAssemblyDrag = useDesignSceneStore((state) => state.updateAssemblyDrag);
   const finishAssemblyDrag = useDesignSceneStore((state) => state.finishAssemblyDrag);
+  const moveDrag = activeDrag?.kind === "assembly-move" ? activeDrag : null;
 
   useEffect(() => {
-    if (activeDrag === null) {
+    if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
       return;
     }
 
@@ -26,22 +29,22 @@ export function AssemblyDragSurface() {
     return () => {
       window.removeEventListener("pointerup", handleWindowPointerUp);
     };
-  }, [activeDrag, finishAssemblyDrag]);
+  }, [finishAssemblyDrag, moveDrag, workspaceMode]);
 
-  if (activeDrag === null) {
+  if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
     return null;
   }
 
   function handlePointerMove(event: ThreeEvent<PointerEvent>) {
-    if (activeDrag === null) {
+    if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
       return;
     }
 
     event.stopPropagation();
     const pointerWorldInches = createAssemblyDragPointerWorldPoint(
-      activeDrag.editorView,
+      moveDrag.sceneViewMode,
       event.ray,
-      activeDrag.dragStartWorldPositionInches.yInches,
+      moveDrag.dragStartWorldPositionInches.yInches,
     );
 
     if (pointerWorldInches !== null) {
@@ -54,10 +57,10 @@ export function AssemblyDragSurface() {
     finishAssemblyDrag();
   }
 
-  if (activeDrag.editorView === "elevation") {
+  if (moveDrag.sceneViewMode === "elevation") {
     return (
       <mesh
-        position={[0, activeDrag.dragStartWorldPositionInches.yInches, 120]}
+        position={[0, moveDrag.dragStartWorldPositionInches.yInches, 120]}
         rotation={[Math.PI / 2, 0, 0]}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

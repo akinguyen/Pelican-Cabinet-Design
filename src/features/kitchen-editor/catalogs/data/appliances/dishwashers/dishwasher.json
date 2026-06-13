@@ -1,0 +1,461 @@
+{
+  "id": "dishwasher",
+  "name": "Dishwasher",
+  "catalogCategoryId": "appliances/dishwashers",
+  "defaultDistanceFromFloorInches": 0,
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 24,
+      "optionsInches": [
+        {
+          "valueInches": 18,
+          "label": "18 in"
+        },
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 15,
+      "maxValueInches": 30,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 24,
+      "optionsInches": [
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 20,
+      "maxValueInches": 30,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 34.5,
+      "optionsInches": [
+        {
+          "valueInches": 34.5,
+          "label": "34.5 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 30,
+      "maxValueInches": 40,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "body-color",
+          "label": "Body color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#d1d5db",
+          "choices": [
+            {
+              "value": "#d1d5db",
+              "label": "Light gray"
+            },
+            {
+              "value": "#e5e7eb",
+              "label": "Soft light gray"
+            },
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            }
+          ]
+        },
+        {
+          "id": "front-color",
+          "label": "Front door color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#e5e7eb",
+          "choices": [
+            {
+              "value": "#d1d5db",
+              "label": "Light gray"
+            },
+            {
+              "value": "#e5e7eb",
+              "label": "Soft light gray"
+            },
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            }
+          ]
+        },
+        {
+          "id": "handle-color",
+          "label": "Handle color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#111827",
+          "choices": [
+            {
+              "value": "#111827",
+              "label": "Black"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            },
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            }
+          ]
+        },
+        {
+          "id": "toe-kick-color",
+          "label": "Toe kick color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#05070b",
+          "choices": [
+            {
+              "value": "#05070b",
+              "label": "Black"
+            },
+            {
+              "value": "#111827",
+              "label": "Near black"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "visibility",
+      "label": "Visibility",
+      "options": [
+        {
+          "id": "show-handle",
+          "label": "Show handle",
+          "valueType": "boolean",
+          "control": "checkbox",
+          "defaultValue": true
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "dishwasher-body",
+      "label": "Dishwasher Body",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 2.5
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2.5
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "value": 2.5
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "appliance-body"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "dishwasher-front-door",
+      "label": "Dishwasher Front Door",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.18
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "value": 2.5
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2.5
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "value": 0.35
+        },
+        "heightInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "value": 2.5
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "front-color"
+      },
+      "role": "dishwasher-door"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "dishwasher-handle",
+      "label": "Dishwasher Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "divide",
+                  "left": {
+                    "ref": "size.depthInches"
+                  },
+                  "right": {
+                    "value": 2
+                  }
+                },
+                {
+                  "value": 0.18
+                }
+              ]
+            },
+            {
+              "value": 0.45
+            }
+          ]
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 5.25
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.55
+          }
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "value": 0.65
+        }
+      },
+      "material": {
+        "colorOptionId": "handle-color"
+      },
+      "role": "handle",
+      "includeWhen": {
+        "ref": "option.show-handle",
+        "equals": true
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "dishwasher-toe-kick",
+      "label": "Dishwasher Base Plinth",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 2.5
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "value": 2.5
+        }
+      },
+      "material": {
+        "colorOptionId": "toe-kick-color"
+      },
+      "role": "base-plinth"
+    }
+  ]
+}

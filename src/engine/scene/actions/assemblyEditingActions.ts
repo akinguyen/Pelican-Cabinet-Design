@@ -1,4 +1,6 @@
+import { createId } from "@/core/ids/createId";
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
+import { clampCountertopOpeningToHost } from "@/engine/countertops/countertopOpeningValidation";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import {
   updateAssemblyDistanceFromFloor,
@@ -10,6 +12,7 @@ import type {
   DesignSceneStoreGetter,
   DesignSceneStoreSetter,
 } from "../designSceneStoreTypes";
+import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createAssemblyEditingActions(
   get: DesignSceneStoreGetter,
@@ -17,6 +20,7 @@ export function createAssemblyEditingActions(
 ): Pick<
   DesignSceneStore,
   | "deleteSelectedAssembly"
+  | "duplicateSelectedAssembly"
   | "updateSelectedAssemblyWorldPositionX"
   | "updateSelectedAssemblyWorldPositionY"
   | "updateSelectedAssemblyDistanceFromFloor"
@@ -26,6 +30,10 @@ export function createAssemblyEditingActions(
 > {
   return {
     deleteSelectedAssembly() {
+      if (!canManuallyEditScene(get().workspaceMode)) {
+        return;
+      }
+
       const activeSelection = get().designScene.activeSelection;
 
       if (activeSelection?.kind !== "placed-assembly") {
@@ -38,9 +46,67 @@ export function createAssemblyEditingActions(
           placedAssemblies: state.designScene.placedAssemblies.filter(
             (assembly) => assembly.id !== activeSelection.placedAssemblyId,
           ),
+          countertopOpenings: state.designScene.countertopOpenings.filter(
+            (opening) => opening.hostCountertopId !== activeSelection.placedAssemblyId,
+          ),
           activeSelection: null,
         },
         activeDrag: null,
+        assemblyPlacementFeedback: null,
+      }));
+    },
+
+    duplicateSelectedAssembly() {
+      if (!canManuallyEditScene(get().workspaceMode)) {
+        return;
+      }
+
+      const activeSelection = get().designScene.activeSelection;
+
+      if (activeSelection?.kind !== "placed-assembly") {
+        return;
+      }
+
+      const selectedAssembly = get().designScene.placedAssemblies.find(
+        (assembly) => assembly.id === activeSelection.placedAssemblyId,
+      );
+
+      if (selectedAssembly === undefined) {
+        return;
+      }
+
+      const duplicatedAssemblyId = createId();
+      const duplicatedAssembly: PlacedAssembly = {
+        ...selectedAssembly,
+        id: duplicatedAssemblyId,
+        worldPositionInches: {
+          ...selectedAssembly.worldPositionInches,
+          xInches: selectedAssembly.worldPositionInches.xInches + 12,
+          yInches: selectedAssembly.worldPositionInches.yInches + 12,
+        },
+      };
+
+      set((state) => ({
+        designScene: {
+          ...state.designScene,
+          placedAssemblies: [...state.designScene.placedAssemblies, duplicatedAssembly],
+          countertopOpenings: [
+            ...state.designScene.countertopOpenings,
+            ...state.designScene.countertopOpenings
+              .filter((opening) => opening.hostCountertopId === selectedAssembly.id)
+              .map((opening) => ({
+                ...opening,
+                id: createId(),
+                hostCountertopId: duplicatedAssemblyId,
+              })),
+          ],
+          activeSelection: {
+            kind: "placed-assembly",
+            placedAssemblyId: duplicatedAssemblyId,
+          },
+        },
+        activeDrag: null,
+        assemblyPlacementFeedback: null,
       }));
     },
 
@@ -142,18 +208,44 @@ function updateSelectedAssembly(
   get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
 ): void {
+  if (!canManuallyEditScene(get().workspaceMode)) {
+    return;
+  }
+
   const activeSelection = get().designScene.activeSelection;
 
   if (activeSelection?.kind !== "placed-assembly") {
     return;
   }
 
-  set((state) => ({
-    designScene: {
-      ...state.designScene,
-      placedAssemblies: state.designScene.placedAssemblies.map((assembly) =>
-        assembly.id === activeSelection.placedAssemblyId ? updateAssembly(assembly) : assembly,
-      ),
-    },
-  }));
+  set((state) => {
+    let updatedSelectedAssembly: PlacedAssembly | undefined;
+    const placedAssemblies = state.designScene.placedAssemblies.map((assembly) => {
+      if (assembly.id !== activeSelection.placedAssemblyId) {
+        return assembly;
+      }
+
+      updatedSelectedAssembly = updateAssembly(assembly);
+      return updatedSelectedAssembly;
+    });
+    const selectedAssembly = updatedSelectedAssembly;
+
+    return {
+      designScene: {
+        ...state.designScene,
+        placedAssemblies,
+        countertopOpenings:
+          selectedAssembly === undefined
+            ? state.designScene.countertopOpenings
+            : state.designScene.countertopOpenings.map((opening) =>
+                opening.hostCountertopId === selectedAssembly.id
+                  ? clampCountertopOpeningToHost(
+                      opening,
+                      selectedAssembly.configuration.sizeInches,
+                    )
+                  : opening,
+              ),
+      },
+    };
+  });
 }

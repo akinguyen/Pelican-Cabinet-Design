@@ -1,16 +1,16 @@
 "use client";
 
-import { EditorViewSwitcher } from "./editors/EditorViewSwitcher";
-import { KeyboardShortcuts } from "./editors/shared/KeyboardShortcuts";
-import { KitchenEditorShell } from "./layout/KitchenEditorShell";
+import { DesignSceneViewport } from "./editors/DesignSceneViewport";
+import { KeyboardShortcuts } from "./editors/shared/interaction/KeyboardShortcuts";
+import { KitchenWorkspaceShell } from "./workspace/KitchenWorkspaceShell";
 
 export function KitchenEditorApp() {
   return (
     <>
       <KeyboardShortcuts />
-      <KitchenEditorShell>
-        <EditorViewSwitcher />
-      </KitchenEditorShell>
+      <KitchenWorkspaceShell>
+        <DesignSceneViewport />
+      </KitchenWorkspaceShell>
     </>
   );
 }

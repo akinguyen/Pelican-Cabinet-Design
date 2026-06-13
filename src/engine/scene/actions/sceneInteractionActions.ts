@@ -6,15 +6,10 @@ export function createSceneInteractionActions(
 ): Pick<DesignSceneStore, "clearActiveInteraction"> {
   return {
     clearActiveInteraction() {
-      const { designScene, activeToolbarTool, activeDrag } = get();
+      const { activeToolbarTool, designScene } = get();
 
-      if (activeToolbarTool === "draw-wall-footprint" || designScene.activeSceneOperation?.kind === "wall-footprint-draft") {
-        get().exitWallFootprintDraftTool();
-        return;
-      }
-
-      if (activeToolbarTool === "split-wall-footprint" || designScene.activeSceneOperation?.kind === "wall-split-draft") {
-        get().exitWallSplitDraftTool();
+      if (activeToolbarTool === "draw-wall-segment" || designScene.activeSceneOperation?.kind === "wall-segment-draft") {
+        get().exitWallSegmentDraftTool();
         return;
       }
 
@@ -23,13 +18,8 @@ export function createSceneInteractionActions(
         return;
       }
 
-      if (activeDrag !== null) {
+      if (get().activeDrag !== null) {
         get().cancelAssemblyDrag();
-        return;
-      }
-
-      if (activeToolbarTool !== null) {
-        set({ activeToolbarTool: null });
         return;
       }
 

@@ -1,0 +1,1134 @@
+{
+  "id": "refrigerator",
+  "name": "Refrigerator",
+  "catalogCategoryId": "appliances/refrigeration",
+  "defaultDistanceFromFloorInches": 0,
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 36,
+      "optionsInches": [
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
+        {
+          "valueInches": 33,
+          "label": "33 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        },
+        {
+          "valueInches": 42,
+          "label": "42 in"
+        },
+        {
+          "valueInches": 48,
+          "label": "48 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 24,
+      "maxValueInches": 60,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 30,
+      "optionsInches": [
+        {
+          "valueInches": 28,
+          "label": "28 in"
+        },
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
+        {
+          "valueInches": 32,
+          "label": "32 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 20,
+      "maxValueInches": 40,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 84,
+      "optionsInches": [
+        {
+          "valueInches": 70,
+          "label": "70 in"
+        },
+        {
+          "valueInches": 72,
+          "label": "72 in"
+        },
+        {
+          "valueInches": 84,
+          "label": "84 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 60,
+      "maxValueInches": 96,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "body-color",
+          "label": "Body color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#d1d5db",
+          "choices": [
+            {
+              "value": "#d1d5db",
+              "label": "Light gray"
+            },
+            {
+              "value": "#e5e7eb",
+              "label": "Soft light gray"
+            },
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            }
+          ]
+        },
+        {
+          "id": "trim-color",
+          "label": "Trim color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#6b7280",
+          "choices": [
+            {
+              "value": "#6b7280",
+              "label": "Dark gray"
+            },
+            {
+              "value": "#9ca3af",
+              "label": "Gray"
+            },
+            {
+              "value": "#cbd5e1",
+              "label": "Soft silver"
+            },
+            {
+              "value": "#111827",
+              "label": "Near black"
+            }
+          ]
+        },
+        {
+          "id": "glass-color",
+          "label": "Glass color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#111827",
+          "choices": [
+            {
+              "value": "#111827",
+              "label": "Dark glass"
+            },
+            {
+              "value": "#1f2937",
+              "label": "Gray glass"
+            },
+            {
+              "value": "#334155",
+              "label": "Slate glass"
+            }
+          ]
+        },
+        {
+          "id": "detail-color",
+          "label": "Detail color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#1f2937",
+          "choices": [
+            {
+              "value": "#1f2937",
+              "label": "Dark gray"
+            },
+            {
+              "value": "#111827",
+              "label": "Near black"
+            },
+            {
+              "value": "#4b5563",
+              "label": "Medium gray"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "fridge-body",
+      "label": "Refrigerator Body",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "negate",
+          "value": {
+            "op": "divide",
+            "left": {
+              "value": 1.2
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.depthInches"
+          },
+          "right": {
+            "value": 1.2
+          }
+        },
+        "heightInches": {
+          "ref": "size.heightInches"
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "appliance-body"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "left-upper-door",
+      "label": "Left Upper Door",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "negate",
+          "value": {
+            "op": "divide",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 4
+            }
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              },
+              "right": {
+                "value": 1.2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.35
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "op": "multiply",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 0.62
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "multiply",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 0.62
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 0.12
+          }
+        },
+        "depthInches": {
+          "value": 0.35
+        },
+        "heightInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "value": 0.62
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "door-front"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "right-upper-door",
+      "label": "Right Upper Door",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "divide",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 4
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              },
+              "right": {
+                "value": 1.2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.35
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "op": "multiply",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 0.62
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "multiply",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 0.62
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "value": 0.12
+          }
+        },
+        "depthInches": {
+          "value": 0.35
+        },
+        "heightInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "value": 0.62
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "door-front"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "lower-pull-out-front",
+      "label": "Lower Pull-Out Front",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "subtract",
+              "left": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.depthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              },
+              "right": {
+                "value": 1.2
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.35
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "op": "multiply",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "value": 0.62
+                  }
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "value": 0.35
+        },
+        "heightInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "op": "multiply",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 0.62
+            }
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "body-color"
+      },
+      "role": "drawer-front"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "center-door-gap",
+      "label": "Center Door Gap",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "value": 0.05
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "op": "multiply",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 0.62
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "multiply",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 0.62
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.18
+        },
+        "depthInches": {
+          "value": 0.12
+        },
+        "heightInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "value": 0.62
+          }
+        }
+      },
+      "material": {
+        "colorHex": "#1f2937"
+      },
+      "role": "door-gap"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "left-door-handle",
+      "label": "Left Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": -0.08
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.85
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "op": "multiply",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 0.62
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "multiply",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 0.62
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.55
+        },
+        "depthInches": {
+          "value": 0.85
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "op": "multiply",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 0.62
+              }
+            },
+            "right": {
+              "value": 0.62
+            }
+          },
+          "min": {
+            "value": 24
+          },
+          "max": {
+            "value": 48
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "trim-color"
+      },
+      "role": "handle"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "right-door-handle",
+      "label": "Right Door Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.08
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.85
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "op": "multiply",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 0.62
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "multiply",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 0.62
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 0.55
+        },
+        "depthInches": {
+          "value": 0.85
+        },
+        "heightInches": {
+          "op": "clamp",
+          "value": {
+            "op": "multiply",
+            "left": {
+              "op": "multiply",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "value": 0.62
+              }
+            },
+            "right": {
+              "value": 0.62
+            }
+          },
+          "min": {
+            "value": 24
+          },
+          "max": {
+            "value": 48
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "trim-color"
+      },
+      "role": "handle"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "lower-pull-out-handle",
+      "label": "Lower Pull-Out Handle",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "subtract",
+                  "left": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.depthInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  },
+                  "right": {
+                    "value": 1.2
+                  }
+                },
+                {
+                  "value": 0.35
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 0.85
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "negate",
+                  "value": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                },
+                {
+                  "op": "divide",
+                  "left": {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "op": "multiply",
+                      "left": {
+                        "ref": "size.heightInches"
+                      },
+                      "right": {
+                        "value": 0.62
+                      }
+                    }
+                  },
+                  "right": {
+                    "value": 2
+                  }
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "subtract",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "op": "multiply",
+                  "left": {
+                    "ref": "size.heightInches"
+                  },
+                  "right": {
+                    "value": 0.62
+                  }
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": -4.0
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "multiply",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "value": 0.42
+          }
+        },
+        "depthInches": {
+          "value": 0.85
+        },
+        "heightInches": {
+          "value": 0.55
+        }
+      },
+      "material": {
+        "colorOptionId": "trim-color"
+      },
+      "role": "handle"
+    }
+  ]
+}

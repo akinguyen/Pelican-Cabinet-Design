@@ -3,23 +3,30 @@
 import { OrbitControls } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
-import { MOUSE, TOUCH } from "three";
 import type { PerspectiveCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { PerspectiveEditorCameraState } from "../shared/editorCameraStateTypes";
-import { useSceneFitFrame } from "../shared/useSceneFitFrame";
+import type { PerspectiveCameraState } from "@/engine/scene/sceneCameraStateTypes";
+import {
+  SCENE_CAMERA_MOUSE_BUTTONS,
+  SCENE_CAMERA_TOUCHES,
+} from "../shared/camera/sceneCameraControlSettings";
+import { useSceneFitFrame } from "../shared/camera/useSceneFitFrame";
 
 const MIN_CAMERA_DISTANCE_INCHES = 20;
 const MAX_CAMERA_DISTANCE_INCHES = 420;
 const TOOLBAR_ZOOM_IN_DISTANCE_SCALE = 0.82;
 const TOOLBAR_ZOOM_OUT_DISTANCE_SCALE = 1.18;
+const PERSPECTIVE_CAMERA_DAMPING_FACTOR = 0.06;
+const PERSPECTIVE_CAMERA_ROTATE_SPEED = 0.55;
+const PERSPECTIVE_CAMERA_ZOOM_SPEED = 0.4;
+const PERSPECTIVE_CAMERA_PAN_SPEED = 0.75;
 
 export function PerspectiveCameraControls() {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const { camera } = useThree();
   const cameraCommand = useDesignSceneStore((state) => state.cameraCommand);
-  const cameraState = useDesignSceneStore((state) => state.editorCameraStates.perspective);
+  const cameraState = useDesignSceneStore((state) => state.sceneCameraStates.perspective);
   const updatePerspectiveCameraState = useDesignSceneStore((state) => state.updatePerspectiveCameraState);
   const clearCameraCommand = useDesignSceneStore((state) => state.clearCameraCommand);
   const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
@@ -32,7 +39,7 @@ export function PerspectiveCameraControls() {
   }, [camera, cameraState]);
 
   useEffect(() => {
-    if (cameraCommand === null || cameraCommand.editorView !== "perspective") {
+    if (cameraCommand === null || cameraCommand.sceneViewMode !== "perspective") {
       return;
     }
 
@@ -69,27 +76,20 @@ export function PerspectiveCameraControls() {
   return (
     <OrbitControls
       ref={controlsRef}
-      enabled={activeDrag === null}
+      enabled={activeDrag === null && activeSceneOperation?.kind !== "countertop-opening-drag"}
       makeDefault
       enableDamping
-      dampingFactor={0.06}
+      dampingFactor={PERSPECTIVE_CAMERA_DAMPING_FACTOR}
       enablePan={!isEditorOperationActive}
       enableZoom
       minDistance={MIN_CAMERA_DISTANCE_INCHES}
       maxDistance={MAX_CAMERA_DISTANCE_INCHES}
-      rotateSpeed={0.55}
-      zoomSpeed={0.4}
-      panSpeed={0.75}
+      rotateSpeed={PERSPECTIVE_CAMERA_ROTATE_SPEED}
+      zoomSpeed={PERSPECTIVE_CAMERA_ZOOM_SPEED}
+      panSpeed={PERSPECTIVE_CAMERA_PAN_SPEED}
       screenSpacePanning
-      mouseButtons={{
-        LEFT: MOUSE.PAN,
-        MIDDLE: MOUSE.DOLLY,
-        RIGHT: MOUSE.PAN,
-      }}
-      touches={{
-        ONE: TOUCH.PAN,
-        TWO: TOUCH.DOLLY_PAN,
-      }}
+      mouseButtons={SCENE_CAMERA_MOUSE_BUTTONS}
+      touches={SCENE_CAMERA_TOUCHES}
       onChange={handleControlsChange}
     />
   );
@@ -98,7 +98,7 @@ export function PerspectiveCameraControls() {
 function applyPerspectiveCameraState(
   camera: PerspectiveCamera,
   controls: OrbitControlsImpl | null,
-  cameraState: PerspectiveEditorCameraState,
+  cameraState: PerspectiveCameraState,
 ): void {
   camera.up.set(0, 0, 1);
 
@@ -133,7 +133,7 @@ function applyPerspectiveCameraState(
 function readPerspectiveCameraState(
   camera: PerspectiveCamera,
   controls: OrbitControlsImpl,
-): PerspectiveEditorCameraState {
+): PerspectiveCameraState {
   return {
     cameraPositionInches: {
       xInches: camera.position.x,
@@ -155,14 +155,14 @@ function fitPerspectiveCameraToScene(
 ): void {
   const { centerInches, sizeInches } = sceneFitFrame;
   const distanceInches = Math.min(
-    Math.max(sizeInches * 1.35, MIN_CAMERA_DISTANCE_INCHES),
+    Math.max(sizeInches * 1.55, MIN_CAMERA_DISTANCE_INCHES),
     MAX_CAMERA_DISTANCE_INCHES,
   );
 
   camera.position.set(
-    centerInches.xInches + distanceInches,
-    centerInches.yInches - distanceInches,
-    centerInches.zInches + distanceInches * 0.75,
+    centerInches.xInches,
+    centerInches.yInches + distanceInches,
+    centerInches.zInches + distanceInches * 0.65,
   );
   camera.updateProjectionMatrix();
   controls.target.set(

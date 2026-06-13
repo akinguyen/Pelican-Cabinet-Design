@@ -1,11 +1,13 @@
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
-import type { PlacedWall } from "@/engine/walls/wallTypes";
+import type { CountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
+import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import type { SceneOperation } from "./sceneOperationTypes";
 import type { SceneSelection } from "./sceneSelectionTypes";
 
 export type DesignScene = Readonly<{
   placedAssemblies: readonly PlacedAssembly[];
-  placedWalls: readonly PlacedWall[];
+  placedWallGraphs: readonly PlacedWallGraph[];
+  countertopOpenings: readonly CountertopOpening[];
   activeSelection: SceneSelection | null;
   activeSceneOperation: SceneOperation | null;
 }>;
@@ -13,7 +15,8 @@ export type DesignScene = Readonly<{
 export function createEmptyDesignScene(): DesignScene {
   return {
     placedAssemblies: [],
-    placedWalls: [],
+    placedWallGraphs: [],
+    countertopOpenings: [],
     activeSelection: null,
     activeSceneOperation: null,
   };

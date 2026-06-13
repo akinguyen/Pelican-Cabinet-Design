@@ -1,11 +1,10 @@
-import { createWallSplitDraftForTarget } from "@/engine/walls/split-draft/wallSplitDraftFactory";
 import type { SceneSelection } from "../sceneSelectionTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
 export function createSceneSelectionActions(
   _get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
-): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedWall" | "clearSelection"> {
+): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedWallSegment" | "selectCountertopOpening" | "clearSelection"> {
   return {
     selectPlacedAssembly(placedAssemblyId) {
       const selection: SceneSelection = {
@@ -18,25 +17,34 @@ export function createSceneSelectionActions(
           ...state.designScene,
           activeSelection: selection,
         },
+        assemblyPlacementFeedback: null,
       }));
     },
 
-    selectPlacedWall(placedWallId) {
+    selectPlacedWallSegment(wallGraphId, wallSegmentId) {
       set((state) => ({
         designScene: {
           ...state.designScene,
           activeSelection: {
-            kind: "placed-wall",
-            placedWallId,
+            kind: "placed-wall-segment",
+            wallGraphId,
+            wallSegmentId,
           },
-          activeSceneOperation:
-            state.activeToolbarTool === "split-wall-footprint"
-              ? {
-                  kind: "wall-split-draft",
-                  wallSplitDraft: createWallSplitDraftForTarget(placedWallId),
-                }
-              : state.designScene.activeSceneOperation,
         },
+        assemblyPlacementFeedback: null,
+      }));
+    },
+
+    selectCountertopOpening(countertopOpeningId) {
+      set((state) => ({
+        designScene: {
+          ...state.designScene,
+          activeSelection: {
+            kind: "countertop-opening",
+            countertopOpeningId,
+          },
+        },
+        assemblyPlacementFeedback: null,
       }));
     },
 
@@ -46,6 +54,7 @@ export function createSceneSelectionActions(
           ...state.designScene,
           activeSelection: null,
         },
+        assemblyPlacementFeedback: null,
       }));
     },
   };

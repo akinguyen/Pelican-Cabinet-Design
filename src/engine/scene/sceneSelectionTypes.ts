@@ -4,6 +4,11 @@ export type SceneSelection =
       placedAssemblyId: string;
     }>
   | Readonly<{
-      kind: "placed-wall";
-      placedWallId: string;
+      kind: "placed-wall-segment";
+      wallGraphId: string;
+      wallSegmentId: string;
+    }>
+  | Readonly<{
+      kind: "countertop-opening";
+      countertopOpeningId: string;
     }>;

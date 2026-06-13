@@ -1,0 +1,253 @@
+{
+  "id": "faucet",
+  "name": "Faucet",
+  "catalogCategoryId": "fixtures/faucets",
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 4.5,
+      "optionsInches": [
+        { "valueInches": 4, "label": "4 in" },
+        { "valueInches": 4.5, "label": "4 1/2 in" },
+        { "valueInches": 6, "label": "6 in" }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 2,
+      "maxValueInches": 12,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 4.5,
+      "optionsInches": [
+        { "valueInches": 4, "label": "4 in" },
+        { "valueInches": 4.5, "label": "4 1/2 in" },
+        { "valueInches": 6, "label": "6 in" }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 2,
+      "maxValueInches": 12,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 6.5,
+      "optionsInches": [
+        { "valueInches": 6, "label": "6 in" },
+        { "valueInches": 8, "label": "8 in" },
+        { "valueInches": 10, "label": "10 in" }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 4,
+      "maxValueInches": 16,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "faucet-color",
+          "label": "Faucet color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#cbd5e1",
+          "choices": [
+            { "value": "#cbd5e1", "label": "Soft silver" },
+            { "value": "#d1d5db", "label": "Light gray" },
+            { "value": "#9ca3af", "label": "Gray" },
+            { "value": "#111827", "label": "Black" },
+            { "value": "#f8fafc", "label": "White" }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "faucet-mounting-deck",
+      "label": "Faucet Mounting Deck",
+      "geometry": { "kind": "box" },
+      "localPositionInches": {
+        "xInches": { "value": 0 },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": { "ref": "size.depthInches" },
+                "right": { "value": 2 }
+              }
+            },
+            { "value": 0.625 }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": { "ref": "size.heightInches" },
+                "right": { "value": 2 }
+              }
+            },
+            { "value": 0.175 }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": { "ref": "size.widthInches" },
+        "depthInches": { "value": 1.25 },
+        "heightInches": { "value": 0.35 }
+      },
+      "material": { "colorOptionId": "faucet-color" },
+      "role": "faucet-mounting-deck"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "faucet-stem",
+      "label": "Faucet Stem",
+      "geometry": { "kind": "cylinder" },
+      "localPositionInches": {
+        "xInches": { "value": 0 },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": { "ref": "size.depthInches" },
+                "right": { "value": 2 }
+              }
+            },
+            { "value": 0.625 }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": { "ref": "size.heightInches" },
+                "right": { "value": 2 }
+              }
+            },
+            { "value": 0.35 },
+            {
+              "op": "divide",
+              "left": {
+                "op": "max",
+                "values": [
+                  {
+                    "op": "subtract",
+                    "left": { "ref": "size.heightInches" },
+                    "right": { "value": 1.3 }
+                  },
+                  { "value": 1 }
+                ]
+              },
+              "right": { "value": 2 }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": { "value": 0.65 },
+        "depthInches": {
+          "op": "max",
+          "values": [
+            {
+              "op": "subtract",
+              "left": { "ref": "size.heightInches" },
+              "right": { "value": 1.3 }
+            },
+            { "value": 1 }
+          ]
+        },
+        "heightInches": { "value": 0.65 }
+      },
+      "material": { "colorOptionId": "faucet-color" },
+      "role": "faucet-stem",
+      "localRotationDegrees": {
+        "xDegrees": { "value": 90 }
+      }
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "faucet-spout",
+      "label": "Faucet Spout",
+      "geometry": { "kind": "box" },
+      "localPositionInches": {
+        "xInches": { "value": 0 },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": { "ref": "size.depthInches" },
+                "right": { "value": 2 }
+              }
+            },
+            { "value": 0.625 },
+            {
+              "op": "divide",
+              "left": {
+                "op": "max",
+                "values": [
+                  {
+                    "op": "subtract",
+                    "left": { "ref": "size.depthInches" },
+                    "right": { "value": 1.25 }
+                  },
+                  { "value": 1 }
+                ]
+              },
+              "right": { "value": 2 }
+            }
+          ]
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": { "ref": "size.heightInches" },
+            "right": { "value": 2 }
+          },
+          "right": { "value": 0.45 }
+        }
+      },
+      "sizeInches": {
+        "widthInches": { "value": 0.8 },
+        "depthInches": {
+          "op": "max",
+          "values": [
+            {
+              "op": "subtract",
+              "left": { "ref": "size.depthInches" },
+              "right": { "value": 1.25 }
+            },
+            { "value": 1 }
+          ]
+        },
+        "heightInches": { "value": 0.55 }
+      },
+      "material": { "colorOptionId": "faucet-color" },
+      "role": "faucet-spout"
+    }
+  ]
+}

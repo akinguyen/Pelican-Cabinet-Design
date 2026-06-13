@@ -19,10 +19,13 @@ export function AssemblyCatalogGrid({
   activeCategoryId,
   onSelectAssemblyDefinition,
 }: AssemblyCatalogGridProps) {
-  const assemblyCatalogEntries = kitchenEditorAssemblyCatalogEntries.filter(
-    (assemblyCatalogEntry) =>
-      assemblyCatalogEntry.catalogId === activeCatalogId && assemblyCatalogEntry.categoryId === activeCategoryId,
-  );
+  const assemblyCatalogEntries = kitchenEditorAssemblyCatalogEntries.filter((assemblyCatalogEntry) => {
+    if (assemblyCatalogEntry.catalogId !== activeCatalogId) {
+      return false;
+    }
+
+    return activeCategoryId === "all" || assemblyCatalogEntry.categoryId === activeCategoryId;
+  });
 
   if (assemblyCatalogEntries.length === 0) {
     return (

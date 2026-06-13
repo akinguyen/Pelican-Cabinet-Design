@@ -1,0 +1,504 @@
+{
+  "id": "wall-window",
+  "name": "Wall Window",
+  "catalogCategoryId": "openings/windows",
+  "defaultDistanceFromFloorInches": 42,
+  "dimensions": {
+    "widthInches": {
+      "label": "Width",
+      "control": "select",
+      "defaultValueInches": 36,
+      "optionsInches": [
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        },
+        {
+          "valueInches": 30,
+          "label": "30 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        },
+        {
+          "valueInches": 48,
+          "label": "48 in"
+        },
+        {
+          "valueInches": 60,
+          "label": "60 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 18,
+      "maxValueInches": 96,
+      "stepInches": 0.25
+    },
+    "depthInches": {
+      "label": "Depth",
+      "control": "select",
+      "defaultValueInches": 4,
+      "optionsInches": [
+        {
+          "valueInches": 3.5,
+          "label": "3 1/2 in"
+        },
+        {
+          "valueInches": 4,
+          "label": "4 in"
+        },
+        {
+          "valueInches": 4.5,
+          "label": "4 1/2 in"
+        },
+        {
+          "valueInches": 6,
+          "label": "6 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 2,
+      "maxValueInches": 8,
+      "stepInches": 0.25
+    },
+    "heightInches": {
+      "label": "Height",
+      "control": "select",
+      "defaultValueInches": 48,
+      "optionsInches": [
+        {
+          "valueInches": 24,
+          "label": "24 in"
+        },
+        {
+          "valueInches": 36,
+          "label": "36 in"
+        },
+        {
+          "valueInches": 48,
+          "label": "48 in"
+        },
+        {
+          "valueInches": 60,
+          "label": "60 in"
+        }
+      ],
+      "allowCustomValue": true,
+      "minValueInches": 18,
+      "maxValueInches": 84,
+      "stepInches": 0.25
+    }
+  },
+  "optionGroups": [
+    {
+      "id": "appearance",
+      "label": "Appearance",
+      "options": [
+        {
+          "id": "frame-color",
+          "label": "Frame color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#f8fafc",
+          "choices": [
+            {
+              "value": "#f8fafc",
+              "label": "White"
+            },
+            {
+              "value": "#d1d5db",
+              "label": "Light gray"
+            },
+            {
+              "value": "#92400e",
+              "label": "Wood"
+            },
+            {
+              "value": "#111827",
+              "label": "Black"
+            }
+          ]
+        },
+        {
+          "id": "glass-color",
+          "label": "Glass color",
+          "valueType": "string",
+          "control": "select",
+          "defaultValue": "#bfdbfe",
+          "choices": [
+            {
+              "value": "#bfdbfe",
+              "label": "Light blue glass"
+            },
+            {
+              "value": "#dbeafe",
+              "label": "Pale blue glass"
+            },
+            {
+              "value": "#e0f2fe",
+              "label": "Clear blue glass"
+            },
+            {
+              "value": "#cbd5e1",
+              "label": "Gray glass"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "kind": "primitive-geometry",
+      "id": "top-frame",
+      "label": "Top Frame",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.heightInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "value": 3
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "value": 3
+        }
+      },
+      "material": {
+        "colorOptionId": "frame-color"
+      },
+      "role": "wall-window-frame",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "bottom-frame",
+      "label": "Bottom Frame",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.heightInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 3
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "ref": "size.widthInches"
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "value": 3
+        }
+      },
+      "material": {
+        "colorOptionId": "frame-color"
+      },
+      "role": "wall-window-frame",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "left-frame",
+      "label": "Left Side Frame",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "divide",
+              "left": {
+                "value": 3
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 3
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "op": "multiply",
+            "left": {
+              "value": 3
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "frame-color"
+      },
+      "role": "wall-window-frame",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "right-frame",
+      "label": "Right Side Frame",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.widthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "value": 3
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "yInches": {
+          "value": 0
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "value": 3
+        },
+        "depthInches": {
+          "ref": "size.depthInches"
+        },
+        "heightInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "op": "multiply",
+            "left": {
+              "value": 3
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "frame-color"
+      },
+      "role": "wall-window-frame",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "glass-panel",
+      "label": "Glass Panel",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "value": 0
+        },
+        "yInches": {
+          "op": "subtract",
+          "left": {
+            "op": "divide",
+            "left": {
+              "ref": "size.depthInches"
+            },
+            "right": {
+              "value": 2
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "value": 0.35
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.widthInches"
+          },
+          "right": {
+            "op": "multiply",
+            "left": {
+              "value": 3
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "depthInches": {
+          "value": 0.35
+        },
+        "heightInches": {
+          "op": "subtract",
+          "left": {
+            "ref": "size.heightInches"
+          },
+          "right": {
+            "op": "multiply",
+            "left": {
+              "value": 3
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        }
+      },
+      "material": {
+        "colorOptionId": "glass-color",
+        "opacity": {
+          "value": 0.45
+        }
+      },
+      "role": "wall-window-glass",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
+    }
+  ]
+}
