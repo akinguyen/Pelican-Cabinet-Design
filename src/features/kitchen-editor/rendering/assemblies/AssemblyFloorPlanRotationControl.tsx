@@ -65,7 +65,7 @@ export function AssemblyFloorPlanRotationControl({
       {isRotating ? <RotationSnapTicks ringRadiusInches={ringRadiusInches} /> : null}
       <RotationHandle
         ringRadiusInches={ringRadiusInches}
-        handleCenterAngleDegrees={activeRotationDrag?.pointerAngleDegrees ?? placedAssembly.rotationDegrees.zDegrees - 90}
+        handleCenterAngleDegrees={getRotationHandleCenterAngleDegrees(placedAssembly.rotationDegrees.zDegrees)}
       />
       {isRotating ? (
         <Html center position={[0, 0, 1]} style={{ pointerEvents: "none", zIndex: 60 }}>
@@ -76,6 +76,10 @@ export function AssemblyFloorPlanRotationControl({
       ) : null}
     </group>
   );
+}
+
+function getRotationHandleCenterAngleDegrees(rotationDegrees: number): number {
+  return -rotationDegrees - 90;
 }
 
 function RotationDirectionArrows({ ringRadiusInches }: Readonly<{ ringRadiusInches: number }>) {

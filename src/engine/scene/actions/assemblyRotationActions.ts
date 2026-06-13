@@ -42,6 +42,7 @@ export function createAssemblyRotationActions(
         },
         assemblyPlacementFeedback: createAssemblyPlacementFeedback({
           placedAssembly,
+          placedWallGraphs: get().designScene.placedWallGraphs,
         }),
       });
     },
@@ -74,6 +75,7 @@ export function createAssemblyRotationActions(
       );
       const feedback = createAssemblyPlacementFeedback({
         placedAssembly: rotatedAssembly,
+        placedWallGraphs: get().designScene.placedWallGraphs,
       });
       const isValidPlacement = true;
 

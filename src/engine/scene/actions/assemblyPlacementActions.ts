@@ -54,10 +54,12 @@ export function createAssemblyPlacementActions(
             placedAssembly: proposedPlacedAssembly,
             feedback: createAssemblyPlacementFeedback({
               placedAssembly: proposedPlacedAssembly,
+              placedWallGraphs: designScene.placedWallGraphs,
             }),
           }
         : applyAssemblyWallPlacementRules({
             placedAssembly: proposedPlacedAssembly,
+            placedWallGraphs: designScene.placedWallGraphs,
           });
 
       set((state) => ({
@@ -87,6 +89,7 @@ export function createAssemblyPlacementActions(
 
       const placementFeedback = assemblyPlacementFeedback ?? createAssemblyPlacementFeedback({
         placedAssembly: activeSceneOperation.placedAssembly,
+        placedWallGraphs: designScene.placedWallGraphs,
       });
 
       if (!placementFeedback.isValid) {

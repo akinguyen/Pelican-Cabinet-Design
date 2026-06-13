@@ -35,6 +35,7 @@ export function AssemblyPrimitiveMesh({ primitiveGeometry, renderState }: Assemb
 
   const opacity = renderState === "candidate" ? 0.55 : primitiveGeometry.material.opacity ?? 1;
   const usesEvenColorMaterial = shouldUseEvenColorMaterial(primitiveGeometry);
+  const shouldRenderPrimitiveEdgeSegments = activeSceneViewMode !== "floor-plan";
 
   function handlePointerDown(event: ThreeEvent<PointerEvent>) {
     if (
@@ -108,7 +109,9 @@ export function AssemblyPrimitiveMesh({ primitiveGeometry, renderState }: Assemb
           opacity={opacity}
         />
       )}
-      <AssemblyPrimitiveEdgeSegments primitiveGeometry={primitiveGeometry} />
+      {shouldRenderPrimitiveEdgeSegments ? (
+        <AssemblyPrimitiveEdgeSegments primitiveGeometry={primitiveGeometry} />
+      ) : null}
     </mesh>
   );
 }

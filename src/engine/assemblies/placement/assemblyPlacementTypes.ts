@@ -42,6 +42,12 @@ export type AssemblyWallMeasurementGuide = Readonly<{
   labelRotationDegrees: number;
 }>;
 
+export type AssemblyWallAttachmentHighlight = Readonly<{
+  id: string;
+  startPointInches: Point3DInches;
+  endPointInches: Point3DInches;
+}>;
+
 export type AssemblyPlacementFeedback = Readonly<{
   placedAssembly: PlacedAssembly;
   footprint: AssemblyPlacementFootprint;
@@ -49,6 +55,7 @@ export type AssemblyPlacementFeedback = Readonly<{
   invalidReason: AssemblyPlacementInvalidReason | null;
   snapTarget: AssemblyWallSnapTarget | null;
   wallMeasurementGuides: readonly AssemblyWallMeasurementGuide[];
+  wallAttachmentHighlights: readonly AssemblyWallAttachmentHighlight[];
 }>;
 
 export type AssemblyPlacementResult = Readonly<{

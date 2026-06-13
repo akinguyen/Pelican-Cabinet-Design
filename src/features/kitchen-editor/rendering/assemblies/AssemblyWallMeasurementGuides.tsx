@@ -1,10 +1,14 @@
 "use client";
 
-import { Html, Line } from "@react-three/drei";
 import type { AssemblyWallMeasurementGuide } from "@/engine/assemblies/placement/assemblyPlacementTypes";
+import { PlanMeasurementLine } from "../shared/PlanMeasurementLine";
 import { formatFeetInchesLabel } from "../../shared/formatFeetInchesLabel";
 
 const ASSEMBLY_WALL_GUIDE_Z_INCHES = 6;
+const ASSEMBLY_WALL_GUIDE_RENDER_ORDER = 115;
+const ASSEMBLY_WALL_GUIDE_STROKE = "#38bdf8";
+const ASSEMBLY_WALL_GUIDE_DASH_SIZE_INCHES = 3;
+const ASSEMBLY_WALL_GUIDE_GAP_SIZE_INCHES = 3;
 
 export function AssemblyWallMeasurementGuides({
   measurementGuides,
@@ -14,41 +18,19 @@ export function AssemblyWallMeasurementGuides({
   return (
     <group>
       {measurementGuides.map((measurementGuide) => (
-        <group key={measurementGuide.id} renderOrder={115}>
-          <Line
-            points={[
-              [measurementGuide.startPointInches.xInches, measurementGuide.startPointInches.yInches, ASSEMBLY_WALL_GUIDE_Z_INCHES],
-              [measurementGuide.endPointInches.xInches, measurementGuide.endPointInches.yInches, ASSEMBLY_WALL_GUIDE_Z_INCHES],
-            ]}
-            color="#0ea5e9"
-            lineWidth={1.5}
-            dashed
-            dashScale={10}
-            gapSize={5}
-            depthTest={false}
-            renderOrder={115}
-          />
-          <Html
-            center
-            position={[
-              measurementGuide.labelPointInches.xInches,
-              measurementGuide.labelPointInches.yInches,
-              ASSEMBLY_WALL_GUIDE_Z_INCHES + 0.6,
-            ]}
-            style={{ pointerEvents: "none", whiteSpace: "nowrap", zIndex: 30 }}
-          >
-            <div
-              className="inline-flex whitespace-nowrap rounded bg-white/85 px-1.5 py-0.5 text-[11px] font-bold leading-none text-slate-800 shadow-sm ring-1 ring-cyan-100"
-              style={{
-                transform: `rotate(${-measurementGuide.labelRotationDegrees}deg)`,
-                transformOrigin: "center",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {formatFeetInchesLabel(measurementGuide.lengthInches)}
-            </div>
-          </Html>
-        </group>
+        <PlanMeasurementLine
+          key={measurementGuide.id}
+          startPointInches={measurementGuide.startPointInches}
+          endPointInches={measurementGuide.endPointInches}
+          labelPointInches={measurementGuide.labelPointInches}
+          label={formatFeetInchesLabel(measurementGuide.lengthInches)}
+          labelRotationDegrees={measurementGuide.labelRotationDegrees}
+          zInches={ASSEMBLY_WALL_GUIDE_Z_INCHES}
+          color={ASSEMBLY_WALL_GUIDE_STROKE}
+          renderOrder={ASSEMBLY_WALL_GUIDE_RENDER_ORDER}
+          dashSizeInches={ASSEMBLY_WALL_GUIDE_DASH_SIZE_INCHES}
+          gapSizeInches={ASSEMBLY_WALL_GUIDE_GAP_SIZE_INCHES}
+        />
       ))}
     </group>
   );

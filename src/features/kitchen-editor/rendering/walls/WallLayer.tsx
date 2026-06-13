@@ -8,6 +8,7 @@ import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTyp
 import type { SceneSelection } from "@/engine/scene/sceneSelectionTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { WallSegmentMesh } from "./WallSegmentMesh";
+import { WallPlanMeasurementGuides } from "./WallPlanMeasurementGuides";
 import { WallSegmentDraftRenderer } from "./WallSegmentDraftRenderer";
 
 type WallLayerProps = Readonly<{
@@ -28,6 +29,7 @@ export function WallLayer({
   placedWallGraphs,
   activeSelection,
   wallSegmentDraft,
+  showPlanMeasurements,
   sceneViewMode,
 }: WallLayerProps) {
   const selectedWallSegment = activeSelection?.kind === "placed-wall-segment"
@@ -44,6 +46,9 @@ export function WallLayer({
     previewGraph,
     selectedWallSegment,
   });
+  const committedSegmentBodies = placedWallGraphs.flatMap((placedWallGraph) => (
+    buildConnectedWallGeometry(placedWallGraph).segmentBodies
+  ));
 
   return (
     <group>
@@ -55,8 +60,12 @@ export function WallLayer({
           sceneViewMode={sceneViewMode}
         />
       ))}
+      {showPlanMeasurements ? (
+        <WallPlanMeasurementGuides segmentBodies={committedSegmentBodies} />
+      ) : null}
       <WallSegmentDraftRenderer
         draft={wallSegmentDraft}
+        placedWallGraphs={placedWallGraphs}
         previewGraph={previewGraph}
       />
     </group>
