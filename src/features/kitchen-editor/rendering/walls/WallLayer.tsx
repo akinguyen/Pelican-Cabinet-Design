@@ -1,78 +1,124 @@
 "use client";
 
-import { buildWall } from "@/engine/walls/wallBuilding";
-import { getWallPlanEdgeMeasurements, getWallPlanMeasurementFrame } from "@/engine/walls/footprint/wallPlanMeasurements";
-import type { PlacedWall } from "@/engine/walls/wallTypes";
-import type { WallFootprintDraft } from "@/engine/walls/footprint-draft/wallFootprintDraftTypes";
-import type { WallSplitDraft } from "@/engine/walls/split-draft/wallSplitDraftTypes";
+import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
+import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
+import { buildWallSegmentDraftPreviewGraph } from "@/engine/walls/segment-draft/wallSegmentDraftPreview";
+import type { WallSegmentDraft } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
+import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
 import type { SceneSelection } from "@/engine/scene/sceneSelectionTypes";
-import { WallMesh } from "./WallMesh";
-import { WallFootprintDraftRenderer } from "./WallFootprintDraftRenderer";
-import { SelectedWallBoundaryOverlay } from "./SelectedWallBoundaryOverlay";
-import { WallSplitDraftRenderer } from "./WallSplitDraftRenderer";
-import { WallPlanMeasurementOverlay } from "./WallPlanMeasurementOverlay";
-import { WallPlanEdgeMeasurementLabels } from "./WallPlanEdgeMeasurementLabels";
+import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
+import { WallSegmentMesh } from "./WallSegmentMesh";
+import { WallPlanMeasurementGuides } from "./WallPlanMeasurementGuides";
+import { WallSegmentDraftRenderer } from "./WallSegmentDraftRenderer";
 
 type WallLayerProps = Readonly<{
-  placedWalls: readonly PlacedWall[];
+  placedWallGraphs: readonly PlacedWallGraph[];
   activeSelection: SceneSelection | null;
-  wallFootprintDraft: WallFootprintDraft | null;
-  wallSplitDraft: WallSplitDraft | null;
+  wallSegmentDraft: WallSegmentDraft | null;
   showPlanMeasurements: boolean;
+  sceneViewMode: SceneViewMode;
+}>;
+
+type WallSegmentRenderItem = Readonly<{
+  key: string;
+  segmentBody: BuiltWallSegmentBody;
+  renderState: "committed" | "preview-existing" | "preview-draft" | "selected";
 }>;
 
 export function WallLayer({
-  placedWalls,
+  placedWallGraphs,
   activeSelection,
-  wallFootprintDraft,
-  wallSplitDraft,
+  wallSegmentDraft,
   showPlanMeasurements,
+  sceneViewMode,
 }: WallLayerProps) {
-  const selectedPlacedWallId = activeSelection?.kind === "placed-wall"
-    ? activeSelection.placedWallId
+  const selectedWallSegment = activeSelection?.kind === "placed-wall-segment"
+    ? { wallGraphId: activeSelection.wallGraphId, wallSegmentId: activeSelection.wallSegmentId }
     : null;
-  const splitTargetPlacedWallId = wallSplitDraft?.phase === "choosing-start" || wallSplitDraft?.phase === "choosing-end"
-    ? wallSplitDraft.targetPlacedWallId
-    : null;
-  const highlightedPlacedWallId = splitTargetPlacedWallId ?? selectedPlacedWallId;
-  const builtWalls = placedWalls.map(buildWall);
-  const highlightedBuiltWall = highlightedPlacedWallId === null
+  const previewGraph = wallSegmentDraft === null
     ? null
-    : builtWalls.find((builtWall) => builtWall.placedWallId === highlightedPlacedWallId) ?? null;
-  const planMeasurementFrame = showPlanMeasurements
-    ? getWallPlanMeasurementFrame(placedWalls)
-    : null;
-  const planEdgeMeasurements = showPlanMeasurements
-    ? getWallPlanEdgeMeasurements(placedWalls)
-    : [];
+    : buildWallSegmentDraftPreviewGraph({
+      draft: wallSegmentDraft,
+      placedWallGraphs,
+    });
+  const renderItems = buildWallSegmentRenderItems({
+    committedWallGraphs: placedWallGraphs,
+    previewGraph,
+    selectedWallSegment,
+  });
+  const committedSegmentBodies = placedWallGraphs.flatMap((placedWallGraph) => (
+    buildConnectedWallGeometry(placedWallGraph).segmentBodies
+  ));
 
   return (
     <group>
-      {builtWalls
-        .filter((builtWall) => builtWall.placedWallId !== selectedPlacedWallId)
-        .map((builtWall) => (
-          <WallMesh
-            key={builtWall.id}
-            builtWall={builtWall}
-            isSelected={false}
-          />
-        ))}
-      {builtWalls
-        .filter((builtWall) => builtWall.placedWallId === selectedPlacedWallId)
-        .map((builtWall) => (
-          <WallMesh
-            key={builtWall.id}
-            builtWall={builtWall}
-            isSelected
-          />
-        ))}
-      {highlightedBuiltWall !== null ? (
-        <SelectedWallBoundaryOverlay builtWall={highlightedBuiltWall} />
+      {renderItems.map((renderItem) => (
+        <WallSegmentMesh
+          key={renderItem.key}
+          segmentBody={renderItem.segmentBody}
+          renderState={renderItem.renderState}
+          sceneViewMode={sceneViewMode}
+        />
+      ))}
+      {showPlanMeasurements ? (
+        <WallPlanMeasurementGuides segmentBodies={committedSegmentBodies} />
       ) : null}
-      <WallPlanMeasurementOverlay measurementFrame={planMeasurementFrame} />
-      <WallPlanEdgeMeasurementLabels measurements={planEdgeMeasurements} />
-      <WallFootprintDraftRenderer draft={wallFootprintDraft} />
-      <WallSplitDraftRenderer draft={wallSplitDraft} />
+      <WallSegmentDraftRenderer
+        draft={wallSegmentDraft}
+        placedWallGraphs={placedWallGraphs}
+        previewGraph={previewGraph}
+      />
     </group>
+  );
+}
+
+function buildWallSegmentRenderItems(args: {
+  committedWallGraphs: readonly PlacedWallGraph[];
+  previewGraph: ReturnType<typeof buildWallSegmentDraftPreviewGraph>;
+  selectedWallSegment: { wallGraphId: string; wallSegmentId: string } | null;
+}): readonly WallSegmentRenderItem[] {
+  const affectedGraphIds = new Set(args.previewGraph?.affectedCommittedWallGraphIds ?? []);
+  const previewSegmentKeys = new Set((args.previewGraph?.previewWallSegmentReferences ?? []).map(createWallSegmentKey));
+  const previewDraftKey = args.previewGraph === null
+    ? null
+    : createWallSegmentKey({
+      wallGraphId: args.previewGraph.previewWallGraphIds[0] ?? "",
+      wallSegmentId: args.previewGraph.previewWallSegmentId,
+    });
+  const committedItems = args.committedWallGraphs
+    .filter((wallGraph) => !affectedGraphIds.has(wallGraph.id))
+    .flatMap((wallGraph) => buildConnectedWallGeometry(wallGraph).segmentBodies.map<WallSegmentRenderItem>((segmentBody) => ({
+      key: `committed-${segmentBody.id}`,
+      segmentBody,
+      renderState: isSelectedSegment(segmentBody, args.selectedWallSegment) ? "selected" : "committed",
+    })));
+  const previewItems = (args.previewGraph?.previewWallGraphIds ?? [])
+    .flatMap((wallGraphId) => args.previewGraph?.placedWallGraphs.filter((wallGraph) => wallGraph.id === wallGraphId) ?? [])
+    .flatMap((wallGraph) => buildConnectedWallGeometry(wallGraph).segmentBodies.map<WallSegmentRenderItem>((segmentBody) => {
+      const segmentKey = createWallSegmentKey(segmentBody);
+      return {
+        key: `preview-${segmentBody.id}`,
+        segmentBody,
+        renderState: segmentKey === previewDraftKey || previewSegmentKeys.has(segmentKey) && segmentBody.wallSegmentId === args.previewGraph?.previewWallSegmentId
+          ? "preview-draft"
+          : "preview-existing",
+      };
+    }));
+
+  return [...committedItems, ...previewItems];
+}
+
+function createWallSegmentKey(args: { wallGraphId: string; wallSegmentId: string }): string {
+  return `${args.wallGraphId}:${args.wallSegmentId}`;
+}
+
+function isSelectedSegment(
+  segmentBody: BuiltWallSegmentBody,
+  selectedWallSegment: { wallGraphId: string; wallSegmentId: string } | null,
+): boolean {
+  return (
+    selectedWallSegment !== null &&
+    segmentBody.wallGraphId === selectedWallSegment.wallGraphId &&
+    segmentBody.wallSegmentId === selectedWallSegment.wallSegmentId
   );
 }
