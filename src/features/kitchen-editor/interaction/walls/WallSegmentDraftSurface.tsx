@@ -19,7 +19,7 @@ export function WallSegmentDraftSurface() {
   );
   const isWallSegmentDraftDrawingActive = activeToolbarTool === "draw-wall-segment";
 
-  if (!canManuallyEditScene(workspaceMode) || !isWallSegmentDraftDrawingActive || activeSceneViewMode === "elevation") {
+  if (!canManuallyEditScene(workspaceMode) || !isWallSegmentDraftDrawingActive || activeSceneViewMode !== "floor-plan") {
     return null;
   }
 

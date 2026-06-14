@@ -13,6 +13,7 @@ import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTyp
 import { WallSegmentMesh } from "./WallSegmentMesh";
 import { WallSegmentDraftRenderer } from "./WallSegmentDraftRenderer";
 import { WallElevationViewZoneOverlay } from "./WallElevationViewZoneOverlay";
+import { WallPlanMeasurementGuides } from "./WallPlanMeasurementGuides";
 
 const SHOW_WALL_ELEVATION_VIEW_ZONE_OVERLAY = true;
 
@@ -37,6 +38,7 @@ export function WallLayer({
   activeSelection,
   activeWallElevationTarget,
   wallSegmentDraft,
+  showPlanMeasurements,
   sceneViewMode,
 }: WallLayerProps) {
   const selectedWallSegment = activeSelection?.kind === "placed-wall-segment"
@@ -53,6 +55,9 @@ export function WallLayer({
     previewGraph,
     selectedWallSegment,
   });
+  const committedSegmentBodies = placedWallGraphs.flatMap((placedWallGraph) => (
+    buildConnectedWallGeometry(placedWallGraph).segmentBodies
+  ));
   const shouldShowElevationViewZone = (
     sceneViewMode === "floor-plan" &&
     SHOW_WALL_ELEVATION_VIEW_ZONE_OVERLAY &&
@@ -79,11 +84,15 @@ export function WallLayer({
           sceneViewMode={sceneViewMode}
         />
       ))}
+      {showPlanMeasurements ? (
+        <WallPlanMeasurementGuides segmentBodies={committedSegmentBodies} />
+      ) : null}
       {elevationViewZone !== null ? (
         <WallElevationViewZoneOverlay viewZone={elevationViewZone} />
       ) : null}
       <WallSegmentDraftRenderer
         draft={wallSegmentDraft}
+        placedWallGraphs={placedWallGraphs}
         previewGraph={previewGraph}
       />
     </group>

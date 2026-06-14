@@ -3,7 +3,7 @@
 import type { AssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { AssemblyPlacementBoundingBox } from "./AssemblyPlacementBoundingBox";
-import { AssemblyWallMeasurementGuides } from "./AssemblyWallMeasurementGuides";
+import { AssemblyObjectAlignmentGuides } from "./AssemblyObjectAlignmentGuides";
 
 type AssemblyPlacementFeedbackLayerProps = Readonly<{
   sceneViewMode: SceneViewMode;
@@ -14,8 +14,12 @@ export function AssemblyPlacementFeedbackLayer({
   sceneViewMode,
   placementFeedback,
 }: AssemblyPlacementFeedbackLayerProps) {
-  if (sceneViewMode === "elevation" || placementFeedback === null) {
+  if (placementFeedback === null) {
     return null;
+  }
+
+  if (sceneViewMode === "elevation") {
+    return <AssemblyObjectAlignmentGuides alignmentGuides={placementFeedback.objectAlignmentGuides} />;
   }
 
   return (
@@ -25,9 +29,7 @@ export function AssemblyPlacementFeedbackLayer({
         state={placementFeedback.isValid ? "moving" : "invalid"}
         zInches={sceneViewMode === "perspective" ? getPerspectiveBoundingBoxZInches(placementFeedback) : undefined}
       />
-      {sceneViewMode === "floor-plan" ? (
-        <AssemblyWallMeasurementGuides measurementGuides={placementFeedback.wallMeasurementGuides} />
-      ) : null}
+      <AssemblyObjectAlignmentGuides alignmentGuides={placementFeedback.objectAlignmentGuides} />
     </group>
   );
 }

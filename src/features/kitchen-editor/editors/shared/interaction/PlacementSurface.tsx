@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { Matrix4, Vector3 } from "three";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { getAssemblyDistanceFromFloorInches } from "@/engine/assemblies/placedAssemblyTypes";
+import type { AssemblyPlacementElevationFrame } from "@/engine/assemblies/placement/assemblyPlacementTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
@@ -17,12 +18,6 @@ const MIN_FACE_LENGTH_INCHES = 0.000001;
 
 type PlacementSurfaceProps = Readonly<{
   sceneViewMode: SceneViewMode;
-}>;
-
-type ElevationPlacementFrame = Readonly<{
-  faceDirectionInches: Point3DInches;
-  outwardDirectionInches: Point3DInches;
-  planeOriginInches: Point3DInches;
 }>;
 
 export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
@@ -71,6 +66,7 @@ export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
         elevationPlacementFrame,
       }),
       sceneViewMode,
+      elevationPlacementFrame ?? undefined,
     );
   }
 
@@ -107,7 +103,7 @@ function createAssemblyCandidatePositionFromPointerPoint(args: {
   heightInches: number;
   depthInches: number;
   distanceFromFloorInches: number;
-  elevationPlacementFrame: ElevationPlacementFrame | null;
+  elevationPlacementFrame: AssemblyPlacementElevationFrame | null;
 }): Point3DInches {
   if (args.sceneViewMode === "elevation" && args.elevationPlacementFrame !== null) {
     return {
@@ -139,7 +135,7 @@ function createAssemblyCandidatePositionFromPointerPoint(args: {
 function createElevationPlacementFrame(args: {
   placedWallGraphs: readonly PlacedWallGraph[];
   activeWallElevationTarget: WallElevationTarget | null;
-}): ElevationPlacementFrame | null {
+}): AssemblyPlacementElevationFrame | null {
   const viewZone = getWallElevationViewZoneForTarget({
     placedWallGraphs: args.placedWallGraphs,
     activeWallElevationTarget: args.activeWallElevationTarget,
@@ -167,7 +163,7 @@ function createElevationPlacementFrame(args: {
 }
 
 function createElevationPlacementSurfaceMatrix(
-  elevationPlacementFrame: ElevationPlacementFrame,
+  elevationPlacementFrame: AssemblyPlacementElevationFrame,
 ): Matrix4 {
   const xAxis = new Vector3(
     elevationPlacementFrame.faceDirectionInches.xInches,

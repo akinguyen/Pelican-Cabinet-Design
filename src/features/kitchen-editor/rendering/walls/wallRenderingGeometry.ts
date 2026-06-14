@@ -1,8 +1,10 @@
 import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Shape } from "three";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PrimitiveEdgeSegmentInches } from "@/engine/primitive-geometry/edge-segments/primitiveEdgeSegmentTypes";
+import { createOrthogonalWallOpeningCutFootprint } from "@/engine/walls/openings/wallOpeningCutGeometry";
+import { createWallOpeningFaceAxes } from "@/engine/walls/openings/wallOpeningFaceAxes";
 import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
-import type { WallFaceSide, WallOpening } from "@/engine/walls/placedWallSegmentTypes";
+import type { WallOpening } from "@/engine/walls/placedWallSegmentTypes";
 
 const GEOMETRY_EPSILON = 0.000001;
 const WALL_OPENING_EDGE_OFFSET_INCHES = 0.12;
@@ -10,6 +12,47 @@ const WALL_OPENING_EDGE_OFFSET_INCHES = 0.12;
 type WallSegmentGeometryResult = Readonly<{
   geometry: BufferGeometry | ExtrudeGeometry;
   openingEdgeSegmentsInches: readonly PrimitiveEdgeSegmentInches[];
+}>;
+
+type WallDirectionInches = Readonly<{
+  xInches: number;
+  yInches: number;
+}>;
+
+type WallGridAxesInches = Readonly<{
+  originInches: Point3DInches;
+  wallDirectionInches: WallDirectionInches;
+  normalDirectionInches: WallDirectionInches;
+}>;
+
+type NormalizedWallOpening = Readonly<{
+  startUInches: number;
+  endUInches: number;
+  bottomInches: number;
+  topInches: number;
+}>;
+
+type WallCrossSection = Readonly<{
+  uInches: number;
+  lowNormalPointInches: Point3DInches;
+  highNormalPointInches: Point3DInches;
+}>;
+
+type WallCellGrid = Readonly<{
+  uCoordinatesInches: readonly number[];
+  zCoordinatesInches: readonly number[];
+  crossSections: readonly WallCrossSection[];
+  removedCells: readonly (readonly boolean[])[];
+  normalDirectionInches: WallDirectionInches;
+}>;
+
+type WallGridCell = Readonly<{
+  uIndex: number;
+  zIndex: number;
+  startUInches: number;
+  endUInches: number;
+  bottomInches: number;
+  topInches: number;
 }>;
 
 export function createWallSegmentGeometry(args: {
@@ -41,34 +84,29 @@ export function createExtrudedWallGeometry(
   });
 }
 
-type NormalizedWallOpening = Readonly<{
-  startT: number;
-  endT: number;
-  bottomInches: number;
-  topInches: number;
-}>;
-
-type WallCellGrid = Readonly<{
-  tCoordinates: readonly number[];
-  zCoordinates: readonly number[];
-  removedCells: readonly (readonly boolean[])[];
-}>;
-
-type WallGridCell = Readonly<{
-  tIndex: number;
-  zIndex: number;
-  startT: number;
-  endT: number;
-  bottomInches: number;
-  topInches: number;
-}>;
-
 function createWallSegmentGeometryWithOpenings(
   segmentBody: BuiltWallSegmentBody,
   openings: readonly WallOpening[],
 ): WallSegmentGeometryResult {
+  const wallGridAxesInches = createWallOpeningGridAxes(segmentBody, openings);
+
+  if (wallGridAxesInches === null) {
+    return {
+      geometry: createExtrudedWallGeometry(
+        segmentBody.footprintPolygonInches,
+        segmentBody.heightInches,
+      ),
+      openingEdgeSegmentsInches: [],
+    };
+  }
+
   const normalizedOpenings = openings
-    .map((opening) => normalizeOpening({ segmentBody, opening }))
+    .map((opening) => normalizeOpening({
+      segmentBody,
+      opening,
+      originInches: wallGridAxesInches.originInches,
+      wallDirectionInches: wallGridAxesInches.wallDirectionInches,
+    }))
     .filter(isNormalizedWallOpening);
 
   if (normalizedOpenings.length === 0) {
@@ -82,21 +120,35 @@ function createWallSegmentGeometryWithOpenings(
   }
 
   const cellGrid = createWallCellGrid({
+    segmentBody,
     wallHeightInches: segmentBody.heightInches,
+    originInches: wallGridAxesInches.originInches,
+    wallDirectionInches: wallGridAxesInches.wallDirectionInches,
+    normalDirectionInches: wallGridAxesInches.normalDirectionInches,
     openings: normalizedOpenings,
   });
+
+  if (cellGrid === null) {
+    return {
+      geometry: createExtrudedWallGeometry(
+        segmentBody.footprintPolygonInches,
+        segmentBody.heightInches,
+      ),
+      openingEdgeSegmentsInches: [],
+    };
+  }
+
   const triangles: number[] = [];
 
-  for (let tIndex = 0; tIndex < cellGrid.tCoordinates.length - 1; tIndex += 1) {
-    for (let zIndex = 0; zIndex < cellGrid.zCoordinates.length - 1; zIndex += 1) {
-      if (isRemovedCell(cellGrid, tIndex, zIndex)) {
+  for (let uIndex = 0; uIndex < cellGrid.uCoordinatesInches.length - 1; uIndex += 1) {
+    for (let zIndex = 0; zIndex < cellGrid.zCoordinatesInches.length - 1; zIndex += 1) {
+      if (isRemovedCell(cellGrid, uIndex, zIndex)) {
         continue;
       }
 
       addSolidCellFaces({
-        segmentBody,
         cellGrid,
-        cell: createWallGridCell(cellGrid, tIndex, zIndex),
+        cell: createWallGridCell(cellGrid, uIndex, zIndex),
         triangles,
       });
     }
@@ -110,34 +162,50 @@ function createWallSegmentGeometryWithOpenings(
 
   return {
     geometry,
-    openingEdgeSegmentsInches: createOpeningBoundaryEdgeSegments({ segmentBody, cellGrid }),
+    openingEdgeSegmentsInches: createOpeningBoundaryEdgeSegments({ cellGrid }),
   };
 }
 
 function normalizeOpening(args: {
   segmentBody: BuiltWallSegmentBody;
   opening: WallOpening;
+  originInches: Point3DInches;
+  wallDirectionInches: WallDirectionInches;
 }): NormalizedWallOpening | null {
-  const faceLengthInches = getSideLength(args.segmentBody, args.opening.faceSide);
+  const cutFootprint = createOrthogonalWallOpeningCutFootprint({
+    segmentBody: args.segmentBody,
+    opening: args.opening,
+  });
 
-  if (faceLengthInches <= GEOMETRY_EPSILON) {
+  if (cutFootprint === null) {
     return null;
   }
 
-  const startT = clamp01(args.opening.leftInchesAlongFace / faceLengthInches);
-  const endT = clamp01((args.opening.leftInchesAlongFace + args.opening.widthInches) / faceLengthInches);
-  const bottomInches = clamp(args.opening.bottomInchesFromFloor, 0, args.segmentBody.heightInches);
-  const topInches = clamp(args.opening.bottomInchesFromFloor + args.opening.heightInches, 0, args.segmentBody.heightInches);
+  const frontLeftUInches = projectPointOntoDirection({
+    pointInches: cutFootprint.frontLeftInches,
+    originInches: args.originInches,
+    directionInches: args.wallDirectionInches,
+  });
+  const frontRightUInches = projectPointOntoDirection({
+    pointInches: cutFootprint.frontRightInches,
+    originInches: args.originInches,
+    directionInches: args.wallDirectionInches,
+  });
+  const startUInches = Math.min(frontLeftUInches, frontRightUInches);
+  const endUInches = Math.max(frontLeftUInches, frontRightUInches);
 
-  if (endT - startT <= GEOMETRY_EPSILON || topInches - bottomInches <= GEOMETRY_EPSILON) {
+  if (
+    endUInches - startUInches <= GEOMETRY_EPSILON ||
+    cutFootprint.topInches - cutFootprint.bottomInches <= GEOMETRY_EPSILON
+  ) {
     return null;
   }
 
   return {
-    startT,
-    endT,
-    bottomInches,
-    topInches,
+    startUInches,
+    endUInches,
+    bottomInches: cutFootprint.bottomInches,
+    topInches: cutFootprint.topInches,
   };
 }
 
@@ -145,33 +213,95 @@ function isNormalizedWallOpening(opening: NormalizedWallOpening | null): opening
   return opening !== null;
 }
 
+function createWallOpeningGridAxes(
+  segmentBody: BuiltWallSegmentBody,
+  openings: readonly WallOpening[],
+): WallGridAxesInches | null {
+  const firstOpening = openings[0];
+
+  if (firstOpening !== undefined) {
+    const faceAxes = createWallOpeningFaceAxes({
+      segmentBody,
+      faceSide: firstOpening.faceSide,
+    });
+
+    if (faceAxes !== null) {
+      return {
+        originInches: faceAxes.sideStartPointInches,
+        wallDirectionInches: faceAxes.faceDirectionInches,
+        normalDirectionInches: faceAxes.inwardDirectionInches,
+      };
+    }
+  }
+
+  const wallDirectionInches = createWallDirection(segmentBody);
+
+  if (wallDirectionInches === null) {
+    return null;
+  }
+
+  return {
+    originInches: segmentBody.start.centerPointInches,
+    wallDirectionInches,
+    normalDirectionInches: createPerpendicularDirection(wallDirectionInches),
+  };
+}
+
 function createWallCellGrid(args: {
+  segmentBody: BuiltWallSegmentBody;
   wallHeightInches: number;
+  originInches: Point3DInches;
+  wallDirectionInches: WallDirectionInches;
+  normalDirectionInches: WallDirectionInches;
   openings: readonly NormalizedWallOpening[];
-}): WallCellGrid {
-  const tCoordinates = createSortedUniqueCoordinates([
-    0,
-    1,
-    ...args.openings.flatMap((opening) => [opening.startT, opening.endT]),
+}): WallCellGrid | null {
+  const footprintCoordinatesInches = args.segmentBody.footprintPolygonInches.map((pointInches) => (
+    projectPointOntoDirection({
+      pointInches,
+      originInches: args.originInches,
+      directionInches: args.wallDirectionInches,
+    })
+  ));
+  const uCoordinatesInches = createSortedUniqueCoordinates([
+    ...footprintCoordinatesInches,
+    ...args.openings.flatMap((opening) => [opening.startUInches, opening.endUInches]),
   ]);
-  const zCoordinates = createSortedUniqueCoordinates([
+
+  if (uCoordinatesInches.length < 2) {
+    return null;
+  }
+
+  const crossSections = uCoordinatesInches.map((uInches) => createWallCrossSection({
+    segmentBody: args.segmentBody,
+    originInches: args.originInches,
+    wallDirectionInches: args.wallDirectionInches,
+    normalDirectionInches: args.normalDirectionInches,
+    uInches,
+  }));
+
+  if (crossSections.some((crossSection) => crossSection === null)) {
+    return null;
+  }
+
+  const safeCrossSections = crossSections.filter(isWallCrossSection);
+  const zCoordinatesInches = createSortedUniqueCoordinates([
     0,
     args.wallHeightInches,
     ...args.openings.flatMap((opening) => [opening.bottomInches, opening.topInches]),
   ]);
-  const removedCells = tCoordinates.slice(0, -1).map((startT, tIndex) => {
-    const endT = tCoordinates[tIndex + 1];
+  const removedCells = uCoordinatesInches.slice(0, -1).map((startUInches, uIndex) => {
+    const endUInches = uCoordinatesInches[uIndex + 1];
 
-    return zCoordinates.slice(0, -1).map((bottomInches, zIndex) => {
-      const topInches = zCoordinates[zIndex + 1];
+    return zCoordinatesInches.slice(0, -1).map((bottomInches, zIndex) => {
+      const topInches = zCoordinatesInches[zIndex + 1];
 
-      if (endT - startT <= GEOMETRY_EPSILON || topInches - bottomInches <= GEOMETRY_EPSILON) {
+      if (endUInches - startUInches <= GEOMETRY_EPSILON || topInches - bottomInches <= GEOMETRY_EPSILON) {
         return true;
       }
 
       return isCellInsideAnyOpening({
-        startT,
-        endT,
+        startUInches,
+        endUInches,
         bottomInches,
         topInches,
         openings: args.openings,
@@ -180,136 +310,139 @@ function createWallCellGrid(args: {
   });
 
   return {
-    tCoordinates,
-    zCoordinates,
+    uCoordinatesInches,
+    zCoordinatesInches,
+    crossSections: safeCrossSections,
     removedCells,
+    normalDirectionInches: args.normalDirectionInches,
   };
 }
 
 function createWallGridCell(
   cellGrid: WallCellGrid,
-  tIndex: number,
+  uIndex: number,
   zIndex: number,
 ): WallGridCell {
   return {
-    tIndex,
+    uIndex,
     zIndex,
-    startT: cellGrid.tCoordinates[tIndex],
-    endT: cellGrid.tCoordinates[tIndex + 1],
-    bottomInches: cellGrid.zCoordinates[zIndex],
-    topInches: cellGrid.zCoordinates[zIndex + 1],
+    startUInches: cellGrid.uCoordinatesInches[uIndex],
+    endUInches: cellGrid.uCoordinatesInches[uIndex + 1],
+    bottomInches: cellGrid.zCoordinatesInches[zIndex],
+    topInches: cellGrid.zCoordinatesInches[zIndex + 1],
   };
 }
 
-function isRemovedCell(cellGrid: WallCellGrid, tIndex: number, zIndex: number): boolean {
-  return cellGrid.removedCells[tIndex]?.[zIndex] ?? true;
+function isRemovedCell(cellGrid: WallCellGrid, uIndex: number, zIndex: number): boolean {
+  return cellGrid.removedCells[uIndex]?.[zIndex] ?? true;
 }
 
-function isSolidCell(cellGrid: WallCellGrid, tIndex: number, zIndex: number): boolean {
-  return !isRemovedCell(cellGrid, tIndex, zIndex);
+function isSolidCell(cellGrid: WallCellGrid, uIndex: number, zIndex: number): boolean {
+  return !isRemovedCell(cellGrid, uIndex, zIndex);
 }
 
 function isCellInsideAnyOpening(args: {
-  startT: number;
-  endT: number;
+  startUInches: number;
+  endUInches: number;
   bottomInches: number;
   topInches: number;
   openings: readonly NormalizedWallOpening[];
 }): boolean {
-  const centerT = (args.startT + args.endT) / 2;
+  const centerUInches = (args.startUInches + args.endUInches) / 2;
   const centerZInches = (args.bottomInches + args.topInches) / 2;
 
   return args.openings.some((opening) => (
-    centerT > opening.startT + GEOMETRY_EPSILON &&
-    centerT < opening.endT - GEOMETRY_EPSILON &&
+    centerUInches > opening.startUInches + GEOMETRY_EPSILON &&
+    centerUInches < opening.endUInches - GEOMETRY_EPSILON &&
     centerZInches > opening.bottomInches + GEOMETRY_EPSILON &&
     centerZInches < opening.topInches - GEOMETRY_EPSILON
   ));
 }
 
 function addSolidCellFaces(args: {
-  segmentBody: BuiltWallSegmentBody;
   cellGrid: WallCellGrid;
   cell: WallGridCell;
   triangles: number[];
 }): void {
-  const sideAStartBottom = getSidePoint(args.segmentBody, "side-a", args.cell.startT, args.cell.bottomInches);
-  const sideAEndBottom = getSidePoint(args.segmentBody, "side-a", args.cell.endT, args.cell.bottomInches);
-  const sideAEndTop = getSidePoint(args.segmentBody, "side-a", args.cell.endT, args.cell.topInches);
-  const sideAStartTop = getSidePoint(args.segmentBody, "side-a", args.cell.startT, args.cell.topInches);
-  const sideBStartBottom = getSidePoint(args.segmentBody, "side-b", args.cell.startT, args.cell.bottomInches);
-  const sideBEndBottom = getSidePoint(args.segmentBody, "side-b", args.cell.endT, args.cell.bottomInches);
-  const sideBEndTop = getSidePoint(args.segmentBody, "side-b", args.cell.endT, args.cell.topInches);
-  const sideBStartTop = getSidePoint(args.segmentBody, "side-b", args.cell.startT, args.cell.topInches);
+  const startSection = args.cellGrid.crossSections[args.cell.uIndex];
+  const endSection = args.cellGrid.crossSections[args.cell.uIndex + 1];
 
-  addQuad(args.triangles, sideAStartBottom, sideAEndBottom, sideAEndTop, sideAStartTop);
-  addQuad(args.triangles, sideBEndBottom, sideBStartBottom, sideBStartTop, sideBEndTop);
+  const lowStartBottom = createLowNormalPoint(startSection, args.cell.bottomInches);
+  const lowEndBottom = createLowNormalPoint(endSection, args.cell.bottomInches);
+  const lowEndTop = createLowNormalPoint(endSection, args.cell.topInches);
+  const lowStartTop = createLowNormalPoint(startSection, args.cell.topInches);
+  const highStartBottom = createHighNormalPoint(startSection, args.cell.bottomInches);
+  const highEndBottom = createHighNormalPoint(endSection, args.cell.bottomInches);
+  const highEndTop = createHighNormalPoint(endSection, args.cell.topInches);
+  const highStartTop = createHighNormalPoint(startSection, args.cell.topInches);
 
-  if (!isSolidCell(args.cellGrid, args.cell.tIndex, args.cell.zIndex - 1)) {
-    addQuad(args.triangles, sideAStartBottom, sideBStartBottom, sideBEndBottom, sideAEndBottom);
+  addQuad(args.triangles, lowStartBottom, lowEndBottom, lowEndTop, lowStartTop);
+  addQuad(args.triangles, highEndBottom, highStartBottom, highStartTop, highEndTop);
+
+  if (!isSolidCell(args.cellGrid, args.cell.uIndex, args.cell.zIndex - 1)) {
+    addQuad(args.triangles, lowStartBottom, highStartBottom, highEndBottom, lowEndBottom);
   }
 
-  if (!isSolidCell(args.cellGrid, args.cell.tIndex, args.cell.zIndex + 1)) {
-    addQuad(args.triangles, sideAStartTop, sideAEndTop, sideBEndTop, sideBStartTop);
+  if (!isSolidCell(args.cellGrid, args.cell.uIndex, args.cell.zIndex + 1)) {
+    addQuad(args.triangles, lowStartTop, lowEndTop, highEndTop, highStartTop);
   }
 
-  if (!isSolidCell(args.cellGrid, args.cell.tIndex - 1, args.cell.zIndex)) {
-    addQuad(args.triangles, sideAStartBottom, sideAStartTop, sideBStartTop, sideBStartBottom);
+  if (!isSolidCell(args.cellGrid, args.cell.uIndex - 1, args.cell.zIndex)) {
+    addQuad(args.triangles, lowStartBottom, lowStartTop, highStartTop, highStartBottom);
   }
 
-  if (!isSolidCell(args.cellGrid, args.cell.tIndex + 1, args.cell.zIndex)) {
-    addQuad(args.triangles, sideAEndBottom, sideBEndBottom, sideBEndTop, sideAEndTop);
+  if (!isSolidCell(args.cellGrid, args.cell.uIndex + 1, args.cell.zIndex)) {
+    addQuad(args.triangles, lowEndBottom, highEndBottom, highEndTop, lowEndTop);
   }
 }
 
 function createOpeningBoundaryEdgeSegments(args: {
-  segmentBody: BuiltWallSegmentBody;
   cellGrid: WallCellGrid;
 }): readonly PrimitiveEdgeSegmentInches[] {
   const edgeSegments: PrimitiveEdgeSegmentInches[] = [];
 
-  for (let tIndex = 0; tIndex < args.cellGrid.tCoordinates.length - 1; tIndex += 1) {
-    for (let zIndex = 0; zIndex < args.cellGrid.zCoordinates.length - 1; zIndex += 1) {
-      if (!isRemovedCell(args.cellGrid, tIndex, zIndex)) {
+  for (let uIndex = 0; uIndex < args.cellGrid.uCoordinatesInches.length - 1; uIndex += 1) {
+    for (let zIndex = 0; zIndex < args.cellGrid.zCoordinatesInches.length - 1; zIndex += 1) {
+      if (!isRemovedCell(args.cellGrid, uIndex, zIndex)) {
         continue;
       }
 
-      const cell = createWallGridCell(args.cellGrid, tIndex, zIndex);
+      const cell = createWallGridCell(args.cellGrid, uIndex, zIndex);
 
-      if (isSolidCell(args.cellGrid, tIndex, zIndex - 1)) {
+      if (isSolidCell(args.cellGrid, uIndex, zIndex - 1)) {
         addOpeningBoundaryForBothFaces({
-          segmentBody: args.segmentBody,
-          startT: cell.startT,
-          endT: cell.endT,
+          cellGrid: args.cellGrid,
+          startUIndex: cell.uIndex,
+          endUIndex: cell.uIndex + 1,
           zInches: cell.bottomInches,
           edgeSegments,
         });
       }
 
-      if (isSolidCell(args.cellGrid, tIndex, zIndex + 1)) {
+      if (isSolidCell(args.cellGrid, uIndex, zIndex + 1)) {
         addOpeningBoundaryForBothFaces({
-          segmentBody: args.segmentBody,
-          startT: cell.startT,
-          endT: cell.endT,
+          cellGrid: args.cellGrid,
+          startUIndex: cell.uIndex,
+          endUIndex: cell.uIndex + 1,
           zInches: cell.topInches,
           edgeSegments,
         });
       }
 
-      if (isSolidCell(args.cellGrid, tIndex - 1, zIndex)) {
+      if (isSolidCell(args.cellGrid, uIndex - 1, zIndex)) {
         addOpeningVerticalBoundaryForBothFaces({
-          segmentBody: args.segmentBody,
-          t: cell.startT,
+          cellGrid: args.cellGrid,
+          uIndex: cell.uIndex,
           bottomInches: cell.bottomInches,
           topInches: cell.topInches,
           edgeSegments,
         });
       }
 
-      if (isSolidCell(args.cellGrid, tIndex + 1, zIndex)) {
+      if (isSolidCell(args.cellGrid, uIndex + 1, zIndex)) {
         addOpeningVerticalBoundaryForBothFaces({
-          segmentBody: args.segmentBody,
-          t: cell.endT,
+          cellGrid: args.cellGrid,
+          uIndex: cell.uIndex + 1,
           bottomInches: cell.bottomInches,
           topInches: cell.topInches,
           edgeSegments,
@@ -322,138 +455,238 @@ function createOpeningBoundaryEdgeSegments(args: {
 }
 
 function addOpeningBoundaryForBothFaces(args: {
-  segmentBody: BuiltWallSegmentBody;
-  startT: number;
-  endT: number;
+  cellGrid: WallCellGrid;
+  startUIndex: number;
+  endUIndex: number;
   zInches: number;
   edgeSegments: PrimitiveEdgeSegmentInches[];
 }): void {
-  addOpeningEdgeSegment({
-    segmentBody: args.segmentBody,
-    side: "side-a",
-    startPoint: { t: args.startT, zInches: args.zInches },
-    endPoint: { t: args.endT, zInches: args.zInches },
-    edgeSegments: args.edgeSegments,
+  const startSection = args.cellGrid.crossSections[args.startUIndex];
+  const endSection = args.cellGrid.crossSections[args.endUIndex];
+
+  args.edgeSegments.push({
+    startInches: offsetLowNormalPoint(startSection, args.cellGrid.normalDirectionInches, args.zInches),
+    endInches: offsetLowNormalPoint(endSection, args.cellGrid.normalDirectionInches, args.zInches),
   });
-  addOpeningEdgeSegment({
-    segmentBody: args.segmentBody,
-    side: "side-b",
-    startPoint: { t: args.endT, zInches: args.zInches },
-    endPoint: { t: args.startT, zInches: args.zInches },
-    edgeSegments: args.edgeSegments,
+  args.edgeSegments.push({
+    startInches: offsetHighNormalPoint(endSection, args.cellGrid.normalDirectionInches, args.zInches),
+    endInches: offsetHighNormalPoint(startSection, args.cellGrid.normalDirectionInches, args.zInches),
   });
 }
 
 function addOpeningVerticalBoundaryForBothFaces(args: {
-  segmentBody: BuiltWallSegmentBody;
-  t: number;
+  cellGrid: WallCellGrid;
+  uIndex: number;
   bottomInches: number;
   topInches: number;
   edgeSegments: PrimitiveEdgeSegmentInches[];
 }): void {
-  addOpeningEdgeSegment({
-    segmentBody: args.segmentBody,
-    side: "side-a",
-    startPoint: { t: args.t, zInches: args.bottomInches },
-    endPoint: { t: args.t, zInches: args.topInches },
-    edgeSegments: args.edgeSegments,
-  });
-  addOpeningEdgeSegment({
-    segmentBody: args.segmentBody,
-    side: "side-b",
-    startPoint: { t: args.t, zInches: args.topInches },
-    endPoint: { t: args.t, zInches: args.bottomInches },
-    edgeSegments: args.edgeSegments,
-  });
-}
+  const section = args.cellGrid.crossSections[args.uIndex];
 
-function addOpeningEdgeSegment(args: {
-  segmentBody: BuiltWallSegmentBody;
-  side: WallFaceSide;
-  startPoint: { t: number; zInches: number };
-  endPoint: { t: number; zInches: number };
-  edgeSegments: PrimitiveEdgeSegmentInches[];
-}): void {
   args.edgeSegments.push({
-    startInches: getSidePoint(
-      args.segmentBody,
-      args.side,
-      args.startPoint.t,
-      args.startPoint.zInches,
-      WALL_OPENING_EDGE_OFFSET_INCHES,
-    ),
-    endInches: getSidePoint(
-      args.segmentBody,
-      args.side,
-      args.endPoint.t,
-      args.endPoint.zInches,
-      WALL_OPENING_EDGE_OFFSET_INCHES,
-    ),
+    startInches: offsetLowNormalPoint(section, args.cellGrid.normalDirectionInches, args.bottomInches),
+    endInches: offsetLowNormalPoint(section, args.cellGrid.normalDirectionInches, args.topInches),
+  });
+  args.edgeSegments.push({
+    startInches: offsetHighNormalPoint(section, args.cellGrid.normalDirectionInches, args.topInches),
+    endInches: offsetHighNormalPoint(section, args.cellGrid.normalDirectionInches, args.bottomInches),
   });
 }
 
-function getSidePoint(
-  segmentBody: BuiltWallSegmentBody,
-  side: WallFaceSide,
-  t: number,
-  zInches: number,
-  outwardOffsetInches = 0,
-): Point3DInches {
-  const startPointInches = side === "side-a"
-    ? segmentBody.start.sideAPointInches
-    : segmentBody.start.sideBPointInches;
-  const endPointInches = side === "side-a"
-    ? segmentBody.end.sideAPointInches
-    : segmentBody.end.sideBPointInches;
-  const outwardDirection = getSideOutwardDirection(segmentBody, side);
+function createWallDirection(segmentBody: BuiltWallSegmentBody): WallDirectionInches | null {
+  return normalizeVector({
+    xInches: segmentBody.end.centerPointInches.xInches - segmentBody.start.centerPointInches.xInches,
+    yInches: segmentBody.end.centerPointInches.yInches - segmentBody.start.centerPointInches.yInches,
+  }) ?? normalizeVector({
+    xInches: segmentBody.end.sideAPointInches.xInches - segmentBody.start.sideAPointInches.xInches,
+    yInches: segmentBody.end.sideAPointInches.yInches - segmentBody.start.sideAPointInches.yInches,
+  });
+}
+
+function createWallCrossSection(args: {
+  segmentBody: BuiltWallSegmentBody;
+  originInches: Point3DInches;
+  wallDirectionInches: WallDirectionInches;
+  normalDirectionInches: WallDirectionInches;
+  uInches: number;
+}): WallCrossSection | null {
+  const linePointInches = {
+    xInches: args.originInches.xInches + args.wallDirectionInches.xInches * args.uInches,
+    yInches: args.originInches.yInches + args.wallDirectionInches.yInches * args.uInches,
+    zInches: 0,
+  };
+  const intersectionPoints = collectLinePolygonIntersectionPoints({
+    linePointInches,
+    lineDirectionInches: args.normalDirectionInches,
+    polygonInches: args.segmentBody.footprintPolygonInches,
+  });
+
+  if (intersectionPoints.length === 0) {
+    return null;
+  }
+
+  const sortedPoints = intersectionPoints.sort((firstPoint, secondPoint) => (
+    projectPointOntoDirection({
+      pointInches: firstPoint,
+      originInches: linePointInches,
+      directionInches: args.normalDirectionInches,
+    }) -
+    projectPointOntoDirection({
+      pointInches: secondPoint,
+      originInches: linePointInches,
+      directionInches: args.normalDirectionInches,
+    })
+  ));
+  const lowNormalPointInches = sortedPoints[0];
+  const highNormalPointInches = sortedPoints[sortedPoints.length - 1];
 
   return {
-    xInches:
-      startPointInches.xInches +
-      (endPointInches.xInches - startPointInches.xInches) * t +
-      outwardDirection.xInches * outwardOffsetInches,
-    yInches:
-      startPointInches.yInches +
-      (endPointInches.yInches - startPointInches.yInches) * t +
-      outwardDirection.yInches * outwardOffsetInches,
+    uInches: args.uInches,
+    lowNormalPointInches,
+    highNormalPointInches,
+  };
+}
+
+function collectLinePolygonIntersectionPoints(args: {
+  linePointInches: Point3DInches;
+  lineDirectionInches: WallDirectionInches;
+  polygonInches: readonly Point3DInches[];
+}): Point3DInches[] {
+  const pointsInches: Point3DInches[] = [];
+
+  args.polygonInches.forEach((edgeStartInches, pointIndex) => {
+    const edgeEndInches = args.polygonInches[(pointIndex + 1) % args.polygonInches.length];
+    const edgeVectorInches = {
+      xInches: edgeEndInches.xInches - edgeStartInches.xInches,
+      yInches: edgeEndInches.yInches - edgeStartInches.yInches,
+    };
+    const denominator = cross(args.lineDirectionInches, edgeVectorInches);
+    const lineToEdgeInches = {
+      xInches: edgeStartInches.xInches - args.linePointInches.xInches,
+      yInches: edgeStartInches.yInches - args.linePointInches.yInches,
+    };
+
+    if (Math.abs(denominator) <= GEOMETRY_EPSILON) {
+      if (Math.abs(cross(lineToEdgeInches, args.lineDirectionInches)) <= GEOMETRY_EPSILON) {
+        addUniquePoint(pointsInches, edgeStartInches);
+        addUniquePoint(pointsInches, edgeEndInches);
+      }
+      return;
+    }
+
+    const lineDistanceInches = cross(lineToEdgeInches, edgeVectorInches) / denominator;
+    const segmentRatio = cross(lineToEdgeInches, args.lineDirectionInches) / denominator;
+
+    if (segmentRatio < -GEOMETRY_EPSILON || segmentRatio > 1 + GEOMETRY_EPSILON) {
+      return;
+    }
+
+    addUniquePoint(pointsInches, {
+      xInches: args.linePointInches.xInches + args.lineDirectionInches.xInches * lineDistanceInches,
+      yInches: args.linePointInches.yInches + args.lineDirectionInches.yInches * lineDistanceInches,
+      zInches: 0,
+    });
+  });
+
+  return pointsInches;
+}
+
+function isWallCrossSection(crossSection: WallCrossSection | null): crossSection is WallCrossSection {
+  return crossSection !== null;
+}
+
+function createLowNormalPoint(section: WallCrossSection, zInches: number): Point3DInches {
+  return {
+    xInches: section.lowNormalPointInches.xInches,
+    yInches: section.lowNormalPointInches.yInches,
     zInches,
   };
 }
 
-function getSideOutwardDirection(
-  segmentBody: BuiltWallSegmentBody,
-  side: WallFaceSide,
-): Readonly<{ xInches: number; yInches: number }> {
-  const sideStartPointInches = side === "side-a"
-    ? segmentBody.start.sideAPointInches
-    : segmentBody.start.sideBPointInches;
-  const centerStartPointInches = segmentBody.start.centerPointInches;
-  const xInches = sideStartPointInches.xInches - centerStartPointInches.xInches;
-  const yInches = sideStartPointInches.yInches - centerStartPointInches.yInches;
-  const lengthInches = Math.hypot(xInches, yInches);
-
-  if (lengthInches <= GEOMETRY_EPSILON) {
-    return { xInches: 0, yInches: 0 };
-  }
-
+function createHighNormalPoint(section: WallCrossSection, zInches: number): Point3DInches {
   return {
-    xInches: xInches / lengthInches,
-    yInches: yInches / lengthInches,
+    xInches: section.highNormalPointInches.xInches,
+    yInches: section.highNormalPointInches.yInches,
+    zInches,
   };
 }
 
-function getSideLength(segmentBody: BuiltWallSegmentBody, side: WallFaceSide): number {
-  const startPointInches = side === "side-a"
-    ? segmentBody.start.sideAPointInches
-    : segmentBody.start.sideBPointInches;
-  const endPointInches = side === "side-a"
-    ? segmentBody.end.sideAPointInches
-    : segmentBody.end.sideBPointInches;
+function offsetLowNormalPoint(
+  section: WallCrossSection,
+  normalDirectionInches: WallDirectionInches,
+  zInches: number,
+): Point3DInches {
+  return {
+    xInches: section.lowNormalPointInches.xInches - normalDirectionInches.xInches * WALL_OPENING_EDGE_OFFSET_INCHES,
+    yInches: section.lowNormalPointInches.yInches - normalDirectionInches.yInches * WALL_OPENING_EDGE_OFFSET_INCHES,
+    zInches,
+  };
+}
 
-  return Math.hypot(
-    endPointInches.xInches - startPointInches.xInches,
-    endPointInches.yInches - startPointInches.yInches,
+function offsetHighNormalPoint(
+  section: WallCrossSection,
+  normalDirectionInches: WallDirectionInches,
+  zInches: number,
+): Point3DInches {
+  return {
+    xInches: section.highNormalPointInches.xInches + normalDirectionInches.xInches * WALL_OPENING_EDGE_OFFSET_INCHES,
+    yInches: section.highNormalPointInches.yInches + normalDirectionInches.yInches * WALL_OPENING_EDGE_OFFSET_INCHES,
+    zInches,
+  };
+}
+
+function projectPointOntoDirection(args: {
+  pointInches: Point3DInches;
+  originInches: Point3DInches;
+  directionInches: WallDirectionInches;
+}): number {
+  return (
+    (args.pointInches.xInches - args.originInches.xInches) * args.directionInches.xInches +
+    (args.pointInches.yInches - args.originInches.yInches) * args.directionInches.yInches
   );
+}
+
+function createPerpendicularDirection(directionInches: WallDirectionInches): WallDirectionInches {
+  return {
+    xInches: -directionInches.yInches,
+    yInches: directionInches.xInches,
+  };
+}
+
+function normalizeVector(vectorInches: WallDirectionInches): WallDirectionInches | null {
+  const lengthInches = Math.hypot(vectorInches.xInches, vectorInches.yInches);
+
+  if (lengthInches <= GEOMETRY_EPSILON) {
+    return null;
+  }
+
+  return {
+    xInches: vectorInches.xInches / lengthInches,
+    yInches: vectorInches.yInches / lengthInches,
+  };
+}
+
+function addUniquePoint(pointsInches: Point3DInches[], pointInches: Point3DInches): void {
+  if (pointsInches.some((existingPointInches) => arePointsEqual(existingPointInches, pointInches))) {
+    return;
+  }
+
+  pointsInches.push({
+    xInches: pointInches.xInches,
+    yInches: pointInches.yInches,
+    zInches: 0,
+  });
+}
+
+function arePointsEqual(firstPointInches: Point3DInches, secondPointInches: Point3DInches): boolean {
+  return (
+    Math.abs(firstPointInches.xInches - secondPointInches.xInches) <= GEOMETRY_EPSILON &&
+    Math.abs(firstPointInches.yInches - secondPointInches.yInches) <= GEOMETRY_EPSILON
+  );
+}
+
+function cross(first: WallDirectionInches, second: WallDirectionInches): number {
+  return first.xInches * second.yInches - first.yInches * second.xInches;
 }
 
 function addQuad(
@@ -481,14 +714,6 @@ function addTriangle(
 function createSortedUniqueCoordinates(coordinates: readonly number[]): readonly number[] {
   return [...new Set(coordinates.map((coordinate) => Number(coordinate.toFixed(6))))]
     .sort((firstCoordinate, secondCoordinate) => firstCoordinate - secondCoordinate);
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-function clamp01(value: number): number {
-  return clamp(value, 0, 1);
 }
 
 function createWallShape(polygonInches: readonly Point3DInches[]): Shape {

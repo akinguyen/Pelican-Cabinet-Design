@@ -77,12 +77,19 @@ function isToolbarActionDisabled(args: ToolbarDisabledArgs): boolean {
     return true;
   }
 
-  if (!isCountertopCutoutTool(args.toolbarTool)) {
+  if (args.toolbarTool === "draw-wall-segment") {
+    return args.activeSceneViewMode !== "floor-plan";
+  }
+
+  if (!isRectangleCutoutTool(args.toolbarTool)) {
     return false;
   }
 
   if (args.activeSceneViewMode === "elevation") {
-    return args.activeWallElevationTarget === null;
+    return !isSelectedWallSegmentActiveElevationTarget({
+      activeSelection: args.activeSelection,
+      activeWallElevationTarget: args.activeWallElevationTarget,
+    });
   }
 
   if (args.activeSelection?.kind !== "placed-assembly") {
@@ -110,8 +117,19 @@ function isToolbarActionDisabled(args: ToolbarDisabledArgs): boolean {
   return false;
 }
 
-function isCountertopCutoutTool(toolbarTool: SceneEditingTool | null): boolean {
+function isSelectedWallSegmentActiveElevationTarget(
+  args: Pick<ToolbarDisabledArgs, "activeSelection" | "activeWallElevationTarget">,
+): boolean {
   return (
-    toolbarTool === "draw-countertop-cutout-rectangle"
+    args.activeSelection?.kind === "placed-wall-segment" &&
+    args.activeWallElevationTarget !== null &&
+    args.activeSelection.wallGraphId === args.activeWallElevationTarget.wallGraphId &&
+    args.activeSelection.wallSegmentId === args.activeWallElevationTarget.wallSegmentId
+  );
+}
+
+function isRectangleCutoutTool(toolbarTool: SceneEditingTool | null): boolean {
+  return (
+    toolbarTool === "draw-rectangle-cutout"
   );
 }

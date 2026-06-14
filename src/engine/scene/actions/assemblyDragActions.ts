@@ -1,5 +1,5 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import { applyAssemblyWallPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
+import { applyAssemblyPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
 import type { AssemblyMoveDragState } from "../sceneDragTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
@@ -69,16 +69,18 @@ export function createAssemblyDragActions(
         ...placedAssembly,
         worldPositionInches: proposedWorldPositionInches,
       };
-      const placementResult = activeDrag.sceneViewMode === "elevation"
-        ? {
-            placedAssembly: proposedPlacedAssembly,
-            feedback: createAssemblyPlacementFeedback({
-              placedAssembly: proposedPlacedAssembly,
-            }),
-          }
-        : applyAssemblyWallPlacementRules({
-            placedAssembly: proposedPlacedAssembly,
-          });
+      const { designScene } = get();
+      const placementResult = applyAssemblyPlacementRules({
+        placedAssembly: proposedPlacedAssembly,
+        placedWallGraphs: designScene.placedWallGraphs,
+        placedAssemblies: designScene.placedAssemblies,
+        countertopOpenings: designScene.countertopOpenings,
+        movingAssemblyId: activeDrag.assemblyId,
+        snapContext: {
+          movementSource: activeDrag.sceneViewMode,
+          elevationMoveFrame: activeDrag.elevationMoveFrame,
+        },
+      });
       const nextActiveDrag: AssemblyMoveDragState = {
         ...activeDrag,
         latestValidWorldPositionInches: placementResult.feedback.isValid

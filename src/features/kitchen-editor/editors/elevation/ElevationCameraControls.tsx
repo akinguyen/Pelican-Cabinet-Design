@@ -46,7 +46,7 @@ const ELEVATION_ZOOM_RANGE = {
 export function ElevationCameraControls() {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const activeElevationFrameKeyRef = useRef<string | null>(null);
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const cameraCommand = useDesignSceneStore((state) => state.cameraCommand);
   const sceneCameraStates = useDesignSceneStore((state) => state.sceneCameraStates);
   const updateElevationCameraState = useDesignSceneStore((state) => state.updateElevationCameraState);
@@ -69,8 +69,10 @@ export function ElevationCameraControls() {
       ? null
       : createWallElevationCameraFrame({
           viewZone: activeElevationViewZone,
+          viewportWidthPixels: size.width,
+          viewportHeightPixels: size.height,
         }),
-    [activeElevationViewZone],
+    [activeElevationViewZone, size.height, size.width],
   );
   const activeElevationViewKey = activeElevationViewZone === null
     ? null

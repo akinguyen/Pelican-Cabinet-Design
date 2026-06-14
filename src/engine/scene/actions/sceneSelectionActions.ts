@@ -23,24 +23,7 @@ export function createSceneSelectionActions(
     },
 
     selectPlacedWallSegment(wallGraphId, wallSegmentId) {
-      const faceSide = getWallElevationFaceSideForSegment({
-        faceSideBySegmentKey: get().activeWallElevationFaceSideBySegmentKey,
-        wallGraphId,
-        wallSegmentId,
-      });
-
       set((state) => ({
-        activeWallElevationTarget: {
-          wallGraphId,
-          wallSegmentId,
-          faceSide,
-        },
-        activeWallElevationFaceSideBySegmentKey: rememberWallElevationFaceSide({
-          faceSideBySegmentKey: state.activeWallElevationFaceSideBySegmentKey,
-          wallGraphId,
-          wallSegmentId,
-          faceSide,
-        }),
         designScene: {
           ...state.designScene,
           activeSelection: {
@@ -67,7 +50,30 @@ export function createSceneSelectionActions(
     },
 
     selectWallOpening(wallGraphId, wallSegmentId, wallOpeningId) {
+      const selectedSegment = get().designScene.placedWallGraphs
+        .find((wallGraph) => wallGraph.id === wallGraphId)
+        ?.segments.find((wallSegment) => wallSegment.id === wallSegmentId);
+      const selectedOpening = selectedSegment?.openings.find(
+        (opening) => opening.id === wallOpeningId,
+      );
+      const faceSide = selectedOpening?.faceSide ?? getWallElevationFaceSideForSegment({
+        faceSideBySegmentKey: get().activeWallElevationFaceSideBySegmentKey,
+        wallGraphId,
+        wallSegmentId,
+      });
+
       set((state) => ({
+        activeWallElevationTarget: {
+          wallGraphId,
+          wallSegmentId,
+          faceSide,
+        },
+        activeWallElevationFaceSideBySegmentKey: rememberWallElevationFaceSide({
+          faceSideBySegmentKey: state.activeWallElevationFaceSideBySegmentKey,
+          wallGraphId,
+          wallSegmentId,
+          faceSide,
+        }),
         designScene: {
           ...state.designScene,
           activeSelection: {

@@ -16,6 +16,7 @@ export function createInitialDesignSceneStoreState(): Pick<
   | "sceneCameraStates"
   | "activeDrag"
   | "assemblyPlacementFeedback"
+  | "activeCutoutDraftPointerTarget"
 > {
   return {
     designScene: createEmptyDesignScene(),
@@ -29,5 +30,6 @@ export function createInitialDesignSceneStoreState(): Pick<
     sceneCameraStates: createDefaultSceneCameraStates(),
     activeDrag: null,
     assemblyPlacementFeedback: null,
+    activeCutoutDraftPointerTarget: null,
   };
 }

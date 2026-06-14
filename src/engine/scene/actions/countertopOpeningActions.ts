@@ -247,13 +247,15 @@ export function createCountertopOpeningActions(
           return {};
         }
 
+        const draft = state.designScene.activeSceneOperation.countertopCutoutDraft;
+
         return {
           designScene: {
             ...state.designScene,
             activeSceneOperation: {
               kind: "countertop-cutout-draft",
               countertopCutoutDraft: {
-                ...state.designScene.activeSceneOperation.countertopCutoutDraft,
+                ...draft,
                 currentLocalInches,
               },
             },
@@ -289,6 +291,7 @@ export function createCountertopOpeningActions(
           });
 
       set((state) => ({
+        activeCutoutDraftPointerTarget: null,
         designScene: {
           ...state.designScene,
           activeSceneOperation: null,
@@ -302,6 +305,10 @@ export function createCountertopOpeningActions(
 
     cancelCountertopCutoutDraft() {
       set((state) => ({
+        activeCutoutDraftPointerTarget:
+          state.designScene.activeSceneOperation?.kind === "countertop-cutout-draft"
+            ? null
+            : state.activeCutoutDraftPointerTarget,
         designScene: {
           ...state.designScene,
           activeSceneOperation:
@@ -364,11 +371,48 @@ export function createCountertopOpeningActions(
         yInches: grabLocalInches.yInches - grabOffsetInches.yInches,
       };
 
-      get().updateCountertopOpeningLocalCenter(countertopOpeningId, nextCenterInches);
+      set((state) => {
+        const opening = state.designScene.countertopOpenings.find(
+          (countertopOpening) => countertopOpening.id === countertopOpeningId,
+        );
+        const hostCountertop = opening === undefined
+          ? undefined
+          : state.designScene.placedAssemblies.find(
+              (assembly) => assembly.id === opening.hostCountertopId,
+            );
+
+        if (opening === undefined || hostCountertop === undefined) {
+          return {};
+        }
+
+        const updatedOpening = clampCountertopOpeningCenterForShape(
+          nextCenterInches,
+          opening.shape,
+          hostCountertop.configuration.sizeInches,
+        );
+
+        return {
+          designScene: {
+            ...state.designScene,
+            countertopOpenings: state.designScene.countertopOpenings.map((countertopOpening) => (
+              countertopOpening.id === countertopOpeningId
+                ? {
+                    ...opening,
+                    localCenterInches: updatedOpening,
+                  }
+                : countertopOpening
+            )),
+          },
+        };
+      });
     },
 
     finishCountertopOpeningDrag() {
       set((state) => ({
+        activeCutoutDraftPointerTarget:
+          state.designScene.activeSceneOperation?.kind === "countertop-opening-drag"
+            ? null
+            : state.activeCutoutDraftPointerTarget,
         designScene: {
           ...state.designScene,
           activeSceneOperation:

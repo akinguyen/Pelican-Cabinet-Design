@@ -15,6 +15,7 @@ export function createSceneToolbarActions(
           tool: cameraCommandTool,
         },
         activeToolbarTool: null,
+        activeCutoutDraftPointerTarget: null,
         designScene: {
           ...state.designScene,
           activeSceneOperation: isToolbarSceneOperation(state.designScene.activeSceneOperation)
@@ -35,7 +36,13 @@ export function createSceneToolbarActions(
     },
 
     setActiveToolbarTool(toolbarTool) {
-      if (!canManuallyEditScene(get().workspaceMode) && toolbarTool !== null) {
+      const stateBeforeUpdate = get();
+
+      if (!canManuallyEditScene(stateBeforeUpdate.workspaceMode) && toolbarTool !== null) {
+        return;
+      }
+
+      if (toolbarTool === "draw-wall-segment" && stateBeforeUpdate.activeSceneViewMode !== "floor-plan") {
         return;
       }
 
@@ -43,6 +50,7 @@ export function createSceneToolbarActions(
         if (toolbarTool === "draw-wall-segment") {
           return {
             activeToolbarTool: toolbarTool,
+            activeCutoutDraftPointerTarget: null,
             designScene: {
               ...state.designScene,
               activeSceneOperation: {
@@ -57,9 +65,10 @@ export function createSceneToolbarActions(
           };
         }
 
-        if (isCountertopCutoutTool(toolbarTool)) {
+        if (isRectangleCutoutTool(toolbarTool)) {
           return {
             activeToolbarTool: toolbarTool,
+            activeCutoutDraftPointerTarget: null,
             designScene: {
               ...state.designScene,
               activeSceneOperation: null,
@@ -69,6 +78,7 @@ export function createSceneToolbarActions(
 
         return {
           activeToolbarTool: null,
+          activeCutoutDraftPointerTarget: null,
           designScene: {
             ...state.designScene,
             activeSceneOperation: isToolbarSceneOperation(state.designScene.activeSceneOperation)
@@ -88,10 +98,11 @@ function isToolbarSceneOperation(
     activeSceneOperation?.kind === "wall-segment-draft" ||
     activeSceneOperation?.kind === "countertop-cutout-draft" ||
     activeSceneOperation?.kind === "countertop-opening-drag" ||
-    activeSceneOperation?.kind === "wall-opening-draft"
+    activeSceneOperation?.kind === "wall-opening-draft" ||
+    activeSceneOperation?.kind === "wall-opening-drag"
   );
 }
 
-function isCountertopCutoutTool(toolbarTool: DesignSceneStore["activeToolbarTool"]): boolean {
-  return toolbarTool === "draw-countertop-cutout-rectangle";
+function isRectangleCutoutTool(toolbarTool: DesignSceneStore["activeToolbarTool"]): boolean {
+  return toolbarTool === "draw-rectangle-cutout";
 }

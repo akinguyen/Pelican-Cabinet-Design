@@ -5,10 +5,9 @@ import type { RefObject } from "react";
 import { createWallElevationCameraFrame } from "@/engine/walls/wallElevationCameraFrame";
 import { getWallElevationViewZoneForTarget } from "@/engine/walls/wallElevationViewZone";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { WallOpeningScreenDraftLayer } from "../interaction/walls/WallOpeningScreenDraftLayer";
-import { ElevationViewMaskOverlay } from "./elevation/ElevationViewMaskOverlay";
-import { createWallElevationViewMaskFramePixels } from "./elevation/elevationViewMaskFrame";
-import type { Size2DPixels } from "./elevation/elevationViewMaskFrame";
+import { ElevationViewPaddingMaskOverlay } from "./elevation/ElevationViewPaddingMaskOverlay";
+import { createWallElevationPaddingMaskFramePixels } from "./elevation/elevationViewPaddingMaskFrame";
+import type { Size2DPixels } from "./elevation/elevationViewPaddingMaskFrame";
 import { WallElevationNavigator } from "./elevation/WallElevationNavigator";
 import { DesignSceneCanvas } from "./shared/scene-canvas/DesignSceneCanvas";
 
@@ -25,13 +24,17 @@ export function DesignSceneViewport() {
     }),
     [activeWallElevationTarget, placedWallGraphs],
   );
-  const elevationViewFramePixels = useMemo(() => {
+  const wallFaceFramePixels = useMemo(() => {
     if (activeSceneViewMode !== "elevation" || activeElevationViewZone === null) {
       return null;
     }
 
-    return createWallElevationViewMaskFramePixels({
-      cameraFrame: createWallElevationCameraFrame({ viewZone: activeElevationViewZone }),
+    return createWallElevationPaddingMaskFramePixels({
+      cameraFrame: createWallElevationCameraFrame({
+        viewZone: activeElevationViewZone,
+        viewportWidthPixels: viewportSizePixels.widthPixels,
+        viewportHeightPixels: viewportSizePixels.heightPixels,
+      }),
       viewZone: activeElevationViewZone,
       viewportSizePixels,
     });
@@ -41,12 +44,11 @@ export function DesignSceneViewport() {
     <div ref={viewportRef} className="relative h-full min-h-0">
       <DesignSceneCanvas />
       {activeSceneViewMode === "elevation" ? (
-        <ElevationViewMaskOverlay
+        <ElevationViewPaddingMaskOverlay
           viewportSizePixels={viewportSizePixels}
-          viewFramePixels={elevationViewFramePixels}
+          wallFaceFramePixels={wallFaceFramePixels}
         />
       ) : null}
-      <WallOpeningScreenDraftLayer />
       <WallElevationNavigator />
     </div>
   );

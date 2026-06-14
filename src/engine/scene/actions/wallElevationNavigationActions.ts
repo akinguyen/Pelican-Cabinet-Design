@@ -83,19 +83,9 @@ function updateWallElevationSegmentIndex(
     faceSide: rememberedFaceSide,
   });
 
-  set((currentState) => ({
+  set({
     activeWallElevationTarget: nextTarget,
-    designScene: {
-      ...currentState.designScene,
-      activeSelection: currentState.designScene.activeSelection?.kind === "placed-wall-segment"
-        ? {
-          kind: "placed-wall-segment",
-          wallGraphId: nextTarget.wallGraphId,
-          wallSegmentId: nextTarget.wallSegmentId,
-        }
-        : currentState.designScene.activeSelection,
-    },
-  }));
+  });
 }
 
 function toggleActiveWallElevationSide(

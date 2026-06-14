@@ -3,13 +3,23 @@ import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter }
 export function createSceneInteractionActions(
   get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
-): Pick<DesignSceneStore, "clearActiveInteraction"> {
+): Pick<DesignSceneStore, "setActiveCutoutDraftPointerTarget" | "clearActiveInteraction"> {
   return {
+    setActiveCutoutDraftPointerTarget(pointerTarget) {
+      set({ activeCutoutDraftPointerTarget: pointerTarget });
+    },
+
     clearActiveInteraction() {
       const { activeToolbarTool, designScene } = get();
 
       if (activeToolbarTool === "draw-wall-segment" || designScene.activeSceneOperation?.kind === "wall-segment-draft") {
         get().exitWallSegmentDraftTool();
+        return;
+      }
+
+      if (activeToolbarTool === "draw-rectangle-cutout") {
+        get().setActiveToolbarTool(null);
+        get().setActiveCutoutDraftPointerTarget(null);
         return;
       }
 

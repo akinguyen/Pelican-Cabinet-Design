@@ -7,7 +7,6 @@ import type { RefObject } from "react";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { ElevationCameraControls } from "../../elevation/ElevationCameraControls";
-import { ElevationViewClippingPlanes } from "../../elevation/ElevationViewClippingPlanes";
 import { FloorPlanCameraControls } from "../../floor-plan/FloorPlanCameraControls";
 import { PerspectiveCameraControls } from "../../perspective/PerspectiveCameraControls";
 import { PerspectiveViewGizmo } from "../../perspective/PerspectiveViewGizmo";
@@ -28,16 +27,20 @@ export function DesignSceneCanvas() {
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
+  const activeCutoutDraftPointerTarget = useDesignSceneStore((state) => state.activeCutoutDraftPointerTarget);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
   const clearSelection = useDesignSceneStore((state) => state.clearSelection);
   const hasElevationViews = useDesignSceneStore((state) => state.designScene.placedWallGraphs.some((wallGraph) => wallGraph.segments.length > 0));
-  const hasActivePlacementOrDraftTool =
+  const hasCrosshairPlacementOrDraftInteraction =
     activeToolbarTool === "draw-wall-segment" ||
-    activeToolbarTool === "draw-countertop-cutout-rectangle";
+    activeSceneOperation?.kind === "wall-segment-draft" ||
+    activeSceneOperation?.kind === "assembly-placement" ||
+    activeCutoutDraftPointerTarget !== null;
   const cursorClassName = getCanvasCursorClassName(
     activeSceneViewMode,
-    activeSceneOperation !== null || hasActivePlacementOrDraftTool,
-    activeDrag !== null || activeSceneOperation?.kind === "countertop-opening-drag",
+    hasCrosshairPlacementOrDraftInteraction,
+    activeDrag !== null || activeSceneOperation?.kind === "countertop-opening-drag" ||
+      activeSceneOperation?.kind === "wall-opening-drag",
   );
 
   useSceneViewportGestureGuard(containerRef);
@@ -73,7 +76,6 @@ export function DesignSceneCanvas() {
         {activeSceneViewMode === "perspective" ? <PerspectiveCameraControls /> : null}
         {activeSceneViewMode === "floor-plan" ? <FloorPlanCameraControls /> : null}
         {activeSceneViewMode === "elevation" ? <ElevationCameraControls /> : null}
-        {activeSceneViewMode === "elevation" ? <ElevationViewClippingPlanes /> : null}
         {activeSceneViewMode === "perspective" ? <PerspectiveViewGizmo /> : null}
       </Canvas>
     </div>

@@ -13,3 +13,12 @@ export type WallOpeningDraft = Readonly<{
   startFacePointInches: WallOpeningDraftPointInches;
   currentFacePointInches: WallOpeningDraftPointInches;
 }>;
+
+export type WallOpeningDrag = Readonly<{
+  kind: "wall-opening-drag";
+  wallGraphId: string;
+  wallSegmentId: string;
+  wallOpeningId: string;
+  grabOffsetInchesAlongFace: number;
+  grabOffsetInchesFromFloor: number;
+}>;

@@ -1,4 +1,4 @@
-import { applyAssemblyWallPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
+import { applyAssemblyPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
@@ -33,7 +33,7 @@ export function createAssemblyPlacementActions(
       }));
     },
 
-    updateAssemblyCandidateWorldPosition(worldPositionInches, sceneViewMode) {
+    updateAssemblyCandidateWorldPosition(worldPositionInches, sceneViewMode, elevationMoveFrame) {
       if (!canManuallyEditScene(get().workspaceMode)) {
         return;
       }
@@ -49,16 +49,14 @@ export function createAssemblyPlacementActions(
         ...activeSceneOperation.placedAssembly,
         worldPositionInches,
       };
-      const placementResult = sceneViewMode === "elevation"
-        ? {
-            placedAssembly: proposedPlacedAssembly,
-            feedback: createAssemblyPlacementFeedback({
-              placedAssembly: proposedPlacedAssembly,
-            }),
-          }
-        : applyAssemblyWallPlacementRules({
-            placedAssembly: proposedPlacedAssembly,
-          });
+      const placementResult = applyAssemblyPlacementRules({
+        placedAssembly: proposedPlacedAssembly,
+        placedWallGraphs: designScene.placedWallGraphs,
+        placedAssemblies: designScene.placedAssemblies,
+        countertopOpenings: designScene.countertopOpenings,
+        movingAssemblyId: proposedPlacedAssembly.id,
+        snapContext: { movementSource: sceneViewMode, elevationMoveFrame },
+      });
 
       set((state) => ({
         designScene: {

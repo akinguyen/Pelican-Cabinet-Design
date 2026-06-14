@@ -5,6 +5,7 @@ import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { kitchenEditorCatalogRegistry } from "../catalogs/registry/kitchenEditorCatalogRegistry";
 import { AssemblyPropertiesPanel } from "../properties-panel/assemblies/AssemblyPropertiesPanel";
 import { CountertopOpeningPropertiesPanel } from "../properties-panel/countertops/CountertopOpeningPropertiesPanel";
+import { WallOpeningPropertiesPanel } from "../properties-panel/walls/WallOpeningPropertiesPanel";
 import { WallSegmentPropertiesPanel } from "../properties-panel/walls/WallSegmentPropertiesPanel";
 
 export function SelectedObjectPropertiesPanel() {
@@ -38,6 +39,16 @@ export function SelectedObjectPropertiesPanel() {
         )
       : undefined;
 
+  const selectedWallOpeningGraph = activeSelection?.kind === "wall-opening"
+    ? placedWallGraphs.find((wallGraph) => wallGraph.id === activeSelection.wallGraphId)
+    : undefined;
+  const selectedWallOpeningSegment = activeSelection?.kind === "wall-opening"
+    ? selectedWallOpeningGraph?.segments.find((wallSegment) => wallSegment.id === activeSelection.wallSegmentId)
+    : undefined;
+  const selectedWallOpening = activeSelection?.kind === "wall-opening"
+    ? selectedWallOpeningSegment?.openings.find((opening) => opening.id === activeSelection.wallOpeningId)
+    : undefined;
+
   if (selectedAssembly !== undefined && selectedDefinition !== null) {
     return (
       <div className="absolute inset-0 z-10 h-full min-h-0 overflow-y-auto bg-white p-4">
@@ -45,6 +56,21 @@ export function SelectedObjectPropertiesPanel() {
           placedAssembly={selectedAssembly}
           definition={selectedDefinition}
           onDelete={deleteSelectedAssembly}
+        />
+      </div>
+    );
+  }
+
+  if (
+    activeSelection?.kind === "wall-opening" &&
+    selectedWallOpening !== undefined
+  ) {
+    return (
+      <div className="absolute inset-0 z-10 h-full min-h-0 overflow-y-auto bg-white p-4">
+        <WallOpeningPropertiesPanel
+          wallGraphId={activeSelection.wallGraphId}
+          wallSegmentId={activeSelection.wallSegmentId}
+          opening={selectedWallOpening}
         />
       </div>
     );

@@ -15,7 +15,20 @@ export type AssemblyPlacementFootprint = Readonly<{
   edges: readonly AssemblyPlacementEdge[];
 }>;
 
-export type AssemblyWallSnapTarget =
+export type AssemblyPlacementMovementSource = "perspective" | "floor-plan" | "elevation";
+
+export type AssemblyPlacementElevationFrame = Readonly<{
+  faceDirectionInches: Point3DInches;
+  outwardDirectionInches: Point3DInches;
+  planeOriginInches: Point3DInches;
+}>;
+
+export type AssemblyPlacementSnapContext = Readonly<{
+  movementSource: AssemblyPlacementMovementSource;
+  elevationMoveFrame?: AssemblyPlacementElevationFrame;
+}>;
+
+export type AssemblyPlacementSnapTarget =
   | Readonly<{
       kind: "wall-edge";
       placedWallId: string;
@@ -29,7 +42,23 @@ export type AssemblyWallSnapTarget =
       cornerIndex: number;
       snappedPointInches: Point3DInches;
       distanceInches: number;
+    }>
+  | Readonly<{
+      kind: "object-alignment";
+      alignmentKind: "edge-line" | "center-line" | "corner";
+      targetAssemblyId: string;
+      distanceInches: number;
     }>;
+
+
+export type AssemblyObjectAlignmentGuide = Readonly<{
+  id: string;
+  guideKind: "edge-line" | "center-line" | "corner";
+  guidePlane: "plan" | "elevation";
+  startPointInches: Point3DInches;
+  endPointInches: Point3DInches;
+  labelPointInches?: Point3DInches;
+}>;
 
 export type AssemblyPlacementInvalidReason = "overlaps-wall";
 
@@ -42,13 +71,21 @@ export type AssemblyWallMeasurementGuide = Readonly<{
   labelRotationDegrees: number;
 }>;
 
+export type AssemblyWallAttachmentHighlight = Readonly<{
+  id: string;
+  startPointInches: Point3DInches;
+  endPointInches: Point3DInches;
+}>;
+
 export type AssemblyPlacementFeedback = Readonly<{
   placedAssembly: PlacedAssembly;
   footprint: AssemblyPlacementFootprint;
   isValid: boolean;
   invalidReason: AssemblyPlacementInvalidReason | null;
-  snapTarget: AssemblyWallSnapTarget | null;
+  snapTarget: AssemblyPlacementSnapTarget | null;
   wallMeasurementGuides: readonly AssemblyWallMeasurementGuide[];
+  wallAttachmentHighlights: readonly AssemblyWallAttachmentHighlight[];
+  objectAlignmentGuides: readonly AssemblyObjectAlignmentGuide[];
 }>;
 
 export type AssemblyPlacementResult = Readonly<{

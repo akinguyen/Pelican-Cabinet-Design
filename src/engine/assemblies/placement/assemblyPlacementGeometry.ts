@@ -73,12 +73,13 @@ export function updateAssemblyPlacementRotationDegrees(
 
 export function translateAssemblyPlacement(
   placedAssembly: PlacedAssembly,
-  deltaInches: Readonly<{ xInches: number; yInches: number }>,
+  deltaInches: Readonly<{ xInches: number; yInches: number; zInches?: number }>,
 ): PlacedAssembly {
   return updateAssemblyPlacementWorldPosition(placedAssembly, {
     ...placedAssembly.worldPositionInches,
     xInches: placedAssembly.worldPositionInches.xInches + deltaInches.xInches,
     yInches: placedAssembly.worldPositionInches.yInches + deltaInches.yInches,
+    zInches: placedAssembly.worldPositionInches.zInches + (deltaInches.zInches ?? 0),
   });
 }
 

@@ -4,6 +4,7 @@ import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { AssemblyDragSurface } from "../../../interaction/assemblies/AssemblyDragSurface";
 import { AssemblyRotationSurface } from "../../../interaction/assemblies/AssemblyRotationSurface";
 import { CountertopCutoutDraftSurface } from "../../../interaction/countertops/CountertopCutoutDraftSurface";
+import { WallOpeningDraftSurface } from "../../../interaction/walls/WallOpeningDraftSurface";
 import { WallSegmentDraftSurface } from "../../../interaction/walls/WallSegmentDraftSurface";
 import { AssemblyLayer } from "../../../rendering/assemblies/AssemblyLayer";
 import { AssemblyPlacementCandidateRenderer } from "../../../rendering/assemblies/AssemblyPlacementCandidateRenderer";
@@ -12,6 +13,7 @@ import { SelectedAssemblyOutlineLayer } from "../../../rendering/assemblies/Sele
 import { CountertopCutoutDraftOverlay } from "../../../rendering/countertops/CountertopCutoutDraftOverlay";
 import { CountertopOpeningOverlay } from "../../../rendering/countertops/CountertopOpeningOverlay";
 import { WallLayer } from "../../../rendering/walls/WallLayer";
+import { WallOpeningDraftOverlay } from "../../../rendering/walls/WallOpeningDraftOverlay";
 
 export function DesignSceneRenderer() {
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
@@ -60,6 +62,8 @@ export function DesignSceneRenderer() {
       <AssemblyDragSurface />
       <AssemblyRotationSurface />
       <CountertopCutoutDraftSurface />
+      <WallOpeningDraftOverlay />
+      <WallOpeningDraftSurface />
       <WallSegmentDraftSurface />
     </>
   );

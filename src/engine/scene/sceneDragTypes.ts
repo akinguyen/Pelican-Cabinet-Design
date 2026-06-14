@@ -24,6 +24,7 @@ export type AssemblyRotationDragState = Readonly<{
   pointerAngleDegrees: number;
   startPointerAngleDegrees: number;
   startRotationDegrees: number;
+  startWorldPositionInches: Point3DInches;
   latestRotationDegrees: number;
   latestValidRotationDegrees: number;
   isSnappedToRotationStop: boolean;

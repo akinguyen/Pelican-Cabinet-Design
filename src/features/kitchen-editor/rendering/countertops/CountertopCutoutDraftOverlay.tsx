@@ -8,6 +8,11 @@ import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { createCountertopWorldPointFromLocal } from "../../interaction/countertops/countertopPointerProjection";
 
 const COUNTERTOP_DRAFT_OVERLAY_Z_OFFSET_INCHES = 0.06;
+const CUTOUT_DRAFT_STROKE_COLOR = "#ef4444";
+const CUTOUT_DRAFT_LINE_WIDTH = 2.5;
+const CUTOUT_DRAFT_DASH_SIZE_INCHES = 2;
+const CUTOUT_DRAFT_GAP_SIZE_INCHES = 1.5;
+const CUTOUT_DRAFT_RENDER_ORDER = 160;
 
 export function CountertopCutoutDraftOverlay() {
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
@@ -59,11 +64,13 @@ export function CountertopCutoutDraftOverlay() {
   return (
     <Line
       points={[...linePoints, linePoints[0]]}
-      color="#ef4444"
-      lineWidth={2}
+      color={CUTOUT_DRAFT_STROKE_COLOR}
+      lineWidth={CUTOUT_DRAFT_LINE_WIDTH}
       dashed
-      dashSize={2}
-      gapSize={1.5}
+      dashSize={CUTOUT_DRAFT_DASH_SIZE_INCHES}
+      gapSize={CUTOUT_DRAFT_GAP_SIZE_INCHES}
+      depthTest={false}
+      renderOrder={CUTOUT_DRAFT_RENDER_ORDER}
     />
   );
 }

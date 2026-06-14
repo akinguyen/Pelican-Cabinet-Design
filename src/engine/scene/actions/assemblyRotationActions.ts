@@ -1,5 +1,5 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import { createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
+import { applyAssemblyPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
 import { updateAssemblyPlacementRotationDegrees } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
 import { snapAssemblyRotationDegrees } from "@/engine/assemblies/placement/assemblyRotationSnapping";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
@@ -36,6 +36,7 @@ export function createAssemblyRotationActions(
           pointerAngleDegrees,
           startPointerAngleDegrees: pointerAngleDegrees,
           startRotationDegrees: placedAssembly.rotationDegrees.zDegrees,
+          startWorldPositionInches: placedAssembly.worldPositionInches,
           latestRotationDegrees: placedAssembly.rotationDegrees.zDegrees,
           latestValidRotationDegrees: placedAssembly.rotationDegrees.zDegrees,
           isSnappedToRotationStop: false,
@@ -72,16 +73,23 @@ export function createAssemblyRotationActions(
         placedAssembly,
         snapResult.rotationDegrees,
       );
-      const feedback = createAssemblyPlacementFeedback({
+      const { designScene } = get();
+      const placementResult = applyAssemblyPlacementRules({
         placedAssembly: rotatedAssembly,
+        placedWallGraphs: designScene.placedWallGraphs,
+        placedAssemblies: designScene.placedAssemblies,
+        countertopOpenings: designScene.countertopOpenings,
+        movingAssemblyId: activeDrag.assemblyId,
+        snapContext: { movementSource: get().activeSceneViewMode },
       });
+      const feedback = placementResult.feedback;
       const isValidPlacement = true;
 
       set((state) => ({
         designScene: {
           ...state.designScene,
           placedAssemblies: state.designScene.placedAssemblies.map((assembly) =>
-            assembly.id === activeDrag.assemblyId ? rotatedAssembly : assembly,
+            assembly.id === activeDrag.assemblyId ? placementResult.placedAssembly : assembly,
           ),
         },
         activeDrag: {
@@ -112,7 +120,10 @@ export function createAssemblyRotationActions(
             ...state.designScene,
             placedAssemblies: state.designScene.placedAssemblies.map((assembly) =>
               assembly.id === activeDrag.assemblyId
-                ? updateAssemblyPlacementRotationDegrees(assembly, activeDrag.latestValidRotationDegrees)
+                ? {
+                    ...updateAssemblyPlacementRotationDegrees(assembly, activeDrag.latestValidRotationDegrees),
+                    worldPositionInches: activeDrag.startWorldPositionInches,
+                  }
                 : assembly,
             ),
           },
@@ -138,7 +149,10 @@ export function createAssemblyRotationActions(
           ...state.designScene,
           placedAssemblies: state.designScene.placedAssemblies.map((assembly) =>
             assembly.id === activeDrag.assemblyId
-              ? updateAssemblyPlacementRotationDegrees(assembly, activeDrag.startRotationDegrees)
+              ? {
+                  ...updateAssemblyPlacementRotationDegrees(assembly, activeDrag.startRotationDegrees),
+                  worldPositionInches: activeDrag.startWorldPositionInches,
+                }
               : assembly,
           ),
         },
