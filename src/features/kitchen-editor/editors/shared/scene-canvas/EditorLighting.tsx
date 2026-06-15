@@ -1,6 +1,8 @@
 "use client";
 
-export function EditorLighting() {
+import { memo } from "react";
+
+export const EditorLighting = memo(function EditorLighting() {
   return (
     <>
       <ambientLight intensity={0.65} />
@@ -8,4 +10,4 @@ export function EditorLighting() {
       <directionalLight position={[-60, 80, 120]} intensity={0.35} />
     </>
   );
-}
+});

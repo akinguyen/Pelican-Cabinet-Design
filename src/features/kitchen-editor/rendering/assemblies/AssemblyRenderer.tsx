@@ -1,5 +1,7 @@
 "use client";
 
+import { memo, useMemo } from "react";
+import type { ThreeEvent } from "@react-three/fiber";
 import { collectBuiltPrimitiveGeometries } from "@/engine/assemblies/assemblyBounds";
 import type { BuiltAssemblyTree } from "@/engine/assemblies/assemblyTreeBuilder";
 import { AssemblyFrontOutlineLines } from "./AssemblyFrontOutlineLines";
@@ -9,13 +11,22 @@ type AssemblyRendererProps = Readonly<{
   builtAssemblyTree: BuiltAssemblyTree;
   renderState: "default" | "candidate";
   showFrontOutlineLines: boolean;
+  onPointerDown?: (event: ThreeEvent<PointerEvent>) => void;
 }>;
 
-export function AssemblyRenderer({ builtAssemblyTree, renderState, showFrontOutlineLines }: AssemblyRendererProps) {
-  const primitiveGeometries = collectBuiltPrimitiveGeometries(builtAssemblyTree);
+export const AssemblyRenderer = memo(function AssemblyRenderer({
+  builtAssemblyTree,
+  renderState,
+  showFrontOutlineLines,
+  onPointerDown,
+}: AssemblyRendererProps) {
+  const primitiveGeometries = useMemo(
+    () => collectBuiltPrimitiveGeometries(builtAssemblyTree),
+    [builtAssemblyTree],
+  );
 
   return (
-    <group>
+    <group onPointerDown={onPointerDown}>
       {primitiveGeometries.map((primitiveGeometry) => (
         <AssemblyPrimitiveMesh
           key={primitiveGeometry.componentPath.join("/")}
@@ -26,4 +37,4 @@ export function AssemblyRenderer({ builtAssemblyTree, renderState, showFrontOutl
       {showFrontOutlineLines ? <AssemblyFrontOutlineLines builtAssemblyTree={builtAssemblyTree} /> : null}
     </group>
   );
-}
+});

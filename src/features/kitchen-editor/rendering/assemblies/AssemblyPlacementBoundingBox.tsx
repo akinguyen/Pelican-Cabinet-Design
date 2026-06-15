@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Line } from "@react-three/drei";
 import type { AssemblyPlacementFootprint } from "@/engine/assemblies/placement/assemblyPlacementTypes";
 
@@ -13,7 +14,7 @@ type AssemblyPlacementBoundingBoxProps = Readonly<{
   zInches?: number;
 }>;
 
-export function AssemblyPlacementBoundingBox({
+export const AssemblyPlacementBoundingBox = memo(function AssemblyPlacementBoundingBox({
   footprint,
   state,
   zInches = DEFAULT_ASSEMBLY_PLACEMENT_BOX_Z_INCHES,
@@ -48,4 +49,4 @@ export function AssemblyPlacementBoundingBox({
       ))}
     </group>
   );
-}
+});

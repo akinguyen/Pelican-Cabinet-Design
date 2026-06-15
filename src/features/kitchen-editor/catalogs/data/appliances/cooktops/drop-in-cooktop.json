@@ -1672,5 +1672,12 @@
         }
       }
     }
-  ]
+  ],
+  "cutoutBehavior": {
+    "countertop": {
+      "source": "cutout-body-rectangle",
+      "widthInches": 30,
+      "depthInches": 21
+    }
+  }
 }

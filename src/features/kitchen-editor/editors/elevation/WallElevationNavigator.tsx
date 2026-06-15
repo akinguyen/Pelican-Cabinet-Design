@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   getActiveWallElevationSegmentNavigationItem,
@@ -14,10 +15,18 @@ export function WallElevationNavigator() {
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const placedWallGraphs = useDesignSceneStore((state) => state.designScene.placedWallGraphs);
   const activeWallElevationTarget = useDesignSceneStore((state) => state.activeWallElevationTarget);
-  const showPreviousWallElevationSegment = useDesignSceneStore((state) => state.showPreviousWallElevationSegment);
-  const showNextWallElevationSegment = useDesignSceneStore((state) => state.showNextWallElevationSegment);
-  const showPreviousWallElevationSide = useDesignSceneStore((state) => state.showPreviousWallElevationSide);
-  const showNextWallElevationSide = useDesignSceneStore((state) => state.showNextWallElevationSide);
+  const showPreviousWallElevationSegment = useCallback(() => {
+    useDesignSceneStore.getState().showPreviousWallElevationSegment();
+  }, []);
+  const showNextWallElevationSegment = useCallback(() => {
+    useDesignSceneStore.getState().showNextWallElevationSegment();
+  }, []);
+  const showPreviousWallElevationSide = useCallback(() => {
+    useDesignSceneStore.getState().showPreviousWallElevationSide();
+  }, []);
+  const showNextWallElevationSide = useCallback(() => {
+    useDesignSceneStore.getState().showNextWallElevationSide();
+  }, []);
 
   if (activeSceneViewMode !== "elevation") {
     return null;

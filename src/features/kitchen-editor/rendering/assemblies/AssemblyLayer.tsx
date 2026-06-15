@@ -1,30 +1,55 @@
 "use client";
 
-import { buildAssemblyTree } from "@/engine/assemblies/assemblyTreeBuilder";
+import { useMemo } from "react";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
-import { applyCountertopOpeningsToAssemblyTree } from "@/engine/countertops/applyCountertopOpeningsToAssemblyTree";
-import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import {
+  buildCountertopOpeningsByHostCountertopId,
+} from "@/engine/countertops/applyCountertopOpeningsToAssemblyTree";
+import { deriveCountertopOpeningsFromAssemblies } from "@/engine/countertops/deriveCountertopOpeningsFromAssemblies";
 import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
-import { AssemblyRenderer } from "./AssemblyRenderer";
+import { PlacedAssemblyRenderer } from "./PlacedAssemblyRenderer";
+import { useAssemblyRenderItems } from "./useAssemblyRenderItems";
 
 type AssemblyLayerProps = Readonly<{
   placedAssemblies: readonly PlacedAssembly[];
+  countertopOpeningAssemblies: readonly PlacedAssembly[];
   showFrontOutlineLines: boolean;
 }>;
 
-export function AssemblyLayer({ placedAssemblies, showFrontOutlineLines }: AssemblyLayerProps) {
-  const countertopOpenings = useDesignSceneStore((state) => state.designScene.countertopOpenings);
+const EMPTY_COUNTERTOP_OPENINGS: ReturnType<typeof deriveCountertopOpeningsFromAssemblies> = [];
+const EMPTY_COUNTERTOP_OPENINGS_BY_HOST_COUNTERTOP_ID: ReturnType<typeof buildCountertopOpeningsByHostCountertopId> = new Map();
+
+export function AssemblyLayer({
+  placedAssemblies,
+  countertopOpeningAssemblies,
+  showFrontOutlineLines,
+}: AssemblyLayerProps) {
+  const derivedCountertopOpenings = useMemo(() => (
+    countertopOpeningAssemblies.length === 0
+      ? EMPTY_COUNTERTOP_OPENINGS
+      : deriveCountertopOpeningsFromAssemblies({
+        placedAssemblies: countertopOpeningAssemblies,
+        registry: kitchenEditorCatalogRegistry,
+      })
+  ), [countertopOpeningAssemblies]);
+  const derivedCountertopOpeningsByHostCountertopId = useMemo(
+    () => derivedCountertopOpenings.length === 0
+      ? EMPTY_COUNTERTOP_OPENINGS_BY_HOST_COUNTERTOP_ID
+      : buildCountertopOpeningsByHostCountertopId(derivedCountertopOpenings),
+    [derivedCountertopOpenings],
+  );
+  const assemblyRenderItems = useAssemblyRenderItems(
+    placedAssemblies,
+    derivedCountertopOpeningsByHostCountertopId,
+  );
 
   return (
     <group>
-      {placedAssemblies.map((placedAssembly) => (
-        <AssemblyRenderer
-          key={placedAssembly.id}
-          builtAssemblyTree={applyCountertopOpeningsToAssemblyTree(
-            buildAssemblyTree(placedAssembly, kitchenEditorCatalogRegistry),
-            countertopOpenings,
-          )}
-          renderState="default"
+      {assemblyRenderItems.map((assemblyRenderItem) => (
+        <PlacedAssemblyRenderer
+          key={assemblyRenderItem.placedAssembly.id}
+          placedAssembly={assemblyRenderItem.placedAssembly}
+          builtAssemblyTree={assemblyRenderItem.builtAssemblyTree}
           showFrontOutlineLines={showFrontOutlineLines}
         />
       ))}

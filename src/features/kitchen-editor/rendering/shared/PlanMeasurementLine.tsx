@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { Html, Line } from "@react-three/drei";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 
@@ -23,7 +24,7 @@ type PlanMeasurementLineProps = Readonly<{
   gapSizeInches?: number;
 }>;
 
-export function PlanMeasurementLine({
+export const PlanMeasurementLine = memo(function PlanMeasurementLine({
   startPointInches,
   endPointInches,
   labelPointInches,
@@ -36,12 +37,15 @@ export function PlanMeasurementLine({
   dashSizeInches = DEFAULT_DASH_SIZE_INCHES,
   gapSizeInches = DEFAULT_GAP_SIZE_INCHES,
 }: PlanMeasurementLineProps) {
-  const lineSegments = createLineSegmentsAroundLabelGap({
-    startPointInches,
-    endPointInches,
-    labelPointInches,
-    label,
-  });
+  const lineSegments = useMemo(
+    () => createLineSegmentsAroundLabelGap({
+      startPointInches,
+      endPointInches,
+      labelPointInches,
+      label,
+    }),
+    [startPointInches, endPointInches, labelPointInches, label],
+  );
 
   return (
     <group renderOrder={renderOrder}>
@@ -80,7 +84,7 @@ export function PlanMeasurementLine({
       </Html>
     </group>
   );
-}
+});
 
 type PlanMeasurementLineSegment = Readonly<{
   startPointInches: Point3DInches;

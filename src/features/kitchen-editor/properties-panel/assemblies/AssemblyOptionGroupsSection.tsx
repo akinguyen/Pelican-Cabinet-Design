@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { formatNumberInputValue } from "../shared/propertyPanelFormatting";
 import { PropertySection } from "../shared/PropertySection";
 import type { AssemblyOptionDefinition, AssemblyDefinition } from "@/engine/assemblies/assemblyDefinitionTypes";
@@ -16,9 +17,9 @@ export function AssemblyOptionGroupsSection({
   placedAssembly,
   definition,
 }: AssemblyOptionGroupsSectionProps) {
-  const updateSelectedAssemblyOptionValue = useDesignSceneStore(
-    (state) => state.updateSelectedAssemblyOptionValue,
-  );
+  const handleOptionChange = useCallback((optionId: string, value: AssemblyOptionValue) => {
+    useDesignSceneStore.getState().updateSelectedAssemblyOptionValue(optionId, value);
+  }, []);
 
   if (definition.optionGroups.length === 0) {
     return null;
@@ -34,7 +35,7 @@ export function AssemblyOptionGroupsSection({
                 key={option.id}
                 option={option}
                 value={placedAssembly.configuration.optionValues[option.id] ?? option.defaultValue}
-                onChange={updateSelectedAssemblyOptionValue}
+                onChange={handleOptionChange}
               />
             ))}
           </div>
@@ -119,4 +120,3 @@ function parseOptionValue(
 
   return value;
 }
-

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { Line } from "@react-three/drei";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { BuiltWallSegmentBody } from "@/engine/walls/connectedWallGeometryTypes";
@@ -12,13 +13,16 @@ const ACTIVE_WALL_SEGMENT_Z_OFFSET_INCHES = 1.2;
 const ACTIVE_WALL_SEGMENT_RENDER_ORDER = 90;
 const ACTIVE_WALL_CENTERLINE_TRIM_INCHES = WALL_ANCHOR_RING_OUTER_RADIUS_INCHES + 0.4;
 
-export function WallSegmentActiveOverlay({
+export const WallSegmentActiveOverlay = memo(function WallSegmentActiveOverlay({
   segmentBody,
 }: Readonly<{
   segmentBody: BuiltWallSegmentBody;
 }>) {
-  const boundaryPoints = createBoundaryPoints(segmentBody.footprintPolygonInches);
-  const centerlinePoints = createCenterlinePoints(segmentBody);
+  const boundaryPoints = useMemo(
+    () => createBoundaryPoints(segmentBody.footprintPolygonInches),
+    [segmentBody.footprintPolygonInches],
+  );
+  const centerlinePoints = useMemo(() => createCenterlinePoints(segmentBody), [segmentBody]);
 
   return (
     <group renderOrder={ACTIVE_WALL_SEGMENT_RENDER_ORDER}>
@@ -42,7 +46,7 @@ export function WallSegmentActiveOverlay({
       <WallAnchorRing pointInches={segmentBody.end.centerPointInches} />
     </group>
   );
-}
+});
 
 function createBoundaryPoints(
   polygonInches: readonly Point3DInches[],

@@ -500,5 +500,10 @@
         "left"
       ]
     }
-  ]
+  ],
+  "cutoutBehavior": {
+    "wall": {
+      "source": "elevation-projection"
+    }
+  }
 }

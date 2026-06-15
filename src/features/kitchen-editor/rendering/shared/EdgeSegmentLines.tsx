@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { memo, useMemo } from "react";
 import { BufferGeometry, Float32BufferAttribute } from "three";
 import type { PrimitiveEdgeSegmentInches } from "@/engine/primitive-geometry/edge-segments/primitiveEdgeSegmentTypes";
+import { useDisposableGeometry } from "./useDisposableGeometry";
 
 const DEFAULT_EDGE_LINE_COLOR_HEX = "#111827";
 const DEFAULT_EDGE_LINE_WIDTH_PIXELS = 2;
@@ -15,7 +16,7 @@ type EdgeSegmentLinesProps = Readonly<{
   renderOrder?: number;
 }>;
 
-export function EdgeSegmentLines({
+export const EdgeSegmentLines = memo(function EdgeSegmentLines({
   edgeSegmentsInches,
   colorHex = DEFAULT_EDGE_LINE_COLOR_HEX,
   lineWidthPixels = DEFAULT_EDGE_LINE_WIDTH_PIXELS,
@@ -42,7 +43,7 @@ export function EdgeSegmentLines({
     return geometry;
   }, [edgeSegmentsInches]);
 
-  useEffect(() => () => edgeGeometry.dispose(), [edgeGeometry]);
+  useDisposableGeometry(edgeGeometry);
 
   if (edgeSegmentsInches.length === 0) {
     return null;
@@ -58,4 +59,4 @@ export function EdgeSegmentLines({
       />
     </lineSegments>
   );
-}
+});

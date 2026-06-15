@@ -1,12 +1,13 @@
 "use client";
 
+import { memo } from "react";
 import { Billboard, Line, Text } from "@react-three/drei";
 
 const AXIS_LENGTH_INCHES = 84;
 const AXIS_LABEL_OFFSET_INCHES = 8;
 const AXIS_LABEL_FONT_SIZE_INCHES = 5;
 
-export function SceneAxisGizmo() {
+export const SceneAxisGizmo = memo(function SceneAxisGizmo() {
   return (
     <group>
       <mesh position={[0, 0, 0]}>
@@ -21,14 +22,14 @@ export function SceneAxisGizmo() {
       <AxisLabel position={[0, 0, AXIS_LENGTH_INCHES + AXIS_LABEL_OFFSET_INCHES]} label="Z" />
     </group>
   );
-}
+});
 
 type AxisLabelProps = Readonly<{
   position: [number, number, number];
   label: string;
 }>;
 
-function AxisLabel({ position, label }: AxisLabelProps) {
+const AxisLabel = memo(function AxisLabel({ position, label }: AxisLabelProps) {
   return (
     <Billboard position={position} follow>
       <Text
@@ -43,4 +44,4 @@ function AxisLabel({ position, label }: AxisLabelProps) {
       </Text>
     </Billboard>
   );
-}
+});

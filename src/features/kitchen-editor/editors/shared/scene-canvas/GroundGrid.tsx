@@ -1,12 +1,13 @@
 "use client";
 
+import { memo } from "react";
 import { Grid } from "@react-three/drei";
 
 const GRID_SIZE_INCHES = 800;
 const MINOR_GRID_SPACING_INCHES = 1;
 const MAJOR_GRID_SPACING_INCHES = 10;
 
-export function GroundGrid() {
+export const GroundGrid = memo(function GroundGrid() {
   return (
     <Grid
       args={[GRID_SIZE_INCHES, GRID_SIZE_INCHES]}
@@ -23,4 +24,4 @@ export function GroundGrid() {
       rotation={[Math.PI / 2, 0, 0]}
     />
   );
-}
+});

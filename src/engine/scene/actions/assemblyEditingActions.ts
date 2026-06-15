@@ -1,6 +1,5 @@
 import { createId } from "@/core/ids/createId";
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
-import { clampCountertopOpeningToHost } from "@/engine/countertops/countertopOpeningValidation";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import {
   updateAssemblyDistanceFromFloor,
@@ -46,9 +45,6 @@ export function createAssemblyEditingActions(
           placedAssemblies: state.designScene.placedAssemblies.filter(
             (assembly) => assembly.id !== activeSelection.placedAssemblyId,
           ),
-          countertopOpenings: state.designScene.countertopOpenings.filter(
-            (opening) => opening.hostCountertopId !== activeSelection.placedAssemblyId,
-          ),
           activeSelection: null,
         },
         activeDrag: null,
@@ -90,16 +86,6 @@ export function createAssemblyEditingActions(
         designScene: {
           ...state.designScene,
           placedAssemblies: [...state.designScene.placedAssemblies, duplicatedAssembly],
-          countertopOpenings: [
-            ...state.designScene.countertopOpenings,
-            ...state.designScene.countertopOpenings
-              .filter((opening) => opening.hostCountertopId === selectedAssembly.id)
-              .map((opening) => ({
-                ...opening,
-                id: createId(),
-                hostCountertopId: duplicatedAssemblyId,
-              })),
-          ],
           activeSelection: {
             kind: "placed-assembly",
             placedAssemblyId: duplicatedAssemblyId,
@@ -228,23 +214,10 @@ function updateSelectedAssembly(
       updatedSelectedAssembly = updateAssembly(assembly);
       return updatedSelectedAssembly;
     });
-    const selectedAssembly = updatedSelectedAssembly;
-
     return {
       designScene: {
         ...state.designScene,
         placedAssemblies,
-        countertopOpenings:
-          selectedAssembly === undefined
-            ? state.designScene.countertopOpenings
-            : state.designScene.countertopOpenings.map((opening) =>
-                opening.hostCountertopId === selectedAssembly.id
-                  ? clampCountertopOpeningToHost(
-                      opening,
-                      selectedAssembly.configuration.sizeInches,
-                    )
-                  : opening,
-              ),
       },
     };
   });

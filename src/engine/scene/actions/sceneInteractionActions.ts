@@ -1,30 +1,15 @@
-import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import type { DesignSceneStore, DesignSceneStoreGetter } from "../designSceneStoreTypes";
 
 export function createSceneInteractionActions(
   get: DesignSceneStoreGetter,
-  set: DesignSceneStoreSetter,
-): Pick<DesignSceneStore, "setActiveCutoutDraftPointerTarget" | "clearActiveInteraction"> {
+  _set: (partial: Partial<DesignSceneStore> | ((state: DesignSceneStore) => Partial<DesignSceneStore>)) => void,
+): Pick<DesignSceneStore, "clearActiveInteraction"> {
   return {
-    setActiveCutoutDraftPointerTarget(pointerTarget) {
-      set({ activeCutoutDraftPointerTarget: pointerTarget });
-    },
-
     clearActiveInteraction() {
       const { activeToolbarTool, designScene } = get();
 
       if (activeToolbarTool === "draw-wall-segment" || designScene.activeSceneOperation?.kind === "wall-segment-draft") {
         get().exitWallSegmentDraftTool();
-        return;
-      }
-
-      if (activeToolbarTool === "draw-rectangle-cutout") {
-        get().setActiveToolbarTool(null);
-        get().setActiveCutoutDraftPointerTarget(null);
-        return;
-      }
-
-      if (designScene.activeSceneOperation?.kind === "wall-opening-draft") {
-        get().cancelWallOpeningDraft();
         return;
       }
 

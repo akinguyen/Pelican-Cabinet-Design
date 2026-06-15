@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import { Line } from "@react-three/drei";
 import { buildAssemblyFrontOutlineLines } from "@/engine/assemblies/front-outline/assemblyFrontOutlineLines";
 import type { BuiltAssemblyTree } from "@/engine/assemblies/assemblyTreeBuilder";
@@ -11,8 +12,11 @@ type AssemblyFrontOutlineLinesProps = Readonly<{
   builtAssemblyTree: BuiltAssemblyTree;
 }>;
 
-export function AssemblyFrontOutlineLines({ builtAssemblyTree }: AssemblyFrontOutlineLinesProps) {
-  const frontOutlineLines = buildAssemblyFrontOutlineLines(builtAssemblyTree);
+export const AssemblyFrontOutlineLines = memo(function AssemblyFrontOutlineLines({ builtAssemblyTree }: AssemblyFrontOutlineLinesProps) {
+  const frontOutlineLines = useMemo(
+    () => buildAssemblyFrontOutlineLines(builtAssemblyTree),
+    [builtAssemblyTree],
+  );
 
   if (frontOutlineLines.length === 0) {
     return null;
@@ -42,4 +46,4 @@ export function AssemblyFrontOutlineLines({ builtAssemblyTree }: AssemblyFrontOu
       ))}
     </group>
   );
-}
+});

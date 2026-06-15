@@ -74,7 +74,6 @@ export function createAssemblyDragActions(
         placedAssembly: proposedPlacedAssembly,
         placedWallGraphs: designScene.placedWallGraphs,
         placedAssemblies: designScene.placedAssemblies,
-        countertopOpenings: designScene.countertopOpenings,
         movingAssemblyId: activeDrag.assemblyId,
         snapContext: {
           movementSource: activeDrag.sceneViewMode,

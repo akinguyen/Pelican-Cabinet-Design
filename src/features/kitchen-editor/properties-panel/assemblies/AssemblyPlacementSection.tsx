@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { getAssemblyDistanceFromFloorInches } from "@/engine/assemblies/placedAssemblyTypes";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
@@ -11,18 +12,18 @@ type AssemblyPlacementSectionProps = Readonly<{
 }>;
 
 export function AssemblyPlacementSection({ placedAssembly }: AssemblyPlacementSectionProps) {
-  const updateSelectedAssemblyWorldPositionX = useDesignSceneStore(
-    (state) => state.updateSelectedAssemblyWorldPositionX,
-  );
-  const updateSelectedAssemblyWorldPositionY = useDesignSceneStore(
-    (state) => state.updateSelectedAssemblyWorldPositionY,
-  );
-  const updateSelectedAssemblyDistanceFromFloor = useDesignSceneStore(
-    (state) => state.updateSelectedAssemblyDistanceFromFloor,
-  );
-  const updateSelectedAssemblyRotationZ = useDesignSceneStore(
-    (state) => state.updateSelectedAssemblyRotationZ,
-  );
+  const handleWorldPositionXChange = useCallback((xInches: number) => {
+    useDesignSceneStore.getState().updateSelectedAssemblyWorldPositionX(xInches);
+  }, []);
+  const handleWorldPositionYChange = useCallback((yInches: number) => {
+    useDesignSceneStore.getState().updateSelectedAssemblyWorldPositionY(yInches);
+  }, []);
+  const handleDistanceFromFloorChange = useCallback((distanceFromFloorInches: number) => {
+    useDesignSceneStore.getState().updateSelectedAssemblyDistanceFromFloor(distanceFromFloorInches);
+  }, []);
+  const handleRotationZChange = useCallback((zDegrees: number) => {
+    useDesignSceneStore.getState().updateSelectedAssemblyRotationZ(zDegrees);
+  }, []);
 
   return (
     <PropertySection title="Placement">
@@ -31,26 +32,26 @@ export function AssemblyPlacementSection({ placedAssembly }: AssemblyPlacementSe
           label="X position"
           value={placedAssembly.worldPositionInches.xInches}
           step={0.25}
-          onChange={updateSelectedAssemblyWorldPositionX}
+          onChange={handleWorldPositionXChange}
         />
         <PropertyNumberField
           label="Y position"
           value={placedAssembly.worldPositionInches.yInches}
           step={0.25}
-          onChange={updateSelectedAssemblyWorldPositionY}
+          onChange={handleWorldPositionYChange}
         />
         <PropertyNumberField
           label="Distance from floor"
           value={getAssemblyDistanceFromFloorInches(placedAssembly)}
           min={0}
           step={0.25}
-          onChange={updateSelectedAssemblyDistanceFromFloor}
+          onChange={handleDistanceFromFloorChange}
         />
         <PropertyNumberField
           label="Rotation Z"
           value={placedAssembly.rotationDegrees.zDegrees}
           step={1}
-          onChange={updateSelectedAssemblyRotationZ}
+          onChange={handleRotationZChange}
         />
       </div>
     </PropertySection>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { createWallElevationCameraFrame } from "@/engine/walls/wallElevationCameraFrame";
 import { getWallElevationViewZoneForTarget } from "@/engine/walls/wallElevationViewZone";
@@ -39,6 +39,9 @@ export function DesignSceneViewport() {
       viewportSizePixels,
     });
   }, [activeElevationViewZone, activeSceneViewMode, viewportSizePixels]);
+  const clearSelection = useCallback(() => {
+    useDesignSceneStore.getState().clearSelection();
+  }, []);
 
   return (
     <div ref={viewportRef} className="relative h-full min-h-0">
@@ -47,6 +50,7 @@ export function DesignSceneViewport() {
         <ElevationViewPaddingMaskOverlay
           viewportSizePixels={viewportSizePixels}
           wallFaceFramePixels={wallFaceFramePixels}
+          onEmptyPointerDown={clearSelection}
         />
       ) : null}
       <WallElevationNavigator />

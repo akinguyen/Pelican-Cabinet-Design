@@ -1,5 +1,6 @@
 import type { AssemblyOptionValue } from "../assemblyConfiguration";
 import type { PrimitiveBoxFrontOutlineEdge } from "../assemblyComponentTypes";
+import type { AssemblyCutoutBehavior } from "../assemblyCutoutBehaviorTypes";
 import type {
   AssemblyDimensionDefinition,
   AssemblyOptionGroup,
@@ -11,6 +12,7 @@ export type RawAssemblyDefinition = Readonly<{
   name: string;
   catalogCategoryId: string;
   defaultDistanceFromFloorInches?: number;
+  cutoutBehavior?: AssemblyCutoutBehavior;
   dimensions: AssemblyDimensionDefinition;
   optionGroups: readonly AssemblyOptionGroup[];
   components: readonly RawAssemblyComponentDefinition[];

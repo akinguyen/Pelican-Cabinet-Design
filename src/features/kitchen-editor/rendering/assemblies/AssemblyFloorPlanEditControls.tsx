@@ -17,8 +17,6 @@ export function AssemblyFloorPlanEditControls({
   placedAssemblyId,
   footprint,
 }: AssemblyFloorPlanEditControlsProps) {
-  const duplicateSelectedAssembly = useDesignSceneStore((state) => state.duplicateSelectedAssembly);
-  const deleteSelectedAssembly = useDesignSceneStore((state) => state.deleteSelectedAssembly);
   const topYInches = Math.min(...footprint.cornerPointsInches.map((pointInches) => pointInches.yInches));
   const centerXInches = footprint.centerPointInches.xInches;
 
@@ -43,7 +41,7 @@ export function AssemblyFloorPlanEditControls({
           className="rounded-md p-1.5 text-slate-600 transition hover:bg-cyan-50 hover:text-cyan-700"
           onClick={(event) => {
             event.stopPropagation();
-            duplicateSelectedAssembly();
+            useDesignSceneStore.getState().duplicateSelectedAssembly();
           }}
           title="Duplicate"
           aria-label={`Duplicate assembly ${placedAssemblyId}`}
@@ -55,7 +53,7 @@ export function AssemblyFloorPlanEditControls({
           className="rounded-md p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-600"
           onClick={(event) => {
             event.stopPropagation();
-            deleteSelectedAssembly();
+            useDesignSceneStore.getState().deleteSelectedAssembly();
           }}
           title="Delete"
           aria-label={`Delete assembly ${placedAssemblyId}`}

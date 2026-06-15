@@ -2,7 +2,7 @@
 
 import { OrthographicCamera, PerspectiveCamera } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
@@ -25,37 +25,33 @@ import {
 export function DesignSceneCanvas() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
-  const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
+  const activeSceneOperationKind = useDesignSceneStore((state) => state.designScene.activeSceneOperation?.kind ?? null);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
-  const activeCutoutDraftPointerTarget = useDesignSceneStore((state) => state.activeCutoutDraftPointerTarget);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
-  const clearSelection = useDesignSceneStore((state) => state.clearSelection);
   const hasElevationViews = useDesignSceneStore((state) => state.designScene.placedWallGraphs.some((wallGraph) => wallGraph.segments.length > 0));
   const hasCrosshairPlacementOrDraftInteraction =
     activeToolbarTool === "draw-wall-segment" ||
-    activeSceneOperation?.kind === "wall-segment-draft" ||
-    activeSceneOperation?.kind === "assembly-placement" ||
-    activeCutoutDraftPointerTarget !== null;
+    activeSceneOperationKind === "wall-segment-draft" ||
+    activeSceneOperationKind === "assembly-placement";
   const cursorClassName = getCanvasCursorClassName(
     activeSceneViewMode,
     hasCrosshairPlacementOrDraftInteraction,
-    activeDrag !== null || activeSceneOperation?.kind === "countertop-opening-drag" ||
-      activeSceneOperation?.kind === "wall-opening-drag",
+    activeDrag !== null,
   );
 
   useSceneViewportGestureGuard(containerRef);
 
-  function handlePointerMissed(event: MouseEvent) {
+  const handlePointerMissed = useCallback((event: MouseEvent) => {
     if (event.button !== 0) {
       return;
     }
 
-    if (activeSceneOperation !== null || activeToolbarTool !== null || activeDrag !== null) {
+    if (activeSceneOperationKind !== null || activeToolbarTool !== null || activeDrag !== null) {
       return;
     }
 
-    clearSelection();
-  }
+    useDesignSceneStore.getState().clearSelection();
+  }, [activeDrag, activeSceneOperationKind, activeToolbarTool]);
 
   return (
     <div
@@ -72,7 +68,7 @@ export function DesignSceneCanvas() {
         <GroundGrid />
         {activeSceneViewMode === "perspective" ? <SceneAxisGizmo /> : null}
         {activeSceneViewMode !== "elevation" || hasElevationViews ? <DesignSceneRenderer /> : null}
-        <PlacementSurface sceneViewMode={activeSceneViewMode} />
+        {activeSceneOperationKind === "assembly-placement" ? <PlacementSurface sceneViewMode={activeSceneViewMode} /> : null}
         {activeSceneViewMode === "perspective" ? <PerspectiveCameraControls /> : null}
         {activeSceneViewMode === "floor-plan" ? <FloorPlanCameraControls /> : null}
         {activeSceneViewMode === "elevation" ? <ElevationCameraControls /> : null}

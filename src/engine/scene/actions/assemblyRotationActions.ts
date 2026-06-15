@@ -78,7 +78,6 @@ export function createAssemblyRotationActions(
         placedAssembly: rotatedAssembly,
         placedWallGraphs: designScene.placedWallGraphs,
         placedAssemblies: designScene.placedAssemblies,
-        countertopOpenings: designScene.countertopOpenings,
         movingAssemblyId: activeDrag.assemblyId,
         snapContext: { movementSource: get().activeSceneViewMode },
       });

@@ -1,11 +1,10 @@
 import type { SceneSelection } from "../sceneSelectionTypes";
-import { getWallElevationFaceSideForSegment, rememberWallElevationFaceSide } from "@/engine/walls/wallElevationFaceSideMemory";
-import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import type { DesignSceneStore, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
 export function createSceneSelectionActions(
-  get: DesignSceneStoreGetter,
+  _get: () => DesignSceneStore,
   set: DesignSceneStoreSetter,
-): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedWallSegment" | "selectCountertopOpening" | "selectWallOpening" | "clearSelection"> {
+): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedWallSegment" | "clearSelection"> {
   return {
     selectPlacedAssembly(placedAssemblyId) {
       const selection: SceneSelection = {
@@ -30,57 +29,6 @@ export function createSceneSelectionActions(
             kind: "placed-wall-segment",
             wallGraphId,
             wallSegmentId,
-          },
-        },
-        assemblyPlacementFeedback: null,
-      }));
-    },
-
-    selectCountertopOpening(countertopOpeningId) {
-      set((state) => ({
-        designScene: {
-          ...state.designScene,
-          activeSelection: {
-            kind: "countertop-opening",
-            countertopOpeningId,
-          },
-        },
-        assemblyPlacementFeedback: null,
-      }));
-    },
-
-    selectWallOpening(wallGraphId, wallSegmentId, wallOpeningId) {
-      const selectedSegment = get().designScene.placedWallGraphs
-        .find((wallGraph) => wallGraph.id === wallGraphId)
-        ?.segments.find((wallSegment) => wallSegment.id === wallSegmentId);
-      const selectedOpening = selectedSegment?.openings.find(
-        (opening) => opening.id === wallOpeningId,
-      );
-      const faceSide = selectedOpening?.faceSide ?? getWallElevationFaceSideForSegment({
-        faceSideBySegmentKey: get().activeWallElevationFaceSideBySegmentKey,
-        wallGraphId,
-        wallSegmentId,
-      });
-
-      set((state) => ({
-        activeWallElevationTarget: {
-          wallGraphId,
-          wallSegmentId,
-          faceSide,
-        },
-        activeWallElevationFaceSideBySegmentKey: rememberWallElevationFaceSide({
-          faceSideBySegmentKey: state.activeWallElevationFaceSideBySegmentKey,
-          wallGraphId,
-          wallSegmentId,
-          faceSide,
-        }),
-        designScene: {
-          ...state.designScene,
-          activeSelection: {
-            kind: "wall-opening",
-            wallGraphId,
-            wallSegmentId,
-            wallOpeningId,
           },
         },
         assemblyPlacementFeedback: null,

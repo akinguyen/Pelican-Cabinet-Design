@@ -1,7 +1,7 @@
 "use client";
 
 import type { ThreeEvent } from "@react-three/fiber";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Matrix4, Vector3 } from "three";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { getAssemblyDistanceFromFloorInches } from "@/engine/assemblies/placedAssemblyTypes";
@@ -22,13 +22,11 @@ type PlacementSurfaceProps = Readonly<{
 
 export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
   const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
-  const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
+  const placementAssembly = useDesignSceneStore((state) => state.designScene.activeSceneOperation?.kind === "assembly-placement"
+    ? state.designScene.activeSceneOperation.placedAssembly
+    : null);
   const placedWallGraphs = useDesignSceneStore((state) => state.designScene.placedWallGraphs);
   const activeWallElevationTarget = useDesignSceneStore((state) => state.activeWallElevationTarget);
-  const updateAssemblyCandidateWorldPosition = useDesignSceneStore(
-    (state) => state.updateAssemblyCandidateWorldPosition,
-  );
-  const commitAssemblyPlacementCandidate = useDesignSceneStore((state) => state.commitAssemblyPlacementCandidate);
 
   const elevationPlacementFrame = useMemo(
     () => sceneViewMode === "elevation"
@@ -46,17 +44,19 @@ export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
     [elevationPlacementFrame],
   );
 
-  if (!canManuallyEditScene(workspaceMode) || activeSceneOperation?.kind !== "assembly-placement") {
-    return null;
-  }
+  const heightInches = placementAssembly?.configuration.sizeInches.heightInches ?? 0;
+  const depthInches = placementAssembly?.configuration.sizeInches.depthInches ?? 0;
+  const distanceFromFloorInches = placementAssembly === null
+    ? 0
+    : getAssemblyDistanceFromFloorInches(placementAssembly);
 
-  const heightInches = activeSceneOperation.placedAssembly.configuration.sizeInches.heightInches;
-  const depthInches = activeSceneOperation.placedAssembly.configuration.sizeInches.depthInches;
-  const distanceFromFloorInches = getAssemblyDistanceFromFloorInches(activeSceneOperation.placedAssembly);
+  const handlePointerMove = useCallback((event: ThreeEvent<PointerEvent>) => {
+    if (!canManuallyEditScene(workspaceMode) || placementAssembly === null) {
+      return;
+    }
 
-  function handlePointerMove(event: ThreeEvent<PointerEvent>) {
     event.stopPropagation();
-    updateAssemblyCandidateWorldPosition(
+    useDesignSceneStore.getState().updateAssemblyCandidateWorldPosition(
       createAssemblyCandidatePositionFromPointerPoint({
         sceneViewMode,
         point: event.point,
@@ -68,11 +68,27 @@ export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
       sceneViewMode,
       elevationPlacementFrame ?? undefined,
     );
-  }
+  }, [
+    depthInches,
+    distanceFromFloorInches,
+    elevationPlacementFrame,
+    heightInches,
+    placementAssembly,
+    sceneViewMode,
+    workspaceMode,
+  ]);
 
-  function handleClick(event: ThreeEvent<MouseEvent>) {
+  const handleClick = useCallback((event: ThreeEvent<MouseEvent>) => {
+    if (!canManuallyEditScene(workspaceMode) || placementAssembly === null) {
+      return;
+    }
+
     event.stopPropagation();
-    commitAssemblyPlacementCandidate();
+    useDesignSceneStore.getState().commitAssemblyPlacementCandidate();
+  }, [placementAssembly, workspaceMode]);
+
+  if (!canManuallyEditScene(workspaceMode) || placementAssembly === null) {
+    return null;
   }
 
   if (sceneViewMode === "elevation" && elevationPlacementSurfaceMatrix !== null) {
@@ -159,6 +175,15 @@ function createElevationPlacementFrame(args: {
       zInches: 0,
     },
     planeOriginInches: viewZone.faceCenterInches,
+    viewZoneInches: {
+      originInches: viewZone.faceCenterInches,
+      leftInches: viewZone.viewFrameLeftInches,
+      rightInches: viewZone.viewFrameRightInches,
+      nearDepthInches: -viewZone.behindFaceDepthInches,
+      farDepthInches: viewZone.depthInches,
+      bottomInches: 0,
+      topInches: viewZone.wallHeightInches,
+    },
   };
 }
 

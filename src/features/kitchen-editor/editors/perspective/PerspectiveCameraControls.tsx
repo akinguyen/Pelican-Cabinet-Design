@@ -11,7 +11,8 @@ import {
   SCENE_CAMERA_MOUSE_BUTTONS,
   SCENE_CAMERA_TOUCHES,
 } from "../shared/camera/sceneCameraControlSettings";
-import { useSceneFitFrame } from "../shared/camera/useSceneFitFrame";
+import type { SceneFitFrame } from "../shared/camera/cameraFit";
+import { getCurrentSceneFitFrame } from "../shared/camera/sceneFitFrame";
 
 const MIN_CAMERA_DISTANCE_INCHES = 20;
 const MAX_CAMERA_DISTANCE_INCHES = 420;
@@ -27,13 +28,9 @@ export function PerspectiveCameraControls() {
   const { camera } = useThree();
   const cameraCommand = useDesignSceneStore((state) => state.cameraCommand);
   const cameraState = useDesignSceneStore((state) => state.sceneCameraStates.perspective);
-  const updatePerspectiveCameraState = useDesignSceneStore((state) => state.updatePerspectiveCameraState);
-  const clearCameraCommand = useDesignSceneStore((state) => state.clearCameraCommand);
-  const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
+  const isSceneOperationActive = useDesignSceneStore((state) => state.designScene.activeSceneOperation !== null);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
-  const sceneFitFrame = useSceneFitFrame();
-
   useEffect(() => {
     applyPerspectiveCameraState(camera as PerspectiveCamera, controlsRef.current, cameraState);
   }, [camera, cameraState]);
@@ -54,12 +51,13 @@ export function PerspectiveCameraControls() {
     } else if (cameraCommand.tool === "zoom-out") {
       moveCameraTowardTarget(camera as PerspectiveCamera, controls, TOOLBAR_ZOOM_OUT_DISTANCE_SCALE);
     } else {
-      fitPerspectiveCameraToScene(camera as PerspectiveCamera, controls, sceneFitFrame);
+      fitPerspectiveCameraToScene(camera as PerspectiveCamera, controls, getCurrentSceneFitFrame());
     }
 
-    updatePerspectiveCameraState(readPerspectiveCameraState(camera as PerspectiveCamera, controls));
-    clearCameraCommand(cameraCommand.id);
-  }, [camera, cameraCommand, clearCameraCommand, sceneFitFrame, updatePerspectiveCameraState]);
+    const designSceneStore = useDesignSceneStore.getState();
+    designSceneStore.updatePerspectiveCameraState(readPerspectiveCameraState(camera as PerspectiveCamera, controls));
+    designSceneStore.clearCameraCommand(cameraCommand.id);
+  }, [camera, cameraCommand]);
 
   function handleControlsChange() {
     const controls = controlsRef.current;
@@ -68,15 +66,15 @@ export function PerspectiveCameraControls() {
       return;
     }
 
-    updatePerspectiveCameraState(readPerspectiveCameraState(camera as PerspectiveCamera, controls));
+    useDesignSceneStore.getState().updatePerspectiveCameraState(readPerspectiveCameraState(camera as PerspectiveCamera, controls));
   }
 
-  const isEditorOperationActive = activeSceneOperation !== null || activeToolbarTool !== null;
+  const isEditorOperationActive = isSceneOperationActive || activeToolbarTool !== null;
 
   return (
     <OrbitControls
       ref={controlsRef}
-      enabled={activeDrag === null && activeSceneOperation?.kind !== "countertop-opening-drag"}
+      enabled={activeDrag === null}
       makeDefault
       enableDamping
       dampingFactor={PERSPECTIVE_CAMERA_DAMPING_FACTOR}
@@ -151,7 +149,7 @@ function readPerspectiveCameraState(
 function fitPerspectiveCameraToScene(
   camera: PerspectiveCamera,
   controls: OrbitControlsImpl,
-  sceneFitFrame: ReturnType<typeof useSceneFitFrame>,
+  sceneFitFrame: SceneFitFrame,
 ): void {
   const { centerInches, sizeInches } = sceneFitFrame;
   const distanceInches = Math.min(

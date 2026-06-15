@@ -1,7 +1,7 @@
 "use client";
 
 import type { ThreeEvent } from "@react-three/fiber";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 
@@ -10,8 +10,6 @@ const ROTATION_SURFACE_SIZE_INCHES = 3200;
 export function AssemblyRotationSurface() {
   const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
-  const updateAssemblyRotationDrag = useDesignSceneStore((state) => state.updateAssemblyRotationDrag);
-  const finishAssemblyRotationDrag = useDesignSceneStore((state) => state.finishAssemblyRotationDrag);
   const rotationDrag = activeDrag?.kind === "assembly-rotation" ? activeDrag : null;
 
   useEffect(() => {
@@ -20,7 +18,7 @@ export function AssemblyRotationSurface() {
     }
 
     function handleWindowPointerUp() {
-      finishAssemblyRotationDrag();
+      useDesignSceneStore.getState().finishAssemblyRotationDrag();
     }
 
     window.addEventListener("pointerup", handleWindowPointerUp);
@@ -28,24 +26,28 @@ export function AssemblyRotationSurface() {
     return () => {
       window.removeEventListener("pointerup", handleWindowPointerUp);
     };
-  }, [finishAssemblyRotationDrag, rotationDrag, workspaceMode]);
+  }, [rotationDrag, workspaceMode]);
 
-  if (!canManuallyEditScene(workspaceMode) || rotationDrag === null) {
-    return null;
-  }
+  const handlePointerMove = useCallback((event: ThreeEvent<PointerEvent>) => {
+    if (!canManuallyEditScene(workspaceMode) || rotationDrag === null) {
+      return;
+    }
 
-  function handlePointerMove(event: ThreeEvent<PointerEvent>) {
     event.stopPropagation();
-    updateAssemblyRotationDrag({
+    useDesignSceneStore.getState().updateAssemblyRotationDrag({
       xInches: event.point.x,
       yInches: event.point.y,
       zInches: 0,
     });
-  }
+  }, [rotationDrag, workspaceMode]);
 
-  function handlePointerUp(event: ThreeEvent<PointerEvent>) {
+  const handlePointerUp = useCallback((event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
-    finishAssemblyRotationDrag();
+    useDesignSceneStore.getState().finishAssemblyRotationDrag();
+  }, []);
+
+  if (!canManuallyEditScene(workspaceMode) || rotationDrag === null) {
+    return null;
   }
 
   return (

@@ -53,7 +53,6 @@ export function createAssemblyPlacementActions(
         placedAssembly: proposedPlacedAssembly,
         placedWallGraphs: designScene.placedWallGraphs,
         placedAssemblies: designScene.placedAssemblies,
-        countertopOpenings: designScene.countertopOpenings,
         movingAssemblyId: proposedPlacedAssembly.id,
         snapContext: { movementSource: sceneViewMode, elevationMoveFrame },
       });

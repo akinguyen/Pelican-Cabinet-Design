@@ -26,7 +26,7 @@ import {
   SCENE_CAMERA_MOUSE_BUTTONS,
   SCENE_CAMERA_TOUCHES,
 } from "../shared/camera/sceneCameraControlSettings";
-import { useSceneFitFrame } from "../shared/camera/useSceneFitFrame";
+import { getCurrentSceneFitFrame } from "../shared/camera/sceneFitFrame";
 
 const MIN_ELEVATION_ZOOM = 1;
 const MAX_ELEVATION_ZOOM = 12;
@@ -49,14 +49,11 @@ export function ElevationCameraControls() {
   const { camera, size } = useThree();
   const cameraCommand = useDesignSceneStore((state) => state.cameraCommand);
   const sceneCameraStates = useDesignSceneStore((state) => state.sceneCameraStates);
-  const updateElevationCameraState = useDesignSceneStore((state) => state.updateElevationCameraState);
-  const clearCameraCommand = useDesignSceneStore((state) => state.clearCameraCommand);
   const placedWallGraphs = useDesignSceneStore((state) => state.designScene.placedWallGraphs);
-  const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
+  const isSceneOperationActive = useDesignSceneStore((state) => state.designScene.activeSceneOperation !== null);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
   const activeWallElevationTarget = useDesignSceneStore((state) => state.activeWallElevationTarget);
-  const sceneFitFrame = useSceneFitFrame();
   const activeElevationViewZone = useMemo(
     () => getWallElevationViewZoneForTarget({
       placedWallGraphs,
@@ -89,7 +86,6 @@ export function ElevationCameraControls() {
       sceneCameraStates,
       activeElevationCameraFrame,
       activeElevationViewKey,
-      sceneFitFrame,
     });
 
     applyElevationCameraState({
@@ -98,7 +94,7 @@ export function ElevationCameraControls() {
       cameraState: nextCameraState,
       cameraFrame: activeElevationCameraFrame,
     });
-    updateElevationCameraState(nextCameraState);
+    useDesignSceneStore.getState().updateElevationCameraState(nextCameraState);
     activeElevationFrameKeyRef.current = activeElevationFrameKey;
   }, [camera]);
 
@@ -111,7 +107,6 @@ export function ElevationCameraControls() {
       sceneCameraStates,
       activeElevationCameraFrame,
       activeElevationViewKey,
-      sceneFitFrame,
     });
 
     applyElevationCameraState({
@@ -120,7 +115,7 @@ export function ElevationCameraControls() {
       cameraState: nextCameraState,
       cameraFrame: activeElevationCameraFrame,
     });
-    updateElevationCameraState(nextCameraState);
+    useDesignSceneStore.getState().updateElevationCameraState(nextCameraState);
     activeElevationFrameKeyRef.current = activeElevationFrameKey;
   }, [
     activeElevationCameraFrame,
@@ -128,8 +123,6 @@ export function ElevationCameraControls() {
     activeElevationViewKey,
     camera,
     sceneCameraStates,
-    sceneFitFrame,
-    updateElevationCameraState,
   ]);
 
   useEffect(() => {
@@ -166,7 +159,6 @@ export function ElevationCameraControls() {
       nextCameraState = createElevationCameraState({
         activeElevationCameraFrame,
         elevationViewKey: activeElevationViewKey,
-        sceneFitFrame,
       });
       applyElevationCameraState({
         camera: camera as OrthographicCamera,
@@ -176,17 +168,14 @@ export function ElevationCameraControls() {
       });
     }
 
-    updateElevationCameraState(nextCameraState);
-    clearCameraCommand(cameraCommand.id);
+    const designSceneStore = useDesignSceneStore.getState();
+    designSceneStore.updateElevationCameraState(nextCameraState);
+    designSceneStore.clearCameraCommand(cameraCommand.id);
   }, [
     activeElevationCameraFrame,
-    activeElevationFrameKey,
     activeElevationViewKey,
     camera,
     cameraCommand,
-    clearCameraCommand,
-    sceneFitFrame,
-    updateElevationCameraState,
   ]);
 
   function handleControlsChange() {
@@ -196,14 +185,14 @@ export function ElevationCameraControls() {
       return;
     }
 
-    updateElevationCameraState(readElevationCameraState({
+    useDesignSceneStore.getState().updateElevationCameraState(readElevationCameraState({
       camera: camera as OrthographicCamera,
       controls,
       elevationViewKey: activeElevationViewKey,
     }));
   }
 
-  const isEditorOperationActive = activeSceneOperation !== null || activeToolbarTool !== null;
+  const isEditorOperationActive = isSceneOperationActive || activeToolbarTool !== null;
   const hasLockedWallFaceFrame = activeElevationCameraFrame !== null;
   const allowCameraPan = !hasLockedWallFaceFrame && !isEditorOperationActive;
   const allowCameraZoom = !hasLockedWallFaceFrame && !isEditorOperationActive;
@@ -211,7 +200,7 @@ export function ElevationCameraControls() {
   return (
     <OrbitControls
       ref={controlsRef}
-      enabled={activeDrag === null && !hasLockedWallFaceFrame && activeSceneOperation?.kind !== "countertop-opening-drag"}
+      enabled={activeDrag === null && !hasLockedWallFaceFrame}
       makeDefault
       enableRotate={false}
       enablePan={allowCameraPan}
@@ -234,7 +223,6 @@ function getNextElevationCameraState(args: {
   sceneCameraStates: SceneCameraStates;
   activeElevationCameraFrame: WallElevationCameraFrame | null;
   activeElevationViewKey: string | null;
-  sceneFitFrame: SceneFitFrame;
 }): ElevationCameraState {
   if (args.activeElevationCameraFrame !== null) {
     return createElevationCameraStateForWallFace({
@@ -252,17 +240,12 @@ function getNextElevationCameraState(args: {
     return storedCameraState;
   }
 
-  return createElevationCameraState({
-    activeElevationCameraFrame: args.activeElevationCameraFrame,
-    elevationViewKey: args.activeElevationViewKey,
-    sceneFitFrame: args.sceneFitFrame,
-  });
+  return createElevationCameraStateForSceneFit(getCurrentSceneFitFrame());
 }
 
 function createElevationCameraState(args: {
   activeElevationCameraFrame: WallElevationCameraFrame | null;
   elevationViewKey: string | null;
-  sceneFitFrame: SceneFitFrame;
 }): ElevationCameraState {
   if (args.activeElevationCameraFrame !== null) {
     return createElevationCameraStateForWallFace({
@@ -271,7 +254,7 @@ function createElevationCameraState(args: {
     });
   }
 
-  return createElevationCameraStateForSceneFit(args.sceneFitFrame);
+  return createElevationCameraStateForSceneFit(getCurrentSceneFitFrame());
 }
 
 function createElevationCameraStateForWallFace(args: {

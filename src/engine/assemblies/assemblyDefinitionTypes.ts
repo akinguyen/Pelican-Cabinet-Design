@@ -1,6 +1,7 @@
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import type { AssemblyComponent } from "./assemblyComponentTypes";
 import type { AssemblyOptionValue } from "./assemblyConfiguration";
+import type { AssemblyCutoutBehavior } from "./assemblyCutoutBehaviorTypes";
 
 export type AssemblyBuildContext = Readonly<{
   sizeInches: Size3DInches;
@@ -12,6 +13,7 @@ export type AssemblyDefinition = Readonly<{
   name: string;
   catalogCategoryId: string;
   defaultDistanceFromFloorInches?: number;
+  cutoutBehavior?: AssemblyCutoutBehavior;
   dimensions: AssemblyDimensionDefinition;
   optionGroups: readonly AssemblyOptionGroup[];
   build: (context: AssemblyBuildContext) => readonly AssemblyComponent[];

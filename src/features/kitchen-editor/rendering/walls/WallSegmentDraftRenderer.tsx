@@ -1,16 +1,27 @@
 "use client";
 
+import { useMemo } from "react";
 import { Html, Line } from "@react-three/drei";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { BuiltWallSegmentBody } from "@/engine/walls/connectedWallGeometryTypes";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
-import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
 import type { WallSegmentDraftPreviewGraph } from "@/engine/walls/segment-draft/wallSegmentDraftPreview";
 import { getWallSegmentAnchorPoint } from "@/engine/walls/segment-draft/wallSegmentDraftAnchors";
 import type { WallSegmentDraft } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
 import { getWallSegmentEndpointPoint } from "@/engine/walls/wallSegmentGeometry";
 import { PlanMeasurementLine } from "../shared/PlanMeasurementLine";
 import { formatFeetInchesLabel } from "../../shared/formatFeetInchesLabel";
+import {
+  convertDegreesToRadians,
+  getNormalizedPlanDirection,
+  getPlanDirectionAngleDegrees,
+  getPlanDistanceInches,
+  getPlanMidpoint,
+  getReadablePlanLabelRotationDegrees,
+  normalizeDegrees,
+  offsetPlanPoint,
+  type PlanDirection,
+} from "./guides/wallPlanGuideGeometry";
 import { WallAnchorRing } from "./WallAnchorRing";
 import { wallSegmentRenderColors } from "./wallSegmentRenderColors";
 
@@ -35,11 +46,7 @@ type WallSegmentDraftRendererProps = Readonly<{
   draft: WallSegmentDraft | null;
   placedWallGraphs: readonly PlacedWallGraph[];
   previewGraph: WallSegmentDraftPreviewGraph | null;
-}>;
-
-type PlanDirection = Readonly<{
-  xInches: number;
-  yInches: number;
+  previewSegmentBodiesByWallGraphId: ReadonlyMap<string, readonly BuiltWallSegmentBody[]>;
 }>;
 
 type DraftAngleGuide = Readonly<{
@@ -58,12 +65,17 @@ export function WallSegmentDraftRenderer({
   draft,
   placedWallGraphs,
   previewGraph,
+  previewSegmentBodiesByWallGraphId,
 }: WallSegmentDraftRendererProps) {
+  const wallGraphById = useMemo(() => buildWallGraphById(placedWallGraphs), [placedWallGraphs]);
+  const previewBody = useMemo(() => findPreviewSegmentBody({
+    previewGraph,
+    previewSegmentBodiesByWallGraphId,
+  }), [previewGraph, previewSegmentBodiesByWallGraphId]);
+
   if (draft === null) {
     return null;
   }
-
-  const previewBody = findPreviewSegmentBody(previewGraph);
   const startPointInches = draft.activeStartAnchor === null
     ? null
     : getWallSegmentAnchorPoint(draft.activeStartAnchor);
@@ -79,7 +91,7 @@ export function WallSegmentDraftRenderer({
     ? null
     : createDraftAngleGuide({
       draft,
-      placedWallGraphs,
+      wallGraphById,
       startPointInches,
       hoverPointInches,
     });
@@ -118,20 +130,17 @@ export function WallSegmentDraftRenderer({
   );
 }
 
-function findPreviewSegmentBody(previewGraph: WallSegmentDraftPreviewGraph | null): BuiltWallSegmentBody | null {
-  if (previewGraph === null) {
+function findPreviewSegmentBody(args: {
+  previewGraph: WallSegmentDraftPreviewGraph | null;
+  previewSegmentBodiesByWallGraphId: ReadonlyMap<string, readonly BuiltWallSegmentBody[]>;
+}): BuiltWallSegmentBody | null {
+  if (args.previewGraph === null) {
     return null;
   }
 
-  for (const wallGraphId of previewGraph.previewWallGraphIds) {
-    const wallGraph = previewGraph.placedWallGraphs.find((candidate) => candidate.id === wallGraphId);
-
-    if (wallGraph === undefined) {
-      continue;
-    }
-
-    const previewBody = buildConnectedWallGeometry(wallGraph).segmentBodies.find((segmentBody) => (
-      segmentBody.wallSegmentId === previewGraph.previewWallSegmentId
+  for (const wallGraphId of args.previewGraph.previewWallGraphIds) {
+    const previewBody = (args.previewSegmentBodiesByWallGraphId.get(wallGraphId) ?? []).find((segmentBody) => (
+      segmentBody.wallSegmentId === args.previewGraph?.previewWallSegmentId
     ));
 
     if (previewBody !== undefined) {
@@ -140,6 +149,12 @@ function findPreviewSegmentBody(previewGraph: WallSegmentDraftPreviewGraph | nul
   }
 
   return null;
+}
+
+function buildWallGraphById(
+  placedWallGraphs: readonly PlacedWallGraph[],
+): ReadonlyMap<string, PlacedWallGraph> {
+  return new Map(placedWallGraphs.map((wallGraph) => [wallGraph.id, wallGraph]));
 }
 
 function getDraftAnchorRingPoints(args: {
@@ -242,7 +257,7 @@ function WallDraftMeasurementLabel({
     <PlanMeasurementLine
       startPointInches={measurementStartPointInches}
       endPointInches={measurementEndPointInches}
-      labelPointInches={getMidpoint(measurementStartPointInches, measurementEndPointInches)}
+      labelPointInches={getPlanMidpoint(measurementStartPointInches, measurementEndPointInches)}
       label={formatFeetInchesLabel(lengthInches)}
       labelRotationDegrees={rotationDegrees}
       zInches={DRAFT_MEASUREMENT_Z_INCHES}
@@ -258,19 +273,7 @@ function offsetDraftMeasurementPoint(
   pointInches: Point3DInches,
   direction: PlanDirection,
 ): Point3DInches {
-  return {
-    xInches: pointInches.xInches + direction.xInches * DRAFT_MEASUREMENT_OFFSET_INCHES,
-    yInches: pointInches.yInches + direction.yInches * DRAFT_MEASUREMENT_OFFSET_INCHES,
-    zInches: 0,
-  };
-}
-
-function getMidpoint(firstPointInches: Point3DInches, secondPointInches: Point3DInches): Point3DInches {
-  return {
-    xInches: (firstPointInches.xInches + secondPointInches.xInches) / 2,
-    yInches: (firstPointInches.yInches + secondPointInches.yInches) / 2,
-    zInches: (firstPointInches.zInches + secondPointInches.zInches) / 2,
-  };
+  return offsetPlanPoint(pointInches, direction, DRAFT_MEASUREMENT_OFFSET_INCHES, 0);
 }
 
 function WallDraftAngleGuide({
@@ -318,7 +321,7 @@ function WallDraftAngleGuideLabel({
 
 function createDraftAngleGuide(args: {
   draft: WallSegmentDraft;
-  placedWallGraphs: readonly PlacedWallGraph[];
+  wallGraphById: ReadonlyMap<string, PlacedWallGraph>;
   startPointInches: Point3DInches;
   hoverPointInches: Point3DInches;
 }): DraftAngleGuide | null {
@@ -331,14 +334,14 @@ function createDraftAngleGuide(args: {
   const draftLengthInches = getPlanDistanceInches(args.startPointInches, args.hoverPointInches);
   const referenceDirection = findReferenceDirectionFromStartAnchor({
     draft: args.draft,
-    placedWallGraphs: args.placedWallGraphs,
+    wallGraphById: args.wallGraphById,
     startPointInches: args.startPointInches,
   });
   const radiusInches = Math.min(
     ANGLE_GUIDE_MAX_RADIUS_INCHES,
     Math.max(ANGLE_GUIDE_MIN_RADIUS_INCHES, draftLengthInches * ANGLE_GUIDE_RADIUS_LENGTH_RATIO),
   );
-  const draftAngleDegrees = getDirectionAngleDegrees(draftDirection);
+  const draftAngleDegrees = getPlanDirectionAngleDegrees(draftDirection);
 
   if (referenceDirection === null) {
     return {
@@ -359,7 +362,7 @@ function createDraftAngleGuide(args: {
     };
   }
 
-  const referenceAngleDegrees = getDirectionAngleDegrees(referenceDirection);
+  const referenceAngleDegrees = getPlanDirectionAngleDegrees(referenceDirection);
   const draftAngleFromReferenceDegrees = normalizeDegrees(draftAngleDegrees - referenceAngleDegrees);
   const innerAngleDegrees = Math.round(Math.min(
     draftAngleFromReferenceDegrees,
@@ -393,7 +396,7 @@ function createDraftAngleGuide(args: {
 
 function findReferenceDirectionFromStartAnchor(args: {
   draft: WallSegmentDraft;
-  placedWallGraphs: readonly PlacedWallGraph[];
+  wallGraphById: ReadonlyMap<string, PlacedWallGraph>;
   startPointInches: Point3DInches;
 }): PlanDirection | null {
   const activeStartAnchor = args.draft.activeStartAnchor;
@@ -403,7 +406,7 @@ function findReferenceDirectionFromStartAnchor(args: {
   }
 
   if (activeStartAnchor.kind === "existing-node") {
-    const wallGraph = args.placedWallGraphs.find((candidate) => candidate.id === activeStartAnchor.wallGraphId);
+    const wallGraph = args.wallGraphById.get(activeStartAnchor.wallGraphId);
     const connectedWallSegment = wallGraph?.segments.find((wallSegment) => (
       wallSegment.startNodeId === activeStartAnchor.wallNodeId || wallSegment.endNodeId === activeStartAnchor.wallNodeId
     ));
@@ -423,7 +426,7 @@ function findReferenceDirectionFromStartAnchor(args: {
   }
 
   if (activeStartAnchor.kind === "segment-body") {
-    const wallGraph = args.placedWallGraphs.find((candidate) => candidate.id === activeStartAnchor.wallGraphId);
+    const wallGraph = args.wallGraphById.get(activeStartAnchor.wallGraphId);
     const wallSegment = wallGraph?.segments.find((candidate) => candidate.id === activeStartAnchor.wallSegmentId);
 
     if (wallGraph === undefined || wallSegment === undefined) {
@@ -477,51 +480,3 @@ function createCirclePoints(args: {
   });
 }
 
-function getNormalizedPlanDirection(
-  startPointInches: Point3DInches,
-  endPointInches: Point3DInches,
-): PlanDirection | null {
-  const deltaXInches = endPointInches.xInches - startPointInches.xInches;
-  const deltaYInches = endPointInches.yInches - startPointInches.yInches;
-  const lengthInches = Math.hypot(deltaXInches, deltaYInches);
-
-  if (lengthInches <= 0.000001) {
-    return null;
-  }
-
-  return {
-    xInches: deltaXInches / lengthInches,
-    yInches: deltaYInches / lengthInches,
-  };
-}
-
-function getDirectionAngleDegrees(direction: PlanDirection): number {
-  return (Math.atan2(direction.yInches, direction.xInches) * 180) / Math.PI;
-}
-
-function getPlanDistanceInches(firstPointInches: Point3DInches, secondPointInches: Point3DInches): number {
-  return Math.hypot(
-    secondPointInches.xInches - firstPointInches.xInches,
-    secondPointInches.yInches - firstPointInches.yInches,
-  );
-}
-
-function normalizeDegrees(degrees: number): number {
-  return ((degrees % 360) + 360) % 360;
-}
-
-function getReadablePlanLabelRotationDegrees(rotationDegrees: number): number {
-  let normalizedDegrees = normalizeDegrees(rotationDegrees);
-
-  if (normalizedDegrees > 90 && normalizedDegrees <= 270) {
-    normalizedDegrees += 180;
-  }
-
-  normalizedDegrees = normalizeDegrees(normalizedDegrees);
-
-  return normalizedDegrees > 180 ? normalizedDegrees - 360 : normalizedDegrees;
-}
-
-function convertDegreesToRadians(degrees: number): number {
-  return (degrees * Math.PI) / 180;
-}

@@ -6,6 +6,7 @@ import type {
   AssemblyOptionDefinition,
   AssemblyOptionGroup,
 } from "../assemblyDefinitionTypes";
+import type { AssemblyCutoutBehavior } from "../assemblyCutoutBehaviorTypes";
 import type { RawAssemblyDefinition } from "./rawAssemblyDefinitionTypes";
 import { parseComponents } from "./rawAssemblyDefinitionComponentParsers";
 import {
@@ -54,6 +55,7 @@ export function parseRawAssemblyDefinition(
     "name",
     "catalogCategoryId",
     "defaultDistanceFromFloorInches",
+    "cutoutBehavior",
     "dimensions",
     "optionGroups",
     "components",
@@ -64,6 +66,9 @@ export function parseRawAssemblyDefinition(
     sourceLabel,
     "definition.defaultDistanceFromFloorInches",
   );
+  const cutoutBehavior = rawDefinition.cutoutBehavior === undefined
+    ? undefined
+    : parseCutoutBehavior(rawDefinition.cutoutBehavior, sourceLabel, "definition.cutoutBehavior");
 
   return {
     id: readString(rawDefinition, sourceLabel, "definition.id"),
@@ -76,6 +81,7 @@ export function parseRawAssemblyDefinition(
     ...(defaultDistanceFromFloorInches === undefined
       ? {}
       : { defaultDistanceFromFloorInches }),
+    ...(cutoutBehavior === undefined ? {} : { cutoutBehavior }),
     dimensions: parseDimensions(
       rawDefinition.dimensions,
       sourceLabel,
@@ -91,6 +97,104 @@ export function parseRawAssemblyDefinition(
       sourceLabel,
       "definition.components",
     ),
+  };
+}
+
+
+function parseCutoutBehavior(
+  value: unknown,
+  sourceLabel: string,
+  path: string,
+): AssemblyCutoutBehavior {
+  const cutoutBehavior = readRecord(value, sourceLabel, path);
+  assertKnownKeys(cutoutBehavior, sourceLabel, path, ["countertop", "wall"]);
+
+  return {
+    ...(cutoutBehavior.countertop === undefined
+      ? {}
+      : {
+          countertop: parseCountertopCutoutBehavior(
+            cutoutBehavior.countertop,
+            sourceLabel,
+            `${path}.countertop`,
+          ),
+        }),
+    ...(cutoutBehavior.wall === undefined
+      ? {}
+      : {
+          wall: parseWallCutoutBehavior(
+            cutoutBehavior.wall,
+            sourceLabel,
+            `${path}.wall`,
+          ),
+        }),
+  };
+}
+
+function parseCountertopCutoutBehavior(
+  value: unknown,
+  sourceLabel: string,
+  path: string,
+): NonNullable<AssemblyCutoutBehavior["countertop"]> {
+  const countertopBehavior = readRecord(value, sourceLabel, path);
+  assertKnownKeys(countertopBehavior, sourceLabel, path, [
+    "source",
+    "widthInches",
+    "depthInches",
+    "localOffsetInches",
+  ]);
+  const localOffsetInches = countertopBehavior.localOffsetInches === undefined
+    ? undefined
+    : parseCountertopCutoutLocalOffsetInches(
+        countertopBehavior.localOffsetInches,
+        sourceLabel,
+        `${path}.localOffsetInches`,
+      );
+
+  return {
+    source: readEnumValue(
+      countertopBehavior.source,
+      sourceLabel,
+      `${path}.source`,
+      ["cutout-body-rectangle"] as const,
+    ),
+    widthInches: readNumber(countertopBehavior, sourceLabel, `${path}.widthInches`),
+    depthInches: readNumber(countertopBehavior, sourceLabel, `${path}.depthInches`),
+    ...(localOffsetInches === undefined ? {} : { localOffsetInches }),
+  };
+}
+
+function parseCountertopCutoutLocalOffsetInches(
+  value: unknown,
+  sourceLabel: string,
+  path: string,
+): NonNullable<NonNullable<AssemblyCutoutBehavior["countertop"]>["localOffsetInches"]> {
+  const localOffsetInches = readRecord(value, sourceLabel, path);
+  assertKnownKeys(localOffsetInches, sourceLabel, path, ["xInches", "yInches"]);
+
+  return {
+    xInches: readNumber(localOffsetInches, sourceLabel, `${path}.xInches`),
+    yInches: readNumber(localOffsetInches, sourceLabel, `${path}.yInches`),
+  };
+}
+
+function parseWallCutoutBehavior(
+  value: unknown,
+  sourceLabel: string,
+  path: string,
+): NonNullable<AssemblyCutoutBehavior["wall"]> {
+  const wallBehavior = readRecord(value, sourceLabel, path);
+  assertKnownKeys(wallBehavior, sourceLabel, path, ["source", "insetInches"]);
+  const insetInches = readOptionalNumber(wallBehavior, sourceLabel, `${path}.insetInches`);
+
+  return {
+    source: readEnumValue(
+      wallBehavior.source,
+      sourceLabel,
+      `${path}.source`,
+      ["elevation-projection"] as const,
+    ),
+    ...(insetInches === undefined ? {} : { insetInches }),
   };
 }
 

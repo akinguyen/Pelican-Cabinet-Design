@@ -58,6 +58,7 @@ type WallGridCell = Readonly<{
 export function createWallSegmentGeometry(args: {
   segmentBody: BuiltWallSegmentBody;
   openings: readonly WallOpening[];
+  edgeSegmentOpenings?: readonly WallOpening[];
 }): WallSegmentGeometryResult {
   if (args.openings.length === 0) {
     return {
@@ -69,7 +70,11 @@ export function createWallSegmentGeometry(args: {
     };
   }
 
-  return createWallSegmentGeometryWithOpenings(args.segmentBody, args.openings);
+  return createWallSegmentGeometryWithOpenings({
+    segmentBody: args.segmentBody,
+    openings: args.openings,
+    edgeSegmentOpenings: args.edgeSegmentOpenings ?? args.openings,
+  });
 }
 
 export function createExtrudedWallGeometry(
@@ -84,10 +89,12 @@ export function createExtrudedWallGeometry(
   });
 }
 
-function createWallSegmentGeometryWithOpenings(
-  segmentBody: BuiltWallSegmentBody,
-  openings: readonly WallOpening[],
-): WallSegmentGeometryResult {
+function createWallSegmentGeometryWithOpenings(args: {
+  segmentBody: BuiltWallSegmentBody;
+  openings: readonly WallOpening[];
+  edgeSegmentOpenings: readonly WallOpening[];
+}): WallSegmentGeometryResult {
+  const { segmentBody, openings } = args;
   const wallGridAxesInches = createWallOpeningGridAxes(segmentBody, openings);
 
   if (wallGridAxesInches === null) {
@@ -162,7 +169,12 @@ function createWallSegmentGeometryWithOpenings(
 
   return {
     geometry,
-    openingEdgeSegmentsInches: createOpeningBoundaryEdgeSegments({ cellGrid }),
+    openingEdgeSegmentsInches: createManualOpeningBoundaryEdgeSegments({
+      segmentBody,
+      openings: args.edgeSegmentOpenings,
+      originInches: wallGridAxesInches.originInches,
+      wallDirectionInches: wallGridAxesInches.wallDirectionInches,
+    }),
   };
 }
 
@@ -394,6 +406,42 @@ function addSolidCellFaces(args: {
   if (!isSolidCell(args.cellGrid, args.cell.uIndex + 1, args.cell.zIndex)) {
     addQuad(args.triangles, lowEndBottom, highEndBottom, highEndTop, lowEndTop);
   }
+}
+
+
+function createManualOpeningBoundaryEdgeSegments(args: {
+  segmentBody: BuiltWallSegmentBody;
+  openings: readonly WallOpening[];
+  originInches: Point3DInches;
+  wallDirectionInches: WallDirectionInches;
+}): readonly PrimitiveEdgeSegmentInches[] {
+  if (args.openings.length === 0) {
+    return [];
+  }
+
+  const normalizedOpenings = args.openings
+    .map((opening) => normalizeOpening({
+      segmentBody: args.segmentBody,
+      opening,
+      originInches: args.originInches,
+      wallDirectionInches: args.wallDirectionInches,
+    }))
+    .filter(isNormalizedWallOpening);
+
+  if (normalizedOpenings.length === 0) {
+    return [];
+  }
+
+  const cellGrid = createWallCellGrid({
+    segmentBody: args.segmentBody,
+    wallHeightInches: args.segmentBody.heightInches,
+    originInches: args.originInches,
+    wallDirectionInches: args.wallDirectionInches,
+    normalDirectionInches: createPerpendicularDirection(args.wallDirectionInches),
+    openings: normalizedOpenings,
+  });
+
+  return cellGrid === null ? [] : createOpeningBoundaryEdgeSegments({ cellGrid });
 }
 
 function createOpeningBoundaryEdgeSegments(args: {

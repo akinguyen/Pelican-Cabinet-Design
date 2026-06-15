@@ -1,10 +1,12 @@
 "use client";
 
 import { Line } from "@react-three/drei";
-import { useMemo } from "react";
+import type { ThreeEvent } from "@react-three/fiber";
+import { memo, useCallback, useMemo } from "react";
 import { DoubleSide, Shape, ShapeGeometry } from "three";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { WallElevationViewZone } from "@/engine/walls/wallElevationViewZone";
+import { useDisposableGeometry } from "../shared/useDisposableGeometry";
 
 const VIEW_ZONE_Z_OFFSET_INCHES = 2.4;
 const VIEW_ZONE_RENDER_ORDER = 70;
@@ -13,21 +15,38 @@ const VIEW_ZONE_FILL_OPACITY = 0.08;
 const VIEW_ZONE_STROKE_COLOR = "#ef4444";
 const VIEW_ZONE_STROKE_WIDTH_PIXELS = 2;
 
-export function WallElevationViewZoneOverlay({
+export const WallElevationViewZoneOverlay = memo(function WallElevationViewZoneOverlay({
   viewZone,
+  onPointerDown,
 }: Readonly<{
   viewZone: WallElevationViewZone;
+  onPointerDown?: () => void;
 }>) {
   const geometry = useMemo(
     () => createViewZoneGeometry(viewZone.floorPlanPolygonInches),
     [viewZone.floorPlanPolygonInches],
   );
-  const outlinePoints = createClosedLinePoints(viewZone.floorPlanPolygonInches);
+  useDisposableGeometry(geometry);
+
+  const outlinePoints = useMemo(
+    () => createClosedLinePoints(viewZone.floorPlanPolygonInches),
+    [viewZone.floorPlanPolygonInches],
+  );
+  const handlePointerDown = useCallback((event: ThreeEvent<PointerEvent>) => {
+    if (onPointerDown === undefined) {
+      return;
+    }
+
+    event.stopPropagation();
+    onPointerDown();
+  }, [onPointerDown]);
+
   return (
     <group renderOrder={VIEW_ZONE_RENDER_ORDER}>
       <mesh
         geometry={geometry}
         renderOrder={VIEW_ZONE_RENDER_ORDER}
+        onPointerDown={handlePointerDown}
       >
         <meshBasicMaterial
           color={VIEW_ZONE_FILL_COLOR}
@@ -47,7 +66,7 @@ export function WallElevationViewZoneOverlay({
       />
     </group>
   );
-}
+});
 
 function createViewZoneGeometry(polygonInches: readonly Point3DInches[]): ShapeGeometry {
   const shape = new Shape();

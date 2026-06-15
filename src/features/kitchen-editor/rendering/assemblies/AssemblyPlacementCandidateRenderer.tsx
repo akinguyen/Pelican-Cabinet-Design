@@ -1,26 +1,31 @@
 "use client";
 
+import { useMemo } from "react";
 import { buildAssemblyTree } from "@/engine/assemblies/assemblyTreeBuilder";
-import type { SceneOperation } from "@/engine/scene/sceneOperationTypes";
+import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
 import { AssemblyRenderer } from "./AssemblyRenderer";
 
 type AssemblyPlacementCandidateRendererProps = Readonly<{
-  activeSceneOperation: SceneOperation | null;
+  candidateAssembly: PlacedAssembly | null;
   showFrontOutlineLines: boolean;
 }>;
 
 export function AssemblyPlacementCandidateRenderer({
-  activeSceneOperation,
+  candidateAssembly,
   showFrontOutlineLines,
 }: AssemblyPlacementCandidateRendererProps) {
-  if (activeSceneOperation?.kind !== "assembly-placement" || activeSceneOperation.placementState !== "positioned") {
+  const builtAssemblyTree = useMemo(() => candidateAssembly === null
+    ? null
+    : buildAssemblyTree(candidateAssembly, kitchenEditorCatalogRegistry), [candidateAssembly]);
+
+  if (builtAssemblyTree === null) {
     return null;
   }
 
   return (
     <AssemblyRenderer
-      builtAssemblyTree={buildAssemblyTree(activeSceneOperation.placedAssembly, kitchenEditorCatalogRegistry)}
+      builtAssemblyTree={builtAssemblyTree}
       renderState="candidate"
       showFrontOutlineLines={showFrontOutlineLines}
     />

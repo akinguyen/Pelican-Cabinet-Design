@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import type { PlacedWallNode } from "@/engine/walls/placedWallNodeTypes";
 import type { PlacedWallSegment } from "@/engine/walls/placedWallSegmentTypes";
 import {
@@ -17,20 +18,23 @@ type WallSegmentPropertiesPanelProps = Readonly<{
 }>;
 
 export function WallSegmentPropertiesPanel({ wallSegment, wallGraphNodes }: WallSegmentPropertiesPanelProps) {
-  const updateSelectedWallSegmentHeight = useDesignSceneStore(
-    (state) => state.updateSelectedWallSegmentHeight,
-  );
-  const updateSelectedWallSegmentThickness = useDesignSceneStore(
-    (state) => state.updateSelectedWallSegmentThickness,
-  );
-  const deleteSelectedWallSegment = useDesignSceneStore(
-    (state) => state.deleteSelectedWallSegment,
-  );
-  const startPointInches = getWallSegmentEndpointPoint(wallGraphNodes, wallSegment.startNodeId);
-  const endPointInches = getWallSegmentEndpointPoint(wallGraphNodes, wallSegment.endNodeId);
-  const lengthInches = startPointInches !== null && endPointInches !== null
-    ? getPlanDistanceInches(startPointInches, endPointInches)
-    : 0;
+  const handleHeightChange = useCallback((heightInches: number) => {
+    useDesignSceneStore.getState().updateSelectedWallSegmentHeight(heightInches);
+  }, []);
+  const handleThicknessChange = useCallback((thicknessInches: number) => {
+    useDesignSceneStore.getState().updateSelectedWallSegmentThickness(thicknessInches);
+  }, []);
+  const handleDelete = useCallback(() => {
+    useDesignSceneStore.getState().deleteSelectedWallSegment();
+  }, []);
+  const lengthInches = useMemo(() => {
+    const startPointInches = getWallSegmentEndpointPoint(wallGraphNodes, wallSegment.startNodeId);
+    const endPointInches = getWallSegmentEndpointPoint(wallGraphNodes, wallSegment.endNodeId);
+
+    return startPointInches !== null && endPointInches !== null
+      ? getPlanDistanceInches(startPointInches, endPointInches)
+      : 0;
+  }, [wallGraphNodes, wallSegment.endNodeId, wallSegment.startNodeId]);
 
   return (
     <div className="space-y-4">
@@ -50,14 +54,14 @@ export function WallSegmentPropertiesPanel({ wallSegment, wallGraphNodes }: Wall
             value={wallSegment.heightInches}
             min={1}
             step={1}
-            onChange={updateSelectedWallSegmentHeight}
+            onChange={handleHeightChange}
           />
           <PropertyNumberField
             label="Thickness"
             value={wallSegment.thicknessInches}
             min={1}
             step={1}
-            onChange={updateSelectedWallSegmentThickness}
+            onChange={handleThicknessChange}
           />
         </div>
       </PropertySection>
@@ -65,7 +69,7 @@ export function WallSegmentPropertiesPanel({ wallSegment, wallGraphNodes }: Wall
       <button
         type="button"
         className="w-full rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
-        onClick={deleteSelectedWallSegment}
+        onClick={handleDelete}
       >
         Delete wall segment
       </button>

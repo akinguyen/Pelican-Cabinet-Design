@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import { Html, Line } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
 import type { AssemblyPlacementFootprint } from "@/engine/assemblies/placement/assemblyPlacementTypes";
@@ -22,7 +23,6 @@ export function AssemblyFloorPlanRotationControl({
   footprint: AssemblyPlacementFootprint;
 }>) {
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
-  const startAssemblyRotationDrag = useDesignSceneStore((state) => state.startAssemblyRotationDrag);
   const activeRotationDrag = activeDrag?.kind === "assembly-rotation" && activeDrag.assemblyId === placedAssembly.id
     ? activeDrag
     : null;
@@ -32,13 +32,13 @@ export function AssemblyFloorPlanRotationControl({
     placedAssembly.configuration.sizeInches.depthInches,
   ) / 2 + ROTATION_RING_EXTRA_RADIUS_INCHES;
 
-  function handlePointerDown(event: ThreeEvent<PointerEvent>) {
+  const handlePointerDown = useCallback((event: ThreeEvent<PointerEvent>) => {
     if (event.button !== 0) {
       return;
     }
 
     event.stopPropagation();
-    startAssemblyRotationDrag({
+    useDesignSceneStore.getState().startAssemblyRotationDrag({
       assemblyId: placedAssembly.id,
       centerPointInches: footprint.centerPointInches,
       pointerWorldInches: {
@@ -47,7 +47,7 @@ export function AssemblyFloorPlanRotationControl({
         zInches: 0,
       },
     });
-  }
+  }, [footprint.centerPointInches, placedAssembly.id]);
 
   return (
     <group position={[footprint.centerPointInches.xInches, footprint.centerPointInches.yInches, ROTATION_CONTROL_Z_INCHES]}>
@@ -79,12 +79,17 @@ export function AssemblyFloorPlanRotationControl({
 }
 
 function RotationDirectionArrows({ ringRadiusInches }: Readonly<{ ringRadiusInches: number }>) {
+  const directionArrowItems = useMemo(() => [0, 90, 180, 270].map((angleDegrees) => ({
+    angleDegrees,
+    points: createDirectionArrowPoints({ ringRadiusInches, angleDegrees }),
+  })), [ringRadiusInches]);
+
   return (
     <group renderOrder={126}>
-      {[0, 90, 180, 270].map((angleDegrees) => (
+      {directionArrowItems.map((arrowItem) => (
         <Line
-          key={`rotation-direction-arrow-${angleDegrees}`}
-          points={createDirectionArrowPoints({ ringRadiusInches, angleDegrees })}
+          key={`rotation-direction-arrow-${arrowItem.angleDegrees}`}
+          points={arrowItem.points}
           color="#94a3b8"
           lineWidth={3}
           transparent
@@ -98,28 +103,33 @@ function RotationDirectionArrows({ ringRadiusInches }: Readonly<{ ringRadiusInch
 }
 
 function RotationSnapTicks({ ringRadiusInches }: Readonly<{ ringRadiusInches: number }>) {
+  const tickItems = useMemo(() => Array.from({ length: 8 }, (_, tickIndex) => {
+    const angleDegrees = tickIndex * ASSEMBLY_ROTATION_SNAP_STEP_DEGREES;
+    const angleRadians = convertDegreesToRadians(angleDegrees);
+    const innerRadiusInches = ringRadiusInches - ROTATION_TICK_LENGTH_INCHES / 2;
+    const outerRadiusInches = ringRadiusInches + ROTATION_TICK_LENGTH_INCHES / 2;
+
+    return {
+      tickIndex,
+      points: [
+        [Math.cos(angleRadians) * innerRadiusInches, Math.sin(angleRadians) * innerRadiusInches, 0.2],
+        [Math.cos(angleRadians) * outerRadiusInches, Math.sin(angleRadians) * outerRadiusInches, 0.2],
+      ] as [number, number, number][],
+    };
+  }), [ringRadiusInches]);
+
   return (
     <group renderOrder={127}>
-      {Array.from({ length: 8 }, (_, tickIndex) => {
-        const angleDegrees = tickIndex * ASSEMBLY_ROTATION_SNAP_STEP_DEGREES;
-        const angleRadians = convertDegreesToRadians(angleDegrees);
-        const innerRadiusInches = ringRadiusInches - ROTATION_TICK_LENGTH_INCHES / 2;
-        const outerRadiusInches = ringRadiusInches + ROTATION_TICK_LENGTH_INCHES / 2;
-
-        return (
-          <Line
-            key={`rotation-tick-${tickIndex}`}
-            points={[
-              [Math.cos(angleRadians) * innerRadiusInches, Math.sin(angleRadians) * innerRadiusInches, 0.2],
-              [Math.cos(angleRadians) * outerRadiusInches, Math.sin(angleRadians) * outerRadiusInches, 0.2],
-            ]}
-            color="#0f172a"
-            lineWidth={2.5}
-            depthTest={false}
-            renderOrder={127}
-          />
-        );
-      })}
+      {tickItems.map((tickItem) => (
+        <Line
+          key={`rotation-tick-${tickItem.tickIndex}`}
+          points={tickItem.points}
+          color="#0f172a"
+          lineWidth={2.5}
+          depthTest={false}
+          renderOrder={127}
+        />
+      ))}
     </group>
   );
 }
@@ -131,14 +141,14 @@ function RotationHandle({
   ringRadiusInches: number;
   handleCenterAngleDegrees: number;
 }>) {
-  const handlePoints = createRotationHandlePoints({
+  const handlePoints = useMemo(() => createRotationHandlePoints({
     radiusInches: ringRadiusInches,
     handleCenterAngleDegrees,
-  });
-  const arrowHeadPoints = createRotationHandleArrowHeadPoints({
+  }), [handleCenterAngleDegrees, ringRadiusInches]);
+  const arrowHeadPoints = useMemo(() => createRotationHandleArrowHeadPoints({
     radiusInches: ringRadiusInches,
     handleCenterAngleDegrees,
-  });
+  }), [handleCenterAngleDegrees, ringRadiusInches]);
 
   return (
     <group renderOrder={128}>

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ThreeEvent } from "@react-three/fiber";
-import { useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { DoubleSide } from "three";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
@@ -10,9 +10,9 @@ import type { PlacedWallSegment } from "@/engine/walls/placedWallSegmentTypes";
 import { createWallSegmentGeometry } from "./wallRenderingGeometry";
 import { EdgeSegmentLines } from "../shared/EdgeSegmentLines";
 import { WallSegmentActiveOverlay } from "./WallSegmentActiveOverlay";
-import { WallOpeningOverlay } from "./WallOpeningOverlay";
 import { WallSegmentVertexMarkers } from "./WallSegmentVertexMarkers";
 import { wallSegmentRenderColors } from "./wallSegmentRenderColors";
+import { useDisposableGeometry } from "../shared/useDisposableGeometry";
 
 const SHOW_WALL_DEBUG_VERTEX_MARKERS = false;
 
@@ -21,33 +21,43 @@ type WallSegmentRenderState = "committed" | "preview-existing" | "preview-draft"
 type WallSegmentMeshProps = Readonly<{
   segmentBody: BuiltWallSegmentBody;
   wallSegment: PlacedWallSegment;
+  derivedOpenings: readonly PlacedWallSegment["openings"][number][];
   renderState: WallSegmentRenderState;
   sceneViewMode: SceneViewMode;
 }>;
 
-export function WallSegmentMesh({ segmentBody, wallSegment, renderState, sceneViewMode }: WallSegmentMeshProps) {
-  const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
-  const selectPlacedWallSegment = useDesignSceneStore((state) => state.selectPlacedWallSegment);
+export const WallSegmentMesh = memo(function WallSegmentMesh({
+  segmentBody,
+  wallSegment,
+  derivedOpenings,
+  renderState,
+  sceneViewMode,
+}: WallSegmentMeshProps) {
   const geometryResult = useMemo(
     () => createWallSegmentGeometry({
       segmentBody,
-      openings: wallSegment.openings,
+      openings: derivedOpenings,
+      edgeSegmentOpenings: [],
     }),
-    [segmentBody, wallSegment.openings],
+    [derivedOpenings, segmentBody],
   );
+  useDisposableGeometry(geometryResult.geometry);
+
   const isActiveWallSegment = renderState === "selected" || renderState === "preview-draft";
   const renderOrder = isActiveWallSegment ? 10 : 1;
   const color = getWallSegmentFillColor(renderState);
   const opacity = isActiveWallSegment ? 0.88 : 1;
 
-  function handlePointerDown(event: ThreeEvent<PointerEvent>) {
-    if (event.button !== 0 || activeToolbarTool === "draw-wall-segment") {
+  const handlePointerDown = useCallback((event: ThreeEvent<PointerEvent>) => {
+    const designSceneStore = useDesignSceneStore.getState();
+
+    if (event.button !== 0 || designSceneStore.activeToolbarTool === "draw-wall-segment") {
       return;
     }
 
     event.stopPropagation();
-    selectPlacedWallSegment(segmentBody.wallGraphId, segmentBody.wallSegmentId);
-  }
+    designSceneStore.selectPlacedWallSegment(segmentBody.wallGraphId, segmentBody.wallSegmentId);
+  }, [segmentBody.wallGraphId, segmentBody.wallSegmentId]);
 
   return (
     <group renderOrder={renderOrder}>
@@ -78,18 +88,13 @@ export function WallSegmentMesh({ segmentBody, wallSegment, renderState, sceneVi
           renderOrder={renderOrder + 1}
         />
       ) : null}
-      <WallOpeningOverlay
-        segmentBody={segmentBody}
-        openings={wallSegment.openings}
-        sceneViewMode={sceneViewMode}
-      />
       {isActiveWallSegment ? <WallSegmentActiveOverlay segmentBody={segmentBody} /> : null}
       {SHOW_WALL_DEBUG_VERTEX_MARKERS && isActiveWallSegment ? (
         <WallSegmentVertexMarkers segmentBody={segmentBody} />
       ) : null}
     </group>
   );
-}
+});
 
 function getWallSegmentFillColor(renderState: WallSegmentRenderState): string {
   if (renderState === "preview-draft" || renderState === "selected") {

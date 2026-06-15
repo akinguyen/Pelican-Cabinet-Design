@@ -1,6 +1,7 @@
 "use client";
 
 import type { ThreeEvent } from "@react-three/fiber";
+import { useCallback } from "react";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import { createWallGroundPlanePointerWorldPoint } from "./wallGroundPlanePointer";
@@ -11,38 +12,40 @@ export function WallSegmentDraftSurface() {
   const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
-  const updateWallSegmentDraftHover = useDesignSceneStore(
-    (state) => state.updateWallSegmentDraftHover,
-  );
-  const clickWallSegmentDraftPoint = useDesignSceneStore(
-    (state) => state.clickWallSegmentDraftPoint,
-  );
   const isWallSegmentDraftDrawingActive = activeToolbarTool === "draw-wall-segment";
+
+  const handlePointerMove = useCallback((event: ThreeEvent<PointerEvent>) => {
+    if (!canManuallyEditScene(workspaceMode) || !isWallSegmentDraftDrawingActive || activeSceneViewMode !== "floor-plan") {
+      return;
+    }
+
+    const pointerWorldInches = createWallGroundPlanePointerWorldPoint(event.ray);
+
+    if (pointerWorldInches === null) {
+      return;
+    }
+
+    event.stopPropagation();
+    useDesignSceneStore.getState().updateWallSegmentDraftHover(pointerWorldInches);
+  }, [activeSceneViewMode, isWallSegmentDraftDrawingActive, workspaceMode]);
+
+  const handleClick = useCallback((event: ThreeEvent<MouseEvent>) => {
+    if (!canManuallyEditScene(workspaceMode) || !isWallSegmentDraftDrawingActive || activeSceneViewMode !== "floor-plan") {
+      return;
+    }
+
+    const pointerWorldInches = createWallGroundPlanePointerWorldPoint(event.ray);
+
+    if (pointerWorldInches === null) {
+      return;
+    }
+
+    event.stopPropagation();
+    useDesignSceneStore.getState().clickWallSegmentDraftPoint(pointerWorldInches);
+  }, [activeSceneViewMode, isWallSegmentDraftDrawingActive, workspaceMode]);
 
   if (!canManuallyEditScene(workspaceMode) || !isWallSegmentDraftDrawingActive || activeSceneViewMode !== "floor-plan") {
     return null;
-  }
-
-  function handlePointerMove(event: ThreeEvent<PointerEvent>) {
-    const pointerWorldInches = createWallGroundPlanePointerWorldPoint(event.ray);
-
-    if (pointerWorldInches === null) {
-      return;
-    }
-
-    event.stopPropagation();
-    updateWallSegmentDraftHover(pointerWorldInches);
-  }
-
-  function handleClick(event: ThreeEvent<MouseEvent>) {
-    const pointerWorldInches = createWallGroundPlanePointerWorldPoint(event.ray);
-
-    if (pointerWorldInches === null) {
-      return;
-    }
-
-    event.stopPropagation();
-    clickWallSegmentDraftPoint(pointerWorldInches);
   }
 
   return (

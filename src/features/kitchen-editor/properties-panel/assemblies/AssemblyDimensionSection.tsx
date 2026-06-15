@@ -2,9 +2,10 @@
 
 import { formatNumberInputValue } from "../shared/propertyPanelFormatting";
 import { PropertySection } from "../shared/PropertySection";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AssemblyDefinition, AssemblyDimensionField } from "@/engine/assemblies/assemblyDefinitionTypes";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import type { AssemblyDimensionId } from "@/engine/scene/designSceneStoreTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 
 type AssemblyDimensionSectionProps = Readonly<{
@@ -12,7 +13,7 @@ type AssemblyDimensionSectionProps = Readonly<{
   definition: AssemblyDefinition;
 }>;
 
-type DimensionId = "widthInches" | "depthInches" | "heightInches";
+type DimensionId = AssemblyDimensionId;
 
 const CUSTOM_DIMENSION_SELECT_VALUE = "custom";
 
@@ -23,9 +24,9 @@ export function AssemblyDimensionSection({
   const [customDimensionIds, setCustomDimensionIds] = useState<ReadonlySet<DimensionId>>(
     () => new Set(),
   );
-  const updateSelectedAssemblyDimension = useDesignSceneStore(
-    (state) => state.updateSelectedAssemblyDimension,
-  );
+  const handleDimensionChange = useCallback((dimensionId: DimensionId, valueInches: number) => {
+    useDesignSceneStore.getState().updateSelectedAssemblyDimension(dimensionId, valueInches);
+  }, []);
 
   useEffect(() => {
     setCustomDimensionIds(new Set());
@@ -54,7 +55,7 @@ export function AssemblyDimensionSection({
           value={placedAssembly.configuration.sizeInches.widthInches}
           isCustomModeRequested={customDimensionIds.has("widthInches")}
           onCustomModeChange={setDimensionCustomMode}
-          onChange={updateSelectedAssemblyDimension}
+          onChange={handleDimensionChange}
         />
         <DimensionField
           dimensionId="depthInches"
@@ -62,7 +63,7 @@ export function AssemblyDimensionSection({
           value={placedAssembly.configuration.sizeInches.depthInches}
           isCustomModeRequested={customDimensionIds.has("depthInches")}
           onCustomModeChange={setDimensionCustomMode}
-          onChange={updateSelectedAssemblyDimension}
+          onChange={handleDimensionChange}
         />
         <DimensionField
           dimensionId="heightInches"
@@ -70,7 +71,7 @@ export function AssemblyDimensionSection({
           value={placedAssembly.configuration.sizeInches.heightInches}
           isCustomModeRequested={customDimensionIds.has("heightInches")}
           onCustomModeChange={setDimensionCustomMode}
-          onChange={updateSelectedAssemblyDimension}
+          onChange={handleDimensionChange}
         />
       </div>
     </PropertySection>
@@ -171,4 +172,3 @@ function clampDimensionValue(valueInches: number, field: AssemblyDimensionField)
   const maxValueInches = field.maxValueInches ?? valueInches;
   return Math.min(Math.max(valueInches, minValueInches), maxValueInches);
 }
-

@@ -1,23 +1,26 @@
 "use client";
 
+import { useCallback } from "react";
 import type { AssemblyDefinition } from "@/engine/assemblies/assemblyDefinitionTypes";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { AssemblyDimensionSection } from "./AssemblyDimensionSection";
 import { AssemblyOptionGroupsSection } from "./AssemblyOptionGroupsSection";
 import { AssemblyPlacementSection } from "./AssemblyPlacementSection";
-import { COUNTERTOP_SLAB_DEFINITION_ID, CountertopOpeningsSection } from "./CountertopOpeningsSection";
 
 type AssemblyPropertiesPanelProps = Readonly<{
   placedAssembly: PlacedAssembly;
   definition: AssemblyDefinition;
-  onDelete: () => void;
 }>;
 
 export function AssemblyPropertiesPanel({
   placedAssembly,
   definition,
-  onDelete,
 }: AssemblyPropertiesPanelProps) {
+  const handleDelete = useCallback(() => {
+    useDesignSceneStore.getState().deleteSelectedAssembly();
+  }, []);
+
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-blue-200 bg-blue-50 p-3">
@@ -31,10 +34,6 @@ export function AssemblyPropertiesPanel({
       <AssemblyPlacementSection placedAssembly={placedAssembly} />
       <AssemblyDimensionSection placedAssembly={placedAssembly} definition={definition} />
       <AssemblyOptionGroupsSection placedAssembly={placedAssembly} definition={definition} />
-      {definition.id === COUNTERTOP_SLAB_DEFINITION_ID ? (
-        <CountertopOpeningsSection placedAssembly={placedAssembly} />
-      ) : null}
-
       <section className="rounded-lg border border-red-200 bg-red-50 p-3">
         <div className="text-[11px] font-semibold uppercase tracking-wide text-red-700">
           Actions
@@ -42,7 +41,7 @@ export function AssemblyPropertiesPanel({
         <button
           type="button"
           className="mt-3 w-full rounded-md bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700"
-          onClick={onDelete}
+          onClick={handleDelete}
         >
           Delete assembly
         </button>

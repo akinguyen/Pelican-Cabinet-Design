@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Line } from "@react-three/drei";
 import type { AssemblyObjectAlignmentGuide } from "@/engine/assemblies/placement/assemblyPlacementTypes";
 
@@ -7,7 +8,7 @@ const OBJECT_ALIGNMENT_PLAN_GUIDE_Z_INCHES = 7.4;
 const OBJECT_ALIGNMENT_GUIDE_RENDER_ORDER = 126;
 const OBJECT_ALIGNMENT_GUIDE_STROKE = "#ff00cc";
 
-export function AssemblyObjectAlignmentGuides({
+export const AssemblyObjectAlignmentGuides = memo(function AssemblyObjectAlignmentGuides({
   alignmentGuides,
 }: Readonly<{
   alignmentGuides: readonly AssemblyObjectAlignmentGuide[];
@@ -32,7 +33,7 @@ export function AssemblyObjectAlignmentGuides({
       ))}
     </group>
   );
-}
+});
 
 function getGuideRenderPoint(
   alignmentGuide: AssemblyObjectAlignmentGuide,

@@ -10,6 +10,7 @@ export function createAssemblyDefinitionFromRaw(
     name: rawDefinition.name,
     catalogCategoryId: rawDefinition.catalogCategoryId,
     defaultDistanceFromFloorInches: rawDefinition.defaultDistanceFromFloorInches,
+    cutoutBehavior: rawDefinition.cutoutBehavior,
     dimensions: rawDefinition.dimensions,
     optionGroups: rawDefinition.optionGroups,
     build: (context) => buildAssemblyFromRawDefinition({ rawDefinition, context }),

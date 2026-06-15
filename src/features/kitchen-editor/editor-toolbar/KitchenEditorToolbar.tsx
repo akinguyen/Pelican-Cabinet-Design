@@ -1,24 +1,15 @@
 "use client";
 
-import { getAssemblyDefinition } from "@/engine/assemblies/assemblyRegistry";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { DesignSceneStore } from "@/engine/scene/designSceneStoreTypes";
 import type { SceneEditingTool } from "@/engine/scene/sceneEditingToolTypes";
 import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
-import { kitchenEditorCatalogRegistry } from "../catalogs/registry/kitchenEditorCatalogRegistry";
 import { kitchenEditorToolbarActions } from "./kitchenEditorToolbarConfig";
-
-const COUNTERTOP_SLAB_DEFINITION_ID = "countertop-slab";
 
 export function KitchenEditorToolbar() {
   const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
-  const activeSelection = useDesignSceneStore((state) => state.designScene.activeSelection);
-  const activeWallElevationTarget = useDesignSceneStore((state) => state.activeWallElevationTarget);
-  const placedAssemblies = useDesignSceneStore((state) => state.designScene.placedAssemblies);
-  const runCameraCommand = useDesignSceneStore((state) => state.runCameraCommand);
-  const setActiveToolbarTool = useDesignSceneStore((state) => state.setActiveToolbarTool);
 
   return (
     <div className="flex h-12 shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-3">
@@ -27,9 +18,6 @@ export function KitchenEditorToolbar() {
         const isActive = toolbarAction.kind === "active-tool" && toolbarAction.id === activeToolbarTool;
         const isDisabled = toolbarAction.isDisabled === true || isToolbarActionDisabled({
           activeSceneViewMode,
-          activeSelection,
-          activeWallElevationTarget,
-          placedAssemblies,
           toolbarTool: toolbarAction.kind === "active-tool" ? toolbarAction.id : null,
           workspaceMode,
         });
@@ -46,12 +34,14 @@ export function KitchenEditorToolbar() {
             }`}
             title={toolbarAction.label}
             onClick={() => {
+              const designSceneStore = useDesignSceneStore.getState();
+
               if (toolbarAction.kind === "camera-command") {
-                runCameraCommand(toolbarAction.id);
+                designSceneStore.runCameraCommand(toolbarAction.id);
                 return;
               }
 
-              setActiveToolbarTool(isActive ? null : toolbarAction.id);
+              designSceneStore.setActiveToolbarTool(isActive ? null : toolbarAction.id);
             }}
           >
             <Icon aria-hidden="true" size={16} strokeWidth={1.8} />
@@ -65,9 +55,6 @@ export function KitchenEditorToolbar() {
 
 type ToolbarDisabledArgs = Readonly<{
   activeSceneViewMode: DesignSceneStore["activeSceneViewMode"];
-  activeSelection: DesignSceneStore["designScene"]["activeSelection"];
-  activeWallElevationTarget: DesignSceneStore["activeWallElevationTarget"];
-  placedAssemblies: DesignSceneStore["designScene"]["placedAssemblies"];
   toolbarTool: SceneEditingTool | null;
   workspaceMode: DesignSceneStore["workspaceMode"];
 }>;
@@ -77,59 +64,5 @@ function isToolbarActionDisabled(args: ToolbarDisabledArgs): boolean {
     return true;
   }
 
-  if (args.toolbarTool === "draw-wall-segment") {
-    return args.activeSceneViewMode !== "floor-plan";
-  }
-
-  if (!isRectangleCutoutTool(args.toolbarTool)) {
-    return false;
-  }
-
-  if (args.activeSceneViewMode === "elevation") {
-    return !isSelectedWallSegmentActiveElevationTarget({
-      activeSelection: args.activeSelection,
-      activeWallElevationTarget: args.activeWallElevationTarget,
-    });
-  }
-
-  if (args.activeSelection?.kind !== "placed-assembly") {
-    return true;
-  }
-
-  const selectedPlacedAssemblyId = args.activeSelection.placedAssemblyId;
-  const selectedAssembly = args.placedAssemblies.find(
-    (assembly) => assembly.id === selectedPlacedAssemblyId,
-  );
-
-  if (selectedAssembly === undefined) {
-    return true;
-  }
-
-  const selectedDefinition = getAssemblyDefinition(
-    kitchenEditorCatalogRegistry,
-    selectedAssembly.definitionId,
-  );
-
-  if (selectedDefinition?.id !== COUNTERTOP_SLAB_DEFINITION_ID) {
-    return true;
-  }
-
-  return false;
-}
-
-function isSelectedWallSegmentActiveElevationTarget(
-  args: Pick<ToolbarDisabledArgs, "activeSelection" | "activeWallElevationTarget">,
-): boolean {
-  return (
-    args.activeSelection?.kind === "placed-wall-segment" &&
-    args.activeWallElevationTarget !== null &&
-    args.activeSelection.wallGraphId === args.activeWallElevationTarget.wallGraphId &&
-    args.activeSelection.wallSegmentId === args.activeWallElevationTarget.wallSegmentId
-  );
-}
-
-function isRectangleCutoutTool(toolbarTool: SceneEditingTool | null): boolean {
-  return (
-    toolbarTool === "draw-rectangle-cutout"
-  );
+  return args.toolbarTool === "draw-wall-segment" && args.activeSceneViewMode !== "floor-plan";
 }

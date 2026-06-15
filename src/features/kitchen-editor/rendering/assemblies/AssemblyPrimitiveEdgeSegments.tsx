@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import type { BuiltPrimitiveGeometry } from "@/engine/assemblies/assemblyTreeBuilder";
 import { createPrimitiveEdgeSegments } from "@/engine/primitive-geometry/edge-segments/createPrimitiveEdgeSegments";
 import { EdgeSegmentLines } from "../shared/EdgeSegmentLines";
@@ -9,7 +9,7 @@ type AssemblyPrimitiveEdgeSegmentsProps = Readonly<{
   primitiveGeometry: BuiltPrimitiveGeometry;
 }>;
 
-export function AssemblyPrimitiveEdgeSegments({
+export const AssemblyPrimitiveEdgeSegments = memo(function AssemblyPrimitiveEdgeSegments({
   primitiveGeometry,
 }: AssemblyPrimitiveEdgeSegmentsProps) {
   const edgeSegmentsInches = useMemo(
@@ -27,4 +27,4 @@ export function AssemblyPrimitiveEdgeSegments({
   );
 
   return <EdgeSegmentLines edgeSegmentsInches={edgeSegmentsInches} />;
-}
+});

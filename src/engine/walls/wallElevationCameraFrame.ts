@@ -32,8 +32,8 @@ export function createWallElevationCameraFrame(args: {
   viewportHeightPixels: number;
 }): WallElevationCameraFrame {
   const centerZInches = args.viewZone.wallHeightInches / 2;
-  const faceLengthInches = Math.max(
-    args.viewZone.faceLengthInches,
+  const viewFrameWidthInches = Math.max(
+    args.viewZone.viewFrameRightInches - args.viewZone.viewFrameLeftInches,
     MIN_WALL_ELEVATION_DIMENSION_INCHES,
   );
   const wallHeightInches = Math.max(
@@ -41,7 +41,7 @@ export function createWallElevationCameraFrame(args: {
     MIN_WALL_ELEVATION_DIMENSION_INCHES,
   );
   const horizontalPaddingInches = Math.max(
-    faceLengthInches * WALL_ELEVATION_HORIZONTAL_FRAME_PADDING_RATIO,
+    viewFrameWidthInches * WALL_ELEVATION_HORIZONTAL_FRAME_PADDING_RATIO,
     WALL_ELEVATION_MIN_HORIZONTAL_FRAME_PADDING_INCHES,
   );
   const topPaddingInches = Math.max(
@@ -54,8 +54,8 @@ export function createWallElevationCameraFrame(args: {
   );
 
   const wallFaceFrameBoundsInches = fitWallElevationFrameToViewportAspect({
-    leftInches: -faceLengthInches / 2 - horizontalPaddingInches,
-    rightInches: faceLengthInches / 2 + horizontalPaddingInches,
+    leftInches: args.viewZone.viewFrameLeftInches - horizontalPaddingInches,
+    rightInches: args.viewZone.viewFrameRightInches + horizontalPaddingInches,
     topInches: wallHeightInches / 2 + topPaddingInches,
     bottomInches: -wallHeightInches / 2 - bottomPaddingInches,
     viewportWidthPixels: args.viewportWidthPixels,
@@ -87,6 +87,7 @@ export function createWallElevationCameraFrame(args: {
     farInches:
       WALL_ELEVATION_NEAR_PADDING_INCHES +
       args.viewZone.depthInches +
+      args.viewZone.behindFaceDepthInches +
       WALL_ELEVATION_FAR_PADDING_INCHES,
     zoom: 1,
   };

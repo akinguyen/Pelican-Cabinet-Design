@@ -15,7 +15,6 @@ export function createSceneToolbarActions(
           tool: cameraCommandTool,
         },
         activeToolbarTool: null,
-        activeCutoutDraftPointerTarget: null,
         designScene: {
           ...state.designScene,
           activeSceneOperation: isToolbarSceneOperation(state.designScene.activeSceneOperation)
@@ -50,7 +49,6 @@ export function createSceneToolbarActions(
         if (toolbarTool === "draw-wall-segment") {
           return {
             activeToolbarTool: toolbarTool,
-            activeCutoutDraftPointerTarget: null,
             designScene: {
               ...state.designScene,
               activeSceneOperation: {
@@ -65,20 +63,8 @@ export function createSceneToolbarActions(
           };
         }
 
-        if (isRectangleCutoutTool(toolbarTool)) {
-          return {
-            activeToolbarTool: toolbarTool,
-            activeCutoutDraftPointerTarget: null,
-            designScene: {
-              ...state.designScene,
-              activeSceneOperation: null,
-            },
-          };
-        }
-
         return {
           activeToolbarTool: null,
-          activeCutoutDraftPointerTarget: null,
           designScene: {
             ...state.designScene,
             activeSceneOperation: isToolbarSceneOperation(state.designScene.activeSceneOperation)
@@ -94,15 +80,5 @@ export function createSceneToolbarActions(
 function isToolbarSceneOperation(
   activeSceneOperation: DesignSceneStore["designScene"]["activeSceneOperation"],
 ): boolean {
-  return (
-    activeSceneOperation?.kind === "wall-segment-draft" ||
-    activeSceneOperation?.kind === "countertop-cutout-draft" ||
-    activeSceneOperation?.kind === "countertop-opening-drag" ||
-    activeSceneOperation?.kind === "wall-opening-draft" ||
-    activeSceneOperation?.kind === "wall-opening-drag"
-  );
-}
-
-function isRectangleCutoutTool(toolbarTool: DesignSceneStore["activeToolbarTool"]): boolean {
-  return toolbarTool === "draw-rectangle-cutout";
+  return activeSceneOperation?.kind === "wall-segment-draft";
 }

@@ -1,3 +1,1 @@
-export type SceneEditingTool =
-  | "draw-wall-segment"
-  | "draw-rectangle-cutout";
+export type SceneEditingTool = "draw-wall-segment";

@@ -30,15 +30,15 @@ export function createWallElevationPaddingMaskFramePixels(args: {
     return null;
   }
 
-  const wallFaceLeftInches = -args.viewZone.faceLengthInches / 2;
-  const wallFaceRightInches = args.viewZone.faceLengthInches / 2;
-  const wallFaceTopInches = args.viewZone.wallHeightInches / 2;
-  const wallFaceBottomInches = -args.viewZone.wallHeightInches / 2;
+  const viewFrameLeftInches = args.viewZone.viewFrameLeftInches;
+  const viewFrameRightInches = args.viewZone.viewFrameRightInches;
+  const viewFrameTopInches = args.viewZone.viewFrameTopInches;
+  const viewFrameBottomInches = args.viewZone.viewFrameBottomInches;
 
-  const leftPixels = ((wallFaceLeftInches - args.cameraFrame.leftInches) / cameraWidthInches) * args.viewportSizePixels.widthPixels;
-  const rightPixels = ((wallFaceRightInches - args.cameraFrame.leftInches) / cameraWidthInches) * args.viewportSizePixels.widthPixels;
-  const topPixels = ((args.cameraFrame.topInches - wallFaceTopInches) / cameraHeightInches) * args.viewportSizePixels.heightPixels;
-  const bottomPixels = ((args.cameraFrame.topInches - wallFaceBottomInches) / cameraHeightInches) * args.viewportSizePixels.heightPixels;
+  const leftPixels = ((viewFrameLeftInches - args.cameraFrame.leftInches) / cameraWidthInches) * args.viewportSizePixels.widthPixels;
+  const rightPixels = ((viewFrameRightInches - args.cameraFrame.leftInches) / cameraWidthInches) * args.viewportSizePixels.widthPixels;
+  const topPixels = ((args.cameraFrame.topInches - viewFrameTopInches) / cameraHeightInches) * args.viewportSizePixels.heightPixels;
+  const bottomPixels = ((args.cameraFrame.topInches - viewFrameBottomInches) / cameraHeightInches) * args.viewportSizePixels.heightPixels;
 
   const clampedLeftPixels = clamp(leftPixels, 0, args.viewportSizePixels.widthPixels);
   const clampedRightPixels = clamp(rightPixels, 0, args.viewportSizePixels.widthPixels);

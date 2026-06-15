@@ -17,10 +17,21 @@ export type AssemblyPlacementFootprint = Readonly<{
 
 export type AssemblyPlacementMovementSource = "perspective" | "floor-plan" | "elevation";
 
+export type AssemblyPlacementElevationViewZoneFrame = Readonly<{
+  originInches: Point3DInches;
+  leftInches: number;
+  rightInches: number;
+  nearDepthInches: number;
+  farDepthInches: number;
+  bottomInches: number;
+  topInches: number;
+}>;
+
 export type AssemblyPlacementElevationFrame = Readonly<{
   faceDirectionInches: Point3DInches;
   outwardDirectionInches: Point3DInches;
   planeOriginInches: Point3DInches;
+  viewZoneInches?: AssemblyPlacementElevationViewZoneFrame;
 }>;
 
 export type AssemblyPlacementSnapContext = Readonly<{

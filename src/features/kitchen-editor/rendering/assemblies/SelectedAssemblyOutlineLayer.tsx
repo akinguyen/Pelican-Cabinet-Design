@@ -1,46 +1,38 @@
 "use client";
 
+import { useMemo } from "react";
 import { createAssemblyPlacementFootprint } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
-import type { SceneSelection } from "@/engine/scene/sceneSelectionTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { AssemblyFloorPlanEditControls } from "./AssemblyFloorPlanEditControls";
 import { AssemblyFloorPlanRotationControl } from "./AssemblyFloorPlanRotationControl";
 import { AssemblyPlacementBoundingBox } from "./AssemblyPlacementBoundingBox";
 
 type SelectedAssemblyOutlineLayerProps = Readonly<{
-  placedAssemblies: readonly PlacedAssembly[];
-  activeSelection: SceneSelection | null;
+  selectedAssembly: PlacedAssembly | null;
   sceneViewMode: SceneViewMode;
 }>;
 
 export function SelectedAssemblyOutlineLayer({
-  placedAssemblies,
-  activeSelection,
+  selectedAssembly,
   sceneViewMode,
 }: SelectedAssemblyOutlineLayerProps) {
   const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
-  const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
+  const isSceneOperationActive = useDesignSceneStore((state) => state.designScene.activeSceneOperation !== null);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const assemblyPlacementFeedback = useDesignSceneStore((state) => state.assemblyPlacementFeedback);
   const canEditScene = canManuallyEditScene(workspaceMode);
 
-  if (activeSelection?.kind !== "placed-assembly") {
+  const footprint = useMemo(() => selectedAssembly === null
+    ? null
+    : createAssemblyPlacementFootprint(selectedAssembly), [selectedAssembly]);
+
+  if (selectedAssembly === null || footprint === null) {
     return null;
   }
-
-  const selectedAssembly = placedAssemblies.find(
-    (assembly) => assembly.id === activeSelection.placedAssemblyId,
-  );
-
-  if (selectedAssembly === undefined) {
-    return null;
-  }
-
-  const footprint = createAssemblyPlacementFootprint(selectedAssembly);
   const isSelectedAssemblyBeingMoved = activeDrag?.kind === "assembly-move" && activeDrag.assemblyId === selectedAssembly.id;
   const isSelectedAssemblyBeingRotated = activeDrag?.kind === "assembly-rotation" && activeDrag.assemblyId === selectedAssembly.id;
   const activeFeedbackBelongsToSelectedAssembly = assemblyPlacementFeedback?.placedAssembly.id === selectedAssembly.id;
@@ -51,12 +43,12 @@ export function SelectedAssemblyOutlineLayer({
   if (sceneViewMode === "floor-plan") {
     const showUtilityControls =
       canEditScene &&
-      activeSceneOperation === null &&
+      !isSceneOperationActive &&
       activeToolbarTool === null &&
       activeDrag === null;
     const showRotationControl =
       canEditScene &&
-      activeSceneOperation === null &&
+      !isSceneOperationActive &&
       activeToolbarTool === null &&
       (activeDrag === null || isSelectedAssemblyBeingRotated);
 

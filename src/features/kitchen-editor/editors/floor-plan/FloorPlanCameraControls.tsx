@@ -20,7 +20,8 @@ import {
   SCENE_CAMERA_MOUSE_BUTTONS,
   SCENE_CAMERA_TOUCHES,
 } from "../shared/camera/sceneCameraControlSettings";
-import { useSceneFitFrame } from "../shared/camera/useSceneFitFrame";
+import type { SceneFitFrame } from "../shared/camera/cameraFit";
+import { getCurrentSceneFitFrame } from "../shared/camera/sceneFitFrame";
 
 const MIN_FLOOR_PLAN_ZOOM = 1.15;
 const MAX_FLOOR_PLAN_ZOOM = 12;
@@ -44,13 +45,9 @@ export function FloorPlanCameraControls() {
   const { camera } = useThree();
   const cameraCommand = useDesignSceneStore((state) => state.cameraCommand);
   const cameraState = useDesignSceneStore((state) => state.sceneCameraStates.floorPlan);
-  const updateFloorPlanCameraState = useDesignSceneStore((state) => state.updateFloorPlanCameraState);
-  const clearCameraCommand = useDesignSceneStore((state) => state.clearCameraCommand);
-  const activeSceneOperation = useDesignSceneStore((state) => state.designScene.activeSceneOperation);
+  const isSceneOperationActive = useDesignSceneStore((state) => state.designScene.activeSceneOperation !== null);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
-  const sceneFitFrame = useSceneFitFrame();
-
   useEffect(() => {
     applyFloorPlanCameraState(camera as OrthographicCamera, controlsRef.current, cameraState);
   }, [camera]);
@@ -71,12 +68,13 @@ export function FloorPlanCameraControls() {
     } else if (cameraCommand.tool === "zoom-out") {
       updateFloorPlanZoom(camera as OrthographicCamera, camera.zoom / ORTHOGRAPHIC_CAMERA_TOOLBAR_ZOOM_SCALE);
     } else {
-      fitFloorPlanCameraToScene(camera as OrthographicCamera, controls, sceneFitFrame);
+      fitFloorPlanCameraToScene(camera as OrthographicCamera, controls, getCurrentSceneFitFrame());
     }
 
-    updateFloorPlanCameraState(readFloorPlanCameraState(camera as OrthographicCamera, controls));
-    clearCameraCommand(cameraCommand.id);
-  }, [camera, cameraCommand, clearCameraCommand, sceneFitFrame, updateFloorPlanCameraState]);
+    const designSceneStore = useDesignSceneStore.getState();
+    designSceneStore.updateFloorPlanCameraState(readFloorPlanCameraState(camera as OrthographicCamera, controls));
+    designSceneStore.clearCameraCommand(cameraCommand.id);
+  }, [camera, cameraCommand]);
 
   function handleControlsChange() {
     const controls = controlsRef.current;
@@ -85,15 +83,15 @@ export function FloorPlanCameraControls() {
       return;
     }
 
-    updateFloorPlanCameraState(readFloorPlanCameraState(camera as OrthographicCamera, controls));
+    useDesignSceneStore.getState().updateFloorPlanCameraState(readFloorPlanCameraState(camera as OrthographicCamera, controls));
   }
 
-  const isEditorOperationActive = activeSceneOperation !== null || activeToolbarTool !== null;
+  const isEditorOperationActive = isSceneOperationActive || activeToolbarTool !== null;
 
   return (
     <OrbitControls
       ref={controlsRef}
-      enabled={activeDrag === null && activeSceneOperation?.kind !== "countertop-opening-drag"}
+      enabled={activeDrag === null}
       makeDefault
       enableRotate={false}
       enablePan={!isEditorOperationActive}
@@ -136,7 +134,7 @@ function readFloorPlanCameraState(
 function fitFloorPlanCameraToScene(
   camera: OrthographicCamera,
   controls: OrbitControlsImpl,
-  sceneFitFrame: ReturnType<typeof useSceneFitFrame>,
+  sceneFitFrame: SceneFitFrame,
 ): void {
   const { centerInches, sizeInches } = sceneFitFrame;
 

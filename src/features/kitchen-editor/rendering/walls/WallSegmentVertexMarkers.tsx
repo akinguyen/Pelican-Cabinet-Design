@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useMemo } from "react";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { BuiltWallSegmentBody } from "@/engine/walls/connectedWallGeometryTypes";
 import { wallSegmentRenderColors } from "./wallSegmentRenderColors";
@@ -13,11 +14,11 @@ type WallSegmentVertexMarkersProps = Readonly<{
   radiusInches?: number;
 }>;
 
-export function WallSegmentVertexMarkers({
+export const WallSegmentVertexMarkers = memo(function WallSegmentVertexMarkers({
   segmentBody,
   radiusInches = WALL_VERTEX_MARKER_RADIUS_INCHES,
 }: WallSegmentVertexMarkersProps) {
-  const vertexPointsInches = getWallSegmentVertexPoints(segmentBody);
+  const vertexPointsInches = useMemo(() => getWallSegmentVertexPoints(segmentBody), [segmentBody]);
 
   return (
     <group renderOrder={WALL_VERTEX_MARKER_RENDER_ORDER}>
@@ -42,7 +43,7 @@ export function WallSegmentVertexMarkers({
       ))}
     </group>
   );
-}
+});
 
 function getWallSegmentVertexPoints(
   segmentBody: BuiltWallSegmentBody,

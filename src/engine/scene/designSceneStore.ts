@@ -3,7 +3,6 @@ import { createAssemblyDragActions } from "./actions/assemblyDragActions";
 import { createAssemblyEditingActions } from "./actions/assemblyEditingActions";
 import { createAssemblyPlacementActions } from "./actions/assemblyPlacementActions";
 import { createAssemblyRotationActions } from "./actions/assemblyRotationActions";
-import { createCountertopOpeningActions } from "./actions/countertopOpeningActions";
 import { createSceneCameraStateActions } from "./actions/sceneCameraStateActions";
 import { createSceneInteractionActions } from "./actions/sceneInteractionActions";
 import { createSceneSelectionActions } from "./actions/sceneSelectionActions";
@@ -13,7 +12,6 @@ import { createWallEditingActions } from "./actions/wallEditingActions";
 import { createWorkspaceModeActions } from "./actions/workspaceModeActions";
 import { createWallElevationNavigationActions } from "./actions/wallElevationNavigationActions";
 import { createWallSegmentDraftActions } from "./actions/wallSegmentDraftActions";
-import { createWallOpeningActions } from "./actions/wallOpeningActions";
 import { createInitialDesignSceneStoreState } from "./createInitialDesignSceneStoreState";
 import type { DesignSceneStore } from "./designSceneStoreTypes";
 
@@ -29,9 +27,7 @@ export const useDesignSceneStore = create<DesignSceneStore>((set, get) => ({
   ...createAssemblyDragActions(get, set),
   ...createAssemblyRotationActions(get, set),
   ...createAssemblyEditingActions(get, set),
-  ...createCountertopOpeningActions(get, set),
   ...createWallSegmentDraftActions(get, set),
-  ...createWallOpeningActions(get, set),
   ...createWallEditingActions(get, set),
   ...createSceneInteractionActions(get, set),
 }));

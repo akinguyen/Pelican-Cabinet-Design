@@ -1,7 +1,7 @@
 "use client";
 
 import type { ThreeEvent } from "@react-three/fiber";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Matrix4, Vector3 } from "three";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { AssemblyElevationMoveFrame } from "@/engine/scene/sceneDragTypes";
@@ -13,8 +13,6 @@ const DRAG_SURFACE_SIZE_INCHES = 3200;
 export function AssemblyDragSurface() {
   const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
-  const updateAssemblyDrag = useDesignSceneStore((state) => state.updateAssemblyDrag);
-  const finishAssemblyDrag = useDesignSceneStore((state) => state.finishAssemblyDrag);
   const moveDrag = activeDrag?.kind === "assembly-move" ? activeDrag : null;
 
   useEffect(() => {
@@ -23,7 +21,7 @@ export function AssemblyDragSurface() {
     }
 
     function handleWindowPointerUp() {
-      finishAssemblyDrag();
+      useDesignSceneStore.getState().finishAssemblyDrag();
     }
 
     window.addEventListener("pointerup", handleWindowPointerUp);
@@ -31,7 +29,7 @@ export function AssemblyDragSurface() {
     return () => {
       window.removeEventListener("pointerup", handleWindowPointerUp);
     };
-  }, [finishAssemblyDrag, moveDrag, workspaceMode]);
+  }, [moveDrag, workspaceMode]);
 
   const elevationDragSurfaceMatrix = useMemo(
     () => moveDrag?.sceneViewMode === "elevation" && moveDrag.elevationMoveFrame !== undefined
@@ -40,11 +38,7 @@ export function AssemblyDragSurface() {
     [moveDrag],
   );
 
-  if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
-    return null;
-  }
-
-  function handlePointerMove(event: ThreeEvent<PointerEvent>) {
+  const handlePointerMove = useCallback((event: ThreeEvent<PointerEvent>) => {
     if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
       return;
     }
@@ -58,15 +52,18 @@ export function AssemblyDragSurface() {
     );
 
     if (pointerWorldInches !== null) {
-      updateAssemblyDrag(pointerWorldInches);
+      useDesignSceneStore.getState().updateAssemblyDrag(pointerWorldInches);
     }
-  }
+  }, [moveDrag, workspaceMode]);
 
-  function handlePointerUp(event: ThreeEvent<PointerEvent>) {
+  const handlePointerUp = useCallback((event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
-    finishAssemblyDrag();
-  }
+    useDesignSceneStore.getState().finishAssemblyDrag();
+  }, []);
 
+  if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
+    return null;
+  }
 
   if (moveDrag.sceneViewMode === "elevation" && elevationDragSurfaceMatrix !== null) {
     return (
