@@ -23,6 +23,7 @@ import type {
 } from "@/engine/scene/sceneCameraStateTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { DesignScene } from "./designSceneTypes";
+import type { DesignSceneDocument } from "./document/designSceneDocumentTypes";
 import type { KitchenWorkspaceMode } from "./kitchenWorkspaceModeTypes";
 import type { AssemblyDragState, AssemblyElevationMoveFrame } from "./sceneDragTypes";
 
@@ -96,6 +97,7 @@ export type DesignSceneStore = Readonly<{
   updateSelectedWallSegmentThickness: (thicknessInches: number) => void;
   deleteSelectedWallSegment: () => void;
   clearActiveInteraction: () => void;
+  replaceDesignSceneFromDocument: (document: DesignSceneDocument) => void;
 }>;
 
 

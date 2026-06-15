@@ -6,7 +6,7 @@ import { DoubleSide } from "three";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
-import type { PlacedWallSegment } from "@/engine/walls/placedWallSegmentTypes";
+import type { DerivedWallOpening, PlacedWallSegment } from "@/engine/walls/placedWallSegmentTypes";
 import { createWallSegmentGeometry } from "./wallRenderingGeometry";
 import { EdgeSegmentLines } from "../shared/EdgeSegmentLines";
 import { WallSegmentActiveOverlay } from "./WallSegmentActiveOverlay";
@@ -21,7 +21,7 @@ type WallSegmentRenderState = "committed" | "preview-existing" | "preview-draft"
 type WallSegmentMeshProps = Readonly<{
   segmentBody: BuiltWallSegmentBody;
   wallSegment: PlacedWallSegment;
-  derivedOpenings: readonly PlacedWallSegment["openings"][number][];
+  derivedOpenings: readonly DerivedWallOpening[];
   renderState: WallSegmentRenderState;
   sceneViewMode: SceneViewMode;
 }>;

@@ -1,10 +1,9 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { createCountertopOpeningRequestedPolygon } from "@/engine/countertops/countertopOpeningGeometry";
-import type { CountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
+import type { DerivedCountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
 import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
-import type { WallOpening } from "@/engine/walls/placedWallSegmentTypes";
 import type { WallSegmentFace } from "@/engine/walls/wallSegmentTopologyTypes";
 import { createAssemblyPlacementFootprint } from "../assemblyPlacementGeometry";
 import type {
@@ -186,67 +185,16 @@ export function createWallFaceElevationAlignmentBoxes(args: {
   });
 }
 
-export function createWallOpeningElevationAlignmentBoxes(args: {
+export function createDerivedWallOpeningElevationAlignmentBoxes(_args: {
   placedWallGraphs: readonly PlacedWallGraph[];
   elevationFrame: AssemblyPlacementElevationFrame;
 }): readonly ElevationAlignmentBox[] {
-  const frameDirectionInches = normalizePlanVector({
-    xInches: args.elevationFrame.faceDirectionInches.xInches,
-    yInches: args.elevationFrame.faceDirectionInches.yInches,
-  });
-  const frameOutwardInches = normalizePlanVector({
-    xInches: args.elevationFrame.outwardDirectionInches.xInches,
-    yInches: args.elevationFrame.outwardDirectionInches.yInches,
-  });
-
-  if (frameDirectionInches === null || frameOutwardInches === null) {
-    return [];
-  }
-
-  return args.placedWallGraphs.flatMap((wallGraph) => {
-    const wallGeometry = buildConnectedWallGeometry(wallGraph);
-
-    return wallGeometry.faces.flatMap((face) => {
-      const faceDirectionInches = normalizePlanVector({
-        xInches: face.endPointInches.xInches - face.startPointInches.xInches,
-        yInches: face.endPointInches.yInches - face.startPointInches.yInches,
-      });
-
-      if (
-        faceDirectionInches === null ||
-        !arePlanDirectionsParallel({
-          firstDirectionInches: faceDirectionInches,
-          secondDirectionInches: frameDirectionInches,
-          angleToleranceDegrees: OBJECT_ALIGNMENT_PARALLEL_ANGLE_TOLERANCE_DEGREES,
-        }) ||
-        getPlanDotProduct(face.normalInches, frameOutwardInches) < 0.99
-      ) {
-        return [];
-      }
-
-      const faceDepthInches = getPlanDotProduct({
-        xInches: face.startPointInches.xInches - args.elevationFrame.planeOriginInches.xInches,
-        yInches: face.startPointInches.yInches - args.elevationFrame.planeOriginInches.yInches,
-      }, frameOutwardInches);
-      const wallSegment = wallGraph.segments.find((segment) => segment.id === face.wallSegmentId);
-
-      return (wallSegment?.openings ?? [])
-        .filter((opening) => opening.faceSide === face.side)
-        .map((opening) => createWallOpeningElevationAlignmentBox({
-          opening,
-          faceStartInches: face.startPointInches,
-          faceDirectionInches,
-          frameDirectionInches,
-          elevationFrame: args.elevationFrame,
-          depthInches: faceDepthInches,
-        }));
-    });
-  });
+  return [];
 }
 
 export function createCountertopOpeningElevationAlignmentBoxes(args: {
   placedAssemblies: readonly PlacedAssembly[];
-  countertopOpenings: readonly CountertopOpening[];
+  countertopOpenings: readonly DerivedCountertopOpening[];
   elevationFrame: AssemblyPlacementElevationFrame;
   movingDepthInches: number;
 }): readonly ElevationAlignmentBox[] {
@@ -408,59 +356,8 @@ function createWallFaceElevationAlignmentBox(args: {
   };
 }
 
-function createWallOpeningElevationAlignmentBox(args: {
-  opening: WallOpening;
-  faceStartInches: Point3DInches;
-  faceDirectionInches: PlanVector2DInches;
-  frameDirectionInches: PlanVector2DInches;
-  elevationFrame: AssemblyPlacementElevationFrame;
-  depthInches: number;
-}): ElevationAlignmentBox {
-  const leftWorldPointInches = {
-    xInches: args.faceStartInches.xInches + args.faceDirectionInches.xInches * args.opening.leftInchesAlongFace,
-    yInches: args.faceStartInches.yInches + args.faceDirectionInches.yInches * args.opening.leftInchesAlongFace,
-    zInches: 0,
-  };
-  const rightWorldPointInches = {
-    xInches:
-      args.faceStartInches.xInches +
-      args.faceDirectionInches.xInches * (args.opening.leftInchesAlongFace + args.opening.widthInches),
-    yInches:
-      args.faceStartInches.yInches +
-      args.faceDirectionInches.yInches * (args.opening.leftInchesAlongFace + args.opening.widthInches),
-    zInches: 0,
-  };
-  const leftUInches = getElevationUInches({
-    pointInches: leftWorldPointInches,
-    elevationFrame: args.elevationFrame,
-    faceDirectionInches: args.frameDirectionInches,
-  });
-  const rightUInches = getElevationUInches({
-    pointInches: rightWorldPointInches,
-    elevationFrame: args.elevationFrame,
-    faceDirectionInches: args.frameDirectionInches,
-  });
-  const leftInches = Math.min(leftUInches, rightUInches);
-  const rightInches = Math.max(leftUInches, rightUInches);
-  const bottomInches = args.opening.bottomInchesFromFloor;
-  const topInches = args.opening.bottomInchesFromFloor + args.opening.heightInches;
-
-  return {
-    assemblyId: `wall-opening-${args.opening.id}`,
-    targetPriority: 0,
-    snapDistanceInches: OBJECT_ELEVATION_ALIGNMENT_SNAP_DISTANCE_INCHES,
-    leftInches,
-    centerInches: (leftInches + rightInches) / 2,
-    rightInches,
-    bottomInches,
-    middleInches: (bottomInches + topInches) / 2,
-    topInches,
-    depthInches: args.depthInches,
-  };
-}
-
 function createCountertopOpeningElevationAlignmentBox(args: {
-  opening: CountertopOpening;
+  opening: DerivedCountertopOpening;
   hostCountertop: PlacedAssembly;
   elevationFrame: AssemblyPlacementElevationFrame;
   frameDirectionInches: PlanVector2DInches;

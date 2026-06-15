@@ -1,5 +1,5 @@
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
-import type { CountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
+import type { DerivedCountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import { translateAssemblyPlacement } from "../assemblyPlacementGeometry";
 import type { AssemblyPlacementElevationFrame } from "../assemblyPlacementTypes";
@@ -14,7 +14,7 @@ import {
   createElevationAlignmentBox,
   createFloorElevationAlignmentBox,
   createWallFaceElevationAlignmentBoxes,
-  createWallOpeningElevationAlignmentBoxes,
+  createDerivedWallOpeningElevationAlignmentBoxes,
   isElevationAlignmentBox,
   isElevationAlignmentTargetRelevant,
 } from "./assemblyElevationAlignmentBoxes";
@@ -25,7 +25,7 @@ export function alignAssemblyPlacementWithElevationObjects(args: {
   placedAssembly: PlacedAssembly;
   targetAssemblies: readonly PlacedAssembly[];
   placedWallGraphs: readonly PlacedWallGraph[];
-  countertopOpenings: readonly CountertopOpening[];
+  countertopOpenings: readonly DerivedCountertopOpening[];
   allPlacedAssemblies: readonly PlacedAssembly[];
   elevationFrame: AssemblyPlacementElevationFrame;
 }): AssemblyObjectAlignmentResult {
@@ -59,7 +59,7 @@ export function alignAssemblyPlacementWithElevationObjects(args: {
         targetBox,
         elevationFrame: args.elevationFrame,
       })),
-    ...createWallOpeningElevationAlignmentBoxes({
+    ...createDerivedWallOpeningElevationAlignmentBoxes({
       placedWallGraphs: args.placedWallGraphs,
       elevationFrame: args.elevationFrame,
     }),

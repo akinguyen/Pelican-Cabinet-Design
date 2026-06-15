@@ -3,6 +3,7 @@ import { createAssemblyDragActions } from "./actions/assemblyDragActions";
 import { createAssemblyEditingActions } from "./actions/assemblyEditingActions";
 import { createAssemblyPlacementActions } from "./actions/assemblyPlacementActions";
 import { createAssemblyRotationActions } from "./actions/assemblyRotationActions";
+import { createDesignSceneDocumentActions } from "./actions/designSceneDocumentActions";
 import { createSceneCameraStateActions } from "./actions/sceneCameraStateActions";
 import { createSceneInteractionActions } from "./actions/sceneInteractionActions";
 import { createSceneSelectionActions } from "./actions/sceneSelectionActions";
@@ -30,4 +31,5 @@ export const useDesignSceneStore = create<DesignSceneStore>((set, get) => ({
   ...createWallSegmentDraftActions(get, set),
   ...createWallEditingActions(get, set),
   ...createSceneInteractionActions(get, set),
+  ...createDesignSceneDocumentActions(get, set),
 }));

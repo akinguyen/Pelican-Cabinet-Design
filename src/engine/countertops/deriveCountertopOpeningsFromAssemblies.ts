@@ -10,7 +10,7 @@ import {
   getPolygonAreaInches,
 } from "./countertopOpeningGeometry";
 import { COUNTERTOP_DEFINITION_ID } from "./countertopDefinitionIds";
-import type { CountertopOpening } from "./countertopOpeningTypes";
+import type { DerivedCountertopOpening } from "./countertopOpeningTypes";
 
 const COUNTERTOP_VERTICAL_CUT_TOLERANCE_INCHES = 2;
 const MIN_DERIVED_COUNTERTOP_OPENING_SIZE_INCHES = 0.5;
@@ -23,7 +23,7 @@ type CountertopCutoutSource = Readonly<{
 export function deriveCountertopOpeningsFromAssemblies(args: {
   placedAssemblies: readonly PlacedAssembly[];
   registry: AssemblyDefinitionRegistry;
-}): readonly CountertopOpening[] {
+}): readonly DerivedCountertopOpening[] {
   const countertopHosts = args.placedAssemblies.filter(isCountertopHostAssembly);
   const countertopCutters = getCountertopCutoutSources(args.placedAssemblies, args.registry);
 
@@ -98,7 +98,7 @@ function createDerivedCountertopOpening(args: {
   hostCountertop: PlacedAssembly;
   sourceAssembly: PlacedAssembly;
   cutoutBehavior: AssemblyCountertopCutoutBehavior;
-}): CountertopOpening | null {
+}): DerivedCountertopOpening | null {
   const cutoutBody = createCountertopCutoutBodyRectangle({
     sourceAssembly: args.sourceAssembly,
     cutoutBehavior: args.cutoutBehavior,

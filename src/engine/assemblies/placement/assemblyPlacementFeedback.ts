@@ -1,6 +1,6 @@
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
-import type { CountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
+import type { DerivedCountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
 import { createAssemblyPlacementFootprint } from "./assemblyPlacementGeometry";
 import type {
   AssemblyObjectAlignmentGuide,
@@ -34,7 +34,7 @@ export function applyAssemblyPlacementRules(args: {
   placedAssembly: PlacedAssembly;
   placedWallGraphs: readonly PlacedWallGraph[];
   placedAssemblies: readonly PlacedAssembly[];
-  countertopOpenings?: readonly CountertopOpening[];
+  countertopOpenings?: readonly DerivedCountertopOpening[];
   movingAssemblyId?: string;
   snapContext?: AssemblyPlacementSnapContext;
 }): AssemblyPlacementResult {

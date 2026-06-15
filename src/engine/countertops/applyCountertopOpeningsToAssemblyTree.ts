@@ -3,14 +3,14 @@ import type {
   BuiltPrimitiveGeometry,
 } from "@/engine/assemblies/assemblyTreeBuilder";
 import { createCountertopOpeningClippedPolygon } from "./countertopOpeningGeometry";
-import type { CountertopOpening } from "./countertopOpeningTypes";
+import type { DerivedCountertopOpening } from "./countertopOpeningTypes";
 
 const COUNTERTOP_SLAB_PRIMITIVE_ROLE = "countertop-slab";
-const EMPTY_COUNTERTOP_OPENINGS: readonly CountertopOpening[] = [];
+const EMPTY_COUNTERTOP_OPENINGS: readonly DerivedCountertopOpening[] = [];
 
 export function applyCountertopOpeningsToAssemblyTree(
   builtAssemblyTree: BuiltAssemblyTree,
-  countertopOpenings: readonly CountertopOpening[],
+  countertopOpenings: readonly DerivedCountertopOpening[],
 ): BuiltAssemblyTree {
   return applyCountertopOpeningMapToAssemblyTree(
     builtAssemblyTree,
@@ -20,7 +20,7 @@ export function applyCountertopOpeningsToAssemblyTree(
 
 export function applyCountertopOpeningMapToAssemblyTree(
   builtAssemblyTree: BuiltAssemblyTree,
-  countertopOpeningsByHostCountertopId: ReadonlyMap<string, readonly CountertopOpening[]>,
+  countertopOpeningsByHostCountertopId: ReadonlyMap<string, readonly DerivedCountertopOpening[]>,
 ): BuiltAssemblyTree {
   return applyHostCountertopOpeningsToAssemblyTree(
     builtAssemblyTree,
@@ -30,7 +30,7 @@ export function applyCountertopOpeningMapToAssemblyTree(
 
 export function applyHostCountertopOpeningsToAssemblyTree(
   builtAssemblyTree: BuiltAssemblyTree,
-  hostCountertopOpenings: readonly CountertopOpening[],
+  hostCountertopOpenings: readonly DerivedCountertopOpening[],
 ): BuiltAssemblyTree {
   return {
     ...builtAssemblyTree,
@@ -44,9 +44,9 @@ export function applyHostCountertopOpeningsToAssemblyTree(
 }
 
 export function buildCountertopOpeningsByHostCountertopId(
-  countertopOpenings: readonly CountertopOpening[],
-): ReadonlyMap<string, readonly CountertopOpening[]> {
-  const countertopOpeningsByHostCountertopId = new Map<string, CountertopOpening[]>();
+  countertopOpenings: readonly DerivedCountertopOpening[],
+): ReadonlyMap<string, readonly DerivedCountertopOpening[]> {
+  const countertopOpeningsByHostCountertopId = new Map<string, DerivedCountertopOpening[]>();
 
   for (const countertopOpening of countertopOpenings) {
     const existingOpenings = countertopOpeningsByHostCountertopId.get(countertopOpening.hostCountertopId);
@@ -64,7 +64,7 @@ export function buildCountertopOpeningsByHostCountertopId(
 
 function applyOpeningsToCountertopSlabPrimitive(
   primitiveGeometry: BuiltPrimitiveGeometry,
-  countertopOpenings: readonly CountertopOpening[],
+  countertopOpenings: readonly DerivedCountertopOpening[],
 ): BuiltPrimitiveGeometry {
   if (primitiveGeometry.role !== COUNTERTOP_SLAB_PRIMITIVE_ROLE) {
     return primitiveGeometry;

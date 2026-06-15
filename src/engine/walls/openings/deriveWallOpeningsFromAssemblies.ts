@@ -2,16 +2,16 @@ import { getAssemblyDefinition, type AssemblyDefinitionRegistry } from "@/engine
 import { createAssemblyPlacementFootprint } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { PlacedWallGraph } from "../placedWallGraphTypes";
-import type { WallFaceSide, WallOpening } from "../placedWallSegmentTypes";
+import type { WallFaceSide, DerivedWallOpening } from "../placedWallSegmentTypes";
 import { buildConnectedWallGeometry } from "../buildConnectedWallGeometry";
 import type { BuiltWallSegmentBody } from "../wallSegmentTopologyTypes";
-import { createWallOpeningFaceAxes, type WallOpeningFaceAxesInches } from "./wallOpeningFaceAxes";
+import { createDerivedWallOpeningFaceAxes, type DerivedWallOpeningFaceAxesInches } from "./wallOpeningFaceAxes";
 
 const WALL_CUTOUT_DEPTH_TOLERANCE_INCHES = 2;
 const MIN_DERIVED_WALL_OPENING_SIZE_INCHES = 0.5;
 
-type CandidateWallOpening = Readonly<{
-  opening: WallOpening;
+type CandidateDerivedWallOpening = Readonly<{
+  opening: DerivedWallOpening;
   faceDistanceInches: number;
 }>;
 
@@ -25,7 +25,7 @@ export function deriveWallOpeningsFromAssemblies(args: {
   placedWallGraphs: readonly PlacedWallGraph[];
   registry: AssemblyDefinitionRegistry;
   segmentBodies?: readonly BuiltWallSegmentBody[];
-}): readonly WallOpening[] {
+}): readonly DerivedWallOpening[] {
   const wallCutters = getWallCutoutSources(args.placedAssemblies, args.registry);
 
   if (wallCutters.length === 0) {
@@ -80,10 +80,10 @@ function findBestDerivedWallOpeningForSegment(args: {
   sourceAssembly: PlacedAssembly;
   segmentBody: BuiltWallSegmentBody;
   insetInches: number;
-}): CandidateWallOpening | null {
+}): CandidateDerivedWallOpening | null {
   const candidates = (["side-a", "side-b"] as const)
     .map((faceSide) => createDerivedWallOpeningForFace({ ...args, faceSide }))
-    .filter(isCandidateWallOpening)
+    .filter(isCandidateDerivedWallOpening)
     .sort((firstCandidate, secondCandidate) => (
       firstCandidate.faceDistanceInches - secondCandidate.faceDistanceInches
     ));
@@ -96,8 +96,8 @@ function createDerivedWallOpeningForFace(args: {
   segmentBody: BuiltWallSegmentBody;
   faceSide: WallFaceSide;
   insetInches: number;
-}): CandidateWallOpening | null {
-  const faceAxes = createWallOpeningFaceAxes({
+}): CandidateDerivedWallOpening | null {
+  const faceAxes = createDerivedWallOpeningFaceAxes({
     segmentBody: args.segmentBody,
     faceSide: args.faceSide,
   });
@@ -157,15 +157,15 @@ function createDerivedWallOpeningForFace(args: {
   };
 }
 
-function isCandidateWallOpening(
-  candidate: CandidateWallOpening | null,
-): candidate is CandidateWallOpening {
+function isCandidateDerivedWallOpening(
+  candidate: CandidateDerivedWallOpening | null,
+): candidate is CandidateDerivedWallOpening {
   return candidate !== null;
 }
 
 function projectPointOntoFaceDirection(
   pointInches: Readonly<{ xInches: number; yInches: number }>,
-  faceAxes: WallOpeningFaceAxesInches,
+  faceAxes: DerivedWallOpeningFaceAxesInches,
 ): number {
   return (
     (pointInches.xInches - faceAxes.sideStartPointInches.xInches) *
@@ -177,7 +177,7 @@ function projectPointOntoFaceDirection(
 
 function projectPointOntoOutwardDirection(
   pointInches: Readonly<{ xInches: number; yInches: number }>,
-  faceAxes: WallOpeningFaceAxesInches,
+  faceAxes: DerivedWallOpeningFaceAxesInches,
 ): number {
   return (
     (pointInches.xInches - faceAxes.sideStartPointInches.xInches) *

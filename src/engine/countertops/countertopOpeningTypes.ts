@@ -1,15 +1,15 @@
 import type { Point2DInches } from "@/core/geometry/pointTypes";
 
-export type CountertopOpeningShape = Readonly<{
+export type DerivedCountertopOpeningShape = Readonly<{
   kind: "rectangle";
   widthInches: number;
   depthInches: number;
 }>;
 
-export type CountertopOpening = Readonly<{
+export type DerivedCountertopOpening = Readonly<{
   id: string;
   hostCountertopId: string;
   localCenterInches: Point2DInches;
   localRotationDegrees: number;
-  shape: CountertopOpeningShape;
+  shape: DerivedCountertopOpeningShape;
 }>;

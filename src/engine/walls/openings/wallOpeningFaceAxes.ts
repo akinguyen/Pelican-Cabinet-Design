@@ -4,24 +4,24 @@ import type { BuiltWallSegmentBody } from "../wallSegmentTopologyTypes";
 
 const GEOMETRY_EPSILON = 0.000001;
 
-export type WallOpeningFaceDirectionInches = Readonly<{
+export type DerivedWallOpeningFaceDirectionInches = Readonly<{
   xInches: number;
   yInches: number;
 }>;
 
-export type WallOpeningFaceAxesInches = Readonly<{
+export type DerivedWallOpeningFaceAxesInches = Readonly<{
   sideStartPointInches: Point3DInches;
   sideEndPointInches: Point3DInches;
   faceLengthInches: number;
-  faceDirectionInches: WallOpeningFaceDirectionInches;
-  outwardDirectionInches: WallOpeningFaceDirectionInches;
-  inwardDirectionInches: WallOpeningFaceDirectionInches;
+  faceDirectionInches: DerivedWallOpeningFaceDirectionInches;
+  outwardDirectionInches: DerivedWallOpeningFaceDirectionInches;
+  inwardDirectionInches: DerivedWallOpeningFaceDirectionInches;
 }>;
 
-export function createWallOpeningFaceAxes(args: {
+export function createDerivedWallOpeningFaceAxes(args: {
   segmentBody: BuiltWallSegmentBody;
   faceSide: WallFaceSide;
-}): WallOpeningFaceAxesInches | null {
+}): DerivedWallOpeningFaceAxesInches | null {
   const sideStartPointInches = getSideStartPoint(args.segmentBody, args.faceSide);
   const sideEndPointInches = getSideEndPoint(args.segmentBody, args.faceSide);
   const faceVectorInches = {
@@ -63,8 +63,8 @@ function createOutwardDirection(args: {
   segmentBody: BuiltWallSegmentBody;
   faceSide: WallFaceSide;
   sideStartPointInches: Point3DInches;
-  faceDirectionInches: WallOpeningFaceDirectionInches;
-}): WallOpeningFaceDirectionInches {
+  faceDirectionInches: DerivedWallOpeningFaceDirectionInches;
+}): DerivedWallOpeningFaceDirectionInches {
   const firstPerpendicularInches = {
     xInches: -args.faceDirectionInches.yInches,
     yInches: args.faceDirectionInches.xInches,
@@ -98,8 +98,8 @@ function getSideEndPoint(segmentBody: BuiltWallSegmentBody, side: WallFaceSide):
 }
 
 function dot(
-  firstInches: WallOpeningFaceDirectionInches,
-  secondInches: WallOpeningFaceDirectionInches,
+  firstInches: DerivedWallOpeningFaceDirectionInches,
+  secondInches: DerivedWallOpeningFaceDirectionInches,
 ): number {
   return firstInches.xInches * secondInches.xInches + firstInches.yInches * secondInches.yInches;
 }

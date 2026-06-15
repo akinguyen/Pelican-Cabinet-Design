@@ -10,6 +10,7 @@ import {
   getSelectedWallSegmentFromScene,
 } from "../selection/sceneSelectionLookups";
 import { DesignerChatPanel } from "./DesignerChatPanel";
+import { AIDesignerSceneDocumentControls } from "./scene-document-controls/AIDesignerSceneDocumentControls";
 import { SelectedAssemblySummary } from "./SelectedAssemblySummary";
 import { SelectedWallSummary } from "./SelectedWallSummary";
 
@@ -26,6 +27,7 @@ export function AIDesignerPanel() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 bg-slate-50 p-3">
+      <AIDesignerSceneDocumentControls />
       {selectedAssembly !== null && selectedDefinition !== null ? (
         <SelectedAssemblySummary placedAssembly={selectedAssembly} definition={selectedDefinition} />
       ) : selectedWallSegment !== null && selectedWallGraphNodes !== null ? (

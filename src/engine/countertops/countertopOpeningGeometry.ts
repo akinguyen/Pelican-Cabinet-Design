@@ -1,6 +1,6 @@
 import type { Point2DInches } from "@/core/geometry/pointTypes";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
-import type { CountertopOpening, CountertopOpeningShape } from "./countertopOpeningTypes";
+import type { DerivedCountertopOpening, DerivedCountertopOpeningShape } from "./countertopOpeningTypes";
 
 const MIN_POLYGON_AREA_INCHES = 0.01;
 
@@ -12,7 +12,7 @@ export type CountertopOpeningBoundsInches = Readonly<{
 }>;
 
 export function createCountertopOpeningRequestedPolygon(
-  opening: CountertopOpening,
+  opening: DerivedCountertopOpening,
 ): readonly Point2DInches[] {
   return createCountertopOpeningShapePolygon({
     localCenterInches: opening.localCenterInches,
@@ -24,13 +24,13 @@ export function createCountertopOpeningRequestedPolygon(
 export function createCountertopOpeningShapePolygon(args: {
   localCenterInches: Point2DInches;
   localRotationDegrees: number;
-  shape: CountertopOpeningShape;
+  shape: DerivedCountertopOpeningShape;
 }): readonly Point2DInches[] {
   return createRectanglePolygon(args);
 }
 
 export function createCountertopOpeningClippedPolygon(
-  opening: CountertopOpening,
+  opening: DerivedCountertopOpening,
   countertopSizeInches: Size3DInches,
 ): readonly Point2DInches[] {
   return clipCountertopOpeningPolygonToHost(
@@ -114,7 +114,7 @@ export function getCountertopOpeningPolygonBounds(
 }
 
 export function getCountertopOpeningShapeBounds(
-  shape: CountertopOpeningShape,
+  shape: DerivedCountertopOpeningShape,
 ): CountertopOpeningBoundsInches {
   return {
     leftInches: -shape.widthInches / 2,
@@ -124,7 +124,7 @@ export function getCountertopOpeningShapeBounds(
   };
 }
 
-export function getCountertopOpeningShapeSize(shape: CountertopOpeningShape): Readonly<{
+export function getCountertopOpeningShapeSize(shape: DerivedCountertopOpeningShape): Readonly<{
   widthInches: number;
   depthInches: number;
 }> {
@@ -154,7 +154,7 @@ export function getPolygonAreaInches(polygonInches: readonly Point2DInches[]): n
 function createRectanglePolygon(args: {
   localCenterInches: Point2DInches;
   localRotationDegrees: number;
-  shape: CountertopOpeningShape;
+  shape: DerivedCountertopOpeningShape;
 }): readonly Point2DInches[] {
   const halfWidthInches = args.shape.widthInches / 2;
   const halfDepthInches = args.shape.depthInches / 2;

@@ -11,7 +11,7 @@ import { deriveWallOpeningsFromAssemblies } from "@/engine/walls/openings/derive
 import { buildWallSegmentDraftPreviewGraph } from "@/engine/walls/segment-draft/wallSegmentDraftPreview";
 import type { WallSegmentDraft } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
 import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
-import type { PlacedWallSegment, WallOpening } from "@/engine/walls/placedWallSegmentTypes";
+import type { PlacedWallSegment, DerivedWallOpening } from "@/engine/walls/placedWallSegmentTypes";
 import type { SceneSelection } from "@/engine/scene/sceneSelectionTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { WallSegmentMesh } from "./WallSegmentMesh";
@@ -21,8 +21,8 @@ import { WallPlanMeasurementGuides } from "./WallPlanMeasurementGuides";
 import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
 
 const SHOW_WALL_ELEVATION_VIEW_ZONE_OVERLAY = true;
-const EMPTY_DERIVED_WALL_OPENINGS: readonly WallOpening[] = [];
-const EMPTY_DERIVED_WALL_OPENINGS_BY_SEGMENT_ID: ReadonlyMap<string, readonly WallOpening[]> = new Map();
+const EMPTY_DERIVED_WALL_OPENINGS: readonly DerivedWallOpening[] = [];
+const EMPTY_DERIVED_WALL_OPENINGS_BY_SEGMENT_ID: ReadonlyMap<string, readonly DerivedWallOpening[]> = new Map();
 
 type WallLayerProps = Readonly<{
   placedWallGraphs: readonly PlacedWallGraph[];
@@ -73,7 +73,7 @@ export function WallLayer({
   const derivedWallOpeningsBySegmentId = useMemo(
     () => derivedWallOpenings.length === 0
       ? EMPTY_DERIVED_WALL_OPENINGS_BY_SEGMENT_ID
-      : buildWallOpeningsBySegmentId(derivedWallOpenings),
+      : buildDerivedWallOpeningsBySegmentId(derivedWallOpenings),
     [derivedWallOpenings],
   );
   const selectedWallSegment = useMemo(() => (
@@ -211,20 +211,20 @@ function buildWallSegmentsByWallGraphId(
   return wallSegmentsByWallGraphId;
 }
 
-function buildWallOpeningsBySegmentId(
-  wallOpenings: readonly WallOpening[],
-): ReadonlyMap<string, readonly WallOpening[]> {
-  const wallOpeningsBySegmentId = new Map<string, WallOpening[]>();
+function buildDerivedWallOpeningsBySegmentId(
+  wallOpenings: readonly DerivedWallOpening[],
+): ReadonlyMap<string, readonly DerivedWallOpening[]> {
+  const wallOpeningsBySegmentId = new Map<string, DerivedWallOpening[]>();
 
   for (const wallOpening of wallOpenings) {
-    const existingWallOpenings = wallOpeningsBySegmentId.get(wallOpening.wallSegmentId);
+    const existingDerivedWallOpenings = wallOpeningsBySegmentId.get(wallOpening.wallSegmentId);
 
-    if (existingWallOpenings === undefined) {
+    if (existingDerivedWallOpenings === undefined) {
       wallOpeningsBySegmentId.set(wallOpening.wallSegmentId, [wallOpening]);
       continue;
     }
 
-    existingWallOpenings.push(wallOpening);
+    existingDerivedWallOpenings.push(wallOpening);
   }
 
   return wallOpeningsBySegmentId;

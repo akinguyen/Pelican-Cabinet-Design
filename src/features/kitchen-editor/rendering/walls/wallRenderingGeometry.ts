@@ -1,10 +1,10 @@
 import { BufferGeometry, ExtrudeGeometry, Float32BufferAttribute, Shape } from "three";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PrimitiveEdgeSegmentInches } from "@/engine/primitive-geometry/edge-segments/primitiveEdgeSegmentTypes";
-import { createOrthogonalWallOpeningCutFootprint } from "@/engine/walls/openings/wallOpeningCutGeometry";
-import { createWallOpeningFaceAxes } from "@/engine/walls/openings/wallOpeningFaceAxes";
+import { createOrthogonalDerivedWallOpeningCutFootprint } from "@/engine/walls/openings/wallOpeningCutGeometry";
+import { createDerivedWallOpeningFaceAxes } from "@/engine/walls/openings/wallOpeningFaceAxes";
 import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
-import type { WallOpening } from "@/engine/walls/placedWallSegmentTypes";
+import type { DerivedWallOpening } from "@/engine/walls/placedWallSegmentTypes";
 
 const GEOMETRY_EPSILON = 0.000001;
 const WALL_OPENING_EDGE_OFFSET_INCHES = 0.12;
@@ -25,7 +25,7 @@ type WallGridAxesInches = Readonly<{
   normalDirectionInches: WallDirectionInches;
 }>;
 
-type NormalizedWallOpening = Readonly<{
+type NormalizedDerivedWallOpening = Readonly<{
   startUInches: number;
   endUInches: number;
   bottomInches: number;
@@ -57,8 +57,8 @@ type WallGridCell = Readonly<{
 
 export function createWallSegmentGeometry(args: {
   segmentBody: BuiltWallSegmentBody;
-  openings: readonly WallOpening[];
-  edgeSegmentOpenings?: readonly WallOpening[];
+  openings: readonly DerivedWallOpening[];
+  edgeSegmentOpenings?: readonly DerivedWallOpening[];
 }): WallSegmentGeometryResult {
   if (args.openings.length === 0) {
     return {
@@ -91,11 +91,11 @@ export function createExtrudedWallGeometry(
 
 function createWallSegmentGeometryWithOpenings(args: {
   segmentBody: BuiltWallSegmentBody;
-  openings: readonly WallOpening[];
-  edgeSegmentOpenings: readonly WallOpening[];
+  openings: readonly DerivedWallOpening[];
+  edgeSegmentOpenings: readonly DerivedWallOpening[];
 }): WallSegmentGeometryResult {
   const { segmentBody, openings } = args;
-  const wallGridAxesInches = createWallOpeningGridAxes(segmentBody, openings);
+  const wallGridAxesInches = createDerivedWallOpeningGridAxes(segmentBody, openings);
 
   if (wallGridAxesInches === null) {
     return {
@@ -114,7 +114,7 @@ function createWallSegmentGeometryWithOpenings(args: {
       originInches: wallGridAxesInches.originInches,
       wallDirectionInches: wallGridAxesInches.wallDirectionInches,
     }))
-    .filter(isNormalizedWallOpening);
+    .filter(isNormalizedDerivedWallOpening);
 
   if (normalizedOpenings.length === 0) {
     return {
@@ -180,11 +180,11 @@ function createWallSegmentGeometryWithOpenings(args: {
 
 function normalizeOpening(args: {
   segmentBody: BuiltWallSegmentBody;
-  opening: WallOpening;
+  opening: DerivedWallOpening;
   originInches: Point3DInches;
   wallDirectionInches: WallDirectionInches;
-}): NormalizedWallOpening | null {
-  const cutFootprint = createOrthogonalWallOpeningCutFootprint({
+}): NormalizedDerivedWallOpening | null {
+  const cutFootprint = createOrthogonalDerivedWallOpeningCutFootprint({
     segmentBody: args.segmentBody,
     opening: args.opening,
   });
@@ -221,18 +221,18 @@ function normalizeOpening(args: {
   };
 }
 
-function isNormalizedWallOpening(opening: NormalizedWallOpening | null): opening is NormalizedWallOpening {
+function isNormalizedDerivedWallOpening(opening: NormalizedDerivedWallOpening | null): opening is NormalizedDerivedWallOpening {
   return opening !== null;
 }
 
-function createWallOpeningGridAxes(
+function createDerivedWallOpeningGridAxes(
   segmentBody: BuiltWallSegmentBody,
-  openings: readonly WallOpening[],
+  openings: readonly DerivedWallOpening[],
 ): WallGridAxesInches | null {
   const firstOpening = openings[0];
 
   if (firstOpening !== undefined) {
-    const faceAxes = createWallOpeningFaceAxes({
+    const faceAxes = createDerivedWallOpeningFaceAxes({
       segmentBody,
       faceSide: firstOpening.faceSide,
     });
@@ -265,7 +265,7 @@ function createWallCellGrid(args: {
   originInches: Point3DInches;
   wallDirectionInches: WallDirectionInches;
   normalDirectionInches: WallDirectionInches;
-  openings: readonly NormalizedWallOpening[];
+  openings: readonly NormalizedDerivedWallOpening[];
 }): WallCellGrid | null {
   const footprintCoordinatesInches = args.segmentBody.footprintPolygonInches.map((pointInches) => (
     projectPointOntoDirection({
@@ -358,7 +358,7 @@ function isCellInsideAnyOpening(args: {
   endUInches: number;
   bottomInches: number;
   topInches: number;
-  openings: readonly NormalizedWallOpening[];
+  openings: readonly NormalizedDerivedWallOpening[];
 }): boolean {
   const centerUInches = (args.startUInches + args.endUInches) / 2;
   const centerZInches = (args.bottomInches + args.topInches) / 2;
@@ -411,7 +411,7 @@ function addSolidCellFaces(args: {
 
 function createManualOpeningBoundaryEdgeSegments(args: {
   segmentBody: BuiltWallSegmentBody;
-  openings: readonly WallOpening[];
+  openings: readonly DerivedWallOpening[];
   originInches: Point3DInches;
   wallDirectionInches: WallDirectionInches;
 }): readonly PrimitiveEdgeSegmentInches[] {
@@ -426,7 +426,7 @@ function createManualOpeningBoundaryEdgeSegments(args: {
       originInches: args.originInches,
       wallDirectionInches: args.wallDirectionInches,
     }))
-    .filter(isNormalizedWallOpening);
+    .filter(isNormalizedDerivedWallOpening);
 
   if (normalizedOpenings.length === 0) {
     return [];

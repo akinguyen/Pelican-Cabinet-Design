@@ -7,10 +7,9 @@ export type PlacedWallSegment = Readonly<{
   endNodeId: string;
   thicknessInches: number;
   heightInches: number;
-  openings: readonly WallOpening[];
 }>;
 
-export type WallOpening = Readonly<{
+export type DerivedWallOpening = Readonly<{
   id: string;
   wallSegmentId: string;
   faceSide: WallFaceSide;

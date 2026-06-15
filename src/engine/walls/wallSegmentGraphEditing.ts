@@ -61,7 +61,6 @@ export function createWallSegment(args: {
     endNodeId: args.endNodeId,
     heightInches: args.heightInches,
     thicknessInches: args.thicknessInches,
-    openings: [],
   };
 }
 

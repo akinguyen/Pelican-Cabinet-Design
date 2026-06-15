@@ -1,5 +1,5 @@
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
-import type { CountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
+import type { DerivedCountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import type { AssemblyPlacementSnapContext } from "./assemblyPlacementTypes";
 import { alignAssemblyPlacementWithElevationObjects } from "./alignment/assemblyElevationObjectAlignment";
@@ -18,7 +18,7 @@ export function alignAssemblyPlacementWithNearbyObjects(args: {
   placedAssembly: PlacedAssembly;
   placedAssemblies: readonly PlacedAssembly[];
   placedWallGraphs?: readonly PlacedWallGraph[];
-  countertopOpenings?: readonly CountertopOpening[];
+  countertopOpenings?: readonly DerivedCountertopOpening[];
   movingAssemblyId?: string;
   snapContext?: AssemblyPlacementSnapContext;
   constraint?: AssemblyObjectAlignmentConstraint;

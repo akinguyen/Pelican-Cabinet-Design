@@ -1,10 +1,9 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { createCountertopOpeningRequestedPolygon } from "@/engine/countertops/countertopOpeningGeometry";
-import type { CountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
+import type { DerivedCountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
 import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
-import type { WallOpening } from "@/engine/walls/placedWallSegmentTypes";
 import type { WallSegmentFace } from "@/engine/walls/wallSegmentTopologyTypes";
 import {
   arePlanDirectionsParallel,
@@ -24,7 +23,6 @@ import {
   OBJECT_WALL_OPENING_PLAN_DEPTH_TOLERANCE_INCHES,
   WALL_ALIGNMENT_PLAN_DEPTH_TOLERANCE_INCHES,
   WALL_ALIGNMENT_SNAP_DISTANCE_INCHES,
-  WALL_OPENING_PLAN_TARGET_THICKNESS_INCHES,
 } from "./assemblyObjectAlignmentConstants";
 import {
   createObjectAlignmentFootprintFromPlanPoints,
@@ -89,7 +87,7 @@ export function createWallCenterlinePlanAlignmentFootprints(args: {
 
 export function createCountertopOpeningAlignmentFootprints(args: {
   placedAssemblies: readonly PlacedAssembly[];
-  countertopOpenings: readonly CountertopOpening[];
+  countertopOpenings: readonly DerivedCountertopOpening[];
 }): readonly ObjectAlignmentFootprint[] {
   return args.countertopOpenings
     .map((opening) => {
@@ -102,36 +100,10 @@ export function createCountertopOpeningAlignmentFootprints(args: {
     .filter(isObjectAlignmentFootprint);
 }
 
-export function createWallOpeningPlanAlignmentFootprints(args: {
+export function createDerivedWallOpeningPlanAlignmentFootprints(_args: {
   placedWallGraphs: readonly PlacedWallGraph[];
 }): readonly ObjectAlignmentFootprint[] {
-  return args.placedWallGraphs.flatMap((wallGraph) => {
-    const wallGeometry = buildConnectedWallGeometry(wallGraph);
-
-    return wallGeometry.faces.flatMap((face) => {
-      const faceDirectionInches = normalizePlanVector({
-        xInches: face.endPointInches.xInches - face.startPointInches.xInches,
-        yInches: face.endPointInches.yInches - face.startPointInches.yInches,
-      });
-      const faceNormalInches = normalizePlanVector(face.normalInches);
-
-      if (faceDirectionInches === null || faceNormalInches === null) {
-        return [];
-      }
-
-      const wallSegment = wallGraph.segments.find((segment) => segment.id === face.wallSegmentId);
-
-      return (wallSegment?.openings ?? [])
-        .filter((opening) => opening.faceSide === face.side)
-        .map((opening) => createWallOpeningPlanAlignmentFootprint({
-          opening,
-          faceStartInches: face.startPointInches,
-          faceDirectionInches,
-          faceNormalInches,
-        }))
-        .filter(isObjectAlignmentFootprint);
-    });
-  });
+  return [];
 }
 
 function createWallCenterlinePlanAlignmentFootprint(args: {
@@ -246,7 +218,7 @@ function createWallFacePlanAlignmentFootprint(args: {
 }
 
 function createCountertopOpeningAlignmentFootprint(args: {
-  opening: CountertopOpening;
+  opening: DerivedCountertopOpening;
   hostCountertop: PlacedAssembly;
 }): ObjectAlignmentFootprint | null {
   const polygonInches = createCountertopOpeningRequestedPolygon(args.opening);
@@ -394,63 +366,6 @@ function isWallFaceRelevantToMovingFootprint(args: {
       secondSpanInches: edgeSpanInches,
       toleranceInches: OBJECT_ALIGNMENT_GUIDE_PADDING_INCHES,
     }) !== null;
-  });
-}
-
-function createWallOpeningPlanAlignmentFootprint(args: {
-  opening: WallOpening;
-  faceStartInches: Point3DInches;
-  faceDirectionInches: PlanVector2DInches;
-  faceNormalInches: PlanVector2DInches;
-}): ObjectAlignmentFootprint | null {
-  const leftPointInches = {
-    xInches: args.faceStartInches.xInches + args.faceDirectionInches.xInches * args.opening.leftInchesAlongFace,
-    yInches: args.faceStartInches.yInches + args.faceDirectionInches.yInches * args.opening.leftInchesAlongFace,
-    zInches: 0,
-  };
-  const rightPointInches = {
-    xInches:
-      args.faceStartInches.xInches +
-      args.faceDirectionInches.xInches * (args.opening.leftInchesAlongFace + args.opening.widthInches),
-    yInches:
-      args.faceStartInches.yInches +
-      args.faceDirectionInches.yInches * (args.opening.leftInchesAlongFace + args.opening.widthInches),
-    zInches: 0,
-  };
-  const halfThicknessInches = WALL_OPENING_PLAN_TARGET_THICKNESS_INCHES / 2;
-  const frontLeftPointInches = offsetPlanPoint({
-    pointInches: leftPointInches,
-    directionInches: args.faceNormalInches,
-    distanceInches: halfThicknessInches,
-  });
-  const frontRightPointInches = offsetPlanPoint({
-    pointInches: rightPointInches,
-    directionInches: args.faceNormalInches,
-    distanceInches: halfThicknessInches,
-  });
-  const backRightPointInches = offsetPlanPoint({
-    pointInches: rightPointInches,
-    directionInches: args.faceNormalInches,
-    distanceInches: -halfThicknessInches,
-  });
-  const backLeftPointInches = offsetPlanPoint({
-    pointInches: leftPointInches,
-    directionInches: args.faceNormalInches,
-    distanceInches: -halfThicknessInches,
-  });
-  const centerPointInches = {
-    xInches: (leftPointInches.xInches + rightPointInches.xInches) / 2,
-    yInches: (leftPointInches.yInches + rightPointInches.yInches) / 2,
-    zInches: 0,
-  };
-
-  return createObjectAlignmentFootprintFromPlanPoints({
-    assemblyId: `wall-opening-${args.opening.id}`,
-    targetKind: "wall-opening",
-    targetPriority: -1,
-    snapDistanceInches: OBJECT_ALIGNMENT_SNAP_DISTANCE_INCHES,
-    centerPointInches,
-    cornerPointsInches: [frontLeftPointInches, frontRightPointInches, backRightPointInches, backLeftPointInches],
   });
 }
 

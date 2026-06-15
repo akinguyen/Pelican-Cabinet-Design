@@ -1,12 +1,12 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { WallOpening } from "../placedWallSegmentTypes";
+import type { DerivedWallOpening } from "../placedWallSegmentTypes";
 import type { BuiltWallSegmentBody } from "../wallSegmentTopologyTypes";
-import { createWallOpeningFaceAxes } from "./wallOpeningFaceAxes";
+import { createDerivedWallOpeningFaceAxes } from "./wallOpeningFaceAxes";
 
 const GEOMETRY_EPSILON = 0.000001;
 const MIN_WALL_OPENING_HIT_SIZE_INCHES = 0.25;
 
-export type WallOpeningCutFootprintInches = Readonly<{
+export type DerivedWallOpeningCutFootprintInches = Readonly<{
   frontLeftInches: Point3DInches;
   frontRightInches: Point3DInches;
   backRightInches: Point3DInches;
@@ -17,15 +17,15 @@ export type WallOpeningCutFootprintInches = Readonly<{
   inwardDirectionInches: Readonly<{ xInches: number; yInches: number }>;
 }>;
 
-export function createOrthogonalWallOpeningCutFootprint(args: {
+export function createOrthogonalDerivedWallOpeningCutFootprint(args: {
   segmentBody: BuiltWallSegmentBody;
-  opening: WallOpening;
+  opening: DerivedWallOpening;
   paddingInches?: number;
   depthPaddingInches?: number;
-}): WallOpeningCutFootprintInches | null {
+}): DerivedWallOpeningCutFootprintInches | null {
   const paddingInches = args.paddingInches ?? 0;
   const depthPaddingInches = args.depthPaddingInches ?? 0;
-  const faceAxes = createWallOpeningFaceAxes({
+  const faceAxes = createDerivedWallOpeningFaceAxes({
     segmentBody: args.segmentBody,
     faceSide: args.opening.faceSide,
   });
@@ -111,12 +111,12 @@ export function createOrthogonalWallOpeningCutFootprint(args: {
   };
 }
 
-export function createWallOpeningFaceRectanglePointsInches(args: {
+export function createDerivedWallOpeningFaceRectanglePointsInches(args: {
   segmentBody: BuiltWallSegmentBody;
-  opening: WallOpening;
+  opening: DerivedWallOpening;
   outwardOffsetInches: number;
 }): readonly Point3DInches[] {
-  const footprint = createOrthogonalWallOpeningCutFootprint({
+  const footprint = createOrthogonalDerivedWallOpeningCutFootprint({
     segmentBody: args.segmentBody,
     opening: args.opening,
   });

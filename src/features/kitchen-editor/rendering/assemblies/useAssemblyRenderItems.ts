@@ -6,7 +6,7 @@ import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import {
   applyHostCountertopOpeningsToAssemblyTree,
 } from "@/engine/countertops/applyCountertopOpeningsToAssemblyTree";
-import type { CountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
+import type { DerivedCountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
 import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
 
 export type AssemblyRenderItem = Readonly<{
@@ -16,16 +16,16 @@ export type AssemblyRenderItem = Readonly<{
 
 type AssemblyTreeRenderCacheEntry = Readonly<{
   placedAssembly: PlacedAssembly;
-  hostCountertopOpenings: readonly CountertopOpening[];
+  hostCountertopOpenings: readonly DerivedCountertopOpening[];
   baseBuiltAssemblyTree: BuiltAssemblyTree;
   builtAssemblyTree: BuiltAssemblyTree;
 }>;
 
-const EMPTY_COUNTERTOP_OPENINGS: readonly CountertopOpening[] = [];
+const EMPTY_COUNTERTOP_OPENINGS: readonly DerivedCountertopOpening[] = [];
 
 export function useAssemblyRenderItems(
   placedAssemblies: readonly PlacedAssembly[],
-  countertopOpeningsByHostCountertopId: ReadonlyMap<string, readonly CountertopOpening[]>,
+  countertopOpeningsByHostCountertopId: ReadonlyMap<string, readonly DerivedCountertopOpening[]>,
 ): readonly AssemblyRenderItem[] {
   const assemblyTreeRenderCacheRef = useRef<ReadonlyMap<string, AssemblyTreeRenderCacheEntry>>(
     new Map(),

@@ -1,5 +1,5 @@
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
-import type { CountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
+import type { DerivedCountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import { createAssemblyPlacementFootprint, translateAssemblyPlacement } from "../assemblyPlacementGeometry";
 import { getPlanVectorLength } from "../assemblyPlacementPlanGeometry";
@@ -23,7 +23,7 @@ import {
   createCountertopOpeningAlignmentFootprints,
   createWallCenterlinePlanAlignmentFootprints,
   createWallFacePlanAlignmentFootprints,
-  createWallOpeningPlanAlignmentFootprints,
+  createDerivedWallOpeningPlanAlignmentFootprints,
 } from "./assemblyPlanAlignmentTargets";
 
 export function alignAssemblyPlacementWithPlanObjects(args: {
@@ -31,7 +31,7 @@ export function alignAssemblyPlacementWithPlanObjects(args: {
   targetAssemblies: readonly PlacedAssembly[];
   allPlacedAssemblies: readonly PlacedAssembly[];
   placedWallGraphs: readonly PlacedWallGraph[];
-  countertopOpenings: readonly CountertopOpening[];
+  countertopOpenings: readonly DerivedCountertopOpening[];
   constraint?: AssemblyObjectAlignmentConstraint;
 }): AssemblyObjectAlignmentResult {
   const movingAlignmentFootprint = createObjectAlignmentFootprint({
@@ -61,7 +61,7 @@ export function alignAssemblyPlacementWithPlanObjects(args: {
       placedAssemblies: args.allPlacedAssemblies,
       countertopOpenings: args.countertopOpenings,
     }),
-    ...createWallOpeningPlanAlignmentFootprints({
+    ...createDerivedWallOpeningPlanAlignmentFootprints({
       placedWallGraphs: args.placedWallGraphs,
     }),
   ];
