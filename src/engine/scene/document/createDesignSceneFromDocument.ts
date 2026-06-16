@@ -63,6 +63,8 @@ function createPlacedWallGraphFromDocument(
       endNodeId: wallSegment.endNodeId,
       thicknessInches: wallSegment.thicknessInches,
       heightInches: wallSegment.heightInches,
+      preferredViewFaceSide: wallSegment.preferredViewFaceSide,
+      cabinetPlacementFaceSides: wallSegment.cabinetPlacementFaceSides,
     })),
   };
 }

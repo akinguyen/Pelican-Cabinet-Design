@@ -1,5 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
+import type { WallFaceSide } from "@/engine/walls/placedWallSegmentTypes";
 import type {
   AssemblyComponentOverride,
   AssemblyOptionValue,
@@ -69,4 +70,6 @@ export type PlacedWallSegmentDocument = Readonly<{
   endNodeId: string;
   thicknessInches: number;
   heightInches: number;
+  preferredViewFaceSide: WallFaceSide;
+  cabinetPlacementFaceSides: readonly WallFaceSide[];
 }>;

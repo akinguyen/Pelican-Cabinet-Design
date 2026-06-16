@@ -3,7 +3,6 @@
 import { useCallback, useMemo } from "react";
 import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
 import { getWallElevationViewZoneForTarget } from "@/engine/walls/wallElevationViewZone";
-import { getWallElevationFaceSideForSegment } from "@/engine/walls/wallElevationFaceSideMemory";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
@@ -114,18 +113,24 @@ export function WallLayer({
     previewWallSegmentsByWallGraphId,
     selectedWallSegment,
   ]);
-  const activeWallElevationFaceSideBySegmentKey = useDesignSceneStore((state) => state.activeWallElevationFaceSideBySegmentKey);
-  const selectedWallElevationTarget = useMemo(() => selectedWallSegment === null
-    ? null
-    : {
-        wallGraphId: selectedWallSegment.wallGraphId,
-        wallSegmentId: selectedWallSegment.wallSegmentId,
-        faceSide: getWallElevationFaceSideForSegment({
-          faceSideBySegmentKey: activeWallElevationFaceSideBySegmentKey,
-          wallGraphId: selectedWallSegment.wallGraphId,
-          wallSegmentId: selectedWallSegment.wallSegmentId,
-        }),
-      }, [activeWallElevationFaceSideBySegmentKey, selectedWallSegment]);
+  const selectedWallElevationTarget = useMemo(() => {
+    if (selectedWallSegment === null) {
+      return null;
+    }
+
+    const selectedGraph = placedWallGraphs.find((wallGraph) => wallGraph.id === selectedWallSegment.wallGraphId);
+    const selectedSegment = selectedGraph?.segments.find((wallSegment) => wallSegment.id === selectedWallSegment.wallSegmentId);
+
+    if (selectedSegment === undefined) {
+      return null;
+    }
+
+    return {
+      wallGraphId: selectedWallSegment.wallGraphId,
+      wallSegmentId: selectedWallSegment.wallSegmentId,
+      faceSide: selectedSegment.preferredViewFaceSide,
+    };
+  }, [placedWallGraphs, selectedWallSegment]);
   const shouldShowElevationViewZone = (
     sceneViewMode === "floor-plan" &&
     SHOW_WALL_ELEVATION_VIEW_ZONE_OVERLAY &&

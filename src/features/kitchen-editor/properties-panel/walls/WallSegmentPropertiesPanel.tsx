@@ -11,6 +11,7 @@ import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { formatInchesLabel } from "../../shared/formatInchesLabel";
 import { PropertyNumberField } from "../shared/PropertyNumberField";
 import { PropertySection } from "../shared/PropertySection";
+import { WallSegmentFaceSettingsSection } from "./WallSegmentFaceSettingsSection";
 
 type WallSegmentPropertiesPanelProps = Readonly<{
   wallSegment: PlacedWallSegment;
@@ -45,6 +46,8 @@ export function WallSegmentPropertiesPanel({ wallSegment, wallGraphNodes }: Wall
         <div className="mt-1 font-semibold text-slate-900">{wallSegment.name}</div>
         <div className="mt-1 break-all text-[11px] text-slate-500">{wallSegment.id}</div>
       </section>
+
+      <WallSegmentFaceSettingsSection wallSegment={wallSegment} />
 
       <PropertySection title="Segment Size">
         <div className="mt-3 space-y-3">

@@ -51,7 +51,7 @@ export function WallElevationNavigator() {
     return null;
   }
 
-  const activeFaceSide = activeWallElevationTarget?.faceSide ?? "side-b";
+  const activeFaceSide = activeWallElevationTarget?.faceSide ?? activeItem.preferredViewFaceSide;
   const activeFace = getWallElevationSegmentFace(activeItem, activeFaceSide);
   const isSingleWallSegment = navigationItems.length <= 1;
 

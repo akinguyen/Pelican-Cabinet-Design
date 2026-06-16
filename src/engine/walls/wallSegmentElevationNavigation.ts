@@ -10,6 +10,7 @@ export type WallElevationSegmentNavigationItem = Readonly<{
   wallSegmentId: string;
   segmentIndex: number;
   totalSegmentCount: number;
+  preferredViewFaceSide: WallFaceSide;
   sideAFace: WallSegmentFace;
   sideBFace: WallSegmentFace;
 }>;
@@ -48,11 +49,20 @@ export function getWallElevationSegmentNavigationItems(
       return [];
     }
 
+    const wallSegment = placedWallGraphs
+      .find((wallGraph) => wallGraph.id === sideAFace.wallGraphId)
+      ?.segments.find((segment) => segment.id === sideAFace.wallSegmentId);
+
+    if (wallSegment === undefined) {
+      return [];
+    }
+
     return [{
       wallGraphId: sideAFace.wallGraphId,
       wallSegmentId: sideAFace.wallSegmentId,
       segmentIndex,
       totalSegmentCount,
+      preferredViewFaceSide: wallSegment.preferredViewFaceSide,
       sideAFace,
       sideBFace,
     }];

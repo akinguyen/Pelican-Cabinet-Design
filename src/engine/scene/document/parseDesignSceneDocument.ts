@@ -2,6 +2,8 @@ import type {
   AssemblyComponentOverride,
   AssemblyOptionValue,
 } from "@/engine/assemblies/assemblyConfiguration";
+import type { WallFaceSide } from "@/engine/walls/placedWallSegmentTypes";
+import { isWallFaceSide, normalizeCabinetPlacementFaceSides } from "@/engine/walls/wallSegmentFaceSideSettings";
 import {
   DESIGN_SCENE_DOCUMENT_SCHEMA_VERSION,
   type AssemblyConfigurationDocument,
@@ -268,6 +270,12 @@ function parseWallSegments(
     const endNodeId = parseString(item.endNodeId, `${itemPath}.endNodeId`, errors);
     const thicknessInches = parsePositiveNumber(item.thicknessInches, `${itemPath}.thicknessInches`, errors);
     const heightInches = parsePositiveNumber(item.heightInches, `${itemPath}.heightInches`, errors);
+    const preferredViewFaceSide = parseWallFaceSide(item.preferredViewFaceSide, `${itemPath}.preferredViewFaceSide`, errors);
+    const cabinetPlacementFaceSides = parseCabinetPlacementFaceSides(
+      item.cabinetPlacementFaceSides,
+      `${itemPath}.cabinetPlacementFaceSides`,
+      errors,
+    );
 
     if (id !== "" && segmentIds.has(id)) {
       errors.push(`${itemPath}.id is duplicated.`);
@@ -294,8 +302,52 @@ function parseWallSegments(
       endNodeId,
       thicknessInches,
       heightInches,
+      preferredViewFaceSide,
+      cabinetPlacementFaceSides,
     }];
   });
+}
+
+function parseWallFaceSide(value: unknown, path: string, errors: string[]): WallFaceSide {
+  if (!isWallFaceSide(value)) {
+    errors.push(`${path} must be side-a or side-b.`);
+    return "side-b";
+  }
+
+  return value;
+}
+
+function parseCabinetPlacementFaceSides(
+  value: unknown,
+  path: string,
+  errors: string[],
+): readonly WallFaceSide[] {
+  if (!Array.isArray(value)) {
+    errors.push(`${path} must be an array.`);
+    return [];
+  }
+
+  const parsedFaceSides: WallFaceSide[] = [];
+  const duplicatedFaceSides = new Set<WallFaceSide>();
+
+  value.forEach((item, index) => {
+    if (!isWallFaceSide(item)) {
+      errors.push(`${path}[${index}] must be side-a or side-b.`);
+      return;
+    }
+
+    if (parsedFaceSides.includes(item)) {
+      duplicatedFaceSides.add(item);
+    }
+
+    parsedFaceSides.push(item);
+  });
+
+  duplicatedFaceSides.forEach((faceSide) => {
+    errors.push(`${path} must not contain duplicate ${faceSide} values.`);
+  });
+
+  return normalizeCabinetPlacementFaceSides(parsedFaceSides);
 }
 
 function parseSize3DInches(value: unknown, path: string, errors: string[]) {

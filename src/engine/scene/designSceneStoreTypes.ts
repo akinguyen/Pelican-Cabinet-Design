@@ -1,5 +1,5 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { WallSettings } from "@/engine/walls/placedWallSegmentTypes";
+import type { WallFaceSide, WallSettings } from "@/engine/walls/placedWallSegmentTypes";
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type {
@@ -9,7 +9,6 @@ import type {
 
 import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
 
-import type { WallElevationFaceSideBySegmentKey } from "@/engine/walls/wallElevationFaceSideMemory";
 import type { SceneEditingTool } from "./sceneEditingToolTypes";
 import type {
   SceneCameraCommand,
@@ -35,7 +34,6 @@ export type DesignSceneStore = Readonly<{
   workspaceMode: KitchenWorkspaceMode;
   activeSceneViewMode: SceneViewMode;
   activeWallElevationTarget: WallElevationTarget | null;
-  activeWallElevationFaceSideBySegmentKey: WallElevationFaceSideBySegmentKey;
   activeToolbarTool: SceneEditingTool | null;
   cameraCommand: SceneCameraCommand | null;
   sceneCameraStates: SceneCameraStates;
@@ -95,6 +93,13 @@ export type DesignSceneStore = Readonly<{
   exitWallSegmentDraftTool: () => void;
   updateSelectedWallSegmentHeight: (heightInches: number) => void;
   updateSelectedWallSegmentThickness: (thicknessInches: number) => void;
+  updateWallSegmentPreferredViewFaceSide: (args: {
+    wallGraphId: string;
+    wallSegmentId: string;
+    preferredViewFaceSide: WallFaceSide;
+  }) => void;
+  updateSelectedWallSegmentPreferredViewFaceSide: (preferredViewFaceSide: WallFaceSide) => void;
+  updateSelectedWallSegmentCabinetPlacementFaceSides: (cabinetPlacementFaceSides: readonly WallFaceSide[]) => void;
   deleteSelectedWallSegment: () => void;
   clearActiveInteraction: () => void;
   replaceDesignSceneFromDocument: (document: DesignSceneDocument) => void;

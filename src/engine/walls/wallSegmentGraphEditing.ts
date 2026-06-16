@@ -1,7 +1,12 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedWallGraph } from "./placedWallGraphTypes";
 import type { PlacedWallNode } from "./placedWallNodeTypes";
-import type { PlacedWallSegment } from "./placedWallSegmentTypes";
+import {
+  DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE,
+  getDefaultWallSegmentCabinetPlacementFaceSides,
+  type PlacedWallSegment,
+  type WallFaceSide,
+} from "./placedWallSegmentTypes";
 
 export function createWallGraphFromSegment(args: {
   wallGraphId: string;
@@ -53,6 +58,8 @@ export function createWallSegment(args: {
   endNodeId: string;
   heightInches: number;
   thicknessInches: number;
+  preferredViewFaceSide?: WallFaceSide;
+  cabinetPlacementFaceSides?: readonly WallFaceSide[];
 }): PlacedWallSegment {
   return {
     id: args.id,
@@ -61,6 +68,8 @@ export function createWallSegment(args: {
     endNodeId: args.endNodeId,
     heightInches: args.heightInches,
     thicknessInches: args.thicknessInches,
+    preferredViewFaceSide: args.preferredViewFaceSide ?? DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE,
+    cabinetPlacementFaceSides: args.cabinetPlacementFaceSides ?? getDefaultWallSegmentCabinetPlacementFaceSides(),
   };
 }
 
@@ -94,6 +103,8 @@ export function splitWallSegmentAtPoint(args: {
     endNodeId: args.insertedWallNodeId,
     heightInches: wallSegment.heightInches,
     thicknessInches: wallSegment.thicknessInches,
+    preferredViewFaceSide: wallSegment.preferredViewFaceSide,
+    cabinetPlacementFaceSides: wallSegment.cabinetPlacementFaceSides,
   });
   const splitEndSegment = createWallSegment({
     id: splitEndSegmentId,
@@ -102,6 +113,8 @@ export function splitWallSegmentAtPoint(args: {
     endNodeId: wallSegment.endNodeId,
     heightInches: wallSegment.heightInches,
     thicknessInches: wallSegment.thicknessInches,
+    preferredViewFaceSide: wallSegment.preferredViewFaceSide,
+    cabinetPlacementFaceSides: wallSegment.cabinetPlacementFaceSides,
   });
 
   return {

@@ -4,10 +4,7 @@ import {
   getWallElevationSegmentNavigationItems,
   toggleWallElevationFaceSide,
 } from "@/engine/walls/wallSegmentElevationNavigation";
-import {
-  getWallElevationFaceSideForSegment,
-  rememberWallElevationFaceSide,
-} from "@/engine/walls/wallElevationFaceSideMemory";
+import { updateWallSegmentPreferredViewFaceSideInGraphs } from "@/engine/walls/wallSegmentFaceSideSettings";
 import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
@@ -26,12 +23,15 @@ export function createWallElevationNavigationActions(
     setActiveWallElevationTarget(target: WallElevationTarget) {
       set((state) => ({
         activeWallElevationTarget: target,
-        activeWallElevationFaceSideBySegmentKey: rememberWallElevationFaceSide({
-          faceSideBySegmentKey: state.activeWallElevationFaceSideBySegmentKey,
-          wallGraphId: target.wallGraphId,
-          wallSegmentId: target.wallSegmentId,
-          faceSide: target.faceSide,
-        }),
+        designScene: {
+          ...state.designScene,
+          placedWallGraphs: updateWallSegmentPreferredViewFaceSideInGraphs({
+            placedWallGraphs: state.designScene.placedWallGraphs,
+            wallGraphId: target.wallGraphId,
+            wallSegmentId: target.wallSegmentId,
+            preferredViewFaceSide: target.faceSide,
+          }),
+        },
       }));
     },
 
@@ -73,18 +73,12 @@ function updateWallElevationSegmentIndex(
   const activeSegmentIndex = activeItem?.segmentIndex ?? 0;
   const nextSegmentIndex = ((activeSegmentIndex + delta) % items.length + items.length) % items.length;
   const nextItem = items[nextSegmentIndex];
-  const rememberedFaceSide = getWallElevationFaceSideForSegment({
-    faceSideBySegmentKey: state.activeWallElevationFaceSideBySegmentKey,
-    wallGraphId: nextItem.wallGraphId,
-    wallSegmentId: nextItem.wallSegmentId,
-  });
-  const nextTarget = createWallElevationTargetFromNavigationItem({
-    item: nextItem,
-    faceSide: rememberedFaceSide,
-  });
 
   set({
-    activeWallElevationTarget: nextTarget,
+    activeWallElevationTarget: createWallElevationTargetFromNavigationItem({
+      item: nextItem,
+      faceSide: nextItem.preferredViewFaceSide,
+    }),
   });
 }
 
@@ -104,11 +98,7 @@ function toggleActiveWallElevationSide(
     return;
   }
 
-  const activeFaceSide = getWallElevationFaceSideForSegment({
-    faceSideBySegmentKey: state.activeWallElevationFaceSideBySegmentKey,
-    wallGraphId: activeItem.wallGraphId,
-    wallSegmentId: activeItem.wallSegmentId,
-  });
+  const activeFaceSide = state.activeWallElevationTarget?.faceSide ?? activeItem.preferredViewFaceSide;
   const nextFaceSide = toggleWallElevationFaceSide(activeFaceSide);
   const nextTarget = createWallElevationTargetFromNavigationItem({
     item: activeItem,
@@ -117,11 +107,14 @@ function toggleActiveWallElevationSide(
 
   set((currentState) => ({
     activeWallElevationTarget: nextTarget,
-    activeWallElevationFaceSideBySegmentKey: rememberWallElevationFaceSide({
-      faceSideBySegmentKey: currentState.activeWallElevationFaceSideBySegmentKey,
-      wallGraphId: nextTarget.wallGraphId,
-      wallSegmentId: nextTarget.wallSegmentId,
-      faceSide: nextTarget.faceSide,
-    }),
+    designScene: {
+      ...currentState.designScene,
+      placedWallGraphs: updateWallSegmentPreferredViewFaceSideInGraphs({
+        placedWallGraphs: currentState.designScene.placedWallGraphs,
+        wallGraphId: nextTarget.wallGraphId,
+        wallSegmentId: nextTarget.wallSegmentId,
+        preferredViewFaceSide: nextTarget.faceSide,
+      }),
+    },
   }));
 }

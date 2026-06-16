@@ -6,10 +6,18 @@ import { parseDesignSceneDocument } from "@/engine/scene/document/parseDesignSce
 import type { DesignSceneDocument } from "@/engine/scene/document/designSceneDocumentTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
+import { createAiInputFiles } from "../../ai-designer/ai-input-export/createAiInputFiles";
+import { downloadAiInputFolder } from "../../ai-designer/ai-input-export/downloadAiInputFolder";
 import { downloadJsonFile, readJsonFile } from "./sceneDocumentFileActions";
 
 export function AIDesignerSceneDocumentControls() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const exportAiInputs = useCallback(() => {
+    const { designScene } = useDesignSceneStore.getState();
+
+    downloadAiInputFolder(createAiInputFiles(designScene));
+  }, []);
 
   const exportWallOnlyDocument = useCallback(() => {
     const { designScene } = useDesignSceneStore.getState();
@@ -76,6 +84,7 @@ export function AIDesignerSceneDocumentControls() {
         <h2 className="mt-1 text-sm font-semibold text-slate-950">AI design exchange</h2>
       </div>
       <div className="grid gap-2">
+        <SceneDocumentButton onClick={exportAiInputs}>Export AI inputs</SceneDocumentButton>
         <SceneDocumentButton onClick={exportWallOnlyDocument}>Export walls for AI</SceneDocumentButton>
         <SceneDocumentButton onClick={openImportFilePicker}>Import AI design</SceneDocumentButton>
         <SceneDocumentButton onClick={exportFullSceneDocument}>Export full scene</SceneDocumentButton>

@@ -1,8 +1,14 @@
 import { createId } from "@/core/ids/createId";
-import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
+import {
+  createWallElevationTargetFromNavigationItem,
+  getWallElevationSegmentNavigationItems,
+} from "@/engine/walls/wallSegmentElevationNavigation";
+import {
+  updateWallSegmentCabinetPlacementFaceSidesInGraphs,
+  updateWallSegmentPreferredViewFaceSideInGraphs,
+} from "@/engine/walls/wallSegmentFaceSideSettings";
 import { splitDisconnectedWallGraph } from "@/engine/walls/wallSegmentGraphEditing";
-import { getActiveWallSegmentElevationFace } from "@/engine/walls/wallSegmentElevation";
-import { getWallElevationFaceSideForSegment } from "@/engine/walls/wallElevationFaceSideMemory";
+import type { WallFaceSide } from "@/engine/walls/placedWallSegmentTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
@@ -13,6 +19,9 @@ export function createWallEditingActions(
   DesignSceneStore,
   | "updateSelectedWallSegmentHeight"
   | "updateSelectedWallSegmentThickness"
+  | "updateWallSegmentPreferredViewFaceSide"
+  | "updateSelectedWallSegmentPreferredViewFaceSide"
+  | "updateSelectedWallSegmentCabinetPlacementFaceSides"
   | "deleteSelectedWallSegment"
 > {
   return {
@@ -76,6 +85,66 @@ export function createWallEditingActions(
       }));
     },
 
+    updateWallSegmentPreferredViewFaceSide(args) {
+      set((state) => ({
+        activeWallElevationTarget: getUpdatedActiveWallElevationTarget({
+          activeWallElevationTarget: state.activeWallElevationTarget,
+          wallGraphId: args.wallGraphId,
+          wallSegmentId: args.wallSegmentId,
+          preferredViewFaceSide: args.preferredViewFaceSide,
+        }),
+        designScene: {
+          ...state.designScene,
+          placedWallGraphs: updateWallSegmentPreferredViewFaceSideInGraphs({
+            placedWallGraphs: state.designScene.placedWallGraphs,
+            ...args,
+          }),
+        },
+      }));
+    },
+
+    updateSelectedWallSegmentPreferredViewFaceSide(preferredViewFaceSide) {
+      if (!canManuallyEditScene(get().workspaceMode)) {
+        return;
+      }
+
+      const activeSelection = get().designScene.activeSelection;
+
+      if (activeSelection?.kind !== "placed-wall-segment") {
+        return;
+      }
+
+      get().updateWallSegmentPreferredViewFaceSide({
+        wallGraphId: activeSelection.wallGraphId,
+        wallSegmentId: activeSelection.wallSegmentId,
+        preferredViewFaceSide,
+      });
+    },
+
+    updateSelectedWallSegmentCabinetPlacementFaceSides(cabinetPlacementFaceSides) {
+      if (!canManuallyEditScene(get().workspaceMode)) {
+        return;
+      }
+
+      const activeSelection = get().designScene.activeSelection;
+
+      if (activeSelection?.kind !== "placed-wall-segment") {
+        return;
+      }
+
+      set((state) => ({
+        designScene: {
+          ...state.designScene,
+          placedWallGraphs: updateWallSegmentCabinetPlacementFaceSidesInGraphs({
+            placedWallGraphs: state.designScene.placedWallGraphs,
+            wallGraphId: activeSelection.wallGraphId,
+            wallSegmentId: activeSelection.wallSegmentId,
+            cabinetPlacementFaceSides,
+          }),
+        },
+      }));
+    },
+
     deleteSelectedWallSegment() {
       if (!canManuallyEditScene(get().workspaceMode)) {
         return;
@@ -103,29 +172,14 @@ export function createWallEditingActions(
             createGraphId: createId,
           });
         });
-        const nextElevationFace = getNextElevationFace({
-          wallGraphs: updatedWallGraphs,
-          deletedWallGraphId: activeSelection.wallGraphId,
-          deletedWallSegmentId: activeSelection.wallSegmentId,
-          activeWallElevationTarget: state.activeWallElevationTarget,
-        });
-
-        const nextElevationFaceSide = nextElevationFace === null
-          ? null
-          : getWallElevationFaceSideForSegment({
-            faceSideBySegmentKey: state.activeWallElevationFaceSideBySegmentKey,
-            wallGraphId: nextElevationFace.wallGraphId,
-            wallSegmentId: nextElevationFace.wallSegmentId,
-          });
 
         return {
-          activeWallElevationTarget: nextElevationFace === null || nextElevationFaceSide === null
-            ? null
-            : {
-              wallGraphId: nextElevationFace.wallGraphId,
-              wallSegmentId: nextElevationFace.wallSegmentId,
-              faceSide: nextElevationFaceSide,
-            },
+          activeWallElevationTarget: getNextWallElevationTargetAfterDelete({
+            wallGraphs: updatedWallGraphs,
+            deletedWallGraphId: activeSelection.wallGraphId,
+            deletedWallSegmentId: activeSelection.wallSegmentId,
+            activeWallElevationTarget: state.activeWallElevationTarget,
+          }),
           designScene: {
             ...state.designScene,
             placedWallGraphs: updatedWallGraphs,
@@ -137,27 +191,46 @@ export function createWallEditingActions(
   };
 }
 
-function getNextElevationFace(args: {
+function getUpdatedActiveWallElevationTarget(args: {
+  activeWallElevationTarget: DesignSceneStore["activeWallElevationTarget"];
+  wallGraphId: string;
+  wallSegmentId: string;
+  preferredViewFaceSide: WallFaceSide;
+}): DesignSceneStore["activeWallElevationTarget"] {
+  if (
+    args.activeWallElevationTarget?.wallGraphId !== args.wallGraphId ||
+    args.activeWallElevationTarget.wallSegmentId !== args.wallSegmentId
+  ) {
+    return args.activeWallElevationTarget;
+  }
+
+  return {
+    ...args.activeWallElevationTarget,
+    faceSide: args.preferredViewFaceSide,
+  };
+}
+
+function getNextWallElevationTargetAfterDelete(args: {
   wallGraphs: DesignSceneStore["designScene"]["placedWallGraphs"];
   deletedWallGraphId: string;
   deletedWallSegmentId: string;
   activeWallElevationTarget: DesignSceneStore["activeWallElevationTarget"];
-}) {
-  const activeTarget = args.activeWallElevationTarget;
-  const nextTarget = activeTarget?.wallGraphId === args.deletedWallGraphId && activeTarget.wallSegmentId === args.deletedWallSegmentId
-    ? null
-    : activeTarget;
+}): DesignSceneStore["activeWallElevationTarget"] {
+  const activeTargetStillExists = args.activeWallElevationTarget !== null && !(
+    args.activeWallElevationTarget.wallGraphId === args.deletedWallGraphId &&
+    args.activeWallElevationTarget.wallSegmentId === args.deletedWallSegmentId
+  );
 
-  for (const wallGraph of args.wallGraphs) {
-    const activeElevationFace = getActiveWallSegmentElevationFace({
-      topology: buildConnectedWallGeometry(wallGraph),
-      activeWallElevationTarget: nextTarget,
-    });
-
-    if (activeElevationFace !== null) {
-      return activeElevationFace;
-    }
+  if (activeTargetStillExists) {
+    return args.activeWallElevationTarget;
   }
 
-  return null;
+  const [firstNavigationItem] = getWallElevationSegmentNavigationItems(args.wallGraphs);
+
+  return firstNavigationItem === undefined
+    ? null
+    : createWallElevationTargetFromNavigationItem({
+      item: firstNavigationItem,
+      faceSide: firstNavigationItem.preferredViewFaceSide,
+    });
 }

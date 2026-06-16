@@ -1,7 +1,7 @@
 "use client";
 
 import type { PlacedWallNode } from "@/engine/walls/placedWallNodeTypes";
-import type { PlacedWallSegment } from "@/engine/walls/placedWallSegmentTypes";
+import type { PlacedWallSegment, WallFaceSide } from "@/engine/walls/placedWallSegmentTypes";
 import {
   getPlanDistanceInches,
   getWallSegmentEndpointPoint,
@@ -31,6 +31,11 @@ export function SelectedWallSummary({ wallSegment, wallGraphNodes }: SelectedWal
         <SummaryField label="Length" value={formatInchesLabel(lengthInches)} />
         <SummaryField label="Height" value={formatInchesLabel(wallSegment.heightInches)} />
         <SummaryField label="Thickness" value={formatInchesLabel(wallSegment.thicknessInches)} />
+        <SummaryField label="View side" value={formatFaceSideLabel(wallSegment.preferredViewFaceSide)} />
+        <SummaryField
+          label="Cabinet side"
+          value={formatCabinetPlacementFaceSides(wallSegment.cabinetPlacementFaceSides)}
+        />
       </dl>
     </section>
   );
@@ -45,4 +50,27 @@ function SummaryField({ label, value }: Readonly<{ label: string; value: string 
       </dd>
     </div>
   );
+}
+
+function formatFaceSideLabel(faceSide: WallFaceSide): string {
+  return faceSide === "side-a" ? "Side A" : "Side B";
+}
+
+function formatCabinetPlacementFaceSides(faceSides: readonly WallFaceSide[]): string {
+  const hasSideA = faceSides.includes("side-a");
+  const hasSideB = faceSides.includes("side-b");
+
+  if (hasSideA && hasSideB) {
+    return "Both sides";
+  }
+
+  if (hasSideA) {
+    return "Side A";
+  }
+
+  if (hasSideB) {
+    return "Side B";
+  }
+
+  return "None";
 }

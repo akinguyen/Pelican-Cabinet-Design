@@ -1,6 +1,7 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { createId } from "@/core/ids/createId";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
+import { DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE, type WallFaceSide } from "@/engine/walls/placedWallSegmentTypes";
 import {
   createGuidedWallSegmentDrawAnchor,
   createWallSegmentDrawAnchor,
@@ -8,7 +9,6 @@ import {
 } from "@/engine/walls/segment-draft/wallSegmentDraftAnchors";
 import { buildWallSegmentDraftGraph } from "@/engine/walls/segment-draft/wallSegmentDraftPreview";
 import type { WallSegmentDrawAnchor } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
-import { getWallElevationFaceSideForSegment, rememberWallElevationFaceSide } from "@/engine/walls/wallElevationFaceSideMemory";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
@@ -121,11 +121,6 @@ export function createWallSegmentDraftActions(
           wallSegmentName: `Wall Segment ${countWallSegments(currentState.designScene.placedWallGraphs) + 1}`,
           createId,
         });
-        const faceSide = getWallElevationFaceSideForSegment({
-          faceSideBySegmentKey: currentState.activeWallElevationFaceSideBySegmentKey,
-          wallGraphId: commitResult.wallGraphId,
-          wallSegmentId: commitResult.wallSegmentId,
-        });
         const nextStartAnchor: WallSegmentDrawAnchor = {
           kind: "existing-node",
           wallGraphId: commitResult.wallGraphId,
@@ -137,14 +132,8 @@ export function createWallSegmentDraftActions(
           activeWallElevationTarget: {
             wallGraphId: commitResult.wallGraphId,
             wallSegmentId: commitResult.wallSegmentId,
-            faceSide,
+            faceSide: commitResult.preferredViewFaceSide,
           },
-          activeWallElevationFaceSideBySegmentKey: rememberWallElevationFaceSide({
-            faceSideBySegmentKey: currentState.activeWallElevationFaceSideBySegmentKey,
-            wallGraphId: commitResult.wallGraphId,
-            wallSegmentId: commitResult.wallSegmentId,
-            faceSide,
-          }),
           designScene: {
             ...currentState.designScene,
             placedWallGraphs: commitResult.placedWallGraphs,
@@ -196,6 +185,7 @@ function commitWallSegmentDraft(args: {
   wallGraphId: string;
   wallSegmentId: string;
   endNodeId: string;
+  preferredViewFaceSide: WallFaceSide;
 }> {
   const draftWallSegmentId = args.createId();
   const previewGraph = buildWallSegmentDraftGraph({
@@ -221,6 +211,7 @@ function commitWallSegmentDraft(args: {
       wallGraphId: "",
       wallSegmentId: draftWallSegmentId,
       endNodeId: "",
+      preferredViewFaceSide: DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE,
     };
   }
 
@@ -243,6 +234,7 @@ function commitWallSegmentDraft(args: {
     wallGraphId: committedGraph.id,
     wallSegmentId: draftWallSegmentId,
     endNodeId: draftSegment?.endNodeId ?? "",
+    preferredViewFaceSide: draftSegment?.preferredViewFaceSide ?? DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE,
   };
 }
 

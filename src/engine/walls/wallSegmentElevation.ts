@@ -1,4 +1,4 @@
-import { DEFAULT_WALL_ELEVATION_FACE_SIDE } from "./wallElevationFaceSideMemory";
+import { DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE } from "./placedWallSegmentTypes";
 import type { WallElevationTarget } from "./wallSegmentElevationTypes";
 import type { BuiltWallSegmentTopology, WallSegmentFace } from "./wallSegmentTopologyTypes";
 
@@ -19,7 +19,7 @@ export function getActiveWallSegmentElevationFace(args: {
   }
 
   if (args.activeWallElevationTarget === null) {
-    return faces.find((face) => face.side === DEFAULT_WALL_ELEVATION_FACE_SIDE) ?? faces[0];
+    return faces.find((face) => face.side === DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE) ?? faces[0];
   }
 
   return faces.find((face) => (
