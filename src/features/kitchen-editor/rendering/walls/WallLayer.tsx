@@ -17,6 +17,8 @@ import { WallSegmentMesh } from "./WallSegmentMesh";
 import { WallSegmentDraftRenderer } from "./WallSegmentDraftRenderer";
 import { WallElevationViewZoneOverlay } from "./WallElevationViewZoneOverlay";
 import { WallPlanMeasurementGuides } from "./WallPlanMeasurementGuides";
+import { WallOpeningPlanOutlines } from "./WallOpeningPlanOutlines";
+import { WallOpeningPlanMeasurementGuides } from "./WallOpeningPlanMeasurementGuides";
 import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
 
 const SHOW_WALL_ELEVATION_VIEW_ZONE_OVERLAY = true;
@@ -80,6 +82,15 @@ export function WallLayer({
       ? { wallGraphId: activeSelection.wallGraphId, wallSegmentId: activeSelection.wallSegmentId }
       : null
   ), [activeSelection]);
+  const activeDrag = useDesignSceneStore((state) => state.activeDrag);
+  const activeWallOpeningSourceAssemblyId = useMemo(() => (
+    activeDrag?.kind === "assembly-move"
+      ? activeDrag.assemblyId
+      : activeSelection?.kind === "placed-assembly"
+        ? activeSelection.placedAssemblyId
+        : null
+  ), [activeDrag, activeSelection]);
+  const shouldRenderWallOpeningPlanOverlays = sceneViewMode === "floor-plan" && wallSegmentDraft === null;
   const previewGraph = useMemo(() => (
     !shouldRenderWallSegmentDraft
       ? null
@@ -167,6 +178,20 @@ export function WallLayer({
       ))}
       {showPlanMeasurements ? (
         <WallPlanMeasurementGuides segmentBodies={committedSegmentBodies} />
+      ) : null}
+      {shouldRenderWallOpeningPlanOverlays ? (
+        <WallOpeningPlanOutlines
+          derivedWallOpenings={derivedWallOpenings}
+          segmentBodies={committedSegmentBodies}
+          wallOpeningAssemblies={wallOpeningAssemblies}
+        />
+      ) : null}
+      {shouldRenderWallOpeningPlanOverlays && activeWallOpeningSourceAssemblyId !== null ? (
+        <WallOpeningPlanMeasurementGuides
+          activeSourceAssemblyId={activeWallOpeningSourceAssemblyId}
+          derivedWallOpenings={derivedWallOpenings}
+          segmentBodies={committedSegmentBodies}
+        />
       ) : null}
       {elevationViewZone !== null ? (
         <WallElevationViewZoneOverlay

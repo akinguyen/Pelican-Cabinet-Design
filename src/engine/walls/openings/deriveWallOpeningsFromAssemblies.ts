@@ -146,6 +146,7 @@ function createDerivedWallOpeningForFace(args: {
   return {
     opening: {
       id: `derived-wall-opening:${args.segmentBody.wallGraphId}:${args.segmentBody.wallSegmentId}:${args.sourceAssembly.id}`,
+      sourceAssemblyId: args.sourceAssembly.id,
       wallSegmentId: args.segmentBody.wallSegmentId,
       faceSide: args.faceSide,
       leftInchesAlongFace: clippedLeftInchesAlongFace,

@@ -23,6 +23,7 @@ export type PlacedWallSegment = Readonly<{
 
 export type DerivedWallOpening = Readonly<{
   id: string;
+  sourceAssemblyId: string;
   wallSegmentId: string;
   faceSide: WallFaceSide;
   leftInchesAlongFace: number;

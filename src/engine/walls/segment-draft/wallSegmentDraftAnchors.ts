@@ -1,7 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedWallGraph } from "../placedWallGraphTypes";
 import type { PlacedWallNode } from "../placedWallNodeTypes";
-import type { PlacedWallSegment } from "../placedWallSegmentTypes";
 import type { WallSegmentDrawAnchor, WallSegmentDrawingGuide } from "./wallSegmentDraftTypes";
 
 const WALL_NODE_SNAP_DISTANCE_INCHES = 8;
@@ -42,7 +41,7 @@ export function createGuidedWallSegmentDrawAnchor(args: {
   placedWallGraphs: readonly PlacedWallGraph[];
 }): Readonly<{
   anchor: WallSegmentDrawAnchor;
-  guide: WallSegmentDrawingGuide | null;
+  guides: readonly WallSegmentDrawingGuide[];
 }> {
   const directAnchor = createWallSegmentDrawAnchor({
     pointInches: args.pointInches,
@@ -52,66 +51,172 @@ export function createGuidedWallSegmentDrawAnchor(args: {
   if (directAnchor.kind !== "empty-point") {
     return {
       anchor: directAnchor,
-      guide: null,
+      guides: [],
     };
   }
 
-  const horizontalDistanceInches = Math.abs(args.pointInches.yInches - args.startPointInches.yInches);
-  const verticalDistanceInches = Math.abs(args.pointInches.xInches - args.startPointInches.xInches);
-
-  if (
-    horizontalDistanceInches > WALL_ORTHOGONAL_GUIDE_SNAP_DISTANCE_INCHES &&
-    verticalDistanceInches > WALL_ORTHOGONAL_GUIDE_SNAP_DISTANCE_INCHES
-  ) {
-    return {
-      anchor: directAnchor,
-      guide: null,
-    };
-  }
-
-  if (horizontalDistanceInches <= verticalDistanceInches) {
-    const snappedPointInches = createPlanPoint({
-      xInches: args.pointInches.xInches,
-      yInches: args.startPointInches.yInches,
-      zInches: 0,
-    });
-
-    return {
-      anchor: {
-        kind: "empty-point",
-        pointInches: snappedPointInches,
-      },
-      guide: {
-        kind: "horizontal",
-        yInches: args.startPointInches.yInches,
-        startXInches: args.startPointInches.xInches,
-        endXInches: snappedPointInches.xInches,
-      },
-    };
-  }
-
+  const planPointInches = createPlanPoint(args.pointInches);
+  const horizontalCandidate = findBestHorizontalDrawingGuide({
+    pointInches: planPointInches,
+    startPointInches: args.startPointInches,
+    placedWallGraphs: args.placedWallGraphs,
+  });
+  const verticalCandidate = findBestVerticalDrawingGuide({
+    pointInches: planPointInches,
+    startPointInches: args.startPointInches,
+    placedWallGraphs: args.placedWallGraphs,
+  });
   const snappedPointInches = createPlanPoint({
-    xInches: args.startPointInches.xInches,
-    yInches: args.pointInches.yInches,
+    xInches: verticalCandidate?.snapXInches ?? planPointInches.xInches,
+    yInches: horizontalCandidate?.snapYInches ?? planPointInches.yInches,
     zInches: 0,
   });
+  const guides = [
+    horizontalCandidate?.guide ?? null,
+    verticalCandidate?.guide ?? null,
+  ].filter(isWallSegmentDrawingGuide);
 
   return {
     anchor: {
       kind: "empty-point",
       pointInches: snappedPointInches,
     },
-    guide: {
-      kind: "vertical",
-      xInches: args.startPointInches.xInches,
-      startYInches: args.startPointInches.yInches,
-      endYInches: snappedPointInches.yInches,
-    },
+    guides,
   };
 }
 
 export function getWallSegmentAnchorPoint(anchor: WallSegmentDrawAnchor): Point3DInches {
   return anchor.pointInches;
+}
+
+type HorizontalDrawingGuideCandidate = Readonly<{
+  guide: Extract<WallSegmentDrawingGuide, { kind: "horizontal" }>;
+  snapYInches: number;
+  distanceInches: number;
+}>;
+
+type VerticalDrawingGuideCandidate = Readonly<{
+  guide: Extract<WallSegmentDrawingGuide, { kind: "vertical" }>;
+  snapXInches: number;
+  distanceInches: number;
+}>;
+
+function findBestHorizontalDrawingGuide(args: {
+  pointInches: Point3DInches;
+  startPointInches: Point3DInches;
+  placedWallGraphs: readonly PlacedWallGraph[];
+}): HorizontalDrawingGuideCandidate | null {
+  const candidates: HorizontalDrawingGuideCandidate[] = [];
+  const startDeltaInches = Math.abs(args.pointInches.yInches - args.startPointInches.yInches);
+
+  if (startDeltaInches <= WALL_ORTHOGONAL_GUIDE_SNAP_DISTANCE_INCHES) {
+    candidates.push({
+      guide: {
+        kind: "horizontal",
+        yInches: args.startPointInches.yInches,
+        startXInches: args.startPointInches.xInches,
+        endXInches: args.pointInches.xInches,
+      },
+      snapYInches: args.startPointInches.yInches,
+      distanceInches: startDeltaInches,
+    });
+  }
+
+  for (const wallGraph of args.placedWallGraphs) {
+    for (const wallNode of wallGraph.nodes) {
+      const nodePointInches = wallNode.positionInches;
+      const distanceInches = Math.abs(args.pointInches.yInches - nodePointInches.yInches);
+      const guideSpanInches = Math.abs(args.pointInches.xInches - nodePointInches.xInches);
+
+      if (
+        distanceInches > WALL_ORTHOGONAL_GUIDE_SNAP_DISTANCE_INCHES ||
+        guideSpanInches <= WALL_NODE_SNAP_DISTANCE_INCHES
+      ) {
+        continue;
+      }
+
+      candidates.push({
+        guide: {
+          kind: "horizontal",
+          yInches: nodePointInches.yInches,
+          startXInches: args.pointInches.xInches,
+          endXInches: nodePointInches.xInches,
+        },
+        snapYInches: nodePointInches.yInches,
+        distanceInches,
+      });
+    }
+  }
+
+  return findClosestCandidate(candidates);
+}
+
+function findBestVerticalDrawingGuide(args: {
+  pointInches: Point3DInches;
+  startPointInches: Point3DInches;
+  placedWallGraphs: readonly PlacedWallGraph[];
+}): VerticalDrawingGuideCandidate | null {
+  const candidates: VerticalDrawingGuideCandidate[] = [];
+  const startDeltaInches = Math.abs(args.pointInches.xInches - args.startPointInches.xInches);
+
+  if (startDeltaInches <= WALL_ORTHOGONAL_GUIDE_SNAP_DISTANCE_INCHES) {
+    candidates.push({
+      guide: {
+        kind: "vertical",
+        xInches: args.startPointInches.xInches,
+        startYInches: args.startPointInches.yInches,
+        endYInches: args.pointInches.yInches,
+      },
+      snapXInches: args.startPointInches.xInches,
+      distanceInches: startDeltaInches,
+    });
+  }
+
+  for (const wallGraph of args.placedWallGraphs) {
+    for (const wallNode of wallGraph.nodes) {
+      const nodePointInches = wallNode.positionInches;
+      const distanceInches = Math.abs(args.pointInches.xInches - nodePointInches.xInches);
+      const guideSpanInches = Math.abs(args.pointInches.yInches - nodePointInches.yInches);
+
+      if (
+        distanceInches > WALL_ORTHOGONAL_GUIDE_SNAP_DISTANCE_INCHES ||
+        guideSpanInches <= WALL_NODE_SNAP_DISTANCE_INCHES
+      ) {
+        continue;
+      }
+
+      candidates.push({
+        guide: {
+          kind: "vertical",
+          xInches: nodePointInches.xInches,
+          startYInches: args.pointInches.yInches,
+          endYInches: nodePointInches.yInches,
+        },
+        snapXInches: nodePointInches.xInches,
+        distanceInches,
+      });
+    }
+  }
+
+  return findClosestCandidate(candidates);
+}
+
+function findClosestCandidate<TCandidate extends Readonly<{ distanceInches: number }>>(
+  candidates: readonly TCandidate[],
+): TCandidate | null {
+  return candidates.reduce<TCandidate | null>((closestCandidate, candidate) => {
+    if (closestCandidate === null || candidate.distanceInches < closestCandidate.distanceInches) {
+      return candidate;
+    }
+
+    return closestCandidate;
+  }, null);
+}
+
+function isWallSegmentDrawingGuide(
+  guide: WallSegmentDrawingGuide | null,
+): guide is WallSegmentDrawingGuide {
+  return guide !== null;
 }
 
 function findWallNodeAnchor(args: {

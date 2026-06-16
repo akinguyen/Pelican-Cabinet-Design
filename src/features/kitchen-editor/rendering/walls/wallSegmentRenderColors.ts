@@ -8,5 +8,7 @@ export const wallSegmentRenderColors = {
   activeEndpointRingStroke: "#2fb6c9",
   activeAngleGuideStroke: "#737373",
   planMeasurementStroke: "#38bdf8",
+  openingOutlineStroke: "#111827",
+  openingMeasurementStroke: "#111827",
   debugVertexFill: "#22c55e",
 };

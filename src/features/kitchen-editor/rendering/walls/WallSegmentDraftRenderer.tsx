@@ -98,9 +98,12 @@ export function WallSegmentDraftRenderer({
 
   return (
     <group>
-      {draft.activeGuide !== null ? (
-        <WallDrawingGuideLine guide={draft.activeGuide} />
-      ) : null}
+      {draft.activeGuides.map((guide) => (
+        <WallDrawingGuideLine
+          key={createWallDrawingGuideKey(guide)}
+          guide={guide}
+        />
+      ))}
       {previewBody === null && startPointInches !== null && hoverPointInches !== null ? (
         <Line
           points={[
@@ -186,10 +189,16 @@ function arePlanPointsNear(firstPointInches: Point3DInches, secondPointInches: P
   ) <= ANCHOR_RING_DEDUPLICATION_DISTANCE_INCHES;
 }
 
+function createWallDrawingGuideKey(guide: WallSegmentDraft["activeGuides"][number]): string {
+  return guide.kind === "horizontal"
+    ? `horizontal:${guide.yInches}:${guide.startXInches}:${guide.endXInches}`
+    : `vertical:${guide.xInches}:${guide.startYInches}:${guide.endYInches}`;
+}
+
 function WallDrawingGuideLine({
   guide,
 }: Readonly<{
-  guide: NonNullable<WallSegmentDraft["activeGuide"]>;
+  guide: WallSegmentDraft["activeGuides"][number];
 }>) {
   const points = guide.kind === "horizontal"
     ? [

@@ -35,7 +35,7 @@ export type WallSegmentDrawingGuide =
 export type WallSegmentDraft = Readonly<{
   activeStartAnchor: WallSegmentDrawAnchor | null;
   hoverAnchor: WallSegmentDrawAnchor | null;
-  activeGuide: WallSegmentDrawingGuide | null;
+  activeGuides: readonly WallSegmentDrawingGuide[];
   heightInches: number;
   thicknessInches: number;
 }>;

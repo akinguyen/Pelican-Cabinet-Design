@@ -7,7 +7,7 @@ export function createEmptyWallSegmentDraft(args: {
   return {
     activeStartAnchor: null,
     hoverAnchor: null,
-    activeGuide: null,
+    activeGuides: [],
     heightInches: args.heightInches,
     thicknessInches: args.thicknessInches,
   };

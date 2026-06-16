@@ -40,7 +40,7 @@ export function createWallSegmentDraftActions(
             pointInches,
             placedWallGraphs: get().designScene.placedWallGraphs,
           }),
-          guide: null,
+          guides: [],
         }
         : createGuidedWallSegmentDrawAnchor({
           pointInches,
@@ -56,7 +56,7 @@ export function createWallSegmentDraftActions(
             wallSegmentDraft: {
               ...draft,
               hoverAnchor: anchorWithGuide.anchor,
-              activeGuide: anchorWithGuide.guide,
+              activeGuides: anchorWithGuide.guides,
             },
           },
         },
@@ -97,7 +97,7 @@ export function createWallSegmentDraftActions(
                 ...draft,
                 activeStartAnchor: clickedAnchor,
                 hoverAnchor: clickedAnchor,
-                activeGuide: null,
+                activeGuides: [],
               },
             },
             activeSelection: null,
@@ -143,7 +143,7 @@ export function createWallSegmentDraftActions(
                 ...draft,
                 activeStartAnchor: nextStartAnchor,
                 hoverAnchor: nextStartAnchor,
-                activeGuide: null,
+                activeGuides: [],
               },
             },
             activeSelection: {
