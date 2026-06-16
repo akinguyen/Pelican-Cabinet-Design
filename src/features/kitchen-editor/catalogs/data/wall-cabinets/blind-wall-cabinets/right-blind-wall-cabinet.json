@@ -222,6 +222,16 @@
           "minValue": 0.5,
           "maxValue": 1,
           "step": 0.25
+        },
+        {
+          "id": "front-stile-width-inches",
+          "label": "Front stile width",
+          "valueType": "number",
+          "control": "number",
+          "defaultValue": 3,
+          "minValue": 3,
+          "maxValue": 6,
+          "step": 0.25
         }
       ]
     },
@@ -950,6 +960,118 @@
         "colorOptionId": "cabinet-panel-color"
       },
       "role": "bottom-panel"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "front-stile",
+      "label": "Front Stile",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "negate",
+              "value": {
+                "op": "divide",
+                "left": {
+                  "ref": "size.widthInches"
+                },
+                "right": {
+                  "value": 2
+                }
+              }
+            },
+            {
+              "op": "max",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "ref": "size.widthInches"
+                  },
+                  "right": {
+                    "value": 15
+                  }
+                }
+              ]
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "clamp",
+                "value": {
+                  "ref": "option.front-stile-width-inches"
+                },
+                "min": {
+                  "value": 3
+                },
+                "max": {
+                  "value": 6
+                }
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.375
+            }
+          ]
+        },
+        "zInches": {
+          "value": 0
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "ref": "option.front-stile-width-inches"
+          },
+          "min": {
+            "value": 3
+          },
+          "max": {
+            "value": 6
+          }
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "ref": "size.heightInches"
+        }
+      },
+      "material": {
+        "colorOptionId": "door-color"
+      },
+      "role": "front-stile",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
     },
     {
       "kind": "nested-assembly",

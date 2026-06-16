@@ -192,6 +192,16 @@
           "step": 0.25
         },
         {
+          "id": "front-stile-width-inches",
+          "label": "Front stile width",
+          "valueType": "number",
+          "control": "number",
+          "defaultValue": 3,
+          "minValue": 3,
+          "maxValue": 6,
+          "step": 0.25
+        },
+        {
           "id": "toe-kick-height-inches",
           "label": "Toe kick height",
           "valueType": "number",
@@ -1408,6 +1418,247 @@
         "colorHex": "#111827"
       },
       "role": "toe-kick"
+    },
+    {
+      "kind": "primitive-geometry",
+      "id": "front-stile",
+      "label": "Front Stile",
+      "geometry": {
+        "kind": "box"
+      },
+      "localPositionInches": {
+        "xInches": {
+          "op": "subtract",
+          "left": {
+            "op": "subtract",
+            "left": {
+              "op": "divide",
+              "left": {
+                "ref": "size.widthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            "right": {
+              "op": "max",
+              "values": [
+                {
+                  "value": 1
+                },
+                {
+                  "op": "subtract",
+                  "left": {
+                    "ref": "size.widthInches"
+                  },
+                  "right": {
+                    "value": 27
+                  }
+                }
+              ]
+            }
+          },
+          "right": {
+            "op": "divide",
+            "left": {
+              "op": "clamp",
+              "value": {
+                "ref": "option.front-stile-width-inches"
+              },
+              "min": {
+                "value": 3
+              },
+              "max": {
+                "value": 6
+              }
+            },
+            "right": {
+              "value": 2
+            }
+          }
+        },
+        "yInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "divide",
+              "left": {
+                "ref": "size.depthInches"
+              },
+              "right": {
+                "value": 2
+              }
+            },
+            {
+              "value": 0.375
+            }
+          ]
+        },
+        "zInches": {
+          "op": "add",
+          "values": [
+            {
+              "op": "add",
+              "values": [
+                {
+                  "op": "negate",
+                  "value": {
+                    "op": "divide",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "value": 2
+                    }
+                  }
+                },
+                {
+                  "op": "clamp",
+                  "value": {
+                    "ref": "option.toe-kick-height-inches"
+                  },
+                  "min": {
+                    "value": 0
+                  },
+                  "max": {
+                    "op": "max",
+                    "values": [
+                      {
+                        "value": 0
+                      },
+                      {
+                        "op": "subtract",
+                        "left": {
+                          "ref": "size.heightInches"
+                        },
+                        "right": {
+                          "value": 1
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "value": 0
+            },
+            {
+              "op": "divide",
+              "left": {
+                "op": "max",
+                "values": [
+                  {
+                    "value": 1
+                  },
+                  {
+                    "op": "subtract",
+                    "left": {
+                      "ref": "size.heightInches"
+                    },
+                    "right": {
+                      "op": "clamp",
+                      "value": {
+                        "ref": "option.toe-kick-height-inches"
+                      },
+                      "min": {
+                        "value": 0
+                      },
+                      "max": {
+                        "op": "max",
+                        "values": [
+                          {
+                            "value": 0
+                          },
+                          {
+                            "op": "subtract",
+                            "left": {
+                              "ref": "size.heightInches"
+                            },
+                            "right": {
+                              "value": 1
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "right": {
+                "value": 2
+              }
+            }
+          ]
+        }
+      },
+      "sizeInches": {
+        "widthInches": {
+          "op": "clamp",
+          "value": {
+            "ref": "option.front-stile-width-inches"
+          },
+          "min": {
+            "value": 3
+          },
+          "max": {
+            "value": 6
+          }
+        },
+        "depthInches": {
+          "value": 0.75
+        },
+        "heightInches": {
+          "op": "max",
+          "values": [
+            {
+              "value": 1
+            },
+            {
+              "op": "subtract",
+              "left": {
+                "ref": "size.heightInches"
+              },
+              "right": {
+                "op": "clamp",
+                "value": {
+                  "ref": "option.toe-kick-height-inches"
+                },
+                "min": {
+                  "value": 0
+                },
+                "max": {
+                  "op": "max",
+                  "values": [
+                    {
+                      "value": 0
+                    },
+                    {
+                      "op": "subtract",
+                      "left": {
+                        "ref": "size.heightInches"
+                      },
+                      "right": {
+                        "value": 1
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "material": {
+        "colorOptionId": "door-color"
+      },
+      "role": "front-stile",
+      "frontOutlineEdges": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ]
     },
     {
       "kind": "nested-assembly",
