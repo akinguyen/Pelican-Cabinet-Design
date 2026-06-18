@@ -1,12 +1,13 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
-import type { WallFaceSide } from "@/engine/walls/placedWallSegmentTypes";
+import type { DesignReservationZonePurpose } from "@/engine/design-zones/designReservationZoneTypes";
+import type { CabinetPlacementFacePolicies, WallFaceSide } from "@/engine/walls/placedWallSegmentTypes";
 import type {
   AssemblyComponentOverride,
   AssemblyOptionValue,
 } from "@/engine/assemblies/assemblyConfiguration";
 
-export const DESIGN_SCENE_DOCUMENT_SCHEMA_VERSION = "kitchen-editor-scene/v2" as const;
+export const DESIGN_SCENE_DOCUMENT_SCHEMA_VERSION = "kitchen-editor-scene/v3" as const;
 
 export type DesignSceneDocument = Readonly<{
   schemaVersion: typeof DESIGN_SCENE_DOCUMENT_SCHEMA_VERSION;
@@ -33,6 +34,17 @@ export type DesignSceneCatalogReferenceDocument = Readonly<{
 export type DesignSceneDocumentContent = Readonly<{
   placedAssemblies: readonly PlacedAssemblyDocument[];
   placedWallGraphs: readonly PlacedWallGraphDocument[];
+  designReservationZones: readonly DesignReservationZoneDocument[];
+}>;
+
+export type DesignReservationZoneDocument = Readonly<{
+  id: string;
+  reservedFor: DesignReservationZonePurpose;
+  baseCenterPointInches: Point3DInches;
+  rotationDegrees: Readonly<{
+    zDegrees: number;
+  }>;
+  sizeInches: Size3DInches;
 }>;
 
 export type PlacedAssemblyDocument = Readonly<{
@@ -71,5 +83,5 @@ export type PlacedWallSegmentDocument = Readonly<{
   thicknessInches: number;
   heightInches: number;
   preferredViewFaceSide: WallFaceSide;
-  cabinetPlacementFaceSides: readonly WallFaceSide[];
+  cabinetPlacementFacePolicies: CabinetPlacementFacePolicies;
 }>;

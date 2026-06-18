@@ -1,6 +1,5 @@
 import { createEmptyWallSegmentDraft } from "@/engine/walls/segment-draft/wallSegmentDraftFactory";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
-import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createSceneToolbarActions(
   get: DesignSceneStoreGetter,
@@ -21,6 +20,7 @@ export function createSceneToolbarActions(
             ? null
             : state.designScene.activeSceneOperation,
         },
+        activeObjectAlignmentGuides: [],
       }));
     },
 
@@ -37,11 +37,12 @@ export function createSceneToolbarActions(
     setActiveToolbarTool(toolbarTool) {
       const stateBeforeUpdate = get();
 
-      if (!canManuallyEditScene(stateBeforeUpdate.workspaceMode) && toolbarTool !== null) {
+      if (isFloorPlanOnlyToolbarTool(toolbarTool) && stateBeforeUpdate.activeSceneViewMode !== "floor-plan") {
         return;
       }
 
-      if (toolbarTool === "draw-wall-segment" && stateBeforeUpdate.activeSceneViewMode !== "floor-plan") {
+      if (toolbarTool === "draw-design-reservation-zone") {
+        get().startDesignReservationZonePlacementCandidate();
         return;
       }
 
@@ -49,6 +50,7 @@ export function createSceneToolbarActions(
         if (toolbarTool === "draw-wall-segment") {
           return {
             activeToolbarTool: toolbarTool,
+            activeObjectAlignmentGuides: [],
             designScene: {
               ...state.designScene,
               activeSceneOperation: {
@@ -63,8 +65,10 @@ export function createSceneToolbarActions(
           };
         }
 
+
         return {
           activeToolbarTool: null,
+          activeObjectAlignmentGuides: [],
           designScene: {
             ...state.designScene,
             activeSceneOperation: isToolbarSceneOperation(state.designScene.activeSceneOperation)
@@ -77,8 +81,13 @@ export function createSceneToolbarActions(
   };
 }
 
+function isFloorPlanOnlyToolbarTool(toolbarTool: DesignSceneStore["activeToolbarTool"]): boolean {
+  return toolbarTool === "draw-wall-segment";
+}
+
 function isToolbarSceneOperation(
   activeSceneOperation: DesignSceneStore["designScene"]["activeSceneOperation"],
 ): boolean {
-  return activeSceneOperation?.kind === "wall-segment-draft";
+  return activeSceneOperation?.kind === "wall-segment-draft" ||
+    activeSceneOperation?.kind === "design-reservation-zone-placement";
 }

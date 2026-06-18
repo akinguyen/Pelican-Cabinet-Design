@@ -1,19 +1,40 @@
-# 13 — Pantry, Tall Storage, and Stacked Cabinet Rules
+# 13 - Pantry, Tall Storage, and Stacked Cabinet Rules
 
-Tall storage should feel intentional and should not break working clearances.
+Tall objects occupy floor space and block upper wall space.
 
-## Pantry placement
+Tall objects include:
 
-Place pantry/tall storage near ends of runs, near refrigerator/tall appliance zones, or on a wall where it does not interrupt primary prep/cooking/cleanup flow.
+- refrigerator
+- tall pantry
+- oven cabinet
+- microwave cabinet if full-height/tall design requires it
+- stacked cabinet assemblies that extend through wall cabinet zones
 
-## Stacked pantry strategy
+## Tall placement
 
-If the catalog supports a base pantry and a wall pantry, they may be stacked to make a taller pantry composition. Use the same X/Y center, width, depth, and rotation when intended. The upper unit bottom should align with the base unit top.
+Prefer tall objects at:
 
-## Built-in towers
+- run ends
+- planned tall zones
+- locations that do not block required blind-corner run-end cabinets
+- locations that do not split an important short usable span unnecessarily
 
-Built-in ovens/microwaves should be treated as tall/tower zones and should not be forced into a corner that blocks adjacent cabinet operation.
+## Tall blocking
 
-## Wall permissions
+A tall object reserves:
 
-Tall and stacked cabinets must still be placed only on allowed `cabinetPlacementFaceSides`.
+- its base/tall run interval
+- its footprint depth
+- its vertical interval
+- its upper wall blocked interval
+
+Wall cabinets, wall fillers, hoods, microwaves, and wall panels cannot overlap the tall zone unless they are part of a valid catalog assembly or explicitly designed as a compatible enclosure.
+
+## Pantry and refrigerator panels
+
+After runs are valid, add tall panels only on exposed visible sides where appropriate. Panels do not solve dimensional gaps.
+
+
+## Tall pantry reservation zones
+
+A DesignReservationZone with `reservedFor: "tall-pantry"` is the preferred location for generated tall storage. Tall pantry cabinets should fit within the zone footprint and height unless the user explicitly relaxes the zone or no catalog-valid combination exists.

@@ -6,6 +6,7 @@ import {
   type DesignSceneCatalogReferenceDocument,
   type DesignSceneCoordinateSystemDocument,
   type DesignSceneDocument,
+  type DesignReservationZoneDocument,
   type PlacedAssemblyDocument,
   type PlacedWallGraphDocument,
 } from "./designSceneDocumentTypes";
@@ -25,6 +26,7 @@ export function createDesignSceneDocument(designScene: DesignScene): DesignScene
   return createDocument({
     placedAssemblies,
     placedWallGraphs: designScene.placedWallGraphs.map(createPlacedWallGraphDocument),
+    designReservationZones: designScene.designReservationZones.map(createDesignReservationZoneDocument),
     catalog: {
       mode: "reference",
       requiredDefinitionIds: getRequiredDefinitionIds(placedAssemblies),
@@ -36,6 +38,7 @@ export function createWallOnlyDesignSceneDocument(designScene: DesignScene): Des
   return createDocument({
     placedAssemblies: [],
     placedWallGraphs: designScene.placedWallGraphs.map(createPlacedWallGraphDocument),
+    designReservationZones: designScene.designReservationZones.map(createDesignReservationZoneDocument),
     catalog: {
       mode: "reference",
       requiredDefinitionIds: [],
@@ -46,6 +49,7 @@ export function createWallOnlyDesignSceneDocument(designScene: DesignScene): Des
 function createDocument(args: {
   placedAssemblies: readonly PlacedAssemblyDocument[];
   placedWallGraphs: readonly PlacedWallGraphDocument[];
+  designReservationZones: readonly DesignReservationZoneDocument[];
   catalog: DesignSceneCatalogReferenceDocument;
 }): DesignSceneDocument {
   return {
@@ -56,6 +60,28 @@ function createDocument(args: {
     scene: {
       placedAssemblies: args.placedAssemblies,
       placedWallGraphs: args.placedWallGraphs,
+      designReservationZones: args.designReservationZones,
+    },
+  };
+}
+
+
+function createDesignReservationZoneDocument(zone: DesignScene["designReservationZones"][number]): DesignReservationZoneDocument {
+  return {
+    id: zone.id,
+    reservedFor: zone.reservedFor,
+    baseCenterPointInches: {
+      xInches: zone.baseCenterPointInches.xInches,
+      yInches: zone.baseCenterPointInches.yInches,
+      zInches: zone.baseCenterPointInches.zInches,
+    },
+    rotationDegrees: {
+      zDegrees: zone.rotationDegrees.zDegrees,
+    },
+    sizeInches: {
+      widthInches: zone.sizeInches.widthInches,
+      depthInches: zone.sizeInches.depthInches,
+      heightInches: zone.sizeInches.heightInches,
     },
   };
 }
@@ -104,7 +130,7 @@ function createPlacedWallGraphDocument(placedWallGraph: PlacedWallGraph): Placed
       thicknessInches: wallSegment.thicknessInches,
       heightInches: wallSegment.heightInches,
       preferredViewFaceSide: wallSegment.preferredViewFaceSide,
-      cabinetPlacementFaceSides: [...wallSegment.cabinetPlacementFaceSides],
+      cabinetPlacementFacePolicies: { ...wallSegment.cabinetPlacementFacePolicies },
     })),
   };
 }

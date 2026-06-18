@@ -14,6 +14,7 @@ export function createSceneViewModeActions(
           activeToolbarTool: state.activeToolbarTool,
         }),
         cameraCommand: null,
+        activeObjectAlignmentGuides: [],
         designScene: {
           ...state.designScene,
           activeSceneOperation: getNextActiveSceneOperation({
@@ -30,7 +31,7 @@ function getNextActiveToolbarTool(args: {
   sceneViewMode: SceneViewMode;
   activeToolbarTool: DesignSceneStore["activeToolbarTool"];
 }): DesignSceneStore["activeToolbarTool"] {
-  if (args.sceneViewMode !== "floor-plan" && args.activeToolbarTool === "draw-wall-segment") {
+  if (args.sceneViewMode !== "floor-plan" && isFloorPlanOnlyToolbarTool(args.activeToolbarTool)) {
     return null;
   }
 
@@ -41,9 +42,19 @@ function getNextActiveSceneOperation(args: {
   sceneViewMode: SceneViewMode;
   activeSceneOperation: DesignSceneStore["designScene"]["activeSceneOperation"];
 }): DesignSceneStore["designScene"]["activeSceneOperation"] {
-  if (args.sceneViewMode !== "floor-plan" && args.activeSceneOperation?.kind === "wall-segment-draft") {
+  if (args.sceneViewMode !== "floor-plan" && isFloorPlanOnlySceneOperation(args.activeSceneOperation)) {
     return null;
   }
 
   return args.activeSceneOperation;
+}
+
+function isFloorPlanOnlyToolbarTool(toolbarTool: DesignSceneStore["activeToolbarTool"]): boolean {
+  return toolbarTool === "draw-wall-segment";
+}
+
+function isFloorPlanOnlySceneOperation(
+  activeSceneOperation: DesignSceneStore["designScene"]["activeSceneOperation"],
+): boolean {
+  return activeSceneOperation?.kind === "wall-segment-draft";
 }

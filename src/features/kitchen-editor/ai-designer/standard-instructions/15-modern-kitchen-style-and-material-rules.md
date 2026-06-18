@@ -1,17 +1,17 @@
-# 15 — Modern Kitchen Style and Material Rules
+# 15 - Modern Kitchen Style and Material Rules
 
-Use style preferences after technical correctness. The output must still obey scene schema, catalog availability, wall permissions, and buildability.
+Style is the final polish layer.
 
-## Modern layout tendencies
+Use catalog default colors and options unless the user requests a style change and the catalog supports it.
 
-- clean continuous runs
-- fewer awkward narrow cabinets
-- wider drawers where available
-- grouped tall storage
-- centered range/hood focal point when appropriate
-- balanced sink/cooking/prep zones
-- simple panel/filler usage
+Keep finishes consistent across similar objects:
 
-## User preference
+- base cabinets should share cabinet panel/door/drawer colors unless user requests contrast
+- wall cabinets should coordinate with base cabinets
+- fillers and panels should match adjacent cabinetry
+- appliances should keep their catalog defaults unless requested
+- countertop color should match requested style if available
 
-If the user asks for a style direction, apply it through object selection, alignment, symmetry, and material/option values available in the catalog. Do not invent material fields or catalog options.
+Do not choose invalid option values. Do not omit default option values.
+
+Style choices must never override geometry, span coverage, collision validation, catalog validity, or user fixed input.

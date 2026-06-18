@@ -52,6 +52,10 @@ type WallSegmentDraftRendererProps = Readonly<{
 type DraftAngleGuide = Readonly<{
   centerPointInches: Point3DInches;
   radiusInches: number;
+  dividerLine?: Readonly<{
+    startPointInches: Point3DInches;
+    endPointInches: Point3DInches;
+  }>;
   firstLabel: DraftAngleGuideLabel;
   secondLabel: DraftAngleGuideLabel;
 }>;
@@ -304,6 +308,32 @@ function WallDraftAngleGuide({
         depthTest={false}
         renderOrder={130}
       />
+      {angleGuide.dividerLine !== undefined ? (
+        <Line
+          points={[
+            [
+              angleGuide.dividerLine.startPointInches.xInches,
+              angleGuide.dividerLine.startPointInches.yInches,
+              DRAFT_ANGLE_GUIDE_Z_INCHES + 0.1,
+            ],
+            [
+              angleGuide.dividerLine.endPointInches.xInches,
+              angleGuide.dividerLine.endPointInches.yInches,
+              DRAFT_ANGLE_GUIDE_Z_INCHES + 0.1,
+            ],
+          ]}
+          color={wallSegmentRenderColors.activeAngleGuideStroke}
+          lineWidth={1}
+          dashed
+          dashScale={1}
+          dashSize={3}
+          gapSize={3}
+          transparent
+          opacity={0.35}
+          depthTest={false}
+          renderOrder={131}
+        />
+      ) : null}
       <WallDraftAngleGuideLabel label={angleGuide.firstLabel} />
       <WallDraftAngleGuideLabel label={angleGuide.secondLabel} />
     </group>
@@ -373,21 +403,28 @@ function createDraftAngleGuide(args: {
 
   const referenceAngleDegrees = getPlanDirectionAngleDegrees(referenceDirection);
   const draftAngleFromReferenceDegrees = normalizeDegrees(draftAngleDegrees - referenceAngleDegrees);
-  const innerAngleDegrees = Math.round(Math.min(
-    draftAngleFromReferenceDegrees,
-    360 - draftAngleFromReferenceDegrees,
-  ));
-  const outerAngleDegrees = 360 - innerAngleDegrees;
-  const innerLabelAngleDegrees = draftAngleFromReferenceDegrees <= 180
-    ? referenceAngleDegrees + draftAngleFromReferenceDegrees / 2
-    : draftAngleDegrees + (360 - draftAngleFromReferenceDegrees) / 2;
-  const outerLabelAngleDegrees = draftAngleFromReferenceDegrees <= 180
-    ? draftAngleDegrees + (360 - draftAngleFromReferenceDegrees) / 2
-    : referenceAngleDegrees + draftAngleFromReferenceDegrees / 2;
+  const clockwiseAngleDegrees = draftAngleFromReferenceDegrees;
+  const counterClockwiseAngleDegrees = 360 - draftAngleFromReferenceDegrees;
+  const innerAngleDegrees = Math.round(Math.min(clockwiseAngleDegrees, counterClockwiseAngleDegrees));
+  const outerHalfAngleDegrees = Math.max(0, 180 - innerAngleDegrees);
+  const innerLabelAngleDegrees = clockwiseAngleDegrees <= 180
+    ? referenceAngleDegrees + clockwiseAngleDegrees / 2
+    : draftAngleDegrees + counterClockwiseAngleDegrees / 2;
+  const outerReferenceAngleDegrees = clockwiseAngleDegrees <= 180
+    ? referenceAngleDegrees + 180
+    : referenceAngleDegrees - 180;
+  const outerLabelAngleDegrees = clockwiseAngleDegrees <= 180
+    ? draftAngleDegrees + outerHalfAngleDegrees / 2
+    : draftAngleDegrees - outerHalfAngleDegrees / 2;
 
   return {
     centerPointInches: args.startPointInches,
     radiusInches,
+    dividerLine: createAngleGuideDividerLine({
+      centerPointInches: args.startPointInches,
+      radiusInches,
+      angleDegrees: referenceAngleDegrees,
+    }),
     firstLabel: createAngleGuideLabel({
       centerPointInches: args.startPointInches,
       radiusInches,
@@ -397,8 +434,8 @@ function createDraftAngleGuide(args: {
     secondLabel: createAngleGuideLabel({
       centerPointInches: args.startPointInches,
       radiusInches,
-      angleDegrees: outerLabelAngleDegrees,
-      label: `${outerAngleDegrees}°`,
+      angleDegrees: outerHalfAngleDegrees === 0 ? outerReferenceAngleDegrees : outerLabelAngleDegrees,
+      label: `${outerHalfAngleDegrees}°`,
     }),
   };
 }
@@ -453,6 +490,31 @@ function findReferenceDirectionFromStartAnchor(args: {
   }
 
   return null;
+}
+
+function createAngleGuideDividerLine(args: {
+  centerPointInches: Point3DInches;
+  radiusInches: number;
+  angleDegrees: number;
+}): Readonly<{ startPointInches: Point3DInches; endPointInches: Point3DInches }> {
+  const angleRadians = convertDegreesToRadians(args.angleDegrees);
+  const direction = {
+    xInches: Math.cos(angleRadians),
+    yInches: Math.sin(angleRadians),
+  };
+
+  return {
+    startPointInches: {
+      xInches: args.centerPointInches.xInches - direction.xInches * args.radiusInches,
+      yInches: args.centerPointInches.yInches - direction.yInches * args.radiusInches,
+      zInches: args.centerPointInches.zInches,
+    },
+    endPointInches: {
+      xInches: args.centerPointInches.xInches + direction.xInches * args.radiusInches,
+      yInches: args.centerPointInches.yInches + direction.yInches * args.radiusInches,
+      zInches: args.centerPointInches.zInches,
+    },
+  };
 }
 
 function createAngleGuideLabel(args: {

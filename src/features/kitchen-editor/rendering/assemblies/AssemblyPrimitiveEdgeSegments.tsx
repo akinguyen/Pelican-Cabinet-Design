@@ -2,11 +2,13 @@
 
 import { memo, useMemo } from "react";
 import type { BuiltPrimitiveGeometry } from "@/engine/assemblies/assemblyTreeBuilder";
+import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { createPrimitiveEdgeSegments } from "@/engine/primitive-geometry/edge-segments/createPrimitiveEdgeSegments";
 import { EdgeSegmentLines } from "../shared/EdgeSegmentLines";
 
 type AssemblyPrimitiveEdgeSegmentsProps = Readonly<{
   primitiveGeometry: BuiltPrimitiveGeometry;
+  sceneViewMode?: SceneViewMode;
 }>;
 
 export const AssemblyPrimitiveEdgeSegments = memo(function AssemblyPrimitiveEdgeSegments({

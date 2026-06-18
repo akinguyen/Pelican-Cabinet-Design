@@ -1,10 +1,12 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { WallFaceSide, WallSettings } from "@/engine/walls/placedWallSegmentTypes";
+import type { CabinetPlacementRequirement, WallFaceSide, WallSettings } from "@/engine/walls/placedWallSegmentTypes";
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
+import type { DesignReservationZonePurpose } from "@/engine/design-zones/designReservationZoneTypes";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type {
   AssemblyPlacementElevationFrame,
   AssemblyPlacementFeedback,
+  AssemblyObjectAlignmentGuide,
 } from "@/engine/assemblies/placement/assemblyPlacementTypes";
 
 import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
@@ -23,23 +25,21 @@ import type {
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { DesignScene } from "./designSceneTypes";
 import type { DesignSceneDocument } from "./document/designSceneDocumentTypes";
-import type { KitchenWorkspaceMode } from "./kitchenWorkspaceModeTypes";
-import type { AssemblyDragState, AssemblyElevationMoveFrame } from "./sceneDragTypes";
+import type { AssemblyElevationMoveFrame, SceneDragState } from "./sceneDragTypes";
 
 export type AssemblyDimensionId = "widthInches" | "depthInches" | "heightInches";
 
 export type DesignSceneStore = Readonly<{
   designScene: DesignScene;
   wallSettings: WallSettings;
-  workspaceMode: KitchenWorkspaceMode;
   activeSceneViewMode: SceneViewMode;
   activeWallElevationTarget: WallElevationTarget | null;
   activeToolbarTool: SceneEditingTool | null;
   cameraCommand: SceneCameraCommand | null;
   sceneCameraStates: SceneCameraStates;
-  activeDrag: AssemblyDragState | null;
+  activeDrag: SceneDragState | null;
   assemblyPlacementFeedback: AssemblyPlacementFeedback | null;
-  setWorkspaceMode: (workspaceMode: KitchenWorkspaceMode) => void;
+  activeObjectAlignmentGuides: readonly AssemblyObjectAlignmentGuide[];
   setActiveSceneViewMode: (sceneViewMode: SceneViewMode) => void;
   setActiveWallElevationTarget: (target: WallElevationTarget) => void;
   showPreviousWallElevationSegment: () => void;
@@ -89,6 +89,37 @@ export type DesignSceneStore = Readonly<{
   updateSelectedAssemblyDimension: (dimensionId: AssemblyDimensionId, valueInches: number) => void;
   updateSelectedAssemblyOptionValue: (optionId: string, value: AssemblyOptionValue) => void;
   updateWallSegmentDraftHover: (pointInches: Point3DInches) => void;
+  startDesignReservationZonePlacementCandidate: () => void;
+  updateDesignReservationZonePlacementCandidate: (
+    pointInches: Point3DInches,
+    sceneViewMode: SceneViewMode,
+    elevationMoveFrame?: AssemblyElevationMoveFrame,
+  ) => void;
+  commitDesignReservationZonePlacementCandidate: () => void;
+  cancelDesignReservationZonePlacementCandidate: () => void;
+  selectDesignReservationZone: (designReservationZoneId: string) => void;
+  startDesignReservationZoneDrag: (args: {
+    designReservationZoneId: string;
+    pointerWorldInches: Point3DInches;
+    sceneViewMode: SceneViewMode;
+    elevationMoveFrame?: AssemblyElevationMoveFrame;
+  }) => void;
+  updateDesignReservationZoneDrag: (pointerWorldInches: Point3DInches) => void;
+  finishDesignReservationZoneDrag: () => void;
+  cancelDesignReservationZoneDrag: () => void;
+  startDesignReservationZoneRotationDrag: (args: { designReservationZoneId: string; centerPointInches: Point3DInches; pointerWorldInches: Point3DInches }) => void;
+  updateDesignReservationZoneRotationDrag: (pointerWorldInches: Point3DInches) => void;
+  finishDesignReservationZoneRotationDrag: () => void;
+  cancelDesignReservationZoneRotationDrag: () => void;
+  updateSelectedDesignReservationZoneReservedFor: (reservedFor: DesignReservationZonePurpose) => void;
+  updateSelectedDesignReservationZoneWidth: (widthInches: number) => void;
+  updateSelectedDesignReservationZoneDepth: (depthInches: number) => void;
+  updateSelectedDesignReservationZoneHeight: (heightInches: number) => void;
+  updateSelectedDesignReservationZonePositionX: (xInches: number) => void;
+  updateSelectedDesignReservationZonePositionY: (yInches: number) => void;
+  updateSelectedDesignReservationZoneDistanceFromFloor: (distanceFromFloorInches: number) => void;
+  updateSelectedDesignReservationZoneRotationZ: (zDegrees: number) => void;
+  deleteSelectedDesignReservationZone: () => void;
   clickWallSegmentDraftPoint: (pointInches: Point3DInches) => void;
   exitWallSegmentDraftTool: () => void;
   updateSelectedWallSegmentHeight: (heightInches: number) => void;
@@ -99,7 +130,7 @@ export type DesignSceneStore = Readonly<{
     preferredViewFaceSide: WallFaceSide;
   }) => void;
   updateSelectedWallSegmentPreferredViewFaceSide: (preferredViewFaceSide: WallFaceSide) => void;
-  updateSelectedWallSegmentCabinetPlacementFaceSides: (cabinetPlacementFaceSides: readonly WallFaceSide[]) => void;
+  updateSelectedWallSegmentCabinetPlacementFacePolicy: (faceSide: WallFaceSide, requirement: CabinetPlacementRequirement) => void;
   deleteSelectedWallSegment: () => void;
   clearActiveInteraction: () => void;
   replaceDesignSceneFromDocument: (document: DesignSceneDocument) => void;

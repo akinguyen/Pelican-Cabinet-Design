@@ -17,7 +17,7 @@ import { WallSegmentMesh } from "./WallSegmentMesh";
 import { WallSegmentDraftRenderer } from "./WallSegmentDraftRenderer";
 import { WallElevationViewZoneOverlay } from "./WallElevationViewZoneOverlay";
 import { WallPlanMeasurementGuides } from "./WallPlanMeasurementGuides";
-import { WallOpeningPlanOutlines } from "./WallOpeningPlanOutlines";
+import { WallOpeningIntersectionOutlines } from "./WallOpeningIntersectionOutlines";
 import { WallOpeningPlanMeasurementGuides } from "./WallOpeningPlanMeasurementGuides";
 import { kitchenEditorCatalogRegistry } from "../../catalogs/registry/kitchenEditorCatalogRegistry";
 
@@ -32,6 +32,7 @@ type WallLayerProps = Readonly<{
   wallSegmentDraft: WallSegmentDraft | null;
   showPlanMeasurements: boolean;
   sceneViewMode: SceneViewMode;
+  activeWallOpeningSourceAssemblyId: string | null;
 }>;
 
 type WallSegmentRenderItem = Readonly<{
@@ -48,6 +49,7 @@ export function WallLayer({
   wallSegmentDraft,
   showPlanMeasurements,
   sceneViewMode,
+  activeWallOpeningSourceAssemblyId,
 }: WallLayerProps) {
   const shouldRenderWallSegmentDraft = sceneViewMode === "floor-plan" && wallSegmentDraft !== null;
   const committedSegmentBodiesByWallGraphId = useMemo(
@@ -82,15 +84,8 @@ export function WallLayer({
       ? { wallGraphId: activeSelection.wallGraphId, wallSegmentId: activeSelection.wallSegmentId }
       : null
   ), [activeSelection]);
-  const activeDrag = useDesignSceneStore((state) => state.activeDrag);
-  const activeWallOpeningSourceAssemblyId = useMemo(() => (
-    activeDrag?.kind === "assembly-move"
-      ? activeDrag.assemblyId
-      : activeSelection?.kind === "placed-assembly"
-        ? activeSelection.placedAssemblyId
-        : null
-  ), [activeDrag, activeSelection]);
-  const shouldRenderWallOpeningPlanOverlays = sceneViewMode === "floor-plan" && wallSegmentDraft === null;
+  const shouldRenderWallOpeningIntersectionOutlines = sceneViewMode !== "elevation" && wallSegmentDraft === null;
+  const shouldRenderWallOpeningPlanMeasurements = sceneViewMode === "floor-plan" && wallSegmentDraft === null;
   const previewGraph = useMemo(() => (
     !shouldRenderWallSegmentDraft
       ? null
@@ -179,14 +174,15 @@ export function WallLayer({
       {showPlanMeasurements ? (
         <WallPlanMeasurementGuides segmentBodies={committedSegmentBodies} />
       ) : null}
-      {shouldRenderWallOpeningPlanOverlays ? (
-        <WallOpeningPlanOutlines
+      {shouldRenderWallOpeningIntersectionOutlines ? (
+        <WallOpeningIntersectionOutlines
           derivedWallOpenings={derivedWallOpenings}
           segmentBodies={committedSegmentBodies}
           wallOpeningAssemblies={wallOpeningAssemblies}
+          sceneViewMode={sceneViewMode}
         />
       ) : null}
-      {shouldRenderWallOpeningPlanOverlays && activeWallOpeningSourceAssemblyId !== null ? (
+      {shouldRenderWallOpeningPlanMeasurements && activeWallOpeningSourceAssemblyId !== null ? (
         <WallOpeningPlanMeasurementGuides
           activeSourceAssemblyId={activeWallOpeningSourceAssemblyId}
           derivedWallOpenings={derivedWallOpenings}

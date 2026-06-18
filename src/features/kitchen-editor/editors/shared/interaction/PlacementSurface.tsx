@@ -7,7 +7,6 @@ import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { getAssemblyDistanceFromFloorInches } from "@/engine/assemblies/placedAssemblyTypes";
 import type { AssemblyPlacementElevationFrame } from "@/engine/assemblies/placement/assemblyPlacementTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
@@ -21,7 +20,6 @@ type PlacementSurfaceProps = Readonly<{
 }>;
 
 export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
-  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const placementAssembly = useDesignSceneStore((state) => state.designScene.activeSceneOperation?.kind === "assembly-placement"
     ? state.designScene.activeSceneOperation.placedAssembly
     : null);
@@ -51,7 +49,7 @@ export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
     : getAssemblyDistanceFromFloorInches(placementAssembly);
 
   const handlePointerMove = useCallback((event: ThreeEvent<PointerEvent>) => {
-    if (!canManuallyEditScene(workspaceMode) || placementAssembly === null) {
+    if (placementAssembly === null) {
       return;
     }
 
@@ -75,19 +73,18 @@ export function PlacementSurface({ sceneViewMode }: PlacementSurfaceProps) {
     heightInches,
     placementAssembly,
     sceneViewMode,
-    workspaceMode,
   ]);
 
   const handleClick = useCallback((event: ThreeEvent<MouseEvent>) => {
-    if (!canManuallyEditScene(workspaceMode) || placementAssembly === null) {
+    if (placementAssembly === null) {
       return;
     }
 
     event.stopPropagation();
     useDesignSceneStore.getState().commitAssemblyPlacementCandidate();
-  }, [placementAssembly, workspaceMode]);
+  }, [placementAssembly]);
 
-  if (!canManuallyEditScene(workspaceMode) || placementAssembly === null) {
+  if (placementAssembly === null) {
     return null;
   }
 

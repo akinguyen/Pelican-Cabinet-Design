@@ -73,9 +73,19 @@ function createStoredZipBlob(args: {
     centralDirectoryOffset,
   });
 
-  return new Blob([...localFileParts, ...centralDirectoryParts, endOfCentralDirectory], {
+  const zipBlobParts = [...localFileParts, ...centralDirectoryParts, endOfCentralDirectory].map(createBlobPartFromBytes);
+
+  return new Blob(zipBlobParts, {
     type: ZIP_MIME_TYPE,
   });
+}
+
+
+function createBlobPartFromBytes(bytes: Uint8Array): BlobPart {
+  const arrayBuffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(arrayBuffer).set(bytes);
+
+  return arrayBuffer;
 }
 
 function createZipEntryPath(args: {

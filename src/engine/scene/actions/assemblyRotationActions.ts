@@ -3,7 +3,6 @@ import { applyAssemblyPlacementRules, createAssemblyPlacementFeedback } from "@/
 import { updateAssemblyPlacementRotationDegrees } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
 import { snapAssemblyRotationDegrees } from "@/engine/assemblies/placement/assemblyRotationSnapping";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
-import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createAssemblyRotationActions(
   get: DesignSceneStoreGetter,
@@ -14,10 +13,6 @@ export function createAssemblyRotationActions(
 > {
   return {
     startAssemblyRotationDrag({ assemblyId, centerPointInches, pointerWorldInches }) {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const placedAssembly = get().designScene.placedAssemblies.find(
         (assembly) => assembly.id === assemblyId,
       );
@@ -43,15 +38,13 @@ export function createAssemblyRotationActions(
         },
         assemblyPlacementFeedback: createAssemblyPlacementFeedback({
           placedAssembly,
+          placedWallGraphs: get().designScene.placedWallGraphs,
+          snapContext: { movementSource: get().activeSceneViewMode },
         }),
       });
     },
 
     updateAssemblyRotationDrag(pointerWorldInches) {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const activeDrag = get().activeDrag;
 
       if (activeDrag?.kind !== "assembly-rotation") {
@@ -78,6 +71,7 @@ export function createAssemblyRotationActions(
         placedAssembly: rotatedAssembly,
         placedWallGraphs: designScene.placedWallGraphs,
         placedAssemblies: designScene.placedAssemblies,
+        designReservationZones: designScene.designReservationZones,
         movingAssemblyId: activeDrag.assemblyId,
         snapContext: { movementSource: get().activeSceneViewMode },
       });

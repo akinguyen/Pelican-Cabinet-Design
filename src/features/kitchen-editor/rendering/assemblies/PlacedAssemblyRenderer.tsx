@@ -5,8 +5,8 @@ import type { ThreeEvent } from "@react-three/fiber";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { BuiltAssemblyTree } from "@/engine/assemblies/assemblyTreeBuilder";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import type { AssemblyElevationMoveFrame } from "@/engine/scene/sceneDragTypes";
 import { getWallElevationViewZoneForTarget } from "@/engine/walls/wallElevationViewZone";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
@@ -18,12 +18,14 @@ type PlacedAssemblyRendererProps = Readonly<{
   placedAssembly: PlacedAssembly;
   builtAssemblyTree: BuiltAssemblyTree;
   showFrontOutlineLines: boolean;
+  sceneViewMode: SceneViewMode;
 }>;
 
 export const PlacedAssemblyRenderer = memo(function PlacedAssemblyRenderer({
   placedAssembly,
   builtAssemblyTree,
   showFrontOutlineLines,
+  sceneViewMode,
 }: PlacedAssemblyRendererProps) {
   const handlePointerDown = useCallback((event: ThreeEvent<PointerEvent>) => {
     const designSceneStore = useDesignSceneStore.getState();
@@ -33,7 +35,6 @@ export const PlacedAssemblyRenderer = memo(function PlacedAssemblyRenderer({
       activeToolbarTool,
       activeWallElevationTarget,
       designScene,
-      workspaceMode,
     } = designSceneStore;
 
     if (
@@ -49,9 +50,6 @@ export const PlacedAssemblyRenderer = memo(function PlacedAssemblyRenderer({
     event.stopPropagation();
     designSceneStore.selectPlacedAssembly(placedAssembly.id);
 
-    if (!canManuallyEditScene(workspaceMode)) {
-      return;
-    }
 
     const elevationMoveFrame = activeSceneViewMode === "elevation"
       ? createAssemblyElevationMoveFrame({
@@ -84,6 +82,7 @@ export const PlacedAssemblyRenderer = memo(function PlacedAssemblyRenderer({
       builtAssemblyTree={builtAssemblyTree}
       renderState="default"
       showFrontOutlineLines={showFrontOutlineLines}
+      sceneViewMode={sceneViewMode}
       onPointerDown={handlePointerDown}
     />
   );

@@ -13,12 +13,32 @@ export function createSceneInteractionActions(
         return;
       }
 
+      if (
+        activeToolbarTool === "draw-design-reservation-zone" ||
+        designScene.activeSceneOperation?.kind === "design-reservation-zone-placement"
+      ) {
+        get().cancelDesignReservationZonePlacementCandidate();
+        return;
+      }
+
+      const activeDrag = get().activeDrag;
+
+      if (activeDrag?.kind === "design-reservation-zone-move") {
+        get().cancelDesignReservationZoneDrag();
+        return;
+      }
+
+      if (activeDrag?.kind === "design-reservation-zone-rotation") {
+        get().cancelDesignReservationZoneRotationDrag();
+        return;
+      }
+
       if (designScene.activeSceneOperation !== null) {
         get().cancelActiveSceneOperation();
         return;
       }
 
-      if (get().activeDrag !== null) {
+      if (activeDrag !== null) {
         get().cancelAssemblyDrag();
         return;
       }

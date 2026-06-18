@@ -1,22 +1,44 @@
-# 09 — Derived Cutout Source Placement Rules
+# 09 - Derived Cutout Source Placement Rules
 
-The scene does not store wall openings or countertop openings as independent source-of-truth arrays. The engine derives cutouts from placed assemblies.
-
-Current runtime concepts include:
-
-- `DerivedWallOpening` for wall cutouts created by wall door/window style assemblies.
-- `DerivedCountertopOpening` and `DerivedCountertopOpeningShape` for countertop cutouts created by drop-in sink/cooktop style assemblies.
-
-Do not output derived openings as scene data.
+The AI places source assemblies. The engine derives cutouts from those sources.
 
 ## Wall openings
 
-To create a door or window opening, place the correct catalog assembly on an allowed wall face. The wall segment face must be listed in `cabinetPlacementFaceSides`. Use the wall face placement guide for normal, rotation, and along-wall position. The engine derives the wall opening/cutout from the placed assembly.
+Doors, windows, and wall openings are not invented by the AI.
 
-## Countertop openings
+If they exist in input, preserve them as fixed input assemblies and convert them into blockers for design reasoning.
 
-To create a sink or cooktop cutout, place the countertop slab and the correct drop-in sink/cooktop assembly so the hosted object overlaps the intended countertop area. The engine derives the countertop cutout from the placed assemblies.
+Do not output separate wall opening arrays unless the schema explicitly requires them.
 
-## Preservation
+## Countertop cutout sources
 
-Import/export JSON should contain the source assemblies only, not derived cutout arrays.
+Only placed sink/cooktop-style assemblies with catalog `cutoutBehavior.countertop` can create countertop cutouts.
+
+Do not invent countertop cutouts if no source object is placed.
+
+For drop-in sinks/cooktops, the cutout should follow the catalog cutout body rectangle or full body outer rectangle specified by the catalog behavior.
+
+## Countertop opening validation
+
+Countertop cutout source must:
+
+- be placed on or through a valid countertop span
+- fit within the countertop footprint
+- not overlap another cutout invalidly
+- not require countertop through a tall object, door, wall opening, or unexplained gap
+
+
+## Countertop inside-corner rule
+
+Do not generate overlapping rectangular countertop slabs at inside corners.
+
+Countertops must be generated from validated base runs and must be one of:
+
+- clipped
+- mitered
+- shortened
+- unioned into a non-overlapping shape
+
+Reject any countertop layout where two countertop slabs overlap at a corner.
+
+At blind corners, countertop validation must use the final validated blind-corner candidate. If the blind cabinet, turning filler, or turning-wall cabinet changes, regenerate or revalidate the countertop corner.

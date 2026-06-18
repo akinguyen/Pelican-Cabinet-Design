@@ -3,17 +3,15 @@
 import type { ThreeEvent } from "@react-three/fiber";
 import { useCallback, useEffect } from "react";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 
 const ROTATION_SURFACE_SIZE_INCHES = 3200;
 
 export function AssemblyRotationSurface() {
-  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
   const rotationDrag = activeDrag?.kind === "assembly-rotation" ? activeDrag : null;
 
   useEffect(() => {
-    if (!canManuallyEditScene(workspaceMode) || rotationDrag === null) {
+    if (rotationDrag === null) {
       return;
     }
 
@@ -26,10 +24,10 @@ export function AssemblyRotationSurface() {
     return () => {
       window.removeEventListener("pointerup", handleWindowPointerUp);
     };
-  }, [rotationDrag, workspaceMode]);
+  }, [rotationDrag]);
 
   const handlePointerMove = useCallback((event: ThreeEvent<PointerEvent>) => {
-    if (!canManuallyEditScene(workspaceMode) || rotationDrag === null) {
+    if (rotationDrag === null) {
       return;
     }
 
@@ -39,14 +37,14 @@ export function AssemblyRotationSurface() {
       yInches: event.point.y,
       zInches: 0,
     });
-  }, [rotationDrag, workspaceMode]);
+  }, [rotationDrag]);
 
   const handlePointerUp = useCallback((event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
     useDesignSceneStore.getState().finishAssemblyRotationDrag();
   }, []);
 
-  if (!canManuallyEditScene(workspaceMode) || rotationDrag === null) {
+  if (rotationDrag === null) {
     return null;
   }
 

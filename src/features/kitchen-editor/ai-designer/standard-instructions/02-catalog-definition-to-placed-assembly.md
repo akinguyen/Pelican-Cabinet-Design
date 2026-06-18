@@ -1,74 +1,77 @@
-# 02 — Catalog Definition to Placed Assembly
+# 02 - Catalog Definition to Placed Assembly Rules
 
-The catalog reference package is the only source of allowed placeable object definitions. Do not invent `definitionId` values.
+The catalog reference package is the only source for:
 
-## Selecting a definition
+- allowed `definitionId` values
+- dimensions and allowed options
+- default dimensions
+- min/max/step/custom permission
+- option groups, option ids, choices, and default values
+- cutout behavior
 
-For each object you need, choose a definition from the catalog package using:
+Never invent a definition id, size option, option id, or option value.
 
-- `definitionId`
-- `name`
-- `catalogId` and `categoryId` when present
-- `dimensions`
-- `optionGroups`
-- `cutoutBehavior`
-- `defaultDistanceFromFloorInches`
+## Dimension selection
 
-Visible catalog entries may be user-selectable. Internal-only entries may appear in the catalog package for completeness, but do not place internal-only definitions as standalone user-facing objects unless the standard instructions or user request clearly requires that exact internal component.
+When choosing a size:
 
-## Dimensions
+1. Prefer standard listed width/depth/height options.
+2. Use common sizes before unusual sizes.
+3. Use custom values only if `allowCustomValue` is true and no standard combination solves the span.
+4. Obey min, max, and step values.
 
-Use the catalog dimension controls:
+## Cabinet depth convention
 
-- For `select` dimensions, prefer one of the listed `optionsInches`.
-- Use custom values only when `allowCustomValue` is true and the value stays within min/max limits.
-- Keep inches as numbers.
+For cabinet definitions, `depthInches` is box depth unless a definition explicitly says otherwise.
 
-## Option values
-
-For every placed assembly, build `configuration.optionValues` from the selected catalog definition's `optionGroups`.
-
-Required rule:
-
-- Include every catalog option that has a `defaultValue`.
-- Use the catalog option id as the JSON key.
-- Use the catalog `defaultValue` when the user did not request a different valid value.
-- For select options, the value must be one of the listed `choices[].value`.
-- For boolean options, use true or false.
-- For number options, stay within min/max/step guidance when present.
-- Do not output `{}` for `optionValues` unless the selected catalog definition has no options with `defaultValue`.
-- Do not rely on the importer or raw assembly engine to fill missing defaults.
-
-Example:
-
-```json
-"optionValues": {
-  "cabinet-panel-color": "#fdf6c4",
-  "door-color": "#fff9d6",
-  "handle-color": "#111827",
-  "show-doors": true,
-  "side-panel-thickness-inches": 0.75,
-  "back-panel-thickness-inches": 0.75,
-  "top-bottom-panel-thickness-inches": 0.75,
-  "toe-kick-height-inches": 4.5,
-  "show-handles": true,
-  "door-handle-type": "bar",
-  "door-handle-position": "right-center"
-}
-```
-
-## Placed assembly center height
-
-`worldPositionInches.zInches` is the center height. If a definition has `defaultDistanceFromFloorInches`, the default center height is:
+For physical coverage that needs the front/door face, use:
 
 ```txt
-defaultDistanceFromFloorInches + heightInches / 2
+objectTotalDepth = boxDepth + doorOrFrontDepth
 ```
 
-For floor-standing objects, the center height is usually:
+The door/front depth usually comes from the door, drawer, or front component thickness when known. If the catalog exposes a front/door depth option, use it. If not exposed but the cabinet construction option indicates panel thickness, use the relevant default thickness as the best available front thickness.
 
-```txt
-heightInches / 2
-```
+This total-depth convention is required for blind-corner hidden-area coverage.
 
-Do not place objects below the floor.
+## Category ownership
+
+Classify objects by role before placement:
+
+- base cabinets: base run layer
+- blind base cabinets: base run corner solver
+- wall cabinets: wall run layer
+- blind wall cabinets: wall run corner solver
+- tall/pantry/oven/fridge objects: tall layer and full-height blocking
+- range/dishwasher/sink/cooktop: base/tall layer or countertop-related anchors
+- microwave/range hood: wall layer anchor, usually tied to range/cooktop below
+- filler: valid filler role only
+- panel: exposed-side finish only
+- countertop: generated after base run is valid
+
+## Object compatibility
+
+Base runs can contain:
+
+- base cabinets
+- blind base cabinets
+- sink base cabinets
+- dishwasher, range, requested base appliances
+- refrigerator/tall object at valid tall position
+- base fillers with valid role
+- base panels after run solve
+
+Wall runs can contain:
+
+- wall cabinets
+- blind wall cabinets
+- range hood or microwave if fixed/requested
+- wall fillers with valid role
+- wall panels after run solve
+
+Blind turning run-end coverage should normally use a cabinet of the same layer:
+
+- base cabinet for blind base corner
+- wall cabinet for blind wall corner
+
+Do not use dishwasher, refrigerator, range, sink, cooktop, hood, microwave, faucet, panel, countertop, or filler as the blind-corner run-end coverage object unless the user explicitly requests it and all hard checks pass.

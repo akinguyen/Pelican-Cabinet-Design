@@ -4,13 +4,12 @@ import {
   getWallElevationSegmentNavigationItems,
 } from "@/engine/walls/wallSegmentElevationNavigation";
 import {
-  updateWallSegmentCabinetPlacementFaceSidesInGraphs,
+  updateWallSegmentCabinetPlacementFacePolicyInGraphs,
   updateWallSegmentPreferredViewFaceSideInGraphs,
 } from "@/engine/walls/wallSegmentFaceSideSettings";
 import { splitDisconnectedWallGraph } from "@/engine/walls/wallSegmentGraphEditing";
 import type { WallFaceSide } from "@/engine/walls/placedWallSegmentTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
-import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createWallEditingActions(
   get: DesignSceneStoreGetter,
@@ -21,15 +20,11 @@ export function createWallEditingActions(
   | "updateSelectedWallSegmentThickness"
   | "updateWallSegmentPreferredViewFaceSide"
   | "updateSelectedWallSegmentPreferredViewFaceSide"
-  | "updateSelectedWallSegmentCabinetPlacementFaceSides"
+  | "updateSelectedWallSegmentCabinetPlacementFacePolicy"
   | "deleteSelectedWallSegment"
 > {
   return {
     updateSelectedWallSegmentHeight(heightInches) {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const activeSelection = get().designScene.activeSelection;
 
       if (activeSelection?.kind !== "placed-wall-segment") {
@@ -56,10 +51,6 @@ export function createWallEditingActions(
     },
 
     updateSelectedWallSegmentThickness(thicknessInches) {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const activeSelection = get().designScene.activeSelection;
 
       if (activeSelection?.kind !== "placed-wall-segment") {
@@ -104,10 +95,6 @@ export function createWallEditingActions(
     },
 
     updateSelectedWallSegmentPreferredViewFaceSide(preferredViewFaceSide) {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const activeSelection = get().designScene.activeSelection;
 
       if (activeSelection?.kind !== "placed-wall-segment") {
@@ -121,11 +108,7 @@ export function createWallEditingActions(
       });
     },
 
-    updateSelectedWallSegmentCabinetPlacementFaceSides(cabinetPlacementFaceSides) {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
+    updateSelectedWallSegmentCabinetPlacementFacePolicy(faceSide, requirement) {
       const activeSelection = get().designScene.activeSelection;
 
       if (activeSelection?.kind !== "placed-wall-segment") {
@@ -135,21 +118,18 @@ export function createWallEditingActions(
       set((state) => ({
         designScene: {
           ...state.designScene,
-          placedWallGraphs: updateWallSegmentCabinetPlacementFaceSidesInGraphs({
+          placedWallGraphs: updateWallSegmentCabinetPlacementFacePolicyInGraphs({
             placedWallGraphs: state.designScene.placedWallGraphs,
             wallGraphId: activeSelection.wallGraphId,
             wallSegmentId: activeSelection.wallSegmentId,
-            cabinetPlacementFaceSides,
+            faceSide,
+            requirement,
           }),
         },
       }));
     },
 
     deleteSelectedWallSegment() {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const activeSelection = get().designScene.activeSelection;
 
       if (activeSelection?.kind !== "placed-wall-segment") {

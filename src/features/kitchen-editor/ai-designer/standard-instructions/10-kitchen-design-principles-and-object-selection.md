@@ -1,22 +1,45 @@
-# 10 — Kitchen Design Principles and Object Selection
+# 10 - Kitchen Design Principles and Object Selection
 
-Design the kitchen as buildable zones rather than random object placement.
+Design principles are soft preferences. They cannot override hard geometry, catalog, fixed input, span coverage, or collision rules.
 
-## Typical zones
+## Intent before design
 
-- cleanup zone: sink, faucet, dishwasher, nearby trash
-- cooking zone: range/cooktop, hood, landing space, pot/pan storage
-- prep zone: countertop work area between cleanup and cooking where possible
-- tall storage/appliance zone: pantry, refrigerator, built-in oven/microwave
-- everyday storage: drawer bases, wall cabinets, pantry cabinets
-- optional display/coffee/beverage zone when requested
+Extract from the user request:
 
-## Object selection
+- design mode
+- requested appliances
+- requested cabinet types
+- base-only or base+wall layout
+- storage priority
+- style preferences
+- walls to use or avoid
+- fixed locations or constraints
 
-Choose catalog definitions that match the function. Use the user request to prioritize, but stay within catalog availability and placement permission.
+If the user gives no appliance request and no appliances are fixed in input, do not add appliances.
 
-For example, if the user asks to use blind cabinets instead of corner cabinets, use valid blind cabinet definitions where they fit. If they do not fit, choose the next valid corner strategy and keep the design buildable.
+## Standard-width preference
 
-## Wall selection
+When filling spans:
 
-Choose design walls from faces listed in `cabinetPlacementFaceSides`. Do not use `preferredViewFaceSide` alone to decide layout placement.
+1. Use standard catalog widths first.
+2. Prefer fewer larger cabinets over many tiny cabinets.
+3. Keep cabinet rhythm practical and readable.
+4. Use custom widths only when catalog allows and standard combinations fail.
+5. Use fillers only for valid filler roles.
+
+## Storage and function preferences
+
+When all hard rules are satisfied, prefer:
+
+- clean continuous base runs
+- high storage on required faces
+- base cabinets below wall cabinets when practical
+- drawers near prep zones when appliances are requested
+- sink base under requested sink
+- dishwasher near requested sink
+- hood/microwave centered over requested range/cooktop
+- tall/refrigerator zones at run ends or planned tall zones
+
+## No over-designing
+
+Do not add objects just because they exist in the catalog. The design must follow user intent and the allowed object permission rules.

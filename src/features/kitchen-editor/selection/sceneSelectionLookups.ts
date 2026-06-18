@@ -1,4 +1,5 @@
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import type { DesignReservationZone } from "@/engine/design-zones/designReservationZoneTypes";
 import type { SceneSelection } from "@/engine/scene/sceneSelectionTypes";
 import type { DesignScene } from "@/engine/scene/designSceneTypes";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
@@ -22,12 +23,28 @@ export function buildPlacedWallGraphById(
   return new Map(placedWallGraphs.map((placedWallGraph) => [placedWallGraph.id, placedWallGraph]));
 }
 
+export function buildDesignReservationZoneById(
+  designReservationZones: readonly DesignReservationZone[],
+): ReadonlyMap<string, DesignReservationZone> {
+  return new Map(designReservationZones.map((zone) => [zone.id, zone]));
+}
+
 export function getSelectedPlacedAssembly(args: {
   activeSelection: SceneSelection | null;
   placedAssemblyById: ReadonlyMap<string, PlacedAssembly>;
 }): PlacedAssembly | null {
   return args.activeSelection?.kind === "placed-assembly"
     ? args.placedAssemblyById.get(args.activeSelection.placedAssemblyId) ?? null
+    : null;
+}
+
+
+export function getSelectedDesignReservationZone(args: {
+  activeSelection: SceneSelection | null;
+  designReservationZoneById: ReadonlyMap<string, DesignReservationZone>;
+}): DesignReservationZone | null {
+  return args.activeSelection?.kind === "design-reservation-zone"
+    ? args.designReservationZoneById.get(args.activeSelection.designReservationZoneId) ?? null
     : null;
 }
 
@@ -51,6 +68,21 @@ export function getSelectedWallSegment(args: {
   );
 
   return wallSegment === undefined ? null : { wallGraph, wallSegment };
+}
+
+
+export function getSelectedDesignReservationZoneFromScene(
+  designScene: DesignScene,
+): DesignReservationZone | null {
+  const { activeSelection } = designScene;
+
+  if (activeSelection?.kind !== "design-reservation-zone") {
+    return null;
+  }
+
+  return designScene.designReservationZones.find(
+    (zone) => zone.id === activeSelection.designReservationZoneId,
+  ) ?? null;
 }
 
 export function getSelectedPlacedAssemblyFromScene(

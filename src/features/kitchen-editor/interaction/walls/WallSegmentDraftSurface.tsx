@@ -3,19 +3,17 @@
 import type { ThreeEvent } from "@react-three/fiber";
 import { useCallback } from "react";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import { createWallGroundPlanePointerWorldPoint } from "./wallGroundPlanePointer";
 
 const WALL_SEGMENT_DRAFT_DRAWING_SURFACE_SIZE_INCHES = 3200;
 
 export function WallSegmentDraftSurface() {
-  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const isWallSegmentDraftDrawingActive = activeToolbarTool === "draw-wall-segment";
 
   const handlePointerMove = useCallback((event: ThreeEvent<PointerEvent>) => {
-    if (!canManuallyEditScene(workspaceMode) || !isWallSegmentDraftDrawingActive || activeSceneViewMode !== "floor-plan") {
+    if (!isWallSegmentDraftDrawingActive || activeSceneViewMode !== "floor-plan") {
       return;
     }
 
@@ -27,10 +25,10 @@ export function WallSegmentDraftSurface() {
 
     event.stopPropagation();
     useDesignSceneStore.getState().updateWallSegmentDraftHover(pointerWorldInches);
-  }, [activeSceneViewMode, isWallSegmentDraftDrawingActive, workspaceMode]);
+  }, [activeSceneViewMode, isWallSegmentDraftDrawingActive]);
 
   const handleClick = useCallback((event: ThreeEvent<MouseEvent>) => {
-    if (!canManuallyEditScene(workspaceMode) || !isWallSegmentDraftDrawingActive || activeSceneViewMode !== "floor-plan") {
+    if (!isWallSegmentDraftDrawingActive || activeSceneViewMode !== "floor-plan") {
       return;
     }
 
@@ -42,9 +40,9 @@ export function WallSegmentDraftSurface() {
 
     event.stopPropagation();
     useDesignSceneStore.getState().clickWallSegmentDraftPoint(pointerWorldInches);
-  }, [activeSceneViewMode, isWallSegmentDraftDrawingActive, workspaceMode]);
+  }, [activeSceneViewMode, isWallSegmentDraftDrawingActive]);
 
-  if (!canManuallyEditScene(workspaceMode) || !isWallSegmentDraftDrawingActive || activeSceneViewMode !== "floor-plan") {
+  if (!isWallSegmentDraftDrawingActive || activeSceneViewMode !== "floor-plan") {
     return null;
   }
 

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import {
   buildCountertopOpeningsByHostCountertopId,
 } from "@/engine/countertops/applyCountertopOpeningsToAssemblyTree";
@@ -14,6 +15,7 @@ type AssemblyLayerProps = Readonly<{
   placedAssemblies: readonly PlacedAssembly[];
   countertopOpeningAssemblies: readonly PlacedAssembly[];
   showFrontOutlineLines: boolean;
+  sceneViewMode: SceneViewMode;
 }>;
 
 const EMPTY_COUNTERTOP_OPENINGS: ReturnType<typeof deriveCountertopOpeningsFromAssemblies> = [];
@@ -23,6 +25,7 @@ export function AssemblyLayer({
   placedAssemblies,
   countertopOpeningAssemblies,
   showFrontOutlineLines,
+  sceneViewMode,
 }: AssemblyLayerProps) {
   const derivedCountertopOpenings = useMemo(() => (
     countertopOpeningAssemblies.length === 0
@@ -42,7 +45,6 @@ export function AssemblyLayer({
     placedAssemblies,
     derivedCountertopOpeningsByHostCountertopId,
   );
-
   return (
     <group>
       {assemblyRenderItems.map((assemblyRenderItem) => (
@@ -51,6 +53,7 @@ export function AssemblyLayer({
           placedAssembly={assemblyRenderItem.placedAssembly}
           builtAssemblyTree={assemblyRenderItem.builtAssemblyTree}
           showFrontOutlineLines={showFrontOutlineLines}
+          sceneViewMode={sceneViewMode}
         />
       ))}
     </group>

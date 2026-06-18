@@ -41,4 +41,28 @@ export type AssemblyRotationDragState = Readonly<{
   isSnappedToRotationStop: boolean;
 }>;
 
-export type AssemblyDragState = AssemblyMoveDragState | AssemblyRotationDragState;
+export type DesignReservationZoneMoveDragState = Readonly<{
+  kind: "design-reservation-zone-move";
+  designReservationZoneId: string;
+  dragStartPointerWorldInches: Point3DInches;
+  dragStartBaseCenterPointInches: Point3DInches;
+  latestBaseCenterPointInches: Point3DInches;
+  sceneViewMode: SceneViewMode;
+  elevationMoveFrame?: AssemblyElevationMoveFrame;
+}>;
+
+export type DesignReservationZoneRotationDragState = Readonly<{
+  kind: "design-reservation-zone-rotation";
+  designReservationZoneId: string;
+  centerPointInches: Point3DInches;
+  startPointerAngleDegrees: number;
+  startRotationDegrees: number;
+  latestRotationDegrees: number;
+}>;
+
+export type SceneDragState =
+  | AssemblyMoveDragState
+  | AssemblyRotationDragState
+  | DesignReservationZoneMoveDragState
+  | DesignReservationZoneRotationDragState;
+

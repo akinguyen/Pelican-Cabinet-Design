@@ -3,6 +3,7 @@
 import { memo, useMemo } from "react";
 import { degreesToRadians, degreesToUserFacingZRadians } from "@/core/geometry/rotationTypes";
 import type { BuiltPrimitiveGeometry } from "@/engine/assemblies/assemblyTreeBuilder";
+import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import { createCustomMeshGeometry } from "@/engine/primitive-geometry/custom-meshes/createCustomMeshGeometry";
 import { createLShapedPrismGeometry } from "@/engine/primitive-geometry/l-shaped-prism/createLShapedPrismGeometry";
@@ -18,9 +19,10 @@ import { AssemblyPrimitiveEdgeSegments } from "./AssemblyPrimitiveEdgeSegments";
 type AssemblyPrimitiveMeshProps = Readonly<{
   primitiveGeometry: BuiltPrimitiveGeometry;
   renderState: "default" | "candidate";
+  sceneViewMode: SceneViewMode;
 }>;
 
-export const AssemblyPrimitiveMesh = memo(function AssemblyPrimitiveMesh({ primitiveGeometry, renderState }: AssemblyPrimitiveMeshProps) {
+export const AssemblyPrimitiveMesh = memo(function AssemblyPrimitiveMesh({ primitiveGeometry, renderState, sceneViewMode }: AssemblyPrimitiveMeshProps) {
   const opacity = renderState === "candidate" ? 0.55 : primitiveGeometry.material.opacity ?? 1;
   const usesEvenColorMaterial = shouldUseEvenColorMaterial(primitiveGeometry);
 
@@ -51,7 +53,10 @@ export const AssemblyPrimitiveMesh = memo(function AssemblyPrimitiveMesh({ primi
           opacity={opacity}
         />
       )}
-      <AssemblyPrimitiveEdgeSegments primitiveGeometry={primitiveGeometry} />
+      <AssemblyPrimitiveEdgeSegments
+        primitiveGeometry={primitiveGeometry}
+        sceneViewMode={sceneViewMode}
+      />
     </mesh>
   );
 });

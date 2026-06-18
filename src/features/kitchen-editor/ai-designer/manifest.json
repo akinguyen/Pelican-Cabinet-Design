@@ -1,0 +1,43 @@
+{
+  "packageName": "ai-kitchen-designer-instruction-prompts-v3",
+  "description": "Constraint-based kitchen design instruction prompt files with atomic blind-corner validation, functional access checks, visible filler rules, and countertop corner validation.",
+  "files": [
+    "00-ai-kitchen-designer-orchestrator.md",
+    "01-ai-scene-v3-input-output-contract.md",
+    "02-catalog-definition-to-placed-assembly.md",
+    "03-world-coordinate-and-object-orientation.md",
+    "04-wall-graph-face-placement-rules.md",
+    "05-run-interval-placement-and-spacing.md",
+    "06-object-overlap-clearance-and-collision-validation.md",
+    "07-panels-fillers-and-finished-ends.md",
+    "08-corner-cabinet-and-corner-clearance-rules.md",
+    "09-derived-cutout-source-placement-rules.md",
+    "10-kitchen-design-principles-and-object-selection.md",
+    "11-layout-strategy-by-wall-geometry.md",
+    "12-appliance-and-fixture-placement.md",
+    "13-pantry-tall-storage-and-stacked-cabinet-rules.md",
+    "14-cabinet-layout-alignment-and-module-rhythm.md",
+    "15-modern-kitchen-style-and-material-rules.md",
+    "16-final-json-self-check.md",
+    "standardAiInstructionFiles.ts"
+  ],
+  "algorithmOrder": [
+    "Extract design intent and design mode",
+    "Read scene, derived helpers, catalog, and user request",
+    "Build wall/run/corner graph",
+    "Split base/tall/wall layers into usable spans",
+    "Reserve fixed input objects and appliances",
+    "Add requested appliances only",
+    "Solve base/tall runs first",
+    "Solve blind corners as complete atomic candidates",
+    "Validate solid collision, blind door access, visible filler placement, and countertop corner overlap",
+    "Fill usable spans with no unexplained gaps",
+    "Solve wall runs second",
+    "Add valid fillers",
+    "Add exposed-side panels",
+    "Generate countertops",
+    "Rerun full validation after any fix",
+    "Score valid candidates",
+    "Output JSON or report conflict"
+  ]
+}

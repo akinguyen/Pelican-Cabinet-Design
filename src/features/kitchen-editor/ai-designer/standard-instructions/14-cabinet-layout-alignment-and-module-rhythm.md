@@ -1,19 +1,35 @@
-# 14 — Cabinet Layout Alignment and Module Rhythm
+# 14 - Cabinet Layout Alignment and Module Rhythm
 
-A good generated design should look intentional and modular.
+Alignment and rhythm are soft preferences after hard validation.
 
-## Alignment
+## Base rhythm
 
-- Align base cabinet fronts in a run.
-- Align wall cabinet fronts with the same wall face.
-- Align vertical breaks where possible: cabinet edges, appliance edges, wall cabinet edges, and countertop edges.
-- Center hoods over cooking appliances.
-- Center sinks/faucets on the sink cabinet or intended host.
+Prefer:
 
-## Module rhythm
+- standard widths
+- fewer larger cabinets over many small cabinets
+- clean repeated sizes where practical
+- symmetrical or balanced runs when it does not create invalid fillers
+- cabinet breaks aligned with fixed appliances when practical
 
-Prefer standard cabinet widths and balanced sizes. Wider drawer bases often look more modern than many narrow doors. Avoid tiny cabinets or odd gaps unless required by the wall length and catalog limitations.
+## Wall rhythm
 
-## Height rhythm
+Wall cabinets should follow the base/tall layout where practical:
 
-Keep wall cabinets and tall cabinets aligned to consistent tops/bottoms unless a catalog object requires a different default distance from floor.
+- align vertical breaks with base cabinet or appliance edges
+- center wall cabinets over important base features when sensible
+- center hood/microwave over range/cooktop if present
+- avoid wall cabinets over windows, tall zones, or openings
+
+## Do not sacrifice hard validity
+
+Do not break these for rhythm:
+
+- fixed input preservation
+- valid wall face placement
+- full usable-span coverage
+- blind-corner coverage
+- no collision
+- no wall penetration
+- valid filler/panel roles
+- catalog validity

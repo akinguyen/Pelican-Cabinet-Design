@@ -5,6 +5,7 @@ import { createDerivedWallOpeningFaceAxes } from "./wallOpeningFaceAxes";
 
 const WALL_OPENING_MEASUREMENT_OFFSET_INCHES = 18;
 const MIN_WALL_OPENING_MEASUREMENT_LENGTH_INCHES = 3;
+const MEASUREMENT_BOUNDARY_TOLERANCE_INCHES = 0.001;
 
 export type WallOpeningPlanMeasurementGuide = Readonly<{
   id: string;
@@ -27,41 +28,72 @@ export function buildDerivedWallOpeningPlanMeasurementGuides(args: {
 
       return segmentBody === undefined
         ? []
-        : createMeasurementGuidesForOpening({ segmentBody, opening });
+        : createMeasurementGuidesForOpening({
+          segmentBody,
+          activeOpening: opening,
+          openingsOnSameWallFace: args.derivedWallOpenings.filter((candidateOpening) => (
+            candidateOpening.wallSegmentId === opening.wallSegmentId &&
+            candidateOpening.faceSide === opening.faceSide
+          )),
+        });
     });
 }
 
 function createMeasurementGuidesForOpening(args: {
   segmentBody: BuiltWallSegmentBody;
-  opening: DerivedWallOpening;
+  activeOpening: DerivedWallOpening;
+  openingsOnSameWallFace: readonly DerivedWallOpening[];
 }): readonly WallOpeningPlanMeasurementGuide[] {
   const faceAxes = createDerivedWallOpeningFaceAxes({
     segmentBody: args.segmentBody,
-    faceSide: args.opening.faceSide,
+    faceSide: args.activeOpening.faceSide,
   });
 
   if (faceAxes === null) {
     return [];
   }
 
-  const openingStartInches = args.opening.leftInchesAlongFace;
-  const openingEndInches = args.opening.leftInchesAlongFace + args.opening.widthInches;
-  const intervals = [
-    { id: "left", startInches: 0, endInches: openingStartInches },
-    { id: "opening", startInches: openingStartInches, endInches: openingEndInches },
-    { id: "right", startInches: openingEndInches, endInches: faceAxes.faceLengthInches },
-  ];
+  const boundariesInches = createOpeningMeasurementBoundaries({
+    faceLengthInches: faceAxes.faceLengthInches,
+    openingsOnSameWallFace: args.openingsOnSameWallFace,
+  });
+  const intervals = boundariesInches.slice(0, -1).map((startInches, boundaryIndex) => ({
+    id: `${args.activeOpening.id}:interval-${boundaryIndex}`,
+    startInches,
+    endInches: boundariesInches[boundaryIndex + 1],
+  }));
 
   return intervals
     .map((interval) => createMeasurementGuide({
-      id: `${args.opening.id}:${interval.id}`,
-      startInches: clamp(interval.startInches, 0, faceAxes.faceLengthInches),
-      endInches: clamp(interval.endInches, 0, faceAxes.faceLengthInches),
+      id: interval.id,
+      startInches: interval.startInches,
+      endInches: interval.endInches,
       sideStartPointInches: faceAxes.sideStartPointInches,
       faceDirectionInches: faceAxes.faceDirectionInches,
       outwardDirectionInches: faceAxes.outwardDirectionInches,
     }))
     .filter(isWallOpeningPlanMeasurementGuide);
+}
+
+function createOpeningMeasurementBoundaries(args: {
+  faceLengthInches: number;
+  openingsOnSameWallFace: readonly DerivedWallOpening[];
+}): readonly number[] {
+  const boundariesInches = [0, args.faceLengthInches];
+
+  for (const opening of args.openingsOnSameWallFace) {
+    boundariesInches.push(
+      clamp(opening.leftInchesAlongFace, 0, args.faceLengthInches),
+      clamp(opening.leftInchesAlongFace + opening.widthInches, 0, args.faceLengthInches),
+    );
+  }
+
+  return boundariesInches
+    .sort((firstBoundary, secondBoundary) => firstBoundary - secondBoundary)
+    .filter((boundaryInches, boundaryIndex, sortedBoundaries) => (
+      boundaryIndex === 0 ||
+      Math.abs(boundaryInches - sortedBoundaries[boundaryIndex - 1]) > MEASUREMENT_BOUNDARY_TOLERANCE_INCHES
+    ));
 }
 
 function createMeasurementGuide(args: {

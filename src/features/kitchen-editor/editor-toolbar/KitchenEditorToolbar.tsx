@@ -1,13 +1,11 @@
 "use client";
 
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { DesignSceneStore } from "@/engine/scene/designSceneStoreTypes";
 import type { SceneEditingTool } from "@/engine/scene/sceneEditingToolTypes";
-import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
+import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { kitchenEditorToolbarActions } from "./kitchenEditorToolbarConfig";
 
 export function KitchenEditorToolbar() {
-  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
 
@@ -19,7 +17,6 @@ export function KitchenEditorToolbar() {
         const isDisabled = toolbarAction.isDisabled === true || isToolbarActionDisabled({
           activeSceneViewMode,
           toolbarTool: toolbarAction.kind === "active-tool" ? toolbarAction.id : null,
-          workspaceMode,
         });
 
         return (
@@ -54,15 +51,14 @@ export function KitchenEditorToolbar() {
 }
 
 type ToolbarDisabledArgs = Readonly<{
-  activeSceneViewMode: DesignSceneStore["activeSceneViewMode"];
+  activeSceneViewMode: SceneViewMode;
   toolbarTool: SceneEditingTool | null;
-  workspaceMode: DesignSceneStore["workspaceMode"];
 }>;
 
 function isToolbarActionDisabled(args: ToolbarDisabledArgs): boolean {
-  if (!canManuallyEditScene(args.workspaceMode) && args.toolbarTool !== null) {
-    return true;
-  }
+  return isFloorPlanOnlyToolbarTool(args.toolbarTool) && args.activeSceneViewMode !== "floor-plan";
+}
 
-  return args.toolbarTool === "draw-wall-segment" && args.activeSceneViewMode !== "floor-plan";
+function isFloorPlanOnlyToolbarTool(toolbarTool: SceneEditingTool | null): boolean {
+  return toolbarTool === "draw-wall-segment";
 }

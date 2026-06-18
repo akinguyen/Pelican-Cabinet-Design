@@ -1,30 +1,61 @@
-# 03 — World Coordinate and Object Orientation
+# 03 - World Coordinates and Object Orientation
 
-The Kitchen Editor scene uses inches for all domain geometry.
+The coordinate system is inches:
 
-## Axes
+- X/Y are horizontal floor-plane axes.
+- Z is vertical height.
+- Object front at zero rotation faces +Y.
+- Rotation is degrees.
 
-- `xInches` is horizontal left/right.
-- `yInches` is horizontal front/back.
-- `zInches` is vertical height.
-- The floor plane is `zInches = 0`.
-- `worldPositionInches` is the center of the placed assembly.
+Use derived wall face placement guides when available. Do not place objects on raw wall centerlines when a valid face guide exists.
 
-## Object front direction
+## Wall-face guide placement
 
-At `rotationDegrees.zDegrees = 0`, the object front faces `+Y` and width runs along the X axis.
+Each guide provides:
 
-The app uses user-facing top-view rotation where positive rotation turns the front direction from `+Y` toward `+X`.
+- wall graph id
+- wall segment id
+- face side
+- placement requirement
+- start point
+- end point
+- length
+- design-side normal
+- object rotation degrees
 
-Common rotations:
+For a normal wall-based object:
 
-- `0` means front faces `+Y`.
-- `90` means front faces `+X`.
-- `180` means front faces `-Y`.
-- `-90` or `270` means front faces `-X`.
+1. Choose a valid wall-face guide.
+2. Choose an along-wall interval inside the guide length.
+3. Compute the along-wall center point from guide start toward guide end.
+4. Offset from the wall face by the object's depth/2 along `designSideNormal`.
+5. Set Z center from `distanceFromFloor + height/2`.
+6. Set rotation from `objectRotationDegrees` unless a catalog-specific orientation rule overrides it.
 
-When using a wall face placement guide, use the guide's `objectRotationDegrees.zDegrees` unless the user explicitly asks for a different orientation and the placement remains valid.
+## Local run interval
 
-## Wall-based object depth
+For every object on a run, store an internal interval:
 
-For an object placed on a wall face, the object's front should face the wall face normal. The object center usually sits along the face plus the normal scaled by half the object's depth, unless a catalog object or placement helper says otherwise.
+```txt
+intervalStart = alongWallCenter - width/2
+intervalEnd   = alongWallCenter + width/2
+```
+
+For same-wall run objects, validate intervals in run coordinates, not by raw X/Y comparisons.
+
+## Depth direction
+
+The object's back edge must align to the wall face. Its depth must extend outward along `designSideNormal`.
+
+Reject the object if its footprint extends into the wall, crosses to the wrong face side, or penetrates a blocked zone.
+
+## Vertical interval
+
+Store vertical interval for collision validation:
+
+```txt
+zMin = distanceFromFloor
+zMax = distanceFromFloor + height
+```
+
+Two objects only collide if their horizontal footprints overlap and their vertical intervals overlap.

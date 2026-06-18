@@ -1,6 +1,8 @@
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { DerivedCountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
+import type { DesignReservationZone } from "@/engine/design-zones/designReservationZoneTypes";
+import { createDesignReservationZoneSceneEntityBounds } from "@/engine/scene-entities/designReservationZoneSceneEntityBounds";
 import { createAssemblyPlacementFootprint, translateAssemblyPlacement } from "../assemblyPlacementGeometry";
 import { getPlanVectorLength } from "../assemblyPlacementPlanGeometry";
 import {
@@ -29,6 +31,7 @@ import {
 export function alignAssemblyPlacementWithPlanObjects(args: {
   placedAssembly: PlacedAssembly;
   targetAssemblies: readonly PlacedAssembly[];
+  targetDesignReservationZones: readonly DesignReservationZone[];
   allPlacedAssemblies: readonly PlacedAssembly[];
   placedWallGraphs: readonly PlacedWallGraph[];
   countertopOpenings: readonly DerivedCountertopOpening[];
@@ -56,6 +59,13 @@ export function alignAssemblyPlacementWithPlanObjects(args: {
       targetPriority: 0,
       snapDistanceInches: OBJECT_ALIGNMENT_SNAP_DISTANCE_INCHES,
       footprint: createAssemblyPlacementFootprint(targetAssembly),
+    })),
+    ...args.targetDesignReservationZones.map((targetZone) => createObjectAlignmentFootprint({
+      assemblyId: targetZone.id,
+      targetKind: "design-reservation-zone",
+      targetPriority: 0,
+      snapDistanceInches: OBJECT_ALIGNMENT_SNAP_DISTANCE_INCHES,
+      footprint: createDesignReservationZoneSceneEntityBounds(targetZone).footprint,
     })),
     ...createCountertopOpeningAlignmentFootprints({
       placedAssemblies: args.allPlacedAssemblies,

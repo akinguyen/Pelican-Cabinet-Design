@@ -5,18 +5,16 @@ import { useCallback, useEffect, useMemo } from "react";
 import { Matrix4, Vector3 } from "three";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { AssemblyElevationMoveFrame } from "@/engine/scene/sceneDragTypes";
-import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 import { createAssemblyDragPointerWorldPoint } from "./assemblyDragPointer";
 
 const DRAG_SURFACE_SIZE_INCHES = 3200;
 
 export function AssemblyDragSurface() {
-  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
   const moveDrag = activeDrag?.kind === "assembly-move" ? activeDrag : null;
 
   useEffect(() => {
-    if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
+    if (moveDrag === null) {
       return;
     }
 
@@ -29,7 +27,7 @@ export function AssemblyDragSurface() {
     return () => {
       window.removeEventListener("pointerup", handleWindowPointerUp);
     };
-  }, [moveDrag, workspaceMode]);
+  }, [moveDrag]);
 
   const elevationDragSurfaceMatrix = useMemo(
     () => moveDrag?.sceneViewMode === "elevation" && moveDrag.elevationMoveFrame !== undefined
@@ -39,7 +37,7 @@ export function AssemblyDragSurface() {
   );
 
   const handlePointerMove = useCallback((event: ThreeEvent<PointerEvent>) => {
-    if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
+    if (moveDrag === null) {
       return;
     }
 
@@ -54,14 +52,14 @@ export function AssemblyDragSurface() {
     if (pointerWorldInches !== null) {
       useDesignSceneStore.getState().updateAssemblyDrag(pointerWorldInches);
     }
-  }, [moveDrag, workspaceMode]);
+  }, [moveDrag]);
 
   const handlePointerUp = useCallback((event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
     useDesignSceneStore.getState().finishAssemblyDrag();
   }, []);
 
-  if (!canManuallyEditScene(workspaceMode) || moveDrag === null) {
+  if (moveDrag === null) {
     return null;
   }
 

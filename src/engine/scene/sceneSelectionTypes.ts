@@ -7,4 +7,8 @@ export type SceneSelection =
       kind: "placed-wall-segment";
       wallGraphId: string;
       wallSegmentId: string;
+    }>
+  | Readonly<{
+      kind: "design-reservation-zone";
+      designReservationZoneId: string;
     }>;

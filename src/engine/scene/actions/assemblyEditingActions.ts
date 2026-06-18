@@ -11,7 +11,6 @@ import type {
   DesignSceneStoreGetter,
   DesignSceneStoreSetter,
 } from "../designSceneStoreTypes";
-import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createAssemblyEditingActions(
   get: DesignSceneStoreGetter,
@@ -29,10 +28,6 @@ export function createAssemblyEditingActions(
 > {
   return {
     deleteSelectedAssembly() {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const activeSelection = get().designScene.activeSelection;
 
       if (activeSelection?.kind !== "placed-assembly") {
@@ -53,10 +48,6 @@ export function createAssemblyEditingActions(
     },
 
     duplicateSelectedAssembly() {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const activeSelection = get().designScene.activeSelection;
 
       if (activeSelection?.kind !== "placed-assembly") {
@@ -194,10 +185,6 @@ function updateSelectedAssembly(
   get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
 ): void {
-  if (!canManuallyEditScene(get().workspaceMode)) {
-    return;
-  }
-
   const activeSelection = get().designScene.activeSelection;
 
   if (activeSelection?.kind !== "placed-assembly") {

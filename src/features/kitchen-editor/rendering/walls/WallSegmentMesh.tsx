@@ -81,11 +81,12 @@ export const WallSegmentMesh = memo(function WallSegmentMesh({
           />
         )}
       </mesh>
-      {sceneViewMode !== "floor-plan" && geometryResult.openingEdgeSegmentsInches.length > 0 ? (
+      {geometryResult.openingEdgeSegmentsInches.length > 0 ? (
         <EdgeSegmentLines
           edgeSegmentsInches={geometryResult.openingEdgeSegmentsInches}
           lineWidthPixels={1}
-          renderOrder={renderOrder + 1}
+          depthTest={sceneViewMode !== "floor-plan"}
+          renderOrder={sceneViewMode === "floor-plan" ? 117 : renderOrder + 1}
         />
       ) : null}
       {isActiveWallSegment ? <WallSegmentActiveOverlay segmentBody={segmentBody} /> : null}

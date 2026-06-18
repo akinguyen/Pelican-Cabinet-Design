@@ -1,50 +1,39 @@
-# 04 — Wall Graph Face Placement Rules
+# 04 - Wall Graph Face Placement Rules
 
-Every wall segment has two stable face identities:
+Wall face placement is governed by `cabinetPlacementFacePolicies` and the derived placement helpers.
 
-- `side-a`
-- `side-b`
+Face policy values:
 
-The wall segment source-of-truth fields are:
+- `required`: the AI should design on this face unless physically impossible or explicitly relaxed by the user.
+- `optional`: the AI may design on this face if useful.
+- `none`: the AI must not place kitchen objects on this face.
 
-```json
-{
-  "preferredViewFaceSide": "side-b",
-  "cabinetPlacementFaceSides": ["side-b"]
-}
-```
+## Derived helpers
 
-## `preferredViewFaceSide`
+Use `wallFacePlacementGuides` for valid optional/required faces. A face without a guide is not a valid cabinet placement face.
 
-This is the saved/default wall elevation viewing side. It helps the editor remember which side the user wants to view.
+Use `cabinetCornerPlacementGuides` only when the helper reports a supported cabinet corner. Do not invent corner guides.
 
-Do not use it as placement permission unless that side is also listed in `cabinetPlacementFaceSides`.
+## Required faces
 
-## `cabinetPlacementFaceSides`
+A required face should have valid kitchen design coverage unless:
 
-This is the source of truth for placement permission.
+- it is blocked by input doors/windows/openings or fixed objects
+- the user explicitly requests not to use it
+- catalog constraints make it impossible, in which case report the conflict
 
-- `[]`: do not place kitchen objects on this segment.
-- `["side-a"]`: only side A is valid.
-- `["side-b"]`: only side B is valid.
-- `["side-a", "side-b"]`: both faces are valid, as separate runs.
+## Optional faces
 
-Kitchen objects include cabinets, countertops, appliances, fixtures, panels, fillers, wall cabinets, hoods, shelves, doors/windows intended to create wall cutouts, and any wall-mounted object.
+Optional faces can be used for better storage, symmetry, requested appliances, or to complete a connected corner. Optional faces do not have to be filled if the design is already valid and the user did not request them.
 
-## Derived wall face placement guides
+## None faces
 
-The derived placement helpers package may include `wallFacePlacementGuides`. These guides are math helpers only. They provide:
+Never place cabinets, appliances, panels, fillers, countertops, doors, windows, or any generated kitchen object on a `none` face.
 
-- `wallGraphId`
-- `wallSegmentId`
-- `faceSide`
-- face start/end points
-- `lengthInches`
-- `designSideNormal`
-- `objectRotationDegrees`
+## Corner classification
 
-Only use a guide when its `faceSide` is listed in the matching wall segment's `cabinetPlacementFaceSides`. If a wall face has no allowed guide, do not place objects on that face.
+For each connected wall pair:
 
-## Output preservation
-
-Copy `placedWallGraphs` exactly from input to output for normal kitchen design generation. Preserve node ids, segment ids, names, thickness, height, `preferredViewFaceSide`, and `cabinetPlacementFaceSides`.
+- If a valid cabinet corner guide exists and angle is 90 degrees, it can use blind-corner logic.
+- If faces are collinear, merge or treat as a continuous straight run when policies allow.
+- If angle is unsupported, do not force a blind corner. Treat as termination or report the limitation if required coverage is impossible.

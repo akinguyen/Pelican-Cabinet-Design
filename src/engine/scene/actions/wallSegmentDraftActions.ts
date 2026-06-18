@@ -10,7 +10,6 @@ import {
 import { buildWallSegmentDraftGraph } from "@/engine/walls/segment-draft/wallSegmentDraftPreview";
 import type { WallSegmentDrawAnchor } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
-import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 const MIN_WALL_SEGMENT_LENGTH_INCHES = 3;
 
@@ -23,10 +22,6 @@ export function createWallSegmentDraftActions(
 > {
   return {
     updateWallSegmentDraftHover(pointInches) {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const activeSceneOperation = get().designScene.activeSceneOperation;
 
       if (activeSceneOperation?.kind !== "wall-segment-draft") {
@@ -64,10 +59,6 @@ export function createWallSegmentDraftActions(
     },
 
     clickWallSegmentDraftPoint(pointInches) {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const state = get();
       const activeSceneOperation = state.designScene.activeSceneOperation;
 

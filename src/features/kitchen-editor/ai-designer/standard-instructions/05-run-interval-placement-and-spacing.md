@@ -1,21 +1,81 @@
-# 05 — Run Interval Placement and Spacing
+# 05 - Run Interval Placement, Span Coverage, and Spacing
 
-Build cabinet runs from valid wall segment faces. A valid wall segment face is one listed in that segment's `cabinetPlacementFaceSides`.
+The AI designs usable spans, not entire walls blindly.
 
-## Run identity
+## Layered runs
 
-Treat each `(wallGraphId, wallSegmentId, faceSide)` as its own run surface. Do not merge `side-a` and `side-b` into one run. If a segment allows both sides, the two faces can support two independent runs.
+For every usable wall face, build separate run models:
 
-## Along-wall placement
+- base/tall run
+- wall cabinet run
+- countertop run derived from final base run
 
-Use the wall face placement guide to understand the usable length, start/end points, face normal, and object rotation. Place objects using center points along the face. Convert along-face coordinates into `worldPositionInches` with the guide geometry.
+The layers share wall geometry but have different blockers.
 
-## Filling a run
+## Usable span segmentation
 
-Prefer clean, buildable cabinet width combinations. Before leaving a small or awkward gap, try standard width alternatives, filler, panel, blind/corner options, or a different object arrangement.
+Split every run into:
 
-Use fillers for intentional small gaps between cabinetry and walls/corners/appliances. Use finished panels for exposed cabinet sides facing open air. Do not use a filler and an end panel for the same exact condition.
+- blocked spans
+- fixed object spans
+- clearance spans
+- usable spans
 
-## Spacing
+Blockers include:
 
-Keep runs aligned by front face, top height, and module rhythm. Avoid tiny leftover gaps unless every reasonable standard buildable option fails.
+- doors
+- windows and wall openings, depending on layer
+- fixed appliances
+- fixed user objects
+- tall objects blocking upper layer
+- no-placement faces
+- required appliance or catalog clearances
+
+## Span coverage rule
+
+Every usable span must be intentionally filled.
+
+A usable span is complete when:
+
+```txt
+spanLength = sum(objectWidths) + sum(validFillers) + sum(requiredClearances)
+```
+
+within tolerance.
+
+Allowed empty space:
+
+- door/window/opening blocker
+- no-placement face
+- fixed object clearance
+- appliance clearance
+- user-requested empty area
+- impossible span reported as conflict
+
+Not allowed:
+
+- random gap between cabinets
+- random gap between appliance and cabinet
+- random gap between blind cabinet and same-wall host-run cabinet
+- filler between normal cabinets without a valid role
+- unfilled required usable span
+
+## Same-wall continuity
+
+Default same-wall gap is 0 inches.
+
+Allowed continuity:
+
+- cabinet -> cabinet
+- cabinet -> appliance
+- appliance -> cabinet
+- blind cabinet -> same-wall cabinet
+- wall cabinet -> wall cabinet
+
+Use a nonzero gap only for valid appliance/catalog clearance, termination filler, or a turning blind filler.
+
+## Tolerance
+
+Use 0.01 inch tolerance for numeric equality. Treat gaps smaller than 0.01 inch as zero. Do not create a filler for a floating-point gap.
+
+Any real unexplained gap greater than or equal to 0.25 inch inside a usable span must be solved or reported.

@@ -1,7 +1,9 @@
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import type { DesignReservationZone } from "@/engine/design-zones/designReservationZoneTypes";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import type { DesignScene } from "../designSceneTypes";
 import type {
+  DesignReservationZoneDocument,
   DesignSceneDocument,
   PlacedAssemblyDocument,
   PlacedWallGraphDocument,
@@ -11,8 +13,32 @@ export function createDesignSceneFromDocument(document: DesignSceneDocument): De
   return {
     placedAssemblies: document.scene.placedAssemblies.map(createPlacedAssemblyFromDocument),
     placedWallGraphs: document.scene.placedWallGraphs.map(createPlacedWallGraphFromDocument),
+    designReservationZones: document.scene.designReservationZones.map(createDesignReservationZoneFromDocument),
     activeSelection: null,
     activeSceneOperation: null,
+  };
+}
+
+
+function createDesignReservationZoneFromDocument(
+  zone: DesignReservationZoneDocument,
+): DesignReservationZone {
+  return {
+    id: zone.id,
+    reservedFor: zone.reservedFor,
+    baseCenterPointInches: {
+      xInches: zone.baseCenterPointInches.xInches,
+      yInches: zone.baseCenterPointInches.yInches,
+      zInches: zone.baseCenterPointInches.zInches,
+    },
+    rotationDegrees: {
+      zDegrees: zone.rotationDegrees.zDegrees,
+    },
+    sizeInches: {
+      widthInches: zone.sizeInches.widthInches,
+      depthInches: zone.sizeInches.depthInches,
+      heightInches: zone.sizeInches.heightInches,
+    },
   };
 }
 
@@ -64,7 +90,7 @@ function createPlacedWallGraphFromDocument(
       thicknessInches: wallSegment.thicknessInches,
       heightInches: wallSegment.heightInches,
       preferredViewFaceSide: wallSegment.preferredViewFaceSide,
-      cabinetPlacementFaceSides: wallSegment.cabinetPlacementFaceSides,
+      cabinetPlacementFacePolicies: wallSegment.cabinetPlacementFacePolicies,
     })),
   };
 }

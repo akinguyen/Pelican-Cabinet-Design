@@ -1,6 +1,7 @@
 import type { PlacedWallGraph } from "./placedWallGraphTypes";
 import {
-  WALL_FACE_SIDES,
+  type CabinetPlacementFacePolicies,
+  type CabinetPlacementRequirement,
   type WallFaceSide,
 } from "./placedWallSegmentTypes";
 
@@ -8,12 +9,31 @@ export function isWallFaceSide(value: unknown): value is WallFaceSide {
   return value === "side-a" || value === "side-b";
 }
 
-export function normalizeCabinetPlacementFaceSides(
-  faceSides: readonly WallFaceSide[],
-): readonly WallFaceSide[] {
-  const faceSideSet = new Set(faceSides);
+export function isCabinetPlacementRequirement(value: unknown): value is CabinetPlacementRequirement {
+  return value === "none" || value === "optional" || value === "required";
+}
 
-  return WALL_FACE_SIDES.filter((faceSide) => faceSideSet.has(faceSide));
+export function normalizeCabinetPlacementFacePolicies(
+  policies: CabinetPlacementFacePolicies,
+): CabinetPlacementFacePolicies {
+  return {
+    "side-a": policies["side-a"],
+    "side-b": policies["side-b"],
+  };
+}
+
+export function getCabinetPlacementRequirementForFace(
+  policies: CabinetPlacementFacePolicies,
+  faceSide: WallFaceSide,
+): CabinetPlacementRequirement {
+  return policies[faceSide];
+}
+
+export function canPlaceCabinetOnFace(
+  policies: CabinetPlacementFacePolicies,
+  faceSide: WallFaceSide,
+): boolean {
+  return getCabinetPlacementRequirementForFace(policies, faceSide) !== "none";
 }
 
 export function updateWallSegmentPreferredViewFaceSideInGraphs(args: {
@@ -36,21 +56,26 @@ export function updateWallSegmentPreferredViewFaceSideInGraphs(args: {
   ));
 }
 
-export function updateWallSegmentCabinetPlacementFaceSidesInGraphs(args: {
+export function updateWallSegmentCabinetPlacementFacePolicyInGraphs(args: {
   placedWallGraphs: readonly PlacedWallGraph[];
   wallGraphId: string;
   wallSegmentId: string;
-  cabinetPlacementFaceSides: readonly WallFaceSide[];
+  faceSide: WallFaceSide;
+  requirement: CabinetPlacementRequirement;
 }): readonly PlacedWallGraph[] {
-  const cabinetPlacementFaceSides = normalizeCabinetPlacementFaceSides(args.cabinetPlacementFaceSides);
-
   return args.placedWallGraphs.map((wallGraph) => (
     wallGraph.id === args.wallGraphId
       ? {
           ...wallGraph,
           segments: wallGraph.segments.map((wallSegment) => (
             wallSegment.id === args.wallSegmentId
-              ? { ...wallSegment, cabinetPlacementFaceSides }
+              ? {
+                  ...wallSegment,
+                  cabinetPlacementFacePolicies: {
+                    ...wallSegment.cabinetPlacementFacePolicies,
+                    [args.faceSide]: args.requirement,
+                  },
+                }
               : wallSegment
           )),
         }

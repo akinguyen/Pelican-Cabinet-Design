@@ -2,12 +2,21 @@ export type WallFaceSide = "side-a" | "side-b";
 
 export const WALL_FACE_SIDES: readonly WallFaceSide[] = ["side-a", "side-b"];
 export const DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE: WallFaceSide = "side-b";
-export const DEFAULT_WALL_SEGMENT_CABINET_PLACEMENT_FACE_SIDES: readonly WallFaceSide[] = [
-  DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE,
-];
 
-export function getDefaultWallSegmentCabinetPlacementFaceSides(): readonly WallFaceSide[] {
-  return [...DEFAULT_WALL_SEGMENT_CABINET_PLACEMENT_FACE_SIDES];
+export type CabinetPlacementRequirement = "none" | "optional" | "required";
+
+export type CabinetPlacementFacePolicies = Readonly<{
+  "side-a": CabinetPlacementRequirement;
+  "side-b": CabinetPlacementRequirement;
+}>;
+
+export const DEFAULT_WALL_SEGMENT_CABINET_PLACEMENT_FACE_POLICIES: CabinetPlacementFacePolicies = {
+  "side-a": "none",
+  "side-b": "required",
+};
+
+export function getDefaultWallSegmentCabinetPlacementFacePolicies(): CabinetPlacementFacePolicies {
+  return { ...DEFAULT_WALL_SEGMENT_CABINET_PLACEMENT_FACE_POLICIES };
 }
 
 export type PlacedWallSegment = Readonly<{
@@ -18,7 +27,7 @@ export type PlacedWallSegment = Readonly<{
   thicknessInches: number;
   heightInches: number;
   preferredViewFaceSide: WallFaceSide;
-  cabinetPlacementFaceSides: readonly WallFaceSide[];
+  cabinetPlacementFacePolicies: CabinetPlacementFacePolicies;
 }>;
 
 export type DerivedWallOpening = Readonly<{

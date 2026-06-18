@@ -31,7 +31,9 @@ export function DesignSceneCanvas() {
   const hasElevationViews = useDesignSceneStore((state) => state.designScene.placedWallGraphs.some((wallGraph) => wallGraph.segments.length > 0));
   const hasCrosshairPlacementOrDraftInteraction =
     activeToolbarTool === "draw-wall-segment" ||
+    activeToolbarTool === "draw-design-reservation-zone" ||
     activeSceneOperationKind === "wall-segment-draft" ||
+    activeSceneOperationKind === "design-reservation-zone-placement" ||
     activeSceneOperationKind === "assembly-placement";
   const cursorClassName = getCanvasCursorClassName(
     activeSceneViewMode,

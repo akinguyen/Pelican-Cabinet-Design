@@ -23,6 +23,7 @@ export function createDesignSceneDocumentActions(
             },
         activeDrag: null,
         assemblyPlacementFeedback: null,
+        activeObjectAlignmentGuides: [],
         activeToolbarTool: null,
       });
     },

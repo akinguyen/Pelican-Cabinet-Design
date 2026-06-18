@@ -7,7 +7,6 @@ export function createInitialDesignSceneStoreState(): Pick<
   DesignSceneStore,
   | "designScene"
   | "wallSettings"
-  | "workspaceMode"
   | "activeSceneViewMode"
   | "activeWallElevationTarget"
   | "activeToolbarTool"
@@ -15,11 +14,11 @@ export function createInitialDesignSceneStoreState(): Pick<
   | "sceneCameraStates"
   | "activeDrag"
   | "assemblyPlacementFeedback"
+  | "activeObjectAlignmentGuides"
 > {
   return {
     designScene: createEmptyDesignScene(),
     wallSettings: defaultWallSettings,
-    workspaceMode: "editor",
     activeSceneViewMode: "perspective",
     activeWallElevationTarget: null,
     activeToolbarTool: null,
@@ -27,5 +26,6 @@ export function createInitialDesignSceneStoreState(): Pick<
     sceneCameraStates: createDefaultSceneCameraStates(),
     activeDrag: null,
     assemblyPlacementFeedback: null,
+    activeObjectAlignmentGuides: [],
   };
 }

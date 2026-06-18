@@ -2,11 +2,8 @@
 
 import { useEffect } from "react";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { canManuallyEditScene } from "@/engine/scene/kitchenWorkspaceModePermissions";
 
 export function KeyboardShortcuts() {
-  const workspaceMode = useDesignSceneStore((state) => state.workspaceMode);
-
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (isEditableKeyboardTarget(event.target)) {
@@ -21,12 +18,8 @@ export function KeyboardShortcuts() {
 
       if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
-
-        if (!canManuallyEditScene(workspaceMode)) {
-          return;
-        }
-
         const designSceneStore = useDesignSceneStore.getState();
+        designSceneStore.deleteSelectedDesignReservationZone();
         designSceneStore.deleteSelectedWallSegment();
         designSceneStore.deleteSelectedAssembly();
       }
@@ -37,7 +30,7 @@ export function KeyboardShortcuts() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [workspaceMode]);
+  }, []);
 
   return null;
 }

@@ -3,7 +3,8 @@ import type { PlacedWallGraph } from "./placedWallGraphTypes";
 import type { PlacedWallNode } from "./placedWallNodeTypes";
 import {
   DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE,
-  getDefaultWallSegmentCabinetPlacementFaceSides,
+  getDefaultWallSegmentCabinetPlacementFacePolicies,
+  type CabinetPlacementFacePolicies,
   type PlacedWallSegment,
   type WallFaceSide,
 } from "./placedWallSegmentTypes";
@@ -59,7 +60,7 @@ export function createWallSegment(args: {
   heightInches: number;
   thicknessInches: number;
   preferredViewFaceSide?: WallFaceSide;
-  cabinetPlacementFaceSides?: readonly WallFaceSide[];
+  cabinetPlacementFacePolicies?: CabinetPlacementFacePolicies;
 }): PlacedWallSegment {
   return {
     id: args.id,
@@ -69,7 +70,7 @@ export function createWallSegment(args: {
     heightInches: args.heightInches,
     thicknessInches: args.thicknessInches,
     preferredViewFaceSide: args.preferredViewFaceSide ?? DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE,
-    cabinetPlacementFaceSides: args.cabinetPlacementFaceSides ?? getDefaultWallSegmentCabinetPlacementFaceSides(),
+    cabinetPlacementFacePolicies: args.cabinetPlacementFacePolicies ?? getDefaultWallSegmentCabinetPlacementFacePolicies(),
   };
 }
 
@@ -104,7 +105,7 @@ export function splitWallSegmentAtPoint(args: {
     heightInches: wallSegment.heightInches,
     thicknessInches: wallSegment.thicknessInches,
     preferredViewFaceSide: wallSegment.preferredViewFaceSide,
-    cabinetPlacementFaceSides: wallSegment.cabinetPlacementFaceSides,
+    cabinetPlacementFacePolicies: wallSegment.cabinetPlacementFacePolicies,
   });
   const splitEndSegment = createWallSegment({
     id: splitEndSegmentId,
@@ -114,7 +115,7 @@ export function splitWallSegmentAtPoint(args: {
     heightInches: wallSegment.heightInches,
     thicknessInches: wallSegment.thicknessInches,
     preferredViewFaceSide: wallSegment.preferredViewFaceSide,
-    cabinetPlacementFaceSides: wallSegment.cabinetPlacementFaceSides,
+    cabinetPlacementFacePolicies: wallSegment.cabinetPlacementFacePolicies,
   });
 
   return {

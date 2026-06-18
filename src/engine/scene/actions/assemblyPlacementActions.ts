@@ -1,6 +1,5 @@
 import { applyAssemblyPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
-import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createAssemblyPlacementActions(
   get: DesignSceneStoreGetter,
@@ -14,10 +13,6 @@ export function createAssemblyPlacementActions(
 > {
   return {
     startAssemblyPlacementCandidate(placedAssembly) {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       set((state) => ({
         designScene: {
           ...state.designScene,
@@ -34,10 +29,6 @@ export function createAssemblyPlacementActions(
     },
 
     updateAssemblyCandidateWorldPosition(worldPositionInches, sceneViewMode, elevationMoveFrame) {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const { designScene } = get();
       const activeSceneOperation = designScene.activeSceneOperation;
 
@@ -53,6 +44,7 @@ export function createAssemblyPlacementActions(
         placedAssembly: proposedPlacedAssembly,
         placedWallGraphs: designScene.placedWallGraphs,
         placedAssemblies: designScene.placedAssemblies,
+        designReservationZones: designScene.designReservationZones,
         movingAssemblyId: proposedPlacedAssembly.id,
         snapContext: { movementSource: sceneViewMode, elevationMoveFrame },
       });
@@ -71,10 +63,6 @@ export function createAssemblyPlacementActions(
     },
 
     commitAssemblyPlacementCandidate() {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const { designScene, assemblyPlacementFeedback } = get();
       const activeSceneOperation = designScene.activeSceneOperation;
 
@@ -84,6 +72,7 @@ export function createAssemblyPlacementActions(
 
       const placementFeedback = assemblyPlacementFeedback ?? createAssemblyPlacementFeedback({
         placedAssembly: activeSceneOperation.placedAssembly,
+        placedWallGraphs: designScene.placedWallGraphs,
       });
 
       if (!placementFeedback.isValid) {

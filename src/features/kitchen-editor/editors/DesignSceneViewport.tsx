@@ -71,17 +71,19 @@ function useElementSizePixels(elementRef: RefObject<HTMLElement | null>): Size2D
       return;
     }
 
+    const observedElement = element;
+
     function updateSizePixels() {
       setSizePixels({
-        widthPixels: element.clientWidth,
-        heightPixels: element.clientHeight,
+        widthPixels: observedElement.clientWidth,
+        heightPixels: observedElement.clientHeight,
       });
     }
 
     updateSizePixels();
 
     const resizeObserver = new ResizeObserver(updateSizePixels);
-    resizeObserver.observe(element);
+    resizeObserver.observe(observedElement);
 
     return () => {
       resizeObserver.disconnect();

@@ -24,7 +24,8 @@ export type ObjectAlignmentTargetKind =
   | "countertop-opening"
   | "wall-opening"
   | "wall-face"
-  | "wall-centerline";
+  | "wall-centerline"
+  | "design-reservation-zone";
 
 export type ObjectAlignmentFootprint = Readonly<{
   assemblyId: string;

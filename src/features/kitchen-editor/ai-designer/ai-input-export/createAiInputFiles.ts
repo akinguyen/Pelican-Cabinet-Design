@@ -21,7 +21,7 @@ export function createAiInputFiles(designScene: DesignScene): readonly Downloada
     }),
     createJsonAiInputFile({
       filePath: "04-derived-placement-helpers.json",
-      data: createDerivedPlacementHelpersPackage(designScene.placedWallGraphs),
+      data: createDerivedPlacementHelpersPackage(designScene),
     }),
     {
       filePath: "05-user-request-template.md",

@@ -4,7 +4,7 @@ import type { DesignSceneStore, DesignSceneStoreSetter } from "../designSceneSto
 export function createSceneSelectionActions(
   _get: () => DesignSceneStore,
   set: DesignSceneStoreSetter,
-): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedWallSegment" | "clearSelection"> {
+): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedWallSegment" | "selectDesignReservationZone" | "clearSelection"> {
   return {
     selectPlacedAssembly(placedAssemblyId) {
       const selection: SceneSelection = {
@@ -18,6 +18,7 @@ export function createSceneSelectionActions(
           activeSelection: selection,
         },
         assemblyPlacementFeedback: null,
+        activeObjectAlignmentGuides: [],
       }));
     },
 
@@ -32,6 +33,21 @@ export function createSceneSelectionActions(
           },
         },
         assemblyPlacementFeedback: null,
+        activeObjectAlignmentGuides: [],
+      }));
+    },
+
+    selectDesignReservationZone(designReservationZoneId) {
+      set((state) => ({
+        designScene: {
+          ...state.designScene,
+          activeSelection: {
+            kind: "design-reservation-zone",
+            designReservationZoneId,
+          },
+        },
+        assemblyPlacementFeedback: null,
+        activeObjectAlignmentGuides: [],
       }));
     },
 
@@ -42,6 +58,7 @@ export function createSceneSelectionActions(
           activeSelection: null,
         },
         assemblyPlacementFeedback: null,
+        activeObjectAlignmentGuides: [],
       }));
     },
   };

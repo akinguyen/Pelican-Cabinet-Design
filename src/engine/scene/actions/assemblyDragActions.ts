@@ -2,7 +2,6 @@ import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { applyAssemblyPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
 import type { AssemblyMoveDragState } from "../sceneDragTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
-import { canManuallyEditScene } from "../kitchenWorkspaceModePermissions";
 
 export function createAssemblyDragActions(
   get: DesignSceneStoreGetter,
@@ -13,10 +12,6 @@ export function createAssemblyDragActions(
 > {
   return {
     startAssemblyDrag({ assemblyId, pointerWorldInches, sceneViewMode, elevationMoveFrame }) {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const placedAssembly = get().designScene.placedAssemblies.find(
         (assembly) => assembly.id === assemblyId,
       );
@@ -37,15 +32,13 @@ export function createAssemblyDragActions(
         },
         assemblyPlacementFeedback: createAssemblyPlacementFeedback({
           placedAssembly,
+          placedWallGraphs: get().designScene.placedWallGraphs,
+          snapContext: { movementSource: sceneViewMode, elevationMoveFrame },
         }),
       });
     },
 
     updateAssemblyDrag(pointerWorldInches) {
-      if (!canManuallyEditScene(get().workspaceMode)) {
-        return;
-      }
-
       const activeDrag = get().activeDrag;
 
       if (activeDrag?.kind !== "assembly-move") {
@@ -74,6 +67,7 @@ export function createAssemblyDragActions(
         placedAssembly: proposedPlacedAssembly,
         placedWallGraphs: designScene.placedWallGraphs,
         placedAssemblies: designScene.placedAssemblies,
+        designReservationZones: designScene.designReservationZones,
         movingAssemblyId: activeDrag.assemblyId,
         snapContext: {
           movementSource: activeDrag.sceneViewMode,

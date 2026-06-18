@@ -2,11 +2,17 @@ import type {
   AssemblyComponentOverride,
   AssemblyOptionValue,
 } from "@/engine/assemblies/assemblyConfiguration";
-import type { WallFaceSide } from "@/engine/walls/placedWallSegmentTypes";
-import { isWallFaceSide, normalizeCabinetPlacementFaceSides } from "@/engine/walls/wallSegmentFaceSideSettings";
+import { isDesignReservationZonePurpose } from "@/engine/design-zones/designReservationZoneDefaults";
+import type {
+  CabinetPlacementFacePolicies,
+  CabinetPlacementRequirement,
+  WallFaceSide,
+} from "@/engine/walls/placedWallSegmentTypes";
+import { isCabinetPlacementRequirement, isWallFaceSide } from "@/engine/walls/wallSegmentFaceSideSettings";
 import {
   DESIGN_SCENE_DOCUMENT_SCHEMA_VERSION,
   type AssemblyConfigurationDocument,
+  type DesignReservationZoneDocument,
   type DesignSceneDocument,
   type PlacedAssemblyDocument,
   type PlacedWallGraphDocument,
@@ -48,6 +54,7 @@ export function parseDesignSceneDocument(value: unknown): ParseDesignSceneDocume
 
   const placedAssemblies = parsePlacedAssemblies(scene?.placedAssemblies, errors);
   const placedWallGraphs = parsePlacedWallGraphs(scene?.placedWallGraphs, errors);
+  const designReservationZones = parseDesignReservationZones(scene?.designReservationZones, errors);
 
   if (errors.length > 0) {
     return { ok: false, errors };
@@ -70,6 +77,7 @@ export function parseDesignSceneDocument(value: unknown): ParseDesignSceneDocume
       scene: {
         placedAssemblies,
         placedWallGraphs,
+        designReservationZones,
       },
     },
   };
@@ -106,6 +114,64 @@ function parseCatalog(value: unknown, errors: string[]): DesignSceneDocument["ca
     mode: "reference",
     requiredDefinitionIds: parseStringArray(value.requiredDefinitionIds, "catalog.requiredDefinitionIds", errors),
   };
+}
+
+
+function parseDesignReservationZones(
+  value: unknown,
+  errors: string[],
+): readonly DesignReservationZoneDocument[] {
+  if (!Array.isArray(value)) {
+    errors.push("scene.designReservationZones must be an array.");
+    return [];
+  }
+
+  const ids = new Set<string>();
+
+  return value.flatMap((item, index) => {
+    const path = `scene.designReservationZones[${index}]`;
+
+    if (!isRecord(item)) {
+      errors.push(`${path} must be an object.`);
+      return [];
+    }
+
+    const id = parseString(item.id, `${path}.id`, errors);
+    const reservedFor = parseDesignReservationZonePurpose(item.reservedFor, `${path}.reservedFor`, errors);
+    const baseCenterPointInches = parsePoint3DInches(item.baseCenterPointInches, `${path}.baseCenterPointInches`, errors);
+    const rotationDegrees = isRecord(item.rotationDegrees) ? item.rotationDegrees : null;
+    const zDegrees = rotationDegrees === null
+      ? parseNumber(undefined, `${path}.rotationDegrees.zDegrees`, errors)
+      : parseNumber(rotationDegrees.zDegrees, `${path}.rotationDegrees.zDegrees`, errors);
+    const sizeInches = parseSize3DInches(item.sizeInches, `${path}.sizeInches`, errors);
+
+    if (id !== "" && ids.has(id)) {
+      errors.push(`${path}.id is duplicated.`);
+    }
+
+    ids.add(id);
+
+    return [{
+      id,
+      reservedFor,
+      baseCenterPointInches,
+      rotationDegrees: { zDegrees },
+      sizeInches,
+    }];
+  });
+}
+
+function parseDesignReservationZonePurpose(
+  value: unknown,
+  path: string,
+  errors: string[],
+): DesignReservationZoneDocument["reservedFor"] {
+  if (!isDesignReservationZonePurpose(value)) {
+    errors.push(`${path} must be island, peninsula, or tall-pantry.`);
+    return "island";
+  }
+
+  return value;
 }
 
 function parsePlacedAssemblies(
@@ -271,9 +337,9 @@ function parseWallSegments(
     const thicknessInches = parsePositiveNumber(item.thicknessInches, `${itemPath}.thicknessInches`, errors);
     const heightInches = parsePositiveNumber(item.heightInches, `${itemPath}.heightInches`, errors);
     const preferredViewFaceSide = parseWallFaceSide(item.preferredViewFaceSide, `${itemPath}.preferredViewFaceSide`, errors);
-    const cabinetPlacementFaceSides = parseCabinetPlacementFaceSides(
-      item.cabinetPlacementFaceSides,
-      `${itemPath}.cabinetPlacementFaceSides`,
+    const cabinetPlacementFacePolicies = parseCabinetPlacementFacePolicies(
+      item.cabinetPlacementFacePolicies,
+      `${itemPath}.cabinetPlacementFacePolicies`,
       errors,
     );
 
@@ -303,7 +369,7 @@ function parseWallSegments(
       thicknessInches,
       heightInches,
       preferredViewFaceSide,
-      cabinetPlacementFaceSides,
+      cabinetPlacementFacePolicies,
     }];
   });
 }
@@ -317,37 +383,36 @@ function parseWallFaceSide(value: unknown, path: string, errors: string[]): Wall
   return value;
 }
 
-function parseCabinetPlacementFaceSides(
+function parseCabinetPlacementFacePolicies(
   value: unknown,
   path: string,
   errors: string[],
-): readonly WallFaceSide[] {
-  if (!Array.isArray(value)) {
-    errors.push(`${path} must be an array.`);
-    return [];
+): CabinetPlacementFacePolicies {
+  if (!isRecord(value)) {
+    errors.push(`${path} must be an object.`);
+    return {
+      "side-a": "none",
+      "side-b": "none",
+    };
   }
 
-  const parsedFaceSides: WallFaceSide[] = [];
-  const duplicatedFaceSides = new Set<WallFaceSide>();
+  return {
+    "side-a": parseCabinetPlacementRequirement(value["side-a"], `${path}.side-a`, errors),
+    "side-b": parseCabinetPlacementRequirement(value["side-b"], `${path}.side-b`, errors),
+  };
+}
 
-  value.forEach((item, index) => {
-    if (!isWallFaceSide(item)) {
-      errors.push(`${path}[${index}] must be side-a or side-b.`);
-      return;
-    }
+function parseCabinetPlacementRequirement(
+  value: unknown,
+  path: string,
+  errors: string[],
+): CabinetPlacementRequirement {
+  if (!isCabinetPlacementRequirement(value)) {
+    errors.push(`${path} must be none, optional, or required.`);
+    return "none";
+  }
 
-    if (parsedFaceSides.includes(item)) {
-      duplicatedFaceSides.add(item);
-    }
-
-    parsedFaceSides.push(item);
-  });
-
-  duplicatedFaceSides.forEach((faceSide) => {
-    errors.push(`${path} must not contain duplicate ${faceSide} values.`);
-  });
-
-  return normalizeCabinetPlacementFaceSides(parsedFaceSides);
+  return value;
 }
 
 function parseSize3DInches(value: unknown, path: string, errors: string[]) {
@@ -405,10 +470,6 @@ function parseComponentOverrides(
   path: string,
   errors: string[],
 ): readonly AssemblyComponentOverride[] {
-  if (value === undefined) {
-    return [];
-  }
-
   if (!Array.isArray(value)) {
     errors.push(`${path} must be an array.`);
     return [];
