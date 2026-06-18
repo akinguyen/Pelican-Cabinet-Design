@@ -136,7 +136,6 @@ If the AI changes any of the following, it must rebuild the affected candidate a
 - host wall or turning wall
 - blind cabinet handedness
 - blind cabinet width
-- front stile width
 - turning-wall run-end cabinet width or position
 - turning filler width or position
 - normal run cabinet width or position
@@ -627,7 +626,7 @@ For every blind corner, measure the visible connection gap between:
 
 If this gap is 3, 4, 5, or 6 inches, place a turning blind filler with that exact width.
 
-If the gap is outside the valid filler range, do not leave it open. Backtrack by trying a different run-end cabinet width, turning filler width, blind width, front stile width, handedness, or host/turning assignment.
+If the gap is outside the valid filler range, do not leave it open. Backtrack by trying a different run-end cabinet width, turning filler width, blind width, handedness, or host/turning assignment.
 
 Missing turning blind filler is a hard failure.
 
@@ -739,16 +738,15 @@ For each supported 90 degree cabinet corner:
 4. Choose left/right handedness so the hidden blind side points toward the turning wall.
 5. Identify the blind cabinet door/front access side.
 6. Choose blind cabinet width from catalog, preferring standard values.
-7. Choose front stile width, usually 3 inches, allowed 3 to 6 inches when catalog supports it.
-8. Choose a turning-wall run-end cabinet of the same layer.
-9. Compute blind offset from turning wall.
-10. Compute the visible gap between the blind cabinet body and the turning-wall run-end cabinet.
-11. Place a visible turning blind filler if the gap is a valid filler width.
-12. Build real world footprints and access zones for the blind cabinet, filler, and run-end cabinet.
-13. Reject the candidate if solid footprints collide.
-14. Reject the candidate if the blind door/front access zone is blocked.
-15. Reject the candidate if the turning filler is missing, invalid, or hidden at the wrong plane.
-16. Reject the candidate if the countertop above would overlap at the corner.
+7. Choose a turning-wall run-end cabinet of the same layer.
+8. Compute blind offset from turning wall.
+9. Compute the visible gap between the blind cabinet body and the turning-wall run-end cabinet.
+10. Place a visible turning blind filler if the gap is a valid filler width.
+11. Build real world footprints and access zones for the blind cabinet, filler, and run-end cabinet.
+12. Reject the candidate if solid footprints collide.
+13. Reject the candidate if the blind door/front access zone is blocked.
+14. Reject the candidate if the turning filler is missing, invalid, or hidden at the wrong plane.
+15. Reject the candidate if the countertop above would overlap at the corner.
 
 Only after all checks pass may the solver fill the rest of the host and turning runs.
 
@@ -762,7 +760,6 @@ Changing any of these invalidates previous validation:
 - turning wall
 - blind cabinet handedness
 - blind cabinet width
-- front stile width
 - turning-wall run-end cabinet width
 - turning-wall run-end cabinet position
 - turning filler width
@@ -788,7 +785,7 @@ Right blind:
 ```txt
 blind side = local +X
 door side = local -X
-hidden-area start S = -W/2 + doorW + frontStileW
+hidden-area start S = -W/2 + doorW
 hidden interval = [S, W/2]
 ```
 
@@ -797,14 +794,14 @@ Left blind:
 ```txt
 blind side = local -X
 door side = local +X
-hidden-area start S = W/2 - doorW - frontStileW
+hidden-area start S = W/2 - doorW
 hidden interval = [-W/2, S]
 ```
 
 Remaining hidden blind area:
 
 ```txt
-remainingHiddenBlindArea = blindCabinetWidth - blindDoorWidth - frontStileWidth
+remainingHiddenBlindArea = blindCabinetWidth - blindDoorWidth
 ```
 
 ## Run-end total depth rule
@@ -1076,10 +1073,9 @@ If layout fails, try:
 2. different run-end cabinet width
 3. different turning blind filler width
 4. different blind cabinet size
-5. different front stile width if catalog allows
-6. opposite host/turning wall assignment
-7. different requested-appliance scenario
-8. report conflict if no valid candidate exists
+5. opposite host/turning wall assignment
+6. different requested-appliance scenario
+7. report conflict if no valid candidate exists
 
 Never move fixed input doors, windows, openings, appliances, or fixed objects during backtracking.
 
@@ -1324,8 +1320,7 @@ For every blind corner, verify:
 - Is the run-end cabinet placed normally on its own wall?
 - Does the blind cabinet handedness point the hidden side toward the turning wall?
 - Is the blind door/front on the open accessible side?
-- Does the front stile grow toward the blind side, not the door side?
-- Is `remainingHiddenBlindArea = blindCabinetWidth - blindDoorWidth - frontStileWidth` computed?
+- Is `remainingHiddenBlindArea = blindCabinetWidth - blindDoorWidth` computed?
 - Is `runEndTotalDepth = runEndBoxDepth + runEndDoorOrFrontDepth` computed?
 - Does the distance from hidden-area start line to turning wall face equal run-end total depth?
 - Is there a visible turning blind filler if a gap exists?

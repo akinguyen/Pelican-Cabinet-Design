@@ -64,8 +64,7 @@ For every blind corner, verify:
 - Is the run-end cabinet placed normally on its own wall?
 - Does the blind cabinet handedness point the hidden side toward the turning wall?
 - Is the blind door/front on the open accessible side?
-- Does the front stile grow toward the blind side, not the door side?
-- Is `remainingHiddenBlindArea = blindCabinetWidth - blindDoorWidth - frontStileWidth` computed?
+- Is `remainingHiddenBlindArea = blindCabinetWidth - blindDoorWidth` computed?
 - Is `runEndTotalDepth = runEndBoxDepth + runEndDoorOrFrontDepth` computed?
 - Does the distance from hidden-area start line to turning wall face equal run-end total depth?
 - Is there a visible turning blind filler if a gap exists?

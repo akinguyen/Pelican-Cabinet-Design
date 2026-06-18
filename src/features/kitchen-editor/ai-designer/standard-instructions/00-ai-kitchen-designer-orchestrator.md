@@ -136,7 +136,6 @@ If the AI changes any of the following, it must rebuild the affected candidate a
 - host wall or turning wall
 - blind cabinet handedness
 - blind cabinet width
-- front stile width
 - turning-wall run-end cabinet width or position
 - turning filler width or position
 - normal run cabinet width or position

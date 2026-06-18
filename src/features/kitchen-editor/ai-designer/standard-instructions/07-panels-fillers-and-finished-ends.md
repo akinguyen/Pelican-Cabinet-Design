@@ -34,7 +34,7 @@ For every blind corner, measure the visible connection gap between:
 
 If this gap is 3, 4, 5, or 6 inches, place a turning blind filler with that exact width.
 
-If the gap is outside the valid filler range, do not leave it open. Backtrack by trying a different run-end cabinet width, turning filler width, blind width, front stile width, handedness, or host/turning assignment.
+If the gap is outside the valid filler range, do not leave it open. Backtrack by trying a different run-end cabinet width, turning filler width, blind width, handedness, or host/turning assignment.
 
 Missing turning blind filler is a hard failure.
 

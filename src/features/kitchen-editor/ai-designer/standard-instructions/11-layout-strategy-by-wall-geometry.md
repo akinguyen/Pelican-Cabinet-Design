@@ -60,10 +60,9 @@ If layout fails, try:
 2. different run-end cabinet width
 3. different turning blind filler width
 4. different blind cabinet size
-5. different front stile width if catalog allows
-6. opposite host/turning wall assignment
-7. different requested-appliance scenario
-8. report conflict if no valid candidate exists
+5. opposite host/turning wall assignment
+6. different requested-appliance scenario
+7. report conflict if no valid candidate exists
 
 Never move fixed input doors, windows, openings, appliances, or fixed objects during backtracking.
 

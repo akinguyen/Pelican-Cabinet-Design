@@ -29,16 +29,15 @@ For each supported 90 degree cabinet corner:
 4. Choose left/right handedness so the hidden blind side points toward the turning wall.
 5. Identify the blind cabinet door/front access side.
 6. Choose blind cabinet width from catalog, preferring standard values.
-7. Choose front stile width, usually 3 inches, allowed 3 to 6 inches when catalog supports it.
-8. Choose a turning-wall run-end cabinet of the same layer.
-9. Compute blind offset from turning wall.
-10. Compute the visible gap between the blind cabinet body and the turning-wall run-end cabinet.
-11. Place a visible turning blind filler if the gap is a valid filler width.
-12. Build real world footprints and access zones for the blind cabinet, filler, and run-end cabinet.
-13. Reject the candidate if solid footprints collide.
-14. Reject the candidate if the blind door/front access zone is blocked.
-15. Reject the candidate if the turning filler is missing, invalid, or hidden at the wrong plane.
-16. Reject the candidate if the countertop above would overlap at the corner.
+7. Choose a turning-wall run-end cabinet of the same layer.
+8. Compute blind offset from turning wall.
+9. Compute the visible gap between the blind cabinet body and the turning-wall run-end cabinet.
+10. Place a visible turning blind filler if the gap is a valid filler width.
+11. Build real world footprints and access zones for the blind cabinet, filler, and run-end cabinet.
+12. Reject the candidate if solid footprints collide.
+13. Reject the candidate if the blind door/front access zone is blocked.
+14. Reject the candidate if the turning filler is missing, invalid, or hidden at the wrong plane.
+15. Reject the candidate if the countertop above would overlap at the corner.
 
 Only after all checks pass may the solver fill the rest of the host and turning runs.
 
@@ -52,7 +51,6 @@ Changing any of these invalidates previous validation:
 - turning wall
 - blind cabinet handedness
 - blind cabinet width
-- front stile width
 - turning-wall run-end cabinet width
 - turning-wall run-end cabinet position
 - turning filler width
@@ -78,7 +76,7 @@ Right blind:
 ```txt
 blind side = local +X
 door side = local -X
-hidden-area start S = -W/2 + doorW + frontStileW
+hidden-area start S = -W/2 + doorW
 hidden interval = [S, W/2]
 ```
 
@@ -87,14 +85,14 @@ Left blind:
 ```txt
 blind side = local -X
 door side = local +X
-hidden-area start S = W/2 - doorW - frontStileW
+hidden-area start S = W/2 - doorW
 hidden interval = [-W/2, S]
 ```
 
 Remaining hidden blind area:
 
 ```txt
-remainingHiddenBlindArea = blindCabinetWidth - blindDoorWidth - frontStileWidth
+remainingHiddenBlindArea = blindCabinetWidth - blindDoorWidth
 ```
 
 ## Run-end total depth rule

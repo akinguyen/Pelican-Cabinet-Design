@@ -195,16 +195,7 @@
           "value": 0
         },
         "yInches": {
-          "op": "negate",
-          "value": {
-            "op": "divide",
-            "left": {
-              "value": 1.2
-            },
-            "right": {
-              "value": 2
-            }
-          }
+          "value": 0
         },
         "zInches": {
           "value": 0
@@ -215,13 +206,7 @@
           "ref": "size.widthInches"
         },
         "depthInches": {
-          "op": "subtract",
-          "left": {
-            "ref": "size.depthInches"
-          },
-          "right": {
-            "value": 1.2
-          }
+          "ref": "size.depthInches"
         },
         "heightInches": {
           "ref": "size.heightInches"
@@ -247,18 +232,12 @@
           "op": "add",
           "values": [
             {
-              "op": "subtract",
+              "op": "divide",
               "left": {
-                "op": "divide",
-                "left": {
-                  "ref": "size.depthInches"
-                },
-                "right": {
-                  "value": 2
-                }
+                "ref": "size.depthInches"
               },
               "right": {
-                "value": 1.2
+                "value": 2
               }
             },
             {
@@ -328,18 +307,12 @@
               "op": "add",
               "values": [
                 {
-                  "op": "subtract",
+                  "op": "divide",
                   "left": {
-                    "op": "divide",
-                    "left": {
-                      "ref": "size.depthInches"
-                    },
-                    "right": {
-                      "value": 2
-                    }
+                    "ref": "size.depthInches"
                   },
                   "right": {
-                    "value": 1.2
+                    "value": 2
                   }
                 },
                 {
@@ -444,18 +417,12 @@
               "op": "add",
               "values": [
                 {
-                  "op": "subtract",
+                  "op": "divide",
                   "left": {
-                    "op": "divide",
-                    "left": {
-                      "ref": "size.depthInches"
-                    },
-                    "right": {
-                      "value": 2
-                    }
+                    "ref": "size.depthInches"
                   },
                   "right": {
-                    "value": 1.2
+                    "value": 2
                   }
                 },
                 {
@@ -554,18 +521,12 @@
               "op": "add",
               "values": [
                 {
-                  "op": "subtract",
+                  "op": "divide",
                   "left": {
-                    "op": "divide",
-                    "left": {
-                      "ref": "size.depthInches"
-                    },
-                    "right": {
-                      "value": 2
-                    }
+                    "ref": "size.depthInches"
                   },
                   "right": {
-                    "value": 1.2
+                    "value": 2
                   }
                 },
                 {
@@ -634,18 +595,12 @@
               "op": "add",
               "values": [
                 {
-                  "op": "subtract",
+                  "op": "divide",
                   "left": {
-                    "op": "divide",
-                    "left": {
-                      "ref": "size.depthInches"
-                    },
-                    "right": {
-                      "value": 2
-                    }
+                    "ref": "size.depthInches"
                   },
                   "right": {
-                    "value": 1.2
+                    "value": 2
                   }
                 },
                 {
@@ -714,18 +669,12 @@
               "op": "add",
               "values": [
                 {
-                  "op": "subtract",
+                  "op": "divide",
                   "left": {
-                    "op": "divide",
-                    "left": {
-                      "ref": "size.depthInches"
-                    },
-                    "right": {
-                      "value": 2
-                    }
+                    "ref": "size.depthInches"
                   },
                   "right": {
-                    "value": 1.2
+                    "value": 2
                   }
                 },
                 {
@@ -843,18 +792,12 @@
               "op": "add",
               "values": [
                 {
-                  "op": "subtract",
+                  "op": "divide",
                   "left": {
-                    "op": "divide",
-                    "left": {
-                      "ref": "size.depthInches"
-                    },
-                    "right": {
-                      "value": 2
-                    }
+                    "ref": "size.depthInches"
                   },
                   "right": {
-                    "value": 1.2
+                    "value": 2
                   }
                 },
                 {
