@@ -1,4 +1,5 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
+import { getPlanPointerAngleDegrees } from "@/core/geometry/planPointGeometry";
 import { applyAssemblyPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
 import { updateAssemblyPlacementRotationDegrees } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
 import { snapAssemblyRotationDegrees } from "@/engine/assemblies/placement/assemblyRotationSnapping";
@@ -23,20 +24,17 @@ export function createAssemblyRotationActions(
         return;
       }
 
-      const pointerAngleDegrees = getPointerAngleDegrees(centerPointInches, pointerWorldInches);
+      const pointerAngleDegrees = getPlanPointerAngleDegrees(centerPointInches, pointerWorldInches);
 
       set({
         activeDrag: {
           kind: "assembly-rotation",
           assemblyId,
           centerPointInches,
-          pointerAngleDegrees,
           startPointerAngleDegrees: pointerAngleDegrees,
           startRotationDegrees: placedAssembly.rotationDegrees.zDegrees,
           startWorldPositionInches: placedAssembly.worldPositionInches,
-          latestRotationDegrees: placedAssembly.rotationDegrees.zDegrees,
           latestValidRotationDegrees: placedAssembly.rotationDegrees.zDegrees,
-          isSnappedToRotationStop: false,
         },
         assemblyPlacementFeedback: createAssemblyPlacementFeedback({
           placedAssembly,
@@ -61,7 +59,7 @@ export function createAssemblyRotationActions(
         return;
       }
 
-      const pointerAngleDegrees = getPointerAngleDegrees(activeDrag.centerPointInches, pointerWorldInches);
+      const pointerAngleDegrees = getPlanPointerAngleDegrees(activeDrag.centerPointInches, pointerWorldInches);
       const rotationDeltaDegrees = activeDrag.startPointerAngleDegrees - pointerAngleDegrees;
       const snapResult = snapAssemblyRotationDegrees(activeDrag.startRotationDegrees + rotationDeltaDegrees);
       const rotatedAssembly = updateAssemblyPlacementRotationDegrees(
@@ -89,12 +87,9 @@ export function createAssemblyRotationActions(
         },
         activeDrag: {
           ...activeDrag,
-          pointerAngleDegrees,
-          latestRotationDegrees: snapResult.rotationDegrees,
           latestValidRotationDegrees: isValidPlacement
             ? snapResult.rotationDegrees
             : activeDrag.latestValidRotationDegrees,
-          isSnappedToRotationStop: snapResult.isSnappedToRotationStop,
         },
         assemblyPlacementFeedback: feedback,
       }));
@@ -168,19 +163,6 @@ export function createAssemblyRotationActions(
       }));
     },
   };
-}
-
-function getPointerAngleDegrees(
-  centerPointInches: Point3DInches,
-  pointerWorldInches: Point3DInches,
-): number {
-  return (
-    Math.atan2(
-      pointerWorldInches.yInches - centerPointInches.yInches,
-      pointerWorldInches.xInches - centerPointInches.xInches,
-    ) *
-    180
-  ) / Math.PI;
 }
 
 function createDesignSceneWithAssemblyRotation(args: {

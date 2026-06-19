@@ -1,5 +1,6 @@
-import { createEmptyWallSegmentDraft } from "@/engine/walls/segment-draft/wallSegmentDraftFactory";
+import { createEmptyWallSegmentDraft } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { isFloorPlanOnlySceneEditingTool } from "../sceneEditingToolTypes";
 
 export function createSceneToolbarActions(
   get: DesignSceneStoreGetter,
@@ -37,7 +38,7 @@ export function createSceneToolbarActions(
     setActiveToolbarTool(toolbarTool) {
       const stateBeforeUpdate = get();
 
-      if (isFloorPlanOnlyToolbarTool(toolbarTool) && stateBeforeUpdate.activeSceneViewMode !== "floor-plan") {
+      if (isFloorPlanOnlySceneEditingTool(toolbarTool) && stateBeforeUpdate.activeSceneViewMode !== "floor-plan") {
         return;
       }
 
@@ -81,9 +82,6 @@ export function createSceneToolbarActions(
   };
 }
 
-function isFloorPlanOnlyToolbarTool(toolbarTool: DesignSceneStore["activeToolbarTool"]): boolean {
-  return toolbarTool === "draw-wall-segment";
-}
 
 function isToolbarSceneOperation(
   activeSceneOperation: DesignSceneStore["designScene"]["activeSceneOperation"],

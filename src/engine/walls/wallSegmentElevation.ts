@@ -1,15 +1,15 @@
 import { DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE } from "./placedWallSegmentTypes";
 import type { WallElevationTarget } from "./wallSegmentElevationTypes";
-import type { BuiltWallSegmentTopology, WallSegmentFace } from "./wallSegmentTopologyTypes";
+import type { BuiltConnectedWallGeometry, WallSegmentFace } from "./connectedWallGeometryTypes";
 
 export function getWallSegmentElevationFaces(
-  topology: BuiltWallSegmentTopology,
+  topology: BuiltConnectedWallGeometry,
 ): readonly WallSegmentFace[] {
   return topology.faces;
 }
 
 export function getActiveWallSegmentElevationFace(args: {
-  topology: BuiltWallSegmentTopology;
+  topology: BuiltConnectedWallGeometry;
   activeWallElevationTarget: WallElevationTarget | null;
 }): WallSegmentFace | null {
   const faces = getWallSegmentElevationFaces(args.topology);
@@ -29,18 +29,4 @@ export function getActiveWallSegmentElevationFace(args: {
   )) ?? faces[0];
 }
 
-export function createWallSegmentElevationViewKey(
-  face: WallSegmentFace,
-): string {
-  return `${face.wallGraphId}-${face.wallSegmentId}-${face.side}`;
-}
 
-export function createWallElevationTargetFromFace(
-  face: WallSegmentFace,
-): WallElevationTarget {
-  return {
-    wallGraphId: face.wallGraphId,
-    wallSegmentId: face.wallSegmentId,
-    faceSide: face.side,
-  };
-}

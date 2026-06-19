@@ -20,7 +20,6 @@ import type {
   ObjectAlignmentFootprint,
   ObjectAlignmentLine,
 } from "./assemblyObjectAlignmentTypes";
-import type { AssemblyPlacementSnapTarget } from "../assemblyPlacementTypes";
 
 export function findObjectAlignmentCandidates(args: {
   movingAlignmentFootprint: ObjectAlignmentFootprint;
@@ -63,37 +62,6 @@ export function selectCompatibleAlignmentCandidates(
   return secondAxisCandidate === undefined
     ? [firstCandidate]
     : [firstCandidate, secondAxisCandidate].slice(0, OBJECT_ALIGNMENT_MAX_GUIDES);
-}
-
-export function combineAlignmentCandidateDeltas(
-  candidates: readonly ObjectAlignmentCandidate[],
-): ObjectAlignmentDeltaInches {
-  return candidates.reduce<ObjectAlignmentDeltaInches>((combinedDeltaInches, candidate) => ({
-    xInches: combinedDeltaInches.xInches + candidate.deltaInches.xInches,
-    yInches: combinedDeltaInches.yInches + candidate.deltaInches.yInches,
-    zInches: (combinedDeltaInches.zInches ?? 0) + (candidate.deltaInches.zInches ?? 0),
-  }), { xInches: 0, yInches: 0, zInches: 0 });
-}
-
-export function createAlignmentSnapTarget(
-  selectedCandidates: readonly ObjectAlignmentCandidate[],
-): AssemblyPlacementSnapTarget | null {
-  const firstCandidate = selectedCandidates[0];
-
-  if (firstCandidate === undefined) {
-    return null;
-  }
-
-  return {
-    kind: "object-alignment",
-    alignmentKind: selectedCandidates.length > 1
-      ? "corner"
-      : firstCandidate.movingLine.lineKind === "center" || firstCandidate.targetLine.lineKind === "center"
-        ? "center-line"
-        : "edge-line",
-    targetAssemblyId: firstCandidate.targetAssemblyId,
-    distanceInches: firstCandidate.distanceInches,
-  };
 }
 
 function createObjectAlignmentCandidate(args: {
@@ -148,7 +116,6 @@ function createObjectAlignmentCandidate(args: {
     targetLine: args.targetLine,
     deltaInches: constrainedDeltaInches,
     distanceInches,
-    remainingDistanceInches,
     priority: getAlignmentPriority(args.movingLine, args.targetLine),
     targetPriority: args.targetAlignmentFootprint.targetPriority,
   };

@@ -4,10 +4,10 @@ import { memo, useMemo } from "react";
 import { Line } from "@react-three/drei";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { DerivedWallOpening } from "@/engine/walls/placedWallSegmentTypes";
-import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
+import type { BuiltWallSegmentBody } from "@/engine/walls/connectedWallGeometryTypes";
 import { buildDerivedWallOpeningPlanMeasurementGuides } from "@/engine/walls/openings/wallOpeningPlanMeasurements";
 import { PlanMeasurementLine } from "../shared/PlanMeasurementLine";
-import { formatFeetInchesLabel } from "../../shared/formatFeetInchesLabel";
+import { formatFeetInchesLabel } from "../../formatting/kitchenEditorLabelFormatting";
 import { wallSegmentRenderColors } from "./wallSegmentRenderColors";
 
 const WALL_OPENING_MEASUREMENT_Z_INCHES = 7.5;

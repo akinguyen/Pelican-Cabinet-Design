@@ -1,4 +1,4 @@
-import type { AssemblyPlacementElevationFrame, AssemblyPlacementSnapTarget } from "../assemblyPlacementTypes";
+import type { AssemblyPlacementElevationFrame } from "../assemblyPlacementTypes";
 import {
   ELEVATION_FLOOR_ALIGNMENT_TARGET_ID,
   OBJECT_ALIGNMENT_MAX_GUIDES,
@@ -8,7 +8,6 @@ import type {
   ElevationAlignmentAnchor,
   ElevationAlignmentBox,
   ElevationAlignmentCandidate,
-  ObjectAlignmentDeltaInches,
 } from "./assemblyObjectAlignmentTypes";
 
 export function findElevationAlignmentCandidates(args: {
@@ -40,40 +39,6 @@ export function selectCompatibleElevationAlignmentCandidates(
     .filter(isElevationAlignmentCandidate)
     .sort(compareElevationAlignmentCandidates)
     .slice(0, OBJECT_ALIGNMENT_MAX_GUIDES);
-}
-
-export function combineElevationAlignmentCandidateDeltas(
-  candidates: readonly ElevationAlignmentCandidate[],
-): ObjectAlignmentDeltaInches {
-  return candidates.reduce<ObjectAlignmentDeltaInches>((combinedDeltaInches, candidate) => ({
-    xInches: combinedDeltaInches.xInches + candidate.deltaInches.xInches,
-    yInches: combinedDeltaInches.yInches + candidate.deltaInches.yInches,
-    zInches: (combinedDeltaInches.zInches ?? 0) + (candidate.deltaInches.zInches ?? 0),
-  }), { xInches: 0, yInches: 0, zInches: 0 });
-}
-
-export function createElevationAlignmentSnapTarget(
-  selectedCandidates: readonly ElevationAlignmentCandidate[],
-): AssemblyPlacementSnapTarget | null {
-  const firstCandidate = selectedCandidates[0];
-
-  if (firstCandidate === undefined) {
-    return null;
-  }
-
-  return {
-    kind: "object-alignment",
-    alignmentKind: selectedCandidates.length > 1 ? "corner" : getElevationGuideKind(firstCandidate),
-    targetAssemblyId: firstCandidate.targetAssemblyId,
-    distanceInches: firstCandidate.distanceInches,
-  };
-}
-
-export function getElevationGuideKind(candidate: ElevationAlignmentCandidate): "center-line" | "edge-line" {
-  return getElevationAlignmentLineKind(candidate.movingAnchor) === "center" ||
-    getElevationAlignmentLineKind(candidate.targetAnchor) === "center"
-    ? "center-line"
-    : "edge-line";
 }
 
 function getElevationAlignmentAnchors(box: ElevationAlignmentBox): readonly ElevationAlignmentAnchor[] {

@@ -6,6 +6,7 @@ import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { AssemblyElevationMoveFrame } from "../sceneDragTypes";
 import type { SceneViewMode } from "../sceneViewModeTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 export function createDesignReservationZonePlacementActions(
   get: DesignSceneStoreGetter,
@@ -102,6 +103,8 @@ export function createDesignReservationZonePlacementActions(
 
       const newZone = activeSceneOperation.candidate.zone;
 
+      recordDesignSceneHistoryEntry({ get, set, label: "Place design reservation zone" });
+
       set((state) => ({
         activeToolbarTool: null,
         activeObjectAlignmentGuides: [],
@@ -110,8 +113,11 @@ export function createDesignReservationZonePlacementActions(
           designReservationZones: [...state.designScene.designReservationZones, newZone],
           activeSceneOperation: null,
           activeSelection: {
-            kind: "design-reservation-zone",
-            designReservationZoneId: newZone.id,
+            kind: "scene-entity",
+            sceneEntity: {
+              entityKind: "design-reservation-zone",
+              entityId: newZone.id,
+            },
           },
         },
       }));

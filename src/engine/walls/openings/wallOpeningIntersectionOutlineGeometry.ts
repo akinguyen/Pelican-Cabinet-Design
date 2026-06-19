@@ -2,8 +2,9 @@ import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { createAssemblyPlacementFootprint } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
 import type { DerivedWallOpening } from "../placedWallSegmentTypes";
-import type { BuiltWallSegmentBody } from "../wallSegmentTopologyTypes";
+import type { BuiltWallSegmentBody } from "../connectedWallGeometryTypes";
 import { createDerivedWallOpeningFaceAxes } from "./wallOpeningFaceAxes";
+import { addUniqueWallPlanPoint, getWallPlanCrossProduct, projectWallPlanPointOntoDirection } from "../wallPlanGeometry";
 
 const GEOMETRY_EPSILON = 0.000001;
 const WALL_OPENING_INTERSECTION_INTERACTION_DEPTH_PADDING_INCHES = 0.25;
@@ -49,12 +50,12 @@ export function createDerivedWallOpeningIntersectionOutline(args: {
     { ...clippedPolygonInches[0], zInches: 0 },
   ];
   const interactionCenterInches = getPolygonCenter(clippedPolygonInches);
-  const faceCoordinatesInches = clippedPolygonInches.map((pointInches) => projectPointOntoDirection({
+  const faceCoordinatesInches = clippedPolygonInches.map((pointInches) => projectWallPlanPointOntoDirection({
     pointInches,
     originInches: faceAxes.sideStartPointInches,
     directionInches: faceAxes.faceDirectionInches,
   }));
-  const outwardCoordinatesInches = clippedPolygonInches.map((pointInches) => projectPointOntoDirection({
+  const outwardCoordinatesInches = clippedPolygonInches.map((pointInches) => projectWallPlanPointOntoDirection({
     pointInches,
     originInches: faceAxes.sideStartPointInches,
     directionInches: faceAxes.outwardDirectionInches,
@@ -120,7 +121,7 @@ function clipPolygonToConvexPolygon(args: {
 
       if (currentInside) {
         if (!previousInside) {
-          addUniquePoint(clippedPolygon, createLineIntersection({
+          addUniqueWallPlanPoint(clippedPolygon, createLineIntersection({
             firstStartInches: previousPointInches,
             firstEndInches: currentPointInches,
             secondStartInches: clipStartInches,
@@ -128,12 +129,12 @@ function clipPolygonToConvexPolygon(args: {
           }));
         }
 
-        addUniquePoint(clippedPolygon, currentPointInches);
+        addUniqueWallPlanPoint(clippedPolygon, currentPointInches);
         continue;
       }
 
       if (previousInside) {
-        addUniquePoint(clippedPolygon, createLineIntersection({
+        addUniqueWallPlanPoint(clippedPolygon, createLineIntersection({
           firstStartInches: previousPointInches,
           firstEndInches: currentPointInches,
           secondStartInches: clipStartInches,
@@ -160,7 +161,7 @@ function isPointInsideClipEdge(args: {
     xInches: args.pointInches.xInches - args.clipStartInches.xInches,
     yInches: args.pointInches.yInches - args.clipStartInches.yInches,
   };
-  const side = cross(edgeVectorInches, startToPointInches);
+  const side = getWallPlanCrossProduct(edgeVectorInches, startToPointInches);
 
   return args.clipOrientation === 1
     ? side >= -GEOMETRY_EPSILON
@@ -181,7 +182,7 @@ function createLineIntersection(args: {
     xInches: args.secondEndInches.xInches - args.secondStartInches.xInches,
     yInches: args.secondEndInches.yInches - args.secondStartInches.yInches,
   };
-  const denominator = cross(firstVectorInches, secondVectorInches);
+  const denominator = getWallPlanCrossProduct(firstVectorInches, secondVectorInches);
 
   if (Math.abs(denominator) <= GEOMETRY_EPSILON) {
     return {
@@ -195,7 +196,7 @@ function createLineIntersection(args: {
     xInches: args.secondStartInches.xInches - args.firstStartInches.xInches,
     yInches: args.secondStartInches.yInches - args.firstStartInches.yInches,
   };
-  const firstDistanceRatio = cross(startDeltaInches, secondVectorInches) / denominator;
+  const firstDistanceRatio = getWallPlanCrossProduct(startDeltaInches, secondVectorInches) / denominator;
 
   return {
     xInches: args.firstStartInches.xInches + firstVectorInches.xInches * firstDistanceRatio,
@@ -204,24 +205,6 @@ function createLineIntersection(args: {
   };
 }
 
-function addUniquePoint(pointsInches: Point3DInches[], pointInches: Point3DInches): void {
-  if (pointsInches.some((existingPointInches) => arePointsEqual(existingPointInches, pointInches))) {
-    return;
-  }
-
-  pointsInches.push({
-    xInches: pointInches.xInches,
-    yInches: pointInches.yInches,
-    zInches: 0,
-  });
-}
-
-function arePointsEqual(firstPointInches: Point3DInches, secondPointInches: Point3DInches): boolean {
-  return (
-    Math.abs(firstPointInches.xInches - secondPointInches.xInches) <= GEOMETRY_EPSILON &&
-    Math.abs(firstPointInches.yInches - secondPointInches.yInches) <= GEOMETRY_EPSILON
-  );
-}
 
 function getPolygonCenter(pointsInches: readonly Point3DInches[]): Point3DInches {
   const pointCount = Math.max(pointsInches.length, 1);
@@ -236,17 +219,6 @@ function getPolygonCenter(pointsInches: readonly Point3DInches[]): Point3DInches
     yInches: sum.yInches / pointCount,
     zInches: sum.zInches / pointCount,
   };
-}
-
-function projectPointOntoDirection(args: {
-  pointInches: Point3DInches;
-  originInches: Point3DInches;
-  directionInches: Readonly<{ xInches: number; yInches: number }>;
-}): number {
-  return (
-    (args.pointInches.xInches - args.originInches.xInches) * args.directionInches.xInches +
-    (args.pointInches.yInches - args.originInches.yInches) * args.directionInches.yInches
-  );
 }
 
 function getAbsolutePolygonArea(pointsInches: readonly Point3DInches[]): number {
@@ -264,12 +236,6 @@ function getSignedPolygonArea(pointsInches: readonly Point3DInches[]): number {
   return area / 2;
 }
 
-function cross(
-  first: Readonly<{ xInches: number; yInches: number }>,
-  second: Readonly<{ xInches: number; yInches: number }>,
-): number {
-  return first.xInches * second.yInches - first.yInches * second.xInches;
-}
 
 export function isDerivedWallOpeningIntersectionOutline(
   outline: DerivedWallOpeningIntersectionOutlineInches | null,

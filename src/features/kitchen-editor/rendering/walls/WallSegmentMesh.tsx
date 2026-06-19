@@ -5,22 +5,19 @@ import { memo, useCallback, useMemo } from "react";
 import { DoubleSide } from "three";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
-import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
-import type { DerivedWallOpening, PlacedWallSegment } from "@/engine/walls/placedWallSegmentTypes";
+import type { BuiltWallSegmentBody } from "@/engine/walls/connectedWallGeometryTypes";
+import type { DerivedWallOpening } from "@/engine/walls/placedWallSegmentTypes";
 import { createWallSegmentGeometry } from "./wallRenderingGeometry";
 import { EdgeSegmentLines } from "../shared/EdgeSegmentLines";
 import { WallSegmentActiveOverlay } from "./WallSegmentActiveOverlay";
-import { WallSegmentVertexMarkers } from "./WallSegmentVertexMarkers";
 import { wallSegmentRenderColors } from "./wallSegmentRenderColors";
 import { useDisposableGeometry } from "../shared/useDisposableGeometry";
 
-const SHOW_WALL_DEBUG_VERTEX_MARKERS = false;
 
 type WallSegmentRenderState = "committed" | "preview-existing" | "preview-draft" | "selected";
 
 type WallSegmentMeshProps = Readonly<{
   segmentBody: BuiltWallSegmentBody;
-  wallSegment: PlacedWallSegment;
   derivedOpenings: readonly DerivedWallOpening[];
   renderState: WallSegmentRenderState;
   sceneViewMode: SceneViewMode;
@@ -28,7 +25,6 @@ type WallSegmentMeshProps = Readonly<{
 
 export const WallSegmentMesh = memo(function WallSegmentMesh({
   segmentBody,
-  wallSegment,
   derivedOpenings,
   renderState,
   sceneViewMode,
@@ -90,9 +86,6 @@ export const WallSegmentMesh = memo(function WallSegmentMesh({
         />
       ) : null}
       {isActiveWallSegment ? <WallSegmentActiveOverlay segmentBody={segmentBody} /> : null}
-      {SHOW_WALL_DEBUG_VERTEX_MARKERS && isActiveWallSegment ? (
-        <WallSegmentVertexMarkers segmentBody={segmentBody} />
-      ) : null}
     </group>
   );
 });

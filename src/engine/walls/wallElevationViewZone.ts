@@ -4,6 +4,7 @@ import type { BuiltWallSegmentBody, WallSegmentFace } from "./connectedWallGeome
 import type { PlacedWallGraph } from "./placedWallGraphTypes";
 import { getActiveWallSegmentElevationFace } from "./wallSegmentElevation";
 import type { WallElevationTarget } from "./wallSegmentElevationTypes";
+import { projectWallPlanPointOntoDirection } from "./wallPlanGeometry";
 
 export const WALL_ELEVATION_VIEW_DEPTH_INCHES = 40;
 export const WALL_ELEVATION_NEAR_PADDING_INCHES = 1;
@@ -59,13 +60,6 @@ export function getWallElevationViewZoneForTarget(args: {
     segmentBody: activeFaceAndBody.segmentBody,
     depthInches: args.depthInches ?? WALL_ELEVATION_VIEW_DEPTH_INCHES,
   });
-}
-
-export function getWallElevationFaceForTarget(args: {
-  placedWallGraphs: readonly PlacedWallGraph[];
-  activeWallElevationTarget: WallElevationTarget | null;
-}): WallSegmentFace | null {
-  return getWallElevationFaceAndBodyForTarget(args)?.face ?? null;
 }
 
 function getWallElevationFaceAndBodyForTarget(args: {
@@ -186,23 +180,23 @@ function getWallElevationPlanProjectionBounds(args: {
   segmentBody: BuiltWallSegmentBody | null;
   depthInches: number;
 }): WallElevationPlanProjectionBounds {
-  const projectedFaceStartUInches = projectPlanPointOntoDirection({
+  const projectedFaceStartUInches = projectWallPlanPointOntoDirection({
     pointInches: args.face.startPointInches,
     originInches: args.faceCenterInches,
     directionInches: args.faceDirectionInches,
   });
-  const projectedFaceEndUInches = projectPlanPointOntoDirection({
+  const projectedFaceEndUInches = projectWallPlanPointOntoDirection({
     pointInches: args.face.endPointInches,
     originInches: args.faceCenterInches,
     directionInches: args.faceDirectionInches,
   });
   const projectedWallBodyPoints = args.segmentBody?.footprintPolygonInches.map((pointInches) => ({
-    uInches: projectPlanPointOntoDirection({
+    uInches: projectWallPlanPointOntoDirection({
       pointInches,
       originInches: args.faceCenterInches,
       directionInches: args.faceDirectionInches,
     }),
-    depthInches: projectPlanPointOntoDirection({
+    depthInches: projectWallPlanPointOntoDirection({
       pointInches,
       originInches: args.faceCenterInches,
       directionInches: args.outwardDirectionInches,
@@ -245,17 +239,6 @@ function createProjectedPlanPoint(args: {
       args.outwardDirectionInches.yInches * args.depthInches,
     zInches: args.originInches.zInches,
   };
-}
-
-function projectPlanPointOntoDirection(args: {
-  pointInches: Point3DInches;
-  originInches: Point3DInches;
-  directionInches: Readonly<{ xInches: number; yInches: number }>;
-}): number {
-  return (
-    (args.pointInches.xInches - args.originInches.xInches) * args.directionInches.xInches +
-    (args.pointInches.yInches - args.originInches.yInches) * args.directionInches.yInches
-  );
 }
 
 function createPlanDirection(

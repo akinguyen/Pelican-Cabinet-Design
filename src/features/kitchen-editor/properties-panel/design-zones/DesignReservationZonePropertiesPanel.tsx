@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import type { DesignReservationZone, DesignReservationZonePurpose } from "@/engine/design-zones/designReservationZoneTypes";
+import { formatDesignReservationZonePurposeLabel } from "../../formatting/kitchenEditorLabelFormatting";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { PropertyNumberField } from "../shared/PropertyNumberField";
 import { PropertySection } from "../shared/PropertySection";
@@ -47,7 +48,7 @@ export function DesignReservationZonePropertiesPanel({
     useDesignSceneStore.getState().updateSelectedDesignReservationZoneHeight(heightInches);
   }, []);
   const handleDelete = useCallback(() => {
-    useDesignSceneStore.getState().deleteSelectedDesignReservationZone();
+    useDesignSceneStore.getState().deleteSelectedSceneEntities();
   }, []);
 
   return (
@@ -56,7 +57,7 @@ export function DesignReservationZonePropertiesPanel({
         <div className="text-[11px] font-semibold uppercase tracking-wide text-cyan-700">
           Design Reservation Zone
         </div>
-        <div className="mt-1 font-semibold text-slate-900">{formatPurposeLabel(zone.reservedFor)}</div>
+        <div className="mt-1 font-semibold text-slate-900">{formatDesignReservationZonePurposeLabel(zone.reservedFor)}</div>
         <div className="mt-1 break-all text-[11px] text-slate-500">{zone.id}</div>
       </section>
 
@@ -145,15 +146,4 @@ export function DesignReservationZonePropertiesPanel({
       </PropertySection>
     </div>
   );
-}
-
-function formatPurposeLabel(purpose: DesignReservationZonePurpose): string {
-  switch (purpose) {
-    case "island":
-      return "Island";
-    case "peninsula":
-      return "Peninsula";
-    case "tall-pantry":
-      return "Tall pantry";
-  }
 }

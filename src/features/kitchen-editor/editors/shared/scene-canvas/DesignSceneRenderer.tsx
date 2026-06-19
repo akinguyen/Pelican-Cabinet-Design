@@ -3,29 +3,30 @@
 import { useMemo } from "react";
 import { buildSceneEntityWallMeasurementGuides } from "@/engine/scene-entities/measurement/sceneEntityWallMeasurementGuides";
 import { createDesignReservationZoneSceneEntityBounds } from "@/engine/scene-entities/designReservationZoneSceneEntityBounds";
+import { createPlacedAssemblySceneEntityBounds } from "@/engine/scene-entities/placedAssemblySceneEntityBounds";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { AssemblyDragSurface } from "../../../interaction/assemblies/AssemblyDragSurface";
 import { DesignReservationZonePlacementSurface } from "../../../interaction/design-zones/DesignReservationZonePlacementSurface";
 import { DesignReservationZoneDragSurface } from "../../../interaction/design-zones/DesignReservationZoneDragSurface";
-import { DesignReservationZoneRotationSurface } from "../../../interaction/design-zones/DesignReservationZoneRotationSurface";
-import { AssemblyRotationSurface } from "../../../interaction/assemblies/AssemblyRotationSurface";
+import { SceneEntityMultiDragSurface } from "../../../interaction/scene-entities/SceneEntityMultiDragSurface";
+import { SceneEntityRotationSurface } from "../../../interaction/scene-entities/SceneEntityRotationSurface";
 import { WallSegmentDraftSurface } from "../../../interaction/walls/WallSegmentDraftSurface";
 import { AssemblyLayer } from "../../../rendering/assemblies/AssemblyLayer";
 import { AssemblyPlacementCandidateRenderer } from "../../../rendering/assemblies/AssemblyPlacementCandidateRenderer";
 import { AssemblyPlacementFeedbackLayer } from "../../../rendering/assemblies/AssemblyPlacementFeedbackLayer";
 import { AssemblyObjectAlignmentGuides } from "../../../rendering/assemblies/AssemblyObjectAlignmentGuides";
-import { SelectedAssemblyOutlineLayer } from "../../../rendering/assemblies/SelectedAssemblyOutlineLayer";
 import { DesignReservationZonePlacementCandidateRenderer } from "../../../rendering/design-zones/DesignReservationZonePlacementCandidateRenderer";
 import { DesignReservationZoneLayer } from "../../../rendering/design-zones/DesignReservationZoneLayer";
-import { SelectedDesignReservationZoneOutlineLayer } from "../../../rendering/design-zones/SelectedDesignReservationZoneOutlineLayer";
 import { SceneEntityWallMeasurementGuides } from "../../../rendering/scene-entities/SceneEntityWallMeasurementGuides";
+import { SceneEntityGroupGuides } from "../../../rendering/scene-entities/SceneEntityGroupGuides";
+import { SelectedSceneEntityLayer } from "../../../rendering/scene-entities/SelectedSceneEntityLayer";
 import { WallLayer } from "../../../rendering/walls/WallLayer";
 import { kitchenEditorCatalogRegistry } from "../../../catalogs/registry/kitchenEditorCatalogRegistry";
 import { getDerivedCutoutAssemblySources } from "@/engine/scene/derivedCutoutAssemblySources";
 import {
   buildDesignReservationZoneById,
   buildPlacedAssemblyById,
-  getSelectedDesignReservationZone,
+  getSelectedDesignReservationZones,
   getSelectedPlacedAssembly,
   getSelectedPlacedAssemblies,
 } from "../../../selection/sceneSelectionLookups";
@@ -55,12 +56,12 @@ export function DesignSceneRenderer() {
   const showWallPlanMeasurements = activeSceneViewMode === "floor-plan" && wallSegmentDraft === null;
   const shouldRenderPlacementFeedback = assemblyPlacementFeedback !== null;
   const shouldRenderPlacementCandidate = hasAssemblyPlacementOperation;
-  const shouldRenderAssemblyDragSurface = activeDrag?.kind === "assembly-move" || activeDrag?.kind === "assembly-multi-move";
-  const shouldRenderAssemblyRotationSurface = activeDrag?.kind === "assembly-rotation";
+  const shouldRenderAssemblyDragSurface = activeDrag?.kind === "assembly-move";
+  const shouldRenderSceneEntityMultiDragSurface = activeDrag?.kind === "scene-entity-multi-move";
   const shouldRenderWallSegmentDraftSurface = activeSceneViewMode === "floor-plan" && activeToolbarTool === "draw-wall-segment";
   const shouldRenderDesignReservationZonePlacementSurface = activeToolbarTool === "draw-design-reservation-zone";
   const shouldRenderDesignReservationZoneDragSurface = activeDrag?.kind === "design-reservation-zone-move";
-  const shouldRenderDesignReservationZoneRotationSurface = activeDrag?.kind === "design-reservation-zone-rotation";
+  const shouldRenderSceneEntityRotationSurface = activeDrag?.kind === "assembly-rotation" || activeDrag?.kind === "design-reservation-zone-rotation";
   const cutoutAssemblySources = useMemo(() => getDerivedCutoutAssemblySources({
     placedAssemblies,
     positionedPlacementCandidate,
@@ -82,8 +83,12 @@ export function DesignSceneRenderer() {
       return positionedPlacementCandidate.id;
     }
 
-    if (activeSelection?.kind === "placed-assembly" && wallOpeningAssemblyIds.has(activeSelection.placedAssemblyId)) {
-      return activeSelection.placedAssemblyId;
+    if (
+      activeSelection?.kind === "scene-entity" &&
+      activeSelection.sceneEntity.entityKind === "placed-assembly" &&
+      wallOpeningAssemblyIds.has(activeSelection.sceneEntity.entityId)
+    ) {
+      return activeSelection.sceneEntity.entityId;
     }
 
     return null;
@@ -98,20 +103,20 @@ export function DesignSceneRenderer() {
     placedAssemblyById,
   }), [activeSelection, placedAssemblyById]);
   const designReservationZoneById = useMemo(() => buildDesignReservationZoneById(designReservationZones), [designReservationZones]);
-  const selectedDesignReservationZone = useMemo(() => getSelectedDesignReservationZone({
+  const selectedDesignReservationZones = useMemo(() => getSelectedDesignReservationZones({
     activeSelection,
     designReservationZoneById,
   }), [activeSelection, designReservationZoneById]);
   const selectedDesignReservationZoneWallMeasurementGuides = useMemo(() => {
-    if (activeSceneViewMode !== "floor-plan" || selectedDesignReservationZone === null) {
+    if (activeSceneViewMode !== "floor-plan" || selectedDesignReservationZones.length === 0) {
       return [];
     }
 
-    return buildSceneEntityWallMeasurementGuides({
-      bounds: createDesignReservationZoneSceneEntityBounds(selectedDesignReservationZone),
+    return selectedDesignReservationZones.flatMap((zone) => buildSceneEntityWallMeasurementGuides({
+      bounds: createDesignReservationZoneSceneEntityBounds(zone),
       placedWallGraphs,
-    });
-  }, [activeSceneViewMode, placedWallGraphs, selectedDesignReservationZone]);
+    }));
+  }, [activeSceneViewMode, placedWallGraphs, selectedDesignReservationZones]);
   const placementDesignReservationZoneWallMeasurementGuides = useMemo(() => {
     if (
       activeSceneViewMode !== "floor-plan" ||
@@ -133,7 +138,15 @@ export function DesignSceneRenderer() {
   const selectedAssemblyIsWallOpening = selectedAssembly !== null && wallOpeningAssemblyIds.has(selectedAssembly.id);
   const placementFeedbackIsWallOpening = assemblyPlacementFeedback !== null &&
     wallOpeningAssemblyIds.has(assemblyPlacementFeedback.placedAssembly.id);
-  const isAssemblyMultiMoveActive = activeDrag?.kind === "assembly-multi-move";
+  const selectedSceneEntityBounds = useMemo(() => [
+    ...selectedAssemblies.map(createPlacedAssemblySceneEntityBounds),
+    ...selectedDesignReservationZones.map(createDesignReservationZoneSceneEntityBounds),
+  ], [selectedAssemblies, selectedDesignReservationZones]);
+  const selectedSceneEntityCount = selectedSceneEntityBounds.length;
+  const isSceneEntityMultiMoveActive = activeDrag?.kind === "scene-entity-multi-move";
+  const showSceneEntityGroupGuides = activeSceneViewMode === "floor-plan" &&
+    selectedSceneEntityCount > 1 &&
+    isSceneEntityMultiMoveActive;
 
   return (
     <>
@@ -161,18 +174,20 @@ export function DesignSceneRenderer() {
         candidate={designReservationZonePlacementCandidate}
         sceneViewMode={activeSceneViewMode}
       />
-      <SelectedAssemblyOutlineLayer
-        selectedAssembly={selectedAssembly}
+      <SelectedSceneEntityLayer
         selectedAssemblies={selectedAssemblies}
+        selectedDesignReservationZones={selectedDesignReservationZones}
+        selectedSceneEntityBounds={selectedSceneEntityBounds}
         placedWallGraphs={placedWallGraphs}
         sceneViewMode={activeSceneViewMode}
-        hideFloorPlanSelectionBox={false}
-        hideFloorPlanRotationControl={selectedAssemblyIsWallOpening}
+        selectedAssemblyIsWallOpening={selectedAssemblyIsWallOpening}
       />
-      <SelectedDesignReservationZoneOutlineLayer
-        selectedZone={selectedDesignReservationZone}
-        sceneViewMode={activeSceneViewMode}
-      />
+      {showSceneEntityGroupGuides ? (
+        <SceneEntityGroupGuides
+          bounds={selectedSceneEntityBounds}
+          placedWallGraphs={placedWallGraphs}
+        />
+      ) : null}
       {designReservationZoneWallMeasurementGuides.length > 0 ? (
         <SceneEntityWallMeasurementGuides measurementGuides={designReservationZoneWallMeasurementGuides} />
       ) : null}
@@ -183,8 +198,8 @@ export function DesignSceneRenderer() {
         <AssemblyPlacementFeedbackLayer
           sceneViewMode={activeSceneViewMode}
           placementFeedback={assemblyPlacementFeedback}
-          showWallMeasurementGuides={!placementFeedbackIsWallOpening && !isAssemblyMultiMoveActive}
-          showBoundingBox={!isAssemblyMultiMoveActive}
+          showWallMeasurementGuides={!placementFeedbackIsWallOpening && !isSceneEntityMultiMoveActive}
+          showBoundingBox={!isSceneEntityMultiMoveActive}
         />
       ) : null}
       {shouldRenderPlacementCandidate ? (
@@ -195,9 +210,9 @@ export function DesignSceneRenderer() {
         />
       ) : null}
       {shouldRenderAssemblyDragSurface ? <AssemblyDragSurface /> : null}
-      {shouldRenderAssemblyRotationSurface ? <AssemblyRotationSurface /> : null}
+      {shouldRenderSceneEntityMultiDragSurface ? <SceneEntityMultiDragSurface /> : null}
+      {shouldRenderSceneEntityRotationSurface ? <SceneEntityRotationSurface /> : null}
       {shouldRenderDesignReservationZoneDragSurface ? <DesignReservationZoneDragSurface /> : null}
-      {shouldRenderDesignReservationZoneRotationSurface ? <DesignReservationZoneRotationSurface /> : null}
       {shouldRenderWallSegmentDraftSurface ? <WallSegmentDraftSurface /> : null}
       {shouldRenderDesignReservationZonePlacementSurface ? <DesignReservationZonePlacementSurface /> : null}
     </>

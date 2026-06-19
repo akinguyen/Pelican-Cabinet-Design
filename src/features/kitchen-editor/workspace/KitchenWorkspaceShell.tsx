@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { KitchenWorkspaceAiSidebar } from "./KitchenWorkspaceAiSidebar";
 import { KitchenWorkspaceHeader } from "./KitchenWorkspaceHeader";
 import { KitchenWorkspaceSidebar } from "./KitchenWorkspaceSidebar";
-import { KitchenWorkspaceToolbar } from "./KitchenWorkspaceToolbar";
+import { KitchenEditorToolbar } from "../editor-toolbar/KitchenEditorToolbar";
 
 const expandedAiPanelWidthPixels = 340;
 const collapsedAiPanelWidthPixels = 48;
@@ -36,7 +36,9 @@ export function KitchenWorkspaceShell({ children }: Readonly<{ children: ReactNo
         onToggleCollapsed={() => setIsAiPanelCollapsed((isCollapsed) => !isCollapsed)}
       />
       <KitchenWorkspaceHeader />
-      <KitchenWorkspaceToolbar />
+      <div className="col-start-2 row-start-2 min-w-0">
+        <KitchenEditorToolbar />
+      </div>
       <section className="col-start-2 row-start-3 min-h-0 overflow-hidden">{children}</section>
       <KitchenWorkspaceSidebar
         isCollapsed={isEditorPanelCollapsed}

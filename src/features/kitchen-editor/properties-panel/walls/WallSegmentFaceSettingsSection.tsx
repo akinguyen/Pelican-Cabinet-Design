@@ -27,7 +27,7 @@ export function WallSegmentFaceSettingsSection({ wallSegment }: WallSegmentFaceS
   return (
     <PropertySection
       title="Wall Face Settings"
-      description="Preferred view side is used by the elevation navigator. Cabinet placement requirement controls which faces the AI must use, may use, or must leave clear."
+      description="Preferred view side is used by the elevation navigator. Cabinet placement requirement controls which faces future layout tools may use or must leave clear."
     >
       <div className="mt-3 space-y-3">
         <label className="block text-xs text-slate-600">
@@ -45,7 +45,7 @@ export function WallSegmentFaceSettingsSection({ wallSegment }: WallSegmentFaceS
         <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
           <div className="text-xs font-medium text-slate-700">Cabinet placement requirement</div>
           <p className="mt-1 text-[11px] leading-4 text-slate-500">
-            Required means AI must place kitchen objects on that face. Optional means AI may use it. No cabinets means AI must leave it clear.
+            Required marks the face as a cabinet side for future layout tools. Optional allows cabinet placement. No cabinets keeps the face clear.
           </p>
           <div className="mt-2 space-y-2">
             <CabinetPlacementRequirementSelect

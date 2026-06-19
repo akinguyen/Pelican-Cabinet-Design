@@ -1,4 +1,4 @@
-import { getPlanDistanceInches } from "../wallSegmentGeometry";
+import { getPlanDistanceInches } from "@/core/geometry/planPointGeometry";
 import type { PlacedWallGraph, WallSegmentReference } from "../placedWallGraphTypes";
 import { createWallNode, createWallSegment, mergeWallGraphs, splitWallSegmentAtPoint } from "../wallSegmentGraphEditing";
 import { getWallSegmentAnchorPoint } from "./wallSegmentDraftAnchors";

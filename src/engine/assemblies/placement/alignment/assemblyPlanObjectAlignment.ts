@@ -10,13 +10,13 @@ import {
   OBJECT_ALIGNMENT_SNAP_DISTANCE_INCHES,
 } from "./assemblyObjectAlignmentConstants";
 import { createObjectAlignmentFootprint } from "./assemblyObjectAlignmentFootprints";
-import type {
-  AssemblyObjectAlignmentConstraint,
-  AssemblyObjectAlignmentResult,
+import {
+  combineObjectAlignmentCandidateDeltas,
+  createEmptyObjectAlignmentResult,
+  type AssemblyObjectAlignmentConstraint,
+  type AssemblyObjectAlignmentResult,
 } from "./assemblyObjectAlignmentTypes";
 import {
-  combineAlignmentCandidateDeltas,
-  createAlignmentSnapTarget,
   findObjectAlignmentCandidates,
   selectCompatibleAlignmentCandidates,
 } from "./assemblyPlanAlignmentCandidates";
@@ -39,7 +39,6 @@ export function alignAssemblyPlacementWithPlanObjects(args: {
 }): AssemblyObjectAlignmentResult {
   const movingAlignmentFootprint = createObjectAlignmentFootprint({
     assemblyId: args.placedAssembly.id,
-    targetKind: "assembly",
     targetPriority: 0,
     snapDistanceInches: OBJECT_ALIGNMENT_SNAP_DISTANCE_INCHES,
     footprint: createAssemblyPlacementFootprint(args.placedAssembly),
@@ -55,14 +54,12 @@ export function alignAssemblyPlacementWithPlanObjects(args: {
     }),
     ...args.targetAssemblies.map((targetAssembly) => createObjectAlignmentFootprint({
       assemblyId: targetAssembly.id,
-      targetKind: "assembly",
       targetPriority: 0,
       snapDistanceInches: OBJECT_ALIGNMENT_SNAP_DISTANCE_INCHES,
       footprint: createAssemblyPlacementFootprint(targetAssembly),
     })),
     ...args.targetDesignReservationZones.map((targetZone) => createObjectAlignmentFootprint({
       assemblyId: targetZone.id,
-      targetKind: "design-reservation-zone",
       targetPriority: 0,
       snapDistanceInches: OBJECT_ALIGNMENT_SNAP_DISTANCE_INCHES,
       footprint: createDesignReservationZoneSceneEntityBounds(targetZone).footprint,
@@ -86,7 +83,7 @@ export function alignAssemblyPlacementWithPlanObjects(args: {
   }
 
   const selectedCandidates = selectCompatibleAlignmentCandidates(candidates);
-  const alignmentDeltaInches = combineAlignmentCandidateDeltas(selectedCandidates);
+  const alignmentDeltaInches = combineObjectAlignmentCandidateDeltas(selectedCandidates);
 
   if (getPlanVectorLength(alignmentDeltaInches) <= OBJECT_ALIGNMENT_REMAINING_DISTANCE_TOLERANCE_INCHES) {
     return {
@@ -97,14 +94,12 @@ export function alignAssemblyPlacementWithPlanObjects(args: {
         selectedCandidates,
         finalDeltaInches: alignmentDeltaInches,
       }),
-      snapTarget: createAlignmentSnapTarget(selectedCandidates),
     };
   }
 
   const alignedPlacedAssembly = translateAssemblyPlacement(args.placedAssembly, alignmentDeltaInches);
   const translatedMovingAlignmentFootprint = createObjectAlignmentFootprint({
     assemblyId: alignedPlacedAssembly.id,
-    targetKind: "assembly",
     targetPriority: 0,
     snapDistanceInches: OBJECT_ALIGNMENT_SNAP_DISTANCE_INCHES,
     footprint: createAssemblyPlacementFootprint(alignedPlacedAssembly),
@@ -118,14 +113,5 @@ export function alignAssemblyPlacementWithPlanObjects(args: {
       selectedCandidates,
       finalDeltaInches: { xInches: 0, yInches: 0 },
     }),
-    snapTarget: createAlignmentSnapTarget(selectedCandidates),
-  };
-}
-
-function createEmptyObjectAlignmentResult(placedAssembly: PlacedAssembly): AssemblyObjectAlignmentResult {
-  return {
-    placedAssembly,
-    objectAlignmentGuides: [],
-    snapTarget: null,
   };
 }

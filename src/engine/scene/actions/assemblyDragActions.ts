@@ -1,9 +1,9 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { applyAssemblyPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
-import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
-import type { AssemblyMoveDragState, AssemblyMultiMoveDragState } from "../sceneDragTypes";
-import type { DesignScene, } from "../designSceneTypes";
+import type { AssemblyMoveDragState } from "../sceneDragTypes";
+import type { DesignScene } from "../designSceneTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { createSceneEntityMultiMoveDragState, getSelectedSceneEntitiesForMultiDrag } from "./sceneEntityDragActions";
 import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 export function createAssemblyDragActions(
@@ -24,36 +24,29 @@ export function createAssemblyDragActions(
         return;
       }
 
-      const multiSelectedAssemblyIds = getMultiSelectedAssemblyIdsForDrag({
+      const selectedSceneEntitiesForDrag = getSelectedSceneEntitiesForMultiDrag({
         activeSelection: state.designScene.activeSelection,
-        leaderAssemblyId: assemblyId,
+        leaderSceneEntity: { entityKind: "placed-assembly", entityId: assemblyId },
         placedAssemblies: state.designScene.placedAssemblies,
+        designReservationZones: state.designScene.designReservationZones,
       });
 
-      if (multiSelectedAssemblyIds.length > 1) {
-        const dragStartWorldPositionsByAssemblyId = Object.fromEntries(
-          multiSelectedAssemblyIds.map((selectedAssemblyId) => {
-            const selectedAssembly = state.designScene.placedAssemblies.find((assembly) => assembly.id === selectedAssemblyId);
-            return [selectedAssemblyId, selectedAssembly?.worldPositionInches ?? placedAssembly.worldPositionInches];
-          }),
-        );
-
+      if (selectedSceneEntitiesForDrag.length > 1) {
         set({
-          activeDrag: {
-            kind: "assembly-multi-move",
-            leaderAssemblyId: assemblyId,
-            assemblyIds: multiSelectedAssemblyIds,
-            dragStartPointerWorldInches: pointerWorldInches,
-            dragStartWorldPositionsByAssemblyId,
-            latestValidWorldPositionsByAssemblyId: dragStartWorldPositionsByAssemblyId,
+          activeDrag: createSceneEntityMultiMoveDragState({
+            leaderSceneEntity: { entityKind: "placed-assembly", entityId: assemblyId },
+            sceneEntities: selectedSceneEntitiesForDrag,
+            pointerWorldInches,
+            designScene: state.designScene,
             sceneViewMode,
             elevationMoveFrame,
-          },
+          }),
           assemblyPlacementFeedback: createAssemblyPlacementFeedback({
             placedAssembly,
             placedWallGraphs: state.designScene.placedWallGraphs,
             snapContext: { movementSource: sceneViewMode, elevationMoveFrame },
           }),
+          activeObjectAlignmentGuides: [],
         });
         return;
       }
@@ -82,10 +75,6 @@ export function createAssemblyDragActions(
       if (activeDrag?.kind === "assembly-move") {
         updateSingleAssemblyDrag({ activeDrag, pointerWorldInches, get, set });
         return;
-      }
-
-      if (activeDrag?.kind === "assembly-multi-move") {
-        updateMultiAssemblyDrag({ activeDrag, pointerWorldInches, get, set });
       }
     },
 
@@ -125,30 +114,6 @@ export function createAssemblyDragActions(
         return;
       }
 
-      if (activeDrag?.kind === "assembly-multi-move") {
-        const previousDesignScene = createDesignSceneWithAssemblyPositions({
-          designScene: get().designScene,
-          worldPositionsByAssemblyId: activeDrag.dragStartWorldPositionsByAssemblyId,
-        });
-
-        recordDesignSceneHistoryEntry({ get, set, label: "Move selected assemblies", designScene: previousDesignScene });
-
-        if (placementFeedback?.isValid === false) {
-          set((state) => ({
-            designScene: createDesignSceneWithAssemblyPositions({
-              designScene: state.designScene,
-              worldPositionsByAssemblyId: activeDrag.latestValidWorldPositionsByAssemblyId,
-            }),
-            activeDrag: null,
-            assemblyPlacementFeedback: null,
-          }));
-          return;
-        }
-
-        set({ activeDrag: null, assemblyPlacementFeedback: null });
-        return;
-      }
-
       set({ activeDrag: null, assemblyPlacementFeedback: null });
     },
 
@@ -168,18 +133,6 @@ export function createAssemblyDragActions(
                 : assembly,
             ),
           },
-          activeDrag: null,
-          assemblyPlacementFeedback: null,
-        }));
-        return;
-      }
-
-      if (activeDrag?.kind === "assembly-multi-move") {
-        set((state) => ({
-          designScene: createDesignSceneWithAssemblyPositions({
-            designScene: state.designScene,
-            worldPositionsByAssemblyId: activeDrag.dragStartWorldPositionsByAssemblyId,
-          }),
           activeDrag: null,
           assemblyPlacementFeedback: null,
         }));
@@ -245,108 +198,6 @@ function updateSingleAssemblyDrag(args: {
     activeDrag: nextActiveDrag,
     assemblyPlacementFeedback: placementResult.feedback,
   }));
-}
-
-function updateMultiAssemblyDrag(args: {
-  activeDrag: AssemblyMultiMoveDragState;
-  pointerWorldInches: Point3DInches;
-  get: DesignSceneStoreGetter;
-  set: DesignSceneStoreSetter;
-}): void {
-  const designScene = args.get().designScene;
-  const leaderAssembly = designScene.placedAssemblies.find((assembly) => assembly.id === args.activeDrag.leaderAssemblyId);
-  const leaderStartWorldPositionInches = args.activeDrag.dragStartWorldPositionsByAssemblyId[args.activeDrag.leaderAssemblyId];
-
-  if (leaderAssembly === undefined || leaderStartWorldPositionInches === undefined) {
-    return;
-  }
-
-  const leaderDrag: AssemblyMoveDragState = {
-    kind: "assembly-move",
-    assemblyId: args.activeDrag.leaderAssemblyId,
-    dragStartPointerWorldInches: args.activeDrag.dragStartPointerWorldInches,
-    dragStartWorldPositionInches: leaderStartWorldPositionInches,
-    latestValidWorldPositionInches: leaderStartWorldPositionInches,
-    sceneViewMode: args.activeDrag.sceneViewMode,
-    elevationMoveFrame: args.activeDrag.elevationMoveFrame,
-  };
-  const proposedLeaderWorldPositionInches = createDraggedAssemblyWorldPosition(
-    leaderDrag,
-    args.pointerWorldInches,
-    leaderAssembly.configuration.sizeInches.heightInches,
-  );
-  const proposedLeaderAssembly = {
-    ...leaderAssembly,
-    worldPositionInches: proposedLeaderWorldPositionInches,
-  };
-  const placementResult = applyAssemblyPlacementRules({
-    placedAssembly: proposedLeaderAssembly,
-    placedWallGraphs: designScene.placedWallGraphs,
-    placedAssemblies: designScene.placedAssemblies,
-    designReservationZones: designScene.designReservationZones,
-    movingAssemblyId: args.activeDrag.leaderAssemblyId,
-    snapContext: {
-      movementSource: args.activeDrag.sceneViewMode,
-      elevationMoveFrame: args.activeDrag.elevationMoveFrame,
-    },
-  });
-  const snappedLeaderWorldPositionInches = placementResult.placedAssembly.worldPositionInches;
-  const deltaInches = {
-    xInches: snappedLeaderWorldPositionInches.xInches - leaderStartWorldPositionInches.xInches,
-    yInches: snappedLeaderWorldPositionInches.yInches - leaderStartWorldPositionInches.yInches,
-    zInches: snappedLeaderWorldPositionInches.zInches - leaderStartWorldPositionInches.zInches,
-  };
-  const selectedIds = new Set(args.activeDrag.assemblyIds);
-  const nextWorldPositionsByAssemblyId = Object.fromEntries(
-    args.activeDrag.assemblyIds.map((assemblyId) => {
-      const startPosition = args.activeDrag.dragStartWorldPositionsByAssemblyId[assemblyId];
-      return [
-        assemblyId,
-        startPosition === undefined
-          ? snappedLeaderWorldPositionInches
-          : {
-              xInches: startPosition.xInches + deltaInches.xInches,
-              yInches: startPosition.yInches + deltaInches.yInches,
-              zInches: startPosition.zInches + deltaInches.zInches,
-            },
-      ];
-    }),
-  );
-  const nextActiveDrag: AssemblyMultiMoveDragState = {
-    ...args.activeDrag,
-    latestValidWorldPositionsByAssemblyId: placementResult.feedback.isValid
-      ? nextWorldPositionsByAssemblyId
-      : args.activeDrag.latestValidWorldPositionsByAssemblyId,
-  };
-
-  args.set((state) => ({
-    designScene: {
-      ...state.designScene,
-      placedAssemblies: state.designScene.placedAssemblies.map((assembly) => {
-        if (!selectedIds.has(assembly.id)) {
-          return assembly;
-        }
-
-        const worldPositionInches = nextWorldPositionsByAssemblyId[assembly.id];
-        return worldPositionInches === undefined ? assembly : { ...assembly, worldPositionInches };
-      }),
-    },
-    activeDrag: nextActiveDrag,
-    assemblyPlacementFeedback: placementResult.feedback,
-  }));
-}
-
-function getMultiSelectedAssemblyIdsForDrag(args: {
-  activeSelection: DesignScene["activeSelection"];
-  leaderAssemblyId: string;
-  placedAssemblies: readonly PlacedAssembly[];
-}): readonly string[] {
-  if (args.activeSelection?.kind !== "placed-assemblies" || !args.activeSelection.placedAssemblyIds.includes(args.leaderAssemblyId)) {
-    return [args.leaderAssemblyId];
-  }
-
-  const existingIds = new Set(args.placedAssemblies.map((assembly) => assembly.id));
-  return args.activeSelection.placedAssemblyIds.filter((assemblyId) => existingIds.has(assemblyId));
 }
 
 function createDesignSceneWithSingleAssemblyPosition(args: {

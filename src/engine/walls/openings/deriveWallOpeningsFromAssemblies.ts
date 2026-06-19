@@ -4,8 +4,9 @@ import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { PlacedWallGraph } from "../placedWallGraphTypes";
 import type { WallFaceSide, DerivedWallOpening } from "../placedWallSegmentTypes";
 import { buildConnectedWallGeometry } from "../buildConnectedWallGeometry";
-import type { BuiltWallSegmentBody } from "../wallSegmentTopologyTypes";
+import type { BuiltWallSegmentBody } from "../connectedWallGeometryTypes";
 import { createDerivedWallOpeningFaceAxes, type DerivedWallOpeningFaceAxesInches } from "./wallOpeningFaceAxes";
+import { clampWallPlanNumber } from "../wallPlanGeometry";
 
 const WALL_CUTOUT_DEPTH_TOLERANCE_INCHES = 2;
 const MIN_DERIVED_WALL_OPENING_SIZE_INCHES = 0.5;
@@ -125,14 +126,14 @@ function createDerivedWallOpeningForFace(args: {
     return null;
   }
 
-  const clippedLeftInchesAlongFace = clamp(minUInches, 0, faceAxes.faceLengthInches);
-  const clippedRightInchesAlongFace = clamp(maxUInches, 0, faceAxes.faceLengthInches);
+  const clippedLeftInchesAlongFace = clampWallPlanNumber(minUInches, 0, faceAxes.faceLengthInches);
+  const clippedRightInchesAlongFace = clampWallPlanNumber(maxUInches, 0, faceAxes.faceLengthInches);
   const sourceBottomInches = args.sourceAssembly.worldPositionInches.zInches -
     args.sourceAssembly.configuration.sizeInches.heightInches / 2 + args.insetInches;
   const sourceTopInches = args.sourceAssembly.worldPositionInches.zInches +
     args.sourceAssembly.configuration.sizeInches.heightInches / 2 - args.insetInches;
-  const clippedBottomInches = clamp(sourceBottomInches, 0, args.segmentBody.heightInches);
-  const clippedTopInches = clamp(sourceTopInches, 0, args.segmentBody.heightInches);
+  const clippedBottomInches = clampWallPlanNumber(sourceBottomInches, 0, args.segmentBody.heightInches);
+  const clippedTopInches = clampWallPlanNumber(sourceTopInches, 0, args.segmentBody.heightInches);
   const widthInches = clippedRightInchesAlongFace - clippedLeftInchesAlongFace;
   const heightInches = clippedTopInches - clippedBottomInches;
 
@@ -188,6 +189,3 @@ function projectPointOntoOutwardDirection(
   );
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}

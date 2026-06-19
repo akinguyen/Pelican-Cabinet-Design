@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent } from "react";
 
 export type AiChatMessage = Readonly<{
   id: string;
@@ -9,7 +9,6 @@ export type AiChatMessage = Readonly<{
 }>;
 
 type AiChatPanelProps = Readonly<{
-  contextSummary: ReactNode;
   messages: readonly AiChatMessage[];
   inputValue: string;
   onInputChange: (value: string) => void;
@@ -17,7 +16,6 @@ type AiChatPanelProps = Readonly<{
 }>;
 
 export function AiChatPanel({
-  contextSummary,
   messages,
   inputValue,
   onInputChange,
@@ -40,11 +38,17 @@ export function AiChatPanel({
       <div className="shrink-0 border-b border-slate-200 px-3 py-2">
         <h2 className="text-sm font-semibold text-slate-950">AI Assistant Chat</h2>
         <p className="text-xs text-slate-500">
-          Phase 2 can place one base cabinet on the selected wall at the elevation-left start, center, elevation-right end, or a wall-local offset.
+          UI shell only. Scene commands and live AI behavior are not connected yet.
         </p>
       </div>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 text-sm">
-        {contextSummary}
+        <section className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Status</p>
+          <h3 className="mt-1 text-sm font-semibold text-slate-950">Not connected to scene editing</h3>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            This panel keeps local chat messages only. It does not mutate the scene, execute commands, or call a backend.
+          </p>
+        </section>
         <div className="space-y-2">
           {messages.map((message) => (
             <article
@@ -64,7 +68,7 @@ export function AiChatPanel({
       <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200 bg-white p-3">
         <textarea
           className="h-20 w-full resize-none rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          placeholder="Example: Place a 30 inch base cabinet centered on this wall."
+          placeholder="Type a message for the future AI workflow."
           value={inputValue}
           onChange={(event) => onInputChange(event.target.value)}
           onKeyDown={(event) => {

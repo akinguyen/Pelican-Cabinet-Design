@@ -1,7 +1,10 @@
 import { alignDesignReservationZone } from "@/engine/design-zones/designReservationZoneAlignment";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { DesignReservationZoneMoveDragState } from "../sceneDragTypes";
+import type { DesignScene } from "../designSceneTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { createSceneEntityMultiMoveDragState, getSelectedSceneEntitiesForMultiDrag } from "./sceneEntityDragActions";
+import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 export function createDesignReservationZoneDragActions(
   get: DesignSceneStoreGetter,
@@ -21,16 +24,40 @@ export function createDesignReservationZoneDragActions(
         return;
       }
 
+      const state = get();
+      const selectedSceneEntitiesForDrag = getSelectedSceneEntitiesForMultiDrag({
+        activeSelection: state.designScene.activeSelection,
+        leaderSceneEntity: { entityKind: "design-reservation-zone", entityId: designReservationZoneId },
+        placedAssemblies: state.designScene.placedAssemblies,
+        designReservationZones: state.designScene.designReservationZones,
+      });
+
+      if (selectedSceneEntitiesForDrag.length > 1) {
+        set({
+          activeDrag: createSceneEntityMultiMoveDragState({
+            leaderSceneEntity: { entityKind: "design-reservation-zone", entityId: designReservationZoneId },
+            sceneEntities: selectedSceneEntitiesForDrag,
+            pointerWorldInches,
+            designScene: state.designScene,
+            sceneViewMode,
+            elevationMoveFrame,
+          }),
+          assemblyPlacementFeedback: null,
+          activeObjectAlignmentGuides: [],
+        });
+        return;
+      }
+
       set({
         activeDrag: {
           kind: "design-reservation-zone-move",
           designReservationZoneId,
           dragStartPointerWorldInches: pointerWorldInches,
           dragStartBaseCenterPointInches: zone.baseCenterPointInches,
-          latestBaseCenterPointInches: zone.baseCenterPointInches,
           sceneViewMode,
           elevationMoveFrame,
         },
+        assemblyPlacementFeedback: null,
         activeObjectAlignmentGuides: [],
       });
     },
@@ -81,18 +108,27 @@ export function createDesignReservationZoneDragActions(
               : candidate
           )),
         },
-        activeDrag: {
-          ...activeDrag,
-          latestBaseCenterPointInches: nextBaseCenterPointInches,
-        },
         activeObjectAlignmentGuides: alignmentResult.alignmentGuides,
       }));
     },
 
     finishDesignReservationZoneDrag() {
-      if (get().activeDrag?.kind !== "design-reservation-zone-move") {
+      const activeDrag = get().activeDrag;
+
+      if (activeDrag?.kind !== "design-reservation-zone-move") {
         return;
       }
+
+      recordDesignSceneHistoryEntry({
+        get,
+        set,
+        label: "Move design reservation zone",
+        designScene: createDesignSceneWithDesignReservationZoneBaseCenterPoint({
+          designScene: get().designScene,
+          designReservationZoneId: activeDrag.designReservationZoneId,
+          baseCenterPointInches: activeDrag.dragStartBaseCenterPointInches,
+        }),
+      });
 
       set({ activeDrag: null, activeObjectAlignmentGuides: [] });
     },
@@ -120,6 +156,25 @@ export function createDesignReservationZoneDragActions(
         activeObjectAlignmentGuides: [],
       }));
     },
+  };
+}
+
+
+function createDesignSceneWithDesignReservationZoneBaseCenterPoint(args: {
+  designScene: DesignScene;
+  designReservationZoneId: string;
+  baseCenterPointInches: Point3DInches;
+}): DesignScene {
+  return {
+    ...args.designScene,
+    designReservationZones: args.designScene.designReservationZones.map((zone) => (
+      zone.id === args.designReservationZoneId
+        ? {
+            ...zone,
+            baseCenterPointInches: args.baseCenterPointInches,
+          }
+        : zone
+    )),
   };
 }
 

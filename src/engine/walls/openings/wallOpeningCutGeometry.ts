@@ -1,7 +1,8 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { DerivedWallOpening } from "../placedWallSegmentTypes";
-import type { BuiltWallSegmentBody } from "../wallSegmentTopologyTypes";
+import type { BuiltWallSegmentBody } from "../connectedWallGeometryTypes";
 import { createDerivedWallOpeningFaceAxes } from "./wallOpeningFaceAxes";
+import { clampWallPlanNumber, getWallPlanCrossProduct, offsetWallPlanPoint } from "../wallPlanGeometry";
 
 const GEOMETRY_EPSILON = 0.000001;
 const MIN_WALL_OPENING_HIT_SIZE_INCHES = 0.25;
@@ -34,12 +35,12 @@ export function createOrthogonalDerivedWallOpeningCutFootprint(args: {
     return null;
   }
 
-  const leftInchesAlongFace = clamp(
+  const leftInchesAlongFace = clampWallPlanNumber(
     args.opening.leftInchesAlongFace - paddingInches,
     0,
     faceAxes.faceLengthInches,
   );
-  const rawRightInchesAlongFace = clamp(
+  const rawRightInchesAlongFace = clampWallPlanNumber(
     args.opening.leftInchesAlongFace + args.opening.widthInches + paddingInches,
     0,
     faceAxes.faceLengthInches,
@@ -48,12 +49,12 @@ export function createOrthogonalDerivedWallOpeningCutFootprint(args: {
     faceAxes.faceLengthInches,
     Math.max(rawRightInchesAlongFace, leftInchesAlongFace + MIN_WALL_OPENING_HIT_SIZE_INCHES),
   );
-  const bottomInches = clamp(
+  const bottomInches = clampWallPlanNumber(
     args.opening.bottomInchesFromFloor - paddingInches,
     0,
     args.segmentBody.heightInches,
   );
-  const rawTopInches = clamp(
+  const rawTopInches = clampWallPlanNumber(
     args.opening.bottomInchesFromFloor + args.opening.heightInches + paddingInches,
     0,
     args.segmentBody.heightInches,
@@ -94,10 +95,10 @@ export function createOrthogonalDerivedWallOpeningCutFootprint(args: {
     footprintPolygonInches: args.segmentBody.footprintPolygonInches,
     defaultProjectionDistanceInches: args.segmentBody.thicknessInches,
   });
-  const frontLeftInches = offsetPoint(frontLeftOnFaceInches, outwardDirectionInches, depthPaddingInches);
-  const frontRightInches = offsetPoint(frontRightOnFaceInches, outwardDirectionInches, depthPaddingInches);
-  const backLeftInches = offsetPoint(backLeftOnFootprintInches, inwardDirectionInches, depthPaddingInches);
-  const backRightInches = offsetPoint(backRightOnFootprintInches, inwardDirectionInches, depthPaddingInches);
+  const frontLeftInches = offsetWallPlanPoint(frontLeftOnFaceInches, outwardDirectionInches, depthPaddingInches);
+  const frontRightInches = offsetWallPlanPoint(frontRightOnFaceInches, outwardDirectionInches, depthPaddingInches);
+  const backLeftInches = offsetWallPlanPoint(backLeftOnFootprintInches, inwardDirectionInches, depthPaddingInches);
+  const backRightInches = offsetWallPlanPoint(backRightOnFootprintInches, inwardDirectionInches, depthPaddingInches);
 
   return {
     frontLeftInches: { ...frontLeftInches, zInches: 0 },
@@ -109,39 +110,6 @@ export function createOrthogonalDerivedWallOpeningCutFootprint(args: {
     outwardDirectionInches,
     inwardDirectionInches,
   };
-}
-
-export function createDerivedWallOpeningFaceRectanglePointsInches(args: {
-  segmentBody: BuiltWallSegmentBody;
-  opening: DerivedWallOpening;
-  outwardOffsetInches: number;
-}): readonly Point3DInches[] {
-  const footprint = createOrthogonalDerivedWallOpeningCutFootprint({
-    segmentBody: args.segmentBody,
-    opening: args.opening,
-  });
-
-  if (footprint === null) {
-    return [];
-  }
-
-  const frontLeftInches = offsetPoint(
-    footprint.frontLeftInches,
-    footprint.outwardDirectionInches,
-    args.outwardOffsetInches,
-  );
-  const frontRightInches = offsetPoint(
-    footprint.frontRightInches,
-    footprint.outwardDirectionInches,
-    args.outwardOffsetInches,
-  );
-
-  return [
-    { ...frontLeftInches, zInches: footprint.bottomInches },
-    { ...frontRightInches, zInches: footprint.bottomInches },
-    { ...frontRightInches, zInches: footprint.topInches },
-    { ...frontLeftInches, zInches: footprint.topInches },
-  ];
 }
 
 function createFacePoint(args: {
@@ -203,7 +171,7 @@ function findRaySegmentIntersectionDistance(args: {
     xInches: args.segmentEndInches.xInches - args.segmentStartInches.xInches,
     yInches: args.segmentEndInches.yInches - args.segmentStartInches.yInches,
   };
-  const denominator = cross(args.rayDirectionInches, segmentVectorInches);
+  const denominator = getWallPlanCrossProduct(args.rayDirectionInches, segmentVectorInches);
 
   if (Math.abs(denominator) <= GEOMETRY_EPSILON) {
     return null;
@@ -213,8 +181,8 @@ function findRaySegmentIntersectionDistance(args: {
     xInches: args.segmentStartInches.xInches - args.rayStartInches.xInches,
     yInches: args.segmentStartInches.yInches - args.rayStartInches.yInches,
   };
-  const rayDistanceInches = cross(startToSegmentInches, segmentVectorInches) / denominator;
-  const segmentRatio = cross(startToSegmentInches, args.rayDirectionInches) / denominator;
+  const rayDistanceInches = getWallPlanCrossProduct(startToSegmentInches, segmentVectorInches) / denominator;
+  const segmentRatio = getWallPlanCrossProduct(startToSegmentInches, args.rayDirectionInches) / denominator;
 
   if (
     rayDistanceInches < -GEOMETRY_EPSILON ||
@@ -225,27 +193,4 @@ function findRaySegmentIntersectionDistance(args: {
   }
 
   return rayDistanceInches;
-}
-
-function offsetPoint(
-  pointInches: Point3DInches,
-  directionInches: Readonly<{ xInches: number; yInches: number }>,
-  distanceInches: number,
-): Point3DInches {
-  return {
-    xInches: pointInches.xInches + directionInches.xInches * distanceInches,
-    yInches: pointInches.yInches + directionInches.yInches * distanceInches,
-    zInches: pointInches.zInches,
-  };
-}
-
-function cross(
-  first: Readonly<{ xInches: number; yInches: number }>,
-  second: Readonly<{ xInches: number; yInches: number }>,
-): number {
-  return first.xInches * second.yInches - first.yInches * second.xInches;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
 }

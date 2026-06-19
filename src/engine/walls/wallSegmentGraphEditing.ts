@@ -1,6 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedWallGraph } from "./placedWallGraphTypes";
-import type { PlacedWallNode } from "./placedWallNodeTypes";
+import type { PlacedWallNode } from "./placedWallGraphTypes";
 import {
   DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE,
   getDefaultWallSegmentCabinetPlacementFacePolicies,
@@ -8,38 +8,6 @@ import {
   type PlacedWallSegment,
   type WallFaceSide,
 } from "./placedWallSegmentTypes";
-
-export function createWallGraphFromSegment(args: {
-  wallGraphId: string;
-  wallGraphName: string;
-  startNodeId: string;
-  endNodeId: string;
-  wallSegmentId: string;
-  wallSegmentName: string;
-  startPointInches: Point3DInches;
-  endPointInches: Point3DInches;
-  heightInches: number;
-  thicknessInches: number;
-}): PlacedWallGraph {
-  return {
-    id: args.wallGraphId,
-    name: args.wallGraphName,
-    nodes: [
-      createWallNode(args.startNodeId, args.startPointInches),
-      createWallNode(args.endNodeId, args.endPointInches),
-    ],
-    segments: [
-      createWallSegment({
-        id: args.wallSegmentId,
-        name: args.wallSegmentName,
-        startNodeId: args.startNodeId,
-        endNodeId: args.endNodeId,
-        heightInches: args.heightInches,
-        thicknessInches: args.thicknessInches,
-      }),
-    ],
-  };
-}
 
 export function createWallNode(id: string, positionInches: Point3DInches): PlacedWallNode {
   return {

@@ -1,7 +1,7 @@
-import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { createId } from "@/core/ids/createId";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import { DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE, type WallFaceSide } from "@/engine/walls/placedWallSegmentTypes";
+import { getPlanDistanceInches } from "@/core/geometry/planPointGeometry";
 import {
   createGuidedWallSegmentDrawAnchor,
   createWallSegmentDrawAnchor,
@@ -236,9 +236,3 @@ function countWallSegments(wallGraphs: readonly PlacedWallGraph[]): number {
   return wallGraphs.reduce((total, wallGraph) => total + wallGraph.segments.length, 0);
 }
 
-function getPlanDistanceInches(firstPointInches: Point3DInches, secondPointInches: Point3DInches): number {
-  return Math.hypot(
-    secondPointInches.xInches - firstPointInches.xInches,
-    secondPointInches.yInches - firstPointInches.yInches,
-  );
-}

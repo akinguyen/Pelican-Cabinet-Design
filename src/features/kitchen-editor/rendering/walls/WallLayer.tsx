@@ -9,7 +9,7 @@ import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { deriveWallOpeningsFromAssemblies } from "@/engine/walls/openings/deriveWallOpeningsFromAssemblies";
 import { buildWallSegmentDraftPreviewGraph } from "@/engine/walls/segment-draft/wallSegmentDraftPreview";
 import type { WallSegmentDraft } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
-import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
+import type { BuiltWallSegmentBody } from "@/engine/walls/connectedWallGeometryTypes";
 import type { PlacedWallSegment, DerivedWallOpening } from "@/engine/walls/placedWallSegmentTypes";
 import type { SceneSelection } from "@/engine/scene/sceneSelectionTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
@@ -165,7 +165,6 @@ export function WallLayer({
         <WallSegmentMesh
           key={renderItem.key}
           segmentBody={renderItem.segmentBody}
-          wallSegment={renderItem.wallSegment}
           derivedOpenings={derivedWallOpeningsBySegmentId.get(renderItem.wallSegment.id) ?? EMPTY_DERIVED_WALL_OPENINGS}
           renderState={renderItem.renderState}
           sceneViewMode={sceneViewMode}

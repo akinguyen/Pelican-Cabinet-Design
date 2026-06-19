@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import type { PlacedWallNode } from "@/engine/walls/placedWallNodeTypes";
+import { getPlanDistanceInches } from "@/core/geometry/planPointGeometry";
+import type { PlacedWallNode } from "@/engine/walls/placedWallGraphTypes";
 import type { PlacedWallSegment } from "@/engine/walls/placedWallSegmentTypes";
 import {
-  getPlanDistanceInches,
   getWallSegmentEndpointPoint,
 } from "@/engine/walls/wallSegmentGeometry";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { formatInchesLabel } from "../../shared/formatInchesLabel";
+import { formatInchesLabel } from "../../formatting/kitchenEditorLabelFormatting";
 import { PropertyNumberField } from "../shared/PropertyNumberField";
 import { PropertySection } from "../shared/PropertySection";
 import { WallSegmentFaceSettingsSection } from "./WallSegmentFaceSettingsSection";

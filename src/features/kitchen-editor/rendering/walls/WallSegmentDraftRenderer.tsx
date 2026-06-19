@@ -10,12 +10,12 @@ import { getWallSegmentAnchorPoint } from "@/engine/walls/segment-draft/wallSegm
 import type { WallSegmentDraft } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
 import { getWallSegmentEndpointPoint } from "@/engine/walls/wallSegmentGeometry";
 import { PlanMeasurementLine } from "../shared/PlanMeasurementLine";
-import { formatFeetInchesLabel } from "../../shared/formatFeetInchesLabel";
+import { formatFeetInchesLabel } from "../../formatting/kitchenEditorLabelFormatting";
+import { getPlanDistanceInches } from "@/core/geometry/planPointGeometry";
 import {
   convertDegreesToRadians,
   getNormalizedPlanDirection,
   getPlanDirectionAngleDegrees,
-  getPlanDistanceInches,
   getPlanMidpoint,
   getReadablePlanLabelRotationDegrees,
   normalizeDegrees,

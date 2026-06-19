@@ -60,27 +60,4 @@ export function measurePlacedAssembliesVisualBounds(
   return hasBounds3DInches(boundsInches) ? boundsInches : null;
 }
 
-export function measurePlacedAssemblyPlacementBounds(
-  placedAssembly: PlacedAssembly,
-): Bounds3DInches {
-  return measureRotatedBoxBoundsInches(
-    placedAssembly.worldPositionInches,
-    placedAssembly.configuration.sizeInches,
-    placedAssembly.rotationDegrees.zDegrees,
-  );
-}
 
-export function measurePlacedAssembliesPlacementBounds(
-  placedAssemblies: readonly PlacedAssembly[],
-): Bounds3DInches | null {
-  const boundsInches = placedAssemblies.reduce(
-    (sceneBoundsInches, placedAssembly) =>
-      mergeBounds3DInches(
-        sceneBoundsInches,
-        measurePlacedAssemblyPlacementBounds(placedAssembly),
-      ),
-    createEmptyBounds3DInches(),
-  );
-
-  return hasBounds3DInches(boundsInches) ? boundsInches : null;
-}

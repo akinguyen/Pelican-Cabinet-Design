@@ -1,7 +1,7 @@
 import type { Point2DInches, Point3DInches } from "@/core/geometry/pointTypes";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import type { PrimitiveLShapedPrismGeometry } from "../primitiveGeometryTypes";
-import type { PrimitiveEdgeSegmentInches } from "./primitiveEdgeSegmentTypes";
+import { createPrimitiveEdgeLoopSegments, type PrimitiveEdgeSegmentInches } from "./primitiveEdgeSegmentTypes";
 
 export function createLShapedPrismEdgeSegments(args: {
   geometry: PrimitiveLShapedPrismGeometry;
@@ -14,8 +14,8 @@ export function createLShapedPrismEdgeSegments(args: {
   const bottomLoopInches = footprintInches.map((pointInches) => toPoint3D(pointInches, bottomZInches));
 
   return [
-    ...createLoopSegments(topLoopInches),
-    ...createLoopSegments(bottomLoopInches),
+    ...createPrimitiveEdgeLoopSegments(topLoopInches),
+    ...createPrimitiveEdgeLoopSegments(bottomLoopInches),
     ...footprintInches.map((pointInches) => ({
       startInches: toPoint3D(pointInches, bottomZInches),
       endInches: toPoint3D(pointInches, topZInches),
@@ -56,13 +56,6 @@ function createLShapedPrismFootprint(
     { xInches: cutoutLeftXInches, yInches: halfDepthInches },
     { xInches: -halfWidthInches, yInches: halfDepthInches },
   ];
-}
-
-function createLoopSegments(loopInches: readonly Point3DInches[]): readonly PrimitiveEdgeSegmentInches[] {
-  return loopInches.map((startInches, pointIndex) => ({
-    startInches,
-    endInches: loopInches[(pointIndex + 1) % loopInches.length],
-  }));
 }
 
 function toPoint3D(pointInches: Point2DInches, zInches: number): Point3DInches {

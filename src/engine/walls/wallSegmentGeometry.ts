@@ -1,20 +1,12 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { PlacedWallNode } from "./placedWallNodeTypes";
+import type { PlacedWallNode } from "./placedWallGraphTypes";
 import type { PlacedWallSegment, WallFaceSide } from "./placedWallSegmentTypes";
 import type { BuiltWallSegmentBody, WallSegmentFace } from "./connectedWallGeometryTypes";
+import { getPlanDistanceInches } from "@/core/geometry/planPointGeometry";
 
 const MIN_SEGMENT_LENGTH_INCHES = 0.001;
 const LINE_INTERSECTION_EPSILON = 0.000001;
 
-export function getPlanDistanceInches(
-  firstPointInches: Point3DInches,
-  secondPointInches: Point3DInches,
-): number {
-  return Math.hypot(
-    secondPointInches.xInches - firstPointInches.xInches,
-    secondPointInches.yInches - firstPointInches.yInches,
-  );
-}
 
 export function buildWallSegmentBody(args: {
   wallGraphId: string;
@@ -113,35 +105,6 @@ export function createWallSegmentFaces(
   ];
 }
 
-export function createWallSegmentFootprintPolygon(args: {
-  wallGraphId: string;
-  wallSegment: PlacedWallSegment;
-  placedWallNodes: readonly PlacedWallNode[];
-  connectedSegmentsByNodeId?: ReadonlyMap<string, readonly PlacedWallSegment[]>;
-}): readonly Point3DInches[] {
-  const connectedSegmentsByNodeId = args.connectedSegmentsByNodeId ?? buildConnectedSegmentsByNodeId([args.wallSegment]);
-  return buildWallSegmentBody({
-    wallGraphId: args.wallGraphId,
-    wallSegment: args.wallSegment,
-    placedWallNodes: args.placedWallNodes,
-    connectedSegmentsByNodeId,
-  })?.footprintPolygonInches ?? [];
-}
-
-export function getWallSegmentCenterlineLength(args: {
-  wallSegment: PlacedWallSegment;
-  placedWallNodes: readonly PlacedWallNode[];
-}): number {
-  const startPointInches = getWallSegmentEndpointPoint(args.placedWallNodes, args.wallSegment.startNodeId);
-  const endPointInches = getWallSegmentEndpointPoint(args.placedWallNodes, args.wallSegment.endNodeId);
-
-  if (startPointInches === null || endPointInches === null) {
-    return 0;
-  }
-
-  return getPlanDistanceInches(startPointInches, endPointInches);
-}
-
 export function getWallSegmentEndpointPoint(
   placedWallNodes: readonly PlacedWallNode[],
   wallNodeId: string,
@@ -177,7 +140,6 @@ type EndpointConnection = Readonly<{
   wallSegment: PlacedWallSegment;
   endpoint: "start" | "end";
   stableDirection: Readonly<{ xInches: number; yInches: number }>;
-  directionFromNode: Readonly<{ xInches: number; yInches: number }>;
   angleRadians: number;
 }>;
 
@@ -283,7 +245,6 @@ function buildEndpointConnection(args: {
     wallSegment: args.wallSegment,
     endpoint,
     stableDirection,
-    directionFromNode,
     angleRadians: Math.atan2(directionFromNode.yInches, directionFromNode.xInches),
   };
 }

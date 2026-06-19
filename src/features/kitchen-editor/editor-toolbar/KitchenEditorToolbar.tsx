@@ -1,7 +1,7 @@
 "use client";
 
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { SceneEditingTool } from "@/engine/scene/sceneEditingToolTypes";
+import { isFloorPlanOnlySceneEditingTool, type SceneEditingTool } from "@/engine/scene/sceneEditingToolTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { kitchenEditorToolbarActions } from "./kitchenEditorToolbarConfig";
 import { KitchenEditorHistoryControls } from "./KitchenEditorHistoryControls";
@@ -58,9 +58,6 @@ type ToolbarDisabledArgs = Readonly<{
 }>;
 
 function isToolbarActionDisabled(args: ToolbarDisabledArgs): boolean {
-  return isFloorPlanOnlyToolbarTool(args.toolbarTool) && args.activeSceneViewMode !== "floor-plan";
+  return isFloorPlanOnlySceneEditingTool(args.toolbarTool) && args.activeSceneViewMode !== "floor-plan";
 }
 
-function isFloorPlanOnlyToolbarTool(toolbarTool: SceneEditingTool | null): boolean {
-  return toolbarTool === "draw-wall-segment";
-}

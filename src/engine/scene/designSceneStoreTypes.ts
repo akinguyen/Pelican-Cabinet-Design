@@ -24,8 +24,8 @@ import type {
 } from "@/engine/scene/sceneCameraStateTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { DesignScene } from "./designSceneTypes";
+import type { SceneEntitySelectionRef } from "./sceneSelectionTypes";
 import type { DesignSceneHistoryState } from "./sceneHistoryTypes";
-import type { DesignSceneDocument } from "./document/designSceneDocumentTypes";
 import type { AssemblyElevationMoveFrame, SceneDragState } from "./sceneDragTypes";
 
 export type AssemblyDimensionId = "widthInches" | "depthInches" | "heightInches";
@@ -62,9 +62,8 @@ export type DesignSceneStore = Readonly<{
   ) => void;
   commitAssemblyPlacementCandidate: () => void;
   cancelActiveSceneOperation: () => void;
-  selectPlacedAssembly: (placedAssemblyId: string) => void;
-  selectPlacedAssemblies: (placedAssemblyIds: readonly string[]) => void;
-  togglePlacedAssemblySelection: (placedAssemblyId: string) => void;
+  selectSceneEntity: (sceneEntity: SceneEntitySelectionRef) => void;
+  toggleSceneEntitySelection: (sceneEntity: SceneEntitySelectionRef) => void;
   selectPlacedWallSegment: (wallGraphId: string, wallSegmentId: string) => void;
   clearSelection: () => void;
   startAssemblyDrag: (args: {
@@ -84,8 +83,8 @@ export type DesignSceneStore = Readonly<{
   updateAssemblyRotationDrag: (pointerWorldInches: Point3DInches) => void;
   finishAssemblyRotationDrag: () => void;
   cancelAssemblyRotationDrag: () => void;
-  deleteSelectedAssembly: () => void;
-  duplicateSelectedAssembly: () => void;
+  deleteSelectedSceneEntities: () => void;
+  duplicateSelectedSceneEntities: () => void;
   updateSelectedAssemblyWorldPositionX: (xInches: number) => void;
   updateSelectedAssemblyWorldPositionY: (yInches: number) => void;
   updateSelectedAssemblyDistanceFromFloor: (distanceFromFloorInches: number) => void;
@@ -101,7 +100,6 @@ export type DesignSceneStore = Readonly<{
   ) => void;
   commitDesignReservationZonePlacementCandidate: () => void;
   cancelDesignReservationZonePlacementCandidate: () => void;
-  selectDesignReservationZone: (designReservationZoneId: string) => void;
   startDesignReservationZoneDrag: (args: {
     designReservationZoneId: string;
     pointerWorldInches: Point3DInches;
@@ -111,6 +109,9 @@ export type DesignSceneStore = Readonly<{
   updateDesignReservationZoneDrag: (pointerWorldInches: Point3DInches) => void;
   finishDesignReservationZoneDrag: () => void;
   cancelDesignReservationZoneDrag: () => void;
+  updateSceneEntityMultiDrag: (pointerWorldInches: Point3DInches) => void;
+  finishSceneEntityMultiDrag: () => void;
+  cancelSceneEntityMultiDrag: () => void;
   startDesignReservationZoneRotationDrag: (args: { designReservationZoneId: string; centerPointInches: Point3DInches; pointerWorldInches: Point3DInches }) => void;
   updateDesignReservationZoneRotationDrag: (pointerWorldInches: Point3DInches) => void;
   finishDesignReservationZoneRotationDrag: () => void;
@@ -123,7 +124,6 @@ export type DesignSceneStore = Readonly<{
   updateSelectedDesignReservationZonePositionY: (yInches: number) => void;
   updateSelectedDesignReservationZoneDistanceFromFloor: (distanceFromFloorInches: number) => void;
   updateSelectedDesignReservationZoneRotationZ: (zDegrees: number) => void;
-  deleteSelectedDesignReservationZone: () => void;
   clickWallSegmentDraftPoint: (pointInches: Point3DInches) => void;
   exitWallSegmentDraftTool: () => void;
   updateSelectedWallSegmentHeight: (heightInches: number) => void;
@@ -137,11 +137,9 @@ export type DesignSceneStore = Readonly<{
   updateSelectedWallSegmentCabinetPlacementFacePolicy: (faceSide: WallFaceSide, requirement: CabinetPlacementRequirement) => void;
   deleteSelectedWallSegment: () => void;
   clearActiveInteraction: () => void;
-  replaceDesignSceneFromDocument: (document: DesignSceneDocument) => void;
   undoDesignSceneChange: () => void;
   redoDesignSceneChange: () => void;
   restoreDesignSceneHistoryEntry: (historyEntryId: string) => void;
-  clearDesignSceneHistory: () => void;
 }>;
 
 

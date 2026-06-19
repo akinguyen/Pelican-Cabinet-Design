@@ -3,16 +3,18 @@
 import { Html } from "@react-three/drei";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { Copy, Trash2 } from "lucide-react";
+import { createSceneEntityBoundsPlanFrame } from "@/engine/scene-entities/sceneEntityGroupGeometry";
 import type { SceneEntityBounds } from "@/engine/scene-entities/sceneEntityBoundsTypes";
 
 const EDIT_CONTROL_Z_INCHES = 12;
 
 type SceneEntityFloorPlanEditControlsProps = Readonly<{
-  bounds: SceneEntityBounds;
+  bounds: SceneEntityBounds | readonly SceneEntityBounds[];
   deleteLabel: string;
   onDelete: () => void;
   duplicateLabel?: string;
   onDuplicate?: () => void;
+  selectedCountLabel?: string;
 }>;
 
 export function SceneEntityFloorPlanEditControls({
@@ -21,26 +23,41 @@ export function SceneEntityFloorPlanEditControls({
   deleteLabel,
   onDuplicate,
   onDelete,
+  selectedCountLabel,
 }: SceneEntityFloorPlanEditControlsProps) {
-  const topYInches = Math.min(...bounds.footprintCornersInches.map((pointInches) => pointInches.yInches));
-  const centerXInches = bounds.footprint.centerPointInches.xInches;
+  const boundsList = Array.isArray(bounds) ? bounds : [bounds];
+
+  if (boundsList.length === 0) {
+    return null;
+  }
+
+  const planFrame = createSceneEntityBoundsPlanFrame(boundsList);
+
+  if (planFrame === null) {
+    return null;
+  }
 
   function stopPointerEvent(event: ReactPointerEvent<HTMLDivElement>) {
     event.stopPropagation();
   }
 
+  const controlClassName = selectedCountLabel === undefined
+    ? "flex items-center gap-1 rounded-lg border-2 border-cyan-400 bg-white px-2 py-1 shadow-lg"
+    : "flex items-center gap-2 rounded-lg border-2 border-cyan-400 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-lg";
+
   return (
     <Html
       center
-      position={[centerXInches, topYInches - 14, EDIT_CONTROL_Z_INCHES]}
+      position={[planFrame.centerXInches, planFrame.minYInches - 14, EDIT_CONTROL_Z_INCHES]}
       style={{ pointerEvents: "auto", zIndex: 50 }}
     >
       <div
-        className="flex items-center gap-1 rounded-lg border-2 border-cyan-400 bg-white px-2 py-1 shadow-lg"
+        className={controlClassName}
         onPointerDown={stopPointerEvent}
         onPointerMove={stopPointerEvent}
         onPointerUp={stopPointerEvent}
       >
+        {selectedCountLabel !== undefined ? <span>{selectedCountLabel}</span> : null}
         {onDuplicate !== undefined && duplicateLabel !== undefined ? (
           <button
             type="button"

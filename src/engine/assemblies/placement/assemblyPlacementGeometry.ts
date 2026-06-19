@@ -2,6 +2,7 @@ import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { rotatePointAroundZInches } from "@/core/geometry/pointTypes";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { AssemblyPlacementFootprint } from "./assemblyPlacementTypes";
+import { getPlanDistanceInches } from "@/core/geometry/planPointGeometry";
 
 export function createAssemblyPlacementFootprint(
   placedAssembly: PlacedAssembly,
@@ -83,35 +84,4 @@ export function translateAssemblyPlacement(
   });
 }
 
-export function getPlanDistanceInches(
-  firstPointInches: Point3DInches,
-  secondPointInches: Point3DInches,
-): number {
-  return Math.hypot(
-    firstPointInches.xInches - secondPointInches.xInches,
-    firstPointInches.yInches - secondPointInches.yInches,
-  );
-}
 
-export function getPlanAngleDegrees(args: {
-  startPointInches: Point3DInches;
-  endPointInches: Point3DInches;
-}): number {
-  const angleRadians = Math.atan2(
-    args.endPointInches.yInches - args.startPointInches.yInches,
-    args.endPointInches.xInches - args.startPointInches.xInches,
-  );
-  return normalizePlanLabelRotationDegrees((angleRadians * 180) / Math.PI);
-}
-
-export function normalizePlanLabelRotationDegrees(rotationDegrees: number): number {
-  let normalizedDegrees = ((rotationDegrees % 360) + 360) % 360;
-
-  if (normalizedDegrees > 90 && normalizedDegrees <= 270) {
-    normalizedDegrees += 180;
-  }
-
-  normalizedDegrees = ((normalizedDegrees % 360) + 360) % 360;
-
-  return normalizedDegrees > 180 ? normalizedDegrees - 360 : normalizedDegrees;
-}

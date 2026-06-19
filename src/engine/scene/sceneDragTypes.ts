@@ -1,5 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
+import type { SceneEntitySelectionRef } from "@/engine/scene/sceneSelectionTypes";
 
 export type AssemblyElevationViewZoneFrame = Readonly<{
   originInches: Point3DInches;
@@ -28,13 +29,13 @@ export type AssemblyMoveDragState = Readonly<{
   elevationMoveFrame?: AssemblyElevationMoveFrame;
 }>;
 
-export type AssemblyMultiMoveDragState = Readonly<{
-  kind: "assembly-multi-move";
-  leaderAssemblyId: string;
-  assemblyIds: readonly string[];
+export type SceneEntityMultiMoveDragState = Readonly<{
+  kind: "scene-entity-multi-move";
+  leaderSceneEntity: SceneEntitySelectionRef;
+  sceneEntities: readonly SceneEntitySelectionRef[];
   dragStartPointerWorldInches: Point3DInches;
-  dragStartWorldPositionsByAssemblyId: Readonly<Record<string, Point3DInches>>;
-  latestValidWorldPositionsByAssemblyId: Readonly<Record<string, Point3DInches>>;
+  dragStartPositionsBySceneEntityKey: Readonly<Record<string, Point3DInches>>;
+  latestValidPositionsBySceneEntityKey: Readonly<Record<string, Point3DInches>>;
   sceneViewMode: SceneViewMode;
   elevationMoveFrame?: AssemblyElevationMoveFrame;
 }>;
@@ -43,13 +44,10 @@ export type AssemblyRotationDragState = Readonly<{
   kind: "assembly-rotation";
   assemblyId: string;
   centerPointInches: Point3DInches;
-  pointerAngleDegrees: number;
   startPointerAngleDegrees: number;
   startRotationDegrees: number;
   startWorldPositionInches: Point3DInches;
-  latestRotationDegrees: number;
   latestValidRotationDegrees: number;
-  isSnappedToRotationStop: boolean;
 }>;
 
 export type DesignReservationZoneMoveDragState = Readonly<{
@@ -57,7 +55,6 @@ export type DesignReservationZoneMoveDragState = Readonly<{
   designReservationZoneId: string;
   dragStartPointerWorldInches: Point3DInches;
   dragStartBaseCenterPointInches: Point3DInches;
-  latestBaseCenterPointInches: Point3DInches;
   sceneViewMode: SceneViewMode;
   elevationMoveFrame?: AssemblyElevationMoveFrame;
 }>;
@@ -68,12 +65,11 @@ export type DesignReservationZoneRotationDragState = Readonly<{
   centerPointInches: Point3DInches;
   startPointerAngleDegrees: number;
   startRotationDegrees: number;
-  latestRotationDegrees: number;
 }>;
 
 export type SceneDragState =
   | AssemblyMoveDragState
-  | AssemblyMultiMoveDragState
+  | SceneEntityMultiMoveDragState
   | AssemblyRotationDragState
   | DesignReservationZoneMoveDragState
   | DesignReservationZoneRotationDragState;

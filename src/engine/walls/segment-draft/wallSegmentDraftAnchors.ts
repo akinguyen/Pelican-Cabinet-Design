@@ -1,7 +1,8 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedWallGraph } from "../placedWallGraphTypes";
-import type { PlacedWallNode } from "../placedWallNodeTypes";
+import type { PlacedWallNode } from "../placedWallGraphTypes";
 import type { WallSegmentDrawAnchor, WallSegmentDrawingGuide } from "./wallSegmentDraftTypes";
+import { getPlanDistanceInches } from "@/core/geometry/planPointGeometry";
 
 const WALL_NODE_SNAP_DISTANCE_INCHES = 8;
 const WALL_SEGMENT_BODY_SNAP_DISTANCE_INCHES = 7;
@@ -354,12 +355,6 @@ function projectPointToSegment(args: {
   };
 }
 
-function getPlanDistanceInches(firstPointInches: Point3DInches, secondPointInches: Point3DInches): number {
-  return Math.hypot(
-    secondPointInches.xInches - firstPointInches.xInches,
-    secondPointInches.yInches - firstPointInches.yInches,
-  );
-}
 
 function createPlanPoint(pointInches: Point3DInches): Point3DInches {
   return {

@@ -7,8 +7,6 @@ import { translateAssemblyPlacement } from "../assemblyPlacementGeometry";
 import { getPlanDotProduct, normalizePlanVector } from "../assemblyPlacementPlanGeometry";
 import type { AssemblyPlacementElevationFrame } from "../assemblyPlacementTypes";
 import {
-  combineElevationAlignmentCandidateDeltas,
-  createElevationAlignmentSnapTarget,
   findElevationAlignmentCandidates,
   selectCompatibleElevationAlignmentCandidates,
 } from "./assemblyElevationAlignmentCandidates";
@@ -23,7 +21,7 @@ import {
 } from "./assemblyElevationAlignmentBoxes";
 import { buildElevationAlignmentGuides } from "./assemblyElevationAlignmentGuides";
 import { OBJECT_ELEVATION_ALIGNMENT_SNAP_DISTANCE_INCHES } from "./assemblyObjectAlignmentConstants";
-import type { AssemblyObjectAlignmentResult, ElevationAlignmentBox } from "./assemblyObjectAlignmentTypes";
+import { combineObjectAlignmentCandidateDeltas, createEmptyObjectAlignmentResult, type AssemblyObjectAlignmentResult, type ElevationAlignmentBox } from "./assemblyObjectAlignmentTypes";
 
 export function alignAssemblyPlacementWithElevationObjects(args: {
   placedAssembly: PlacedAssembly;
@@ -102,7 +100,7 @@ export function alignAssemblyPlacementWithElevationObjects(args: {
   }
 
   const selectedCandidates = selectCompatibleElevationAlignmentCandidates(candidates);
-  const alignmentDeltaInches = combineElevationAlignmentCandidateDeltas(selectedCandidates);
+  const alignmentDeltaInches = combineObjectAlignmentCandidateDeltas(selectedCandidates);
   const alignedPlacedAssembly = translateAssemblyPlacement(args.placedAssembly, alignmentDeltaInches);
   const alignedMovingBox = createElevationAlignmentBox({
     placedAssembly: alignedPlacedAssembly,
@@ -117,7 +115,6 @@ export function alignAssemblyPlacementWithElevationObjects(args: {
       selectedCandidates,
       elevationFrame: args.elevationFrame,
     }),
-    snapTarget: createElevationAlignmentSnapTarget(selectedCandidates),
   };
 }
 
@@ -175,13 +172,5 @@ function createElevationAlignmentBoxFromDesignReservationZone(args: {
           nearDepthInches: Math.min(...projectedDepthValuesInches),
           farDepthInches: Math.max(...projectedDepthValuesInches),
         },
-  };
-}
-
-function createEmptyObjectAlignmentResult(placedAssembly: PlacedAssembly): AssemblyObjectAlignmentResult {
-  return {
-    placedAssembly,
-    objectAlignmentGuides: [],
-    snapTarget: null,
   };
 }

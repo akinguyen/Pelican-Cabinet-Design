@@ -1,91 +1,44 @@
-import type { SceneSelection } from "../sceneSelectionTypes";
+import {
+  areSceneEntitySelectionsEqual,
+  createSceneSelectionFromSceneEntities,
+  getSceneEntityRefsFromSelection,
+} from "../sceneSelectionTypes";
 import type { DesignSceneStore, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
 export function createSceneSelectionActions(
   _get: () => DesignSceneStore,
   set: DesignSceneStoreSetter,
-): Pick<DesignSceneStore, "selectPlacedAssembly" | "selectPlacedAssemblies" | "togglePlacedAssemblySelection" | "selectPlacedWallSegment" | "selectDesignReservationZone" | "clearSelection"> {
+): Pick<
+  DesignSceneStore,
+  | "selectSceneEntity"
+  | "toggleSceneEntitySelection"
+  | "selectPlacedWallSegment"
+  | "clearSelection"
+> {
   return {
-    selectPlacedAssembly(placedAssemblyId) {
-      const selection: SceneSelection = {
-        kind: "placed-assembly",
-        placedAssemblyId,
-      };
-
+    selectSceneEntity(sceneEntity) {
       set((state) => ({
         designScene: {
           ...state.designScene,
-          activeSelection: selection,
+          activeSelection: createSceneSelectionFromSceneEntities([sceneEntity]),
         },
         assemblyPlacementFeedback: null,
         activeObjectAlignmentGuides: [],
       }));
     },
 
-    selectPlacedAssemblies(placedAssemblyIds) {
-      const uniqueIds = Array.from(new Set(placedAssemblyIds));
-
-      if (uniqueIds.length === 0) {
-        set((state) => ({
-          designScene: {
-            ...state.designScene,
-            activeSelection: null,
-          },
-          assemblyPlacementFeedback: null,
-          activeObjectAlignmentGuides: [],
-        }));
-        return;
-      }
-
-      if (uniqueIds.length === 1) {
-        set((state) => ({
-          designScene: {
-            ...state.designScene,
-            activeSelection: {
-              kind: "placed-assembly",
-              placedAssemblyId: uniqueIds[0],
-            },
-          },
-          assemblyPlacementFeedback: null,
-          activeObjectAlignmentGuides: [],
-        }));
-        return;
-      }
-
-      set((state) => ({
-        designScene: {
-          ...state.designScene,
-          activeSelection: {
-            kind: "placed-assemblies",
-            placedAssemblyIds: uniqueIds,
-          },
-        },
-        assemblyPlacementFeedback: null,
-        activeObjectAlignmentGuides: [],
-      }));
-    },
-
-    togglePlacedAssemblySelection(placedAssemblyId) {
+    toggleSceneEntitySelection(sceneEntity) {
       set((state) => {
-        const activeSelection = state.designScene.activeSelection;
-        const currentIds = activeSelection?.kind === "placed-assemblies"
-          ? activeSelection.placedAssemblyIds
-          : activeSelection?.kind === "placed-assembly"
-            ? [activeSelection.placedAssemblyId]
-            : [];
-        const nextIds = currentIds.includes(placedAssemblyId)
-          ? currentIds.filter((id) => id !== placedAssemblyId)
-          : [...currentIds, placedAssemblyId];
-        const activeSelectionNext: SceneSelection | null = nextIds.length === 0
-          ? null
-          : nextIds.length === 1
-            ? { kind: "placed-assembly", placedAssemblyId: nextIds[0] }
-            : { kind: "placed-assemblies", placedAssemblyIds: nextIds };
+        const currentSceneEntities = getSceneEntityRefsFromSelection(state.designScene.activeSelection);
+        const isSelected = currentSceneEntities.some((candidate) => areSceneEntitySelectionsEqual(candidate, sceneEntity));
+        const nextSceneEntities = isSelected
+          ? currentSceneEntities.filter((candidate) => !areSceneEntitySelectionsEqual(candidate, sceneEntity))
+          : [...currentSceneEntities, sceneEntity];
 
         return {
           designScene: {
             ...state.designScene,
-            activeSelection: activeSelectionNext,
+            activeSelection: createSceneSelectionFromSceneEntities(nextSceneEntities),
           },
           assemblyPlacementFeedback: null,
           activeObjectAlignmentGuides: [],
@@ -101,20 +54,6 @@ export function createSceneSelectionActions(
             kind: "placed-wall-segment",
             wallGraphId,
             wallSegmentId,
-          },
-        },
-        assemblyPlacementFeedback: null,
-        activeObjectAlignmentGuides: [],
-      }));
-    },
-
-    selectDesignReservationZone(designReservationZoneId) {
-      set((state) => ({
-        designScene: {
-          ...state.designScene,
-          activeSelection: {
-            kind: "design-reservation-zone",
-            designReservationZoneId,
           },
         },
         assemblyPlacementFeedback: null,

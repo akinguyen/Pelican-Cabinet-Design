@@ -2,20 +2,15 @@ import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { AssemblyPlacementFootprint } from "../assemblyPlacementTypes";
 import {
   getPlanPerpendicularVector,
-  getPlanPointAtProjection,
   normalizePlanVector,
-  projectPointOntoPlanDirection,
-  type PlanVector2DInches,
 } from "../assemblyPlacementPlanGeometry";
 import type {
   ObjectAlignmentFootprint,
   ObjectAlignmentLine,
-  ObjectAlignmentTargetKind,
 } from "./assemblyObjectAlignmentTypes";
 
 export function createObjectAlignmentFootprintFromPlanPoints(args: {
   assemblyId: string;
-  targetKind: ObjectAlignmentTargetKind;
   targetPriority: number;
   snapDistanceInches: number;
   centerPointInches: Point3DInches;
@@ -27,7 +22,6 @@ export function createObjectAlignmentFootprintFromPlanPoints(args: {
 
   return createObjectAlignmentFootprint({
     assemblyId: args.assemblyId,
-    targetKind: args.targetKind,
     targetPriority: args.targetPriority,
     snapDistanceInches: args.snapDistanceInches,
     footprint: {
@@ -63,7 +57,6 @@ export function isObjectAlignmentFootprint(
 
 export function createObjectAlignmentFootprint(args: {
   assemblyId: string;
-  targetKind: ObjectAlignmentTargetKind;
   targetPriority: number;
   snapDistanceInches: number;
   footprint: AssemblyPlacementFootprint;
@@ -87,67 +80,28 @@ export function createObjectAlignmentFootprint(args: {
     return {
       id: `${args.assemblyId}-edge-${edge.index}`,
       lineKind: "edge",
-      axisIndex: edge.index % 2,
       pointInches: edge.midpointInches,
       directionInches,
       normalInches,
-      segmentInches: {
-        startPointInches: edge.startPointInches,
-        endPointInches: edge.endPointInches,
-      },
     };
   }).filter(isObjectAlignmentLine);
   const centerLines = edgeLines.slice(0, 2).map<ObjectAlignmentLine>((edgeLine, axisIndex) => {
-    const halfGuideLengthInches = getFootprintProjectedLength({
-      footprint: args.footprint,
-      originInches: args.footprint.centerPointInches,
-      directionInches: edgeLine.directionInches,
-    }) / 2;
-
     return {
       id: `${args.assemblyId}-center-${axisIndex}`,
       lineKind: "center",
-      axisIndex,
       pointInches: args.footprint.centerPointInches,
       directionInches: edgeLine.directionInches,
       normalInches: edgeLine.normalInches,
-      segmentInches: {
-        startPointInches: getPlanPointAtProjection({
-          originInches: args.footprint.centerPointInches,
-          directionInches: edgeLine.directionInches,
-          projectionInches: -halfGuideLengthInches,
-        }),
-        endPointInches: getPlanPointAtProjection({
-          originInches: args.footprint.centerPointInches,
-          directionInches: edgeLine.directionInches,
-          projectionInches: halfGuideLengthInches,
-        }),
-      },
     };
   });
 
   return {
     assemblyId: args.assemblyId,
-    targetKind: args.targetKind,
     targetPriority: args.targetPriority,
     snapDistanceInches: args.snapDistanceInches,
     footprint: args.footprint,
     lines: [...edgeLines, ...centerLines],
   };
-}
-
-function getFootprintProjectedLength(args: {
-  footprint: AssemblyPlacementFootprint;
-  originInches: Point3DInches;
-  directionInches: PlanVector2DInches;
-}): number {
-  const projectionsInches = args.footprint.cornerPointsInches.map((cornerPointInches) => projectPointOntoPlanDirection({
-    pointInches: cornerPointInches,
-    originInches: args.originInches,
-    directionInches: args.directionInches,
-  }));
-
-  return Math.max(...projectionsInches) - Math.min(...projectionsInches);
 }
 
 function isObjectAlignmentLine(line: ObjectAlignmentLine | null): line is ObjectAlignmentLine {

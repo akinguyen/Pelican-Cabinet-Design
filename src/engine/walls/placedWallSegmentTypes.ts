@@ -1,6 +1,5 @@
 export type WallFaceSide = "side-a" | "side-b";
 
-export const WALL_FACE_SIDES: readonly WallFaceSide[] = ["side-a", "side-b"];
 export const DEFAULT_WALL_SEGMENT_PREFERRED_VIEW_FACE_SIDE: WallFaceSide = "side-b";
 
 export type CabinetPlacementRequirement = "none" | "optional" | "required";

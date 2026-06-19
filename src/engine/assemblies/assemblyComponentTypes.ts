@@ -2,7 +2,7 @@ import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { RotationDegrees3D } from "@/core/geometry/rotationTypes";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import type { PrimitiveGeometry } from "@/engine/primitive-geometry/primitiveGeometryTypes";
-import type { PrimitiveMaterial } from "@/engine/primitive-geometry/primitiveMaterialTypes";
+import type { PrimitiveMaterial } from "@/engine/primitive-geometry/primitiveGeometryTypes";
 import type { AssemblyConfiguration } from "./assemblyConfiguration";
 
 export type PrimitiveBoxFrontOutlineEdge = "top" | "right" | "bottom" | "left";

@@ -7,6 +7,7 @@ import type { BuiltAssemblyTree } from "@/engine/assemblies/assemblyTreeBuilder"
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import { shouldKeepSceneEntitySelectionForDrag } from "@/engine/scene/sceneSelectionTypes";
 import type { AssemblyElevationMoveFrame } from "@/engine/scene/sceneDragTypes";
 import { getWallElevationViewZoneForTarget } from "@/engine/walls/wallElevationViewZone";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
@@ -48,17 +49,15 @@ export const PlacedAssemblyRenderer = memo(function PlacedAssemblyRenderer({
 
     event.stopPropagation();
 
+    const sceneEntity = { entityKind: "placed-assembly", entityId: placedAssembly.id } as const;
+
     if (event.shiftKey || event.ctrlKey || event.metaKey) {
-      designSceneStore.togglePlacedAssemblySelection(placedAssembly.id);
+      designSceneStore.toggleSceneEntitySelection(sceneEntity);
       return;
     }
 
-    const shouldKeepMultiSelectionForDrag =
-      designScene.activeSelection?.kind === "placed-assemblies" &&
-      designScene.activeSelection.placedAssemblyIds.includes(placedAssembly.id);
-
-    if (!shouldKeepMultiSelectionForDrag) {
-      designSceneStore.selectPlacedAssembly(placedAssembly.id);
+    if (!shouldKeepSceneEntitySelectionForDrag(designScene.activeSelection, sceneEntity)) {
+      designSceneStore.selectSceneEntity(sceneEntity);
     }
 
     const elevationMoveFrame = activeSceneViewMode === "elevation"

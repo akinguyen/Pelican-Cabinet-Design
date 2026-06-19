@@ -10,6 +10,7 @@ import {
 } from "@/engine/design-zones/designReservationZoneGeometry";
 import type { DesignReservationZone } from "@/engine/design-zones/designReservationZoneTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
+import { shouldKeepSceneEntitySelectionForDrag } from "@/engine/scene/sceneSelectionTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { createAssemblyDragPointerWorldPoint } from "../../interaction/assemblies/assemblyDragPointer";
 import { createDesignReservationZoneElevationMoveFrame } from "../../interaction/design-zones/designReservationZoneElevationFrame";
@@ -51,14 +52,23 @@ export const DesignReservationZoneRenderer = memo(function DesignReservationZone
       designSceneStore.designScene.activeSceneOperation !== null ||
       designSceneStore.activeDrag !== null ||
       designSceneStore.activeToolbarTool !== null ||
-      event.button !== 0 ||
-      event.ctrlKey
+      event.button !== 0
     ) {
       return;
     }
 
     event.stopPropagation();
-    designSceneStore.selectDesignReservationZone(zone.id);
+
+    const sceneEntity = { entityKind: "design-reservation-zone", entityId: zone.id } as const;
+
+    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+      designSceneStore.toggleSceneEntitySelection(sceneEntity);
+      return;
+    }
+
+    if (!shouldKeepSceneEntitySelectionForDrag(designSceneStore.designScene.activeSelection, sceneEntity)) {
+      designSceneStore.selectSceneEntity(sceneEntity);
+    }
 
     const elevationMoveFrame = designSceneStore.activeSceneViewMode === "elevation"
       ? createDesignReservationZoneElevationMoveFrame({

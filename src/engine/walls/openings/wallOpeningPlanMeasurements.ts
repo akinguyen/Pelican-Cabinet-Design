@@ -1,7 +1,8 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { DerivedWallOpening } from "../placedWallSegmentTypes";
-import type { BuiltWallSegmentBody } from "../wallSegmentTopologyTypes";
+import type { BuiltWallSegmentBody } from "../connectedWallGeometryTypes";
 import { createDerivedWallOpeningFaceAxes } from "./wallOpeningFaceAxes";
+import { clampWallPlanNumber, offsetWallPlanPoint } from "../wallPlanGeometry";
 
 const WALL_OPENING_MEASUREMENT_OFFSET_INCHES = 18;
 const MIN_WALL_OPENING_MEASUREMENT_LENGTH_INCHES = 3;
@@ -83,8 +84,8 @@ function createOpeningMeasurementBoundaries(args: {
 
   for (const opening of args.openingsOnSameWallFace) {
     boundariesInches.push(
-      clamp(opening.leftInchesAlongFace, 0, args.faceLengthInches),
-      clamp(opening.leftInchesAlongFace + opening.widthInches, 0, args.faceLengthInches),
+      clampWallPlanNumber(opening.leftInchesAlongFace, 0, args.faceLengthInches),
+      clampWallPlanNumber(opening.leftInchesAlongFace + opening.widthInches, 0, args.faceLengthInches),
     );
   }
 
@@ -110,12 +111,12 @@ function createMeasurementGuide(args: {
     return null;
   }
 
-  const startPointInches = offsetPoint(
+  const startPointInches = offsetWallPlanPoint(
     pointOnFace(args.sideStartPointInches, args.faceDirectionInches, args.startInches),
     args.outwardDirectionInches,
     WALL_OPENING_MEASUREMENT_OFFSET_INCHES,
   );
-  const endPointInches = offsetPoint(
+  const endPointInches = offsetWallPlanPoint(
     pointOnFace(args.sideStartPointInches, args.faceDirectionInches, args.endInches),
     args.outwardDirectionInches,
     WALL_OPENING_MEASUREMENT_OFFSET_INCHES,
@@ -150,18 +151,6 @@ function pointOnFace(
   };
 }
 
-function offsetPoint(
-  pointInches: Point3DInches,
-  directionInches: Readonly<{ xInches: number; yInches: number }>,
-  distanceInches: number,
-): Point3DInches {
-  return {
-    xInches: pointInches.xInches + directionInches.xInches * distanceInches,
-    yInches: pointInches.yInches + directionInches.yInches * distanceInches,
-    zInches: pointInches.zInches,
-  };
-}
-
 function getReadableAngleDegrees(rotationDegrees: number): number {
   const normalizedDegrees = ((rotationDegrees % 360) + 360) % 360;
   const readableDegrees = normalizedDegrees > 90 && normalizedDegrees <= 270
@@ -172,9 +161,6 @@ function getReadableAngleDegrees(rotationDegrees: number): number {
   return normalizedReadableDegrees > 180 ? normalizedReadableDegrees - 360 : normalizedReadableDegrees;
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
 
 function isWallOpeningPlanMeasurementGuide(
   measurementGuide: WallOpeningPlanMeasurementGuide | null,

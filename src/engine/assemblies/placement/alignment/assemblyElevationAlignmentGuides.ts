@@ -8,7 +8,6 @@ import type {
   ElevationAlignmentBox,
   ElevationAlignmentCandidate,
 } from "./assemblyObjectAlignmentTypes";
-import { getElevationGuideKind } from "./assemblyElevationAlignmentCandidates";
 
 export function buildElevationAlignmentGuides(args: {
   movingBox: ElevationAlignmentBox;
@@ -46,7 +45,6 @@ function createElevationVerticalGuide(args: {
 
   return {
     id: `object-elevation-alignment-${args.candidate.targetAssemblyId}-${args.candidate.axis}-${args.candidate.targetAnchor.valueInches}`,
-    guideKind: getElevationGuideKind(args.candidate),
     guidePlane: "elevation",
     startPointInches: createElevationGuidePoint({
       elevationFrame: args.elevationFrame,
@@ -74,7 +72,6 @@ function createElevationHorizontalGuide(args: {
 
   return {
     id: `object-elevation-alignment-${args.candidate.targetAssemblyId}-${args.candidate.axis}-${args.candidate.targetAnchor.valueInches}`,
-    guideKind: getElevationGuideKind(args.candidate),
     guidePlane: "elevation",
     startPointInches: createElevationGuidePoint({
       elevationFrame: args.elevationFrame,

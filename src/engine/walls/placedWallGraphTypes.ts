@@ -1,5 +1,10 @@
-import type { PlacedWallNode } from "./placedWallNodeTypes";
+import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedWallSegment } from "./placedWallSegmentTypes";
+
+export type PlacedWallNode = Readonly<{
+  id: string;
+  positionInches: Point3DInches;
+}>;
 
 export type PlacedWallGraph = Readonly<{
   id: string;
@@ -11,9 +16,4 @@ export type PlacedWallGraph = Readonly<{
 export type WallSegmentReference = Readonly<{
   wallGraphId: string;
   wallSegmentId: string;
-}>;
-
-export type WallNodeReference = Readonly<{
-  wallGraphId: string;
-  wallNodeId: string;
 }>;

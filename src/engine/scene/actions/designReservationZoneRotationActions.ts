@@ -1,6 +1,8 @@
-import type { Point3DInches } from "@/core/geometry/pointTypes";
+import { getPlanPointerAngleDegrees } from "@/core/geometry/planPointGeometry";
 import { snapAssemblyRotationDegrees } from "@/engine/assemblies/placement/assemblyRotationSnapping";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import type { DesignScene } from "../designSceneTypes";
+import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 export function createDesignReservationZoneRotationActions(
   get: DesignSceneStoreGetter,
@@ -20,7 +22,7 @@ export function createDesignReservationZoneRotationActions(
         return;
       }
 
-      const pointerAngleDegrees = getPointerAngleDegrees(centerPointInches, pointerWorldInches);
+      const pointerAngleDegrees = getPlanPointerAngleDegrees(centerPointInches, pointerWorldInches);
 
       set({
         activeDrag: {
@@ -29,7 +31,6 @@ export function createDesignReservationZoneRotationActions(
           centerPointInches,
           startPointerAngleDegrees: pointerAngleDegrees,
           startRotationDegrees: zone.rotationDegrees.zDegrees,
-          latestRotationDegrees: zone.rotationDegrees.zDegrees,
         },
         activeObjectAlignmentGuides: [],
       });
@@ -42,7 +43,7 @@ export function createDesignReservationZoneRotationActions(
         return;
       }
 
-      const pointerAngleDegrees = getPointerAngleDegrees(activeDrag.centerPointInches, pointerWorldInches);
+      const pointerAngleDegrees = getPlanPointerAngleDegrees(activeDrag.centerPointInches, pointerWorldInches);
       const rotationDeltaDegrees = activeDrag.startPointerAngleDegrees - pointerAngleDegrees;
       const snapResult = snapAssemblyRotationDegrees(activeDrag.startRotationDegrees + rotationDeltaDegrees);
 
@@ -58,18 +59,27 @@ export function createDesignReservationZoneRotationActions(
               : zone
           )),
         },
-        activeDrag: {
-          ...activeDrag,
-          latestRotationDegrees: snapResult.rotationDegrees,
-        },
         activeObjectAlignmentGuides: [],
       }));
     },
 
     finishDesignReservationZoneRotationDrag() {
-      if (get().activeDrag?.kind !== "design-reservation-zone-rotation") {
+      const activeDrag = get().activeDrag;
+
+      if (activeDrag?.kind !== "design-reservation-zone-rotation") {
         return;
       }
+
+      recordDesignSceneHistoryEntry({
+        get,
+        set,
+        label: "Rotate design reservation zone",
+        designScene: createDesignSceneWithDesignReservationZoneRotation({
+          designScene: get().designScene,
+          designReservationZoneId: activeDrag.designReservationZoneId,
+          rotationDegrees: activeDrag.startRotationDegrees,
+        }),
+      });
 
       set({ activeDrag: null, activeObjectAlignmentGuides: [] });
     },
@@ -100,15 +110,21 @@ export function createDesignReservationZoneRotationActions(
   };
 }
 
-function getPointerAngleDegrees(
-  centerPointInches: Point3DInches,
-  pointerWorldInches: Point3DInches,
-): number {
-  return (
-    Math.atan2(
-      pointerWorldInches.yInches - centerPointInches.yInches,
-      pointerWorldInches.xInches - centerPointInches.xInches,
-    ) *
-    180
-  ) / Math.PI;
+
+function createDesignSceneWithDesignReservationZoneRotation(args: {
+  designScene: DesignScene;
+  designReservationZoneId: string;
+  rotationDegrees: number;
+}): DesignScene {
+  return {
+    ...args.designScene,
+    designReservationZones: args.designScene.designReservationZones.map((zone) => (
+      zone.id === args.designReservationZoneId
+        ? {
+            ...zone,
+            rotationDegrees: { zDegrees: args.rotationDegrees },
+          }
+        : zone
+    )),
+  };
 }

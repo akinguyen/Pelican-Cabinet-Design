@@ -88,8 +88,11 @@ export function createAssemblyPlacementActions(
           ...state.designScene,
           placedAssemblies: [...state.designScene.placedAssemblies, activeSceneOperation.placedAssembly],
           activeSelection: {
-            kind: "placed-assembly",
-            placedAssemblyId: activeSceneOperation.placedAssembly.id,
+            kind: "scene-entity",
+            sceneEntity: {
+              entityKind: "placed-assembly",
+              entityId: activeSceneOperation.placedAssembly.id,
+            },
           },
           activeSceneOperation: null,
         },

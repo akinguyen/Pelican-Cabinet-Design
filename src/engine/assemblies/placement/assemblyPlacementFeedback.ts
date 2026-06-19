@@ -8,16 +8,14 @@ import type {
   AssemblyPlacementFeedback,
   AssemblyPlacementResult,
   AssemblyPlacementSnapContext,
-  AssemblyPlacementSnapTarget,
 } from "./assemblyPlacementTypes";
 import { alignAssemblyPlacementWithNearbyObjects } from "./assemblyObjectAlignmentGuides";
-import { buildAssemblyWallMeasurementGuides } from "./assemblyWallMeasurementGuides";
+import { buildSceneEntityWallMeasurementGuidesFromFootprint } from "@/engine/scene-entities/measurement/sceneEntityWallMeasurementGuides";
 
 export function createAssemblyPlacementFeedback(args: {
   placedAssembly: PlacedAssembly;
   placedWallGraphs?: readonly PlacedWallGraph[];
   snapContext?: AssemblyPlacementSnapContext;
-  snapTarget?: AssemblyPlacementSnapTarget | null;
   objectAlignmentGuides?: readonly AssemblyObjectAlignmentGuide[];
 }): AssemblyPlacementFeedback {
   const footprint = createAssemblyPlacementFootprint(args.placedAssembly);
@@ -28,14 +26,12 @@ export function createAssemblyPlacementFeedback(args: {
     footprint,
     isValid: true,
     invalidReason: null,
-    snapTarget: args.snapTarget ?? null,
     wallMeasurementGuides: shouldBuildWallMeasurementGuides
-      ? buildAssemblyWallMeasurementGuides({
+      ? buildSceneEntityWallMeasurementGuidesFromFootprint({
         footprint,
         placedWallGraphs: args.placedWallGraphs ?? [],
       })
       : [],
-    wallAttachmentHighlights: [],
     objectAlignmentGuides: args.objectAlignmentGuides ?? [],
   };
 }
@@ -63,7 +59,6 @@ export function applyAssemblyPlacementRules(args: {
     placedAssembly: alignmentResult.placedAssembly,
     feedback: createAssemblyPlacementFeedback({
       placedAssembly: alignmentResult.placedAssembly,
-      snapTarget: alignmentResult.snapTarget,
       placedWallGraphs: args.placedWallGraphs,
       snapContext: args.snapContext,
       objectAlignmentGuides: alignmentResult.objectAlignmentGuides,

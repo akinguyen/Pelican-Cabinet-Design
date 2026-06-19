@@ -9,7 +9,7 @@ import {
 } from "@/engine/walls/wallSegmentElevationNavigation";
 import type { WallFaceSide } from "@/engine/walls/placedWallSegmentTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { formatInchesLabel } from "../../shared/formatInchesLabel";
+import { formatInchesLabel } from "../../formatting/kitchenEditorLabelFormatting";
 
 export function WallElevationNavigator() {
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);

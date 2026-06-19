@@ -1,6 +1,7 @@
+import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import type { PrimitiveRectangularFrustumGeometry } from "../primitiveGeometryTypes";
-import type { PrimitiveEdgeSegmentInches } from "./primitiveEdgeSegmentTypes";
+import { createPrimitiveEdgeLoopSegments, type PrimitiveEdgeSegmentInches } from "./primitiveEdgeSegmentTypes";
 
 export function createRectangularFrustumEdgeSegments(args: {
   geometry: PrimitiveRectangularFrustumGeometry;
@@ -13,13 +14,13 @@ export function createRectangularFrustumEdgeSegments(args: {
   const bottomZInches = -args.sizeInches.heightInches / 2;
   const topZInches = args.sizeInches.heightInches / 2;
 
-  const bottomPoints = [
+  const bottomPoints: readonly Point3DInches[] = [
     { xInches: -bottomHalfWidthInches, yInches: -bottomHalfDepthInches, zInches: bottomZInches },
     { xInches: bottomHalfWidthInches, yInches: -bottomHalfDepthInches, zInches: bottomZInches },
     { xInches: bottomHalfWidthInches, yInches: bottomHalfDepthInches, zInches: bottomZInches },
     { xInches: -bottomHalfWidthInches, yInches: bottomHalfDepthInches, zInches: bottomZInches },
   ];
-  const topPoints = [
+  const topPoints: readonly Point3DInches[] = [
     { xInches: -topHalfWidthInches, yInches: -topHalfDepthInches, zInches: topZInches },
     { xInches: topHalfWidthInches, yInches: -topHalfDepthInches, zInches: topZInches },
     { xInches: topHalfWidthInches, yInches: topHalfDepthInches, zInches: topZInches },
@@ -27,20 +28,11 @@ export function createRectangularFrustumEdgeSegments(args: {
   ];
 
   return [
-    ...createLoopSegments(bottomPoints),
-    ...createLoopSegments(topPoints),
+    ...createPrimitiveEdgeLoopSegments(bottomPoints),
+    ...createPrimitiveEdgeLoopSegments(topPoints),
     ...bottomPoints.map((bottomPointInches, pointIndex) => ({
       startInches: bottomPointInches,
       endInches: topPoints[pointIndex],
     })),
   ];
-}
-
-function createLoopSegments(
-  loopInches: readonly Readonly<{ xInches: number; yInches: number; zInches: number }>[],
-): readonly PrimitiveEdgeSegmentInches[] {
-  return loopInches.map((startInches, pointIndex) => ({
-    startInches,
-    endInches: loopInches[(pointIndex + 1) % loopInches.length],
-  }));
 }

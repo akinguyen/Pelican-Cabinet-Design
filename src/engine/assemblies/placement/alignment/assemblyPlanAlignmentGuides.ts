@@ -40,9 +40,6 @@ export function buildAlignmentGuides(args: {
 
     return {
       id: `object-alignment-${candidate.targetAssemblyId}-${candidate.targetLine.id}-${candidate.movingLine.id}`,
-      guideKind: candidate.movingLine.lineKind === "center" || candidate.targetLine.lineKind === "center"
-        ? "center-line"
-        : "edge-line",
       guidePlane: "plan",
       startPointInches: getPlanPointAtProjection({
         originInches: candidate.targetLine.pointInches,

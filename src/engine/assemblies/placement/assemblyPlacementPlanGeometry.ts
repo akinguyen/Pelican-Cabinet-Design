@@ -1,5 +1,5 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { AssemblyPlacementEdge, AssemblyPlacementFootprint } from "./assemblyPlacementTypes";
+import type { AssemblyPlacementEdge } from "./assemblyPlacementTypes";
 
 const MIN_VECTOR_LENGTH_INCHES = 0.000001;
 
@@ -23,64 +23,11 @@ export type PlanSegmentOverlapInches = Readonly<{
   maxInches: number;
 }>;
 
-export type PlanBoundsInches = Readonly<{
-  minXInches: number;
-  maxXInches: number;
-  minYInches: number;
-  maxYInches: number;
-}>;
-
-export function getFootprintPlanBounds(footprint: AssemblyPlacementFootprint): PlanBoundsInches {
-  return footprint.cornerPointsInches.reduce<PlanBoundsInches>(
-    (bounds, cornerPointInches) => ({
-      minXInches: Math.min(bounds.minXInches, cornerPointInches.xInches),
-      maxXInches: Math.max(bounds.maxXInches, cornerPointInches.xInches),
-      minYInches: Math.min(bounds.minYInches, cornerPointInches.yInches),
-      maxYInches: Math.max(bounds.maxYInches, cornerPointInches.yInches),
-    }),
-    {
-      minXInches: Number.POSITIVE_INFINITY,
-      maxXInches: Number.NEGATIVE_INFINITY,
-      minYInches: Number.POSITIVE_INFINITY,
-      maxYInches: Number.NEGATIVE_INFINITY,
-    },
-  );
-}
-
 export function getPlacementEdgePlanSegment(edge: AssemblyPlacementEdge): PlanLineSegmentInches {
   return {
     startPointInches: edge.startPointInches,
     endPointInches: edge.endPointInches,
   };
-}
-
-export function createPlanPoint(args: {
-  xInches: number;
-  yInches: number;
-  zInches?: number;
-}): Point3DInches {
-  return {
-    xInches: args.xInches,
-    yInches: args.yInches,
-    zInches: args.zInches ?? 0,
-  };
-}
-
-export function getPlanVectorBetweenPoints(args: {
-  startPointInches: Point3DInches;
-  endPointInches: Point3DInches;
-}): PlanVector2DInches {
-  return {
-    xInches: args.endPointInches.xInches - args.startPointInches.xInches,
-    yInches: args.endPointInches.yInches - args.startPointInches.yInches,
-  };
-}
-
-export function getPlanSegmentVector(segment: PlanLineSegmentInches): PlanVector2DInches {
-  return getPlanVectorBetweenPoints({
-    startPointInches: segment.startPointInches,
-    endPointInches: segment.endPointInches,
-  });
 }
 
 export function getPlanVectorLength(vectorInches: PlanVector2DInches): number {
@@ -110,32 +57,11 @@ export function getPlanDotProduct(
   );
 }
 
-export function getPlanCrossProduct(
-  firstVectorInches: PlanVector2DInches,
-  secondVectorInches: PlanVector2DInches,
-): number {
-  return (
-    firstVectorInches.xInches * secondVectorInches.yInches -
-    firstVectorInches.yInches * secondVectorInches.xInches
-  );
-}
-
 export function getPlanPerpendicularVector(vectorInches: PlanVector2DInches): PlanVector2DInches {
   return {
     xInches: -vectorInches.yInches,
     yInches: vectorInches.xInches,
   };
-}
-
-export function invertPlanVector(vectorInches: PlanVector2DInches): PlanVector2DInches {
-  return {
-    xInches: -vectorInches.xInches,
-    yInches: -vectorInches.yInches,
-  };
-}
-
-export function getPlanSegmentUnitDirection(segment: PlanLineSegmentInches): PlanVector2DInches | null {
-  return normalizePlanVector(getPlanSegmentVector(segment));
 }
 
 export function arePlanDirectionsParallel(args: {
@@ -209,14 +135,6 @@ export function getProjectedSegmentOverlap(args: {
     minInches: Math.min(minInches, maxInches),
     maxInches: Math.max(minInches, maxInches),
   };
-}
-
-export function doProjectedSpansOverlap(args: {
-  firstSpanInches: PlanProjectionSpanInches;
-  secondSpanInches: PlanProjectionSpanInches;
-  toleranceInches: number;
-}): boolean {
-  return getProjectedSegmentOverlap(args) !== null;
 }
 
 export function getPlanPointAtProjection(args: {

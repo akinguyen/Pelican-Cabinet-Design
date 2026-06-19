@@ -1,6 +1,7 @@
 import { getDefaultDesignReservationZoneDimensions } from "@/engine/design-zones/designReservationZoneDefaults";
-import type { DesignReservationZonePurpose } from "@/engine/design-zones/designReservationZoneTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { getSceneEntityRefsFromSelection } from "../sceneSelectionTypes";
+import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 const MIN_DESIGN_RESERVATION_ZONE_DIMENSION_INCHES = 1;
 
@@ -17,11 +18,10 @@ export function createDesignReservationZoneEditingActions(
   | "updateSelectedDesignReservationZonePositionY"
   | "updateSelectedDesignReservationZoneDistanceFromFloor"
   | "updateSelectedDesignReservationZoneRotationZ"
-  | "deleteSelectedDesignReservationZone"
 > {
   return {
     updateSelectedDesignReservationZoneReservedFor(reservedFor) {
-      updateSelectedZone(set, get, (zone) => ({
+      updateSelectedZone(set, get, "Update design reservation zone purpose", (zone) => ({
         ...zone,
         reservedFor,
         sizeInches: { ...getDefaultDesignReservationZoneDimensions(reservedFor) },
@@ -29,7 +29,7 @@ export function createDesignReservationZoneEditingActions(
     },
 
     updateSelectedDesignReservationZoneWidth(widthInches) {
-      updateSelectedZone(set, get, (zone) => ({
+      updateSelectedZone(set, get, "Update design reservation zone width", (zone) => ({
         ...zone,
         sizeInches: {
           ...zone.sizeInches,
@@ -39,7 +39,7 @@ export function createDesignReservationZoneEditingActions(
     },
 
     updateSelectedDesignReservationZoneDepth(depthInches) {
-      updateSelectedZone(set, get, (zone) => ({
+      updateSelectedZone(set, get, "Update design reservation zone depth", (zone) => ({
         ...zone,
         sizeInches: {
           ...zone.sizeInches,
@@ -49,7 +49,7 @@ export function createDesignReservationZoneEditingActions(
     },
 
     updateSelectedDesignReservationZoneHeight(heightInches) {
-      updateSelectedZone(set, get, (zone) => ({
+      updateSelectedZone(set, get, "Update design reservation zone height", (zone) => ({
         ...zone,
         sizeInches: {
           ...zone.sizeInches,
@@ -59,7 +59,7 @@ export function createDesignReservationZoneEditingActions(
     },
 
     updateSelectedDesignReservationZonePositionX(xInches) {
-      updateSelectedZone(set, get, (zone) => ({
+      updateSelectedZone(set, get, "Update design reservation zone position", (zone) => ({
         ...zone,
         baseCenterPointInches: {
           ...zone.baseCenterPointInches,
@@ -69,7 +69,7 @@ export function createDesignReservationZoneEditingActions(
     },
 
     updateSelectedDesignReservationZonePositionY(yInches) {
-      updateSelectedZone(set, get, (zone) => ({
+      updateSelectedZone(set, get, "Update design reservation zone position", (zone) => ({
         ...zone,
         baseCenterPointInches: {
           ...zone.baseCenterPointInches,
@@ -79,7 +79,7 @@ export function createDesignReservationZoneEditingActions(
     },
 
     updateSelectedDesignReservationZoneDistanceFromFloor(distanceFromFloorInches) {
-      updateSelectedZone(set, get, (zone) => ({
+      updateSelectedZone(set, get, "Update design reservation zone elevation", (zone) => ({
         ...zone,
         baseCenterPointInches: {
           ...zone.baseCenterPointInches,
@@ -89,31 +89,13 @@ export function createDesignReservationZoneEditingActions(
     },
 
     updateSelectedDesignReservationZoneRotationZ(zDegrees) {
-      updateSelectedZone(set, get, (zone) => ({
+      updateSelectedZone(set, get, "Rotate design reservation zone", (zone) => ({
         ...zone,
         rotationDegrees: { zDegrees },
       }));
     },
 
-    deleteSelectedDesignReservationZone() {
-      const selectedZoneId = getSelectedDesignReservationZoneId(get());
 
-      if (selectedZoneId === null) {
-        return;
-      }
-
-      set((state) => ({
-        activeObjectAlignmentGuides: [],
-        designScene: {
-          ...state.designScene,
-          designReservationZones: state.designScene.designReservationZones.filter((zone) => zone.id !== selectedZoneId),
-          activeSelection: state.designScene.activeSelection?.kind === "design-reservation-zone" &&
-            state.designScene.activeSelection.designReservationZoneId === selectedZoneId
-              ? null
-              : state.designScene.activeSelection,
-        },
-      }));
-    },
 
   };
 }
@@ -121,6 +103,7 @@ export function createDesignReservationZoneEditingActions(
 function updateSelectedZone(
   set: DesignSceneStoreSetter,
   get: DesignSceneStoreGetter,
+  historyLabel: string,
   update: (zone: DesignSceneStore["designScene"]["designReservationZones"][number]) => DesignSceneStore["designScene"]["designReservationZones"][number],
 ) {
   const selectedZoneId = getSelectedDesignReservationZoneId(get());
@@ -128,6 +111,8 @@ function updateSelectedZone(
   if (selectedZoneId === null) {
     return;
   }
+
+  recordDesignSceneHistoryEntry({ get, set, label: historyLabel });
 
   set((state) => ({
     activeObjectAlignmentGuides: [],
@@ -141,18 +126,8 @@ function updateSelectedZone(
 }
 
 function getSelectedDesignReservationZoneId(state: DesignSceneStore): string | null {
-  return state.designScene.activeSelection?.kind === "design-reservation-zone"
-    ? state.designScene.activeSelection.designReservationZoneId
+  const selectedSceneEntities = getSceneEntityRefsFromSelection(state.designScene.activeSelection);
+  return selectedSceneEntities.length === 1 && selectedSceneEntities[0].entityKind === "design-reservation-zone"
+    ? selectedSceneEntities[0].entityId
     : null;
-}
-
-export function formatDesignReservationZonePurposeLabel(purpose: DesignReservationZonePurpose): string {
-  switch (purpose) {
-    case "island":
-      return "Island";
-    case "peninsula":
-      return "Peninsula";
-    case "tall-pantry":
-      return "Tall pantry";
-  }
 }

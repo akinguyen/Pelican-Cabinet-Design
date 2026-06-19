@@ -4,13 +4,12 @@ import { createCountertopOpeningRequestedPolygon } from "@/engine/countertops/co
 import type { DerivedCountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
 import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
-import type { WallSegmentFace } from "@/engine/walls/wallSegmentTopologyTypes";
+import type { WallSegmentFace } from "@/engine/walls/connectedWallGeometryTypes";
 import {
   arePlanDirectionsParallel,
   getPlacementEdgePlanSegment,
   getPlanPerpendicularVector,
   getPlanSignedDistanceToLine,
-  getPlanVectorLength,
   getProjectedSegmentOverlap,
   getProjectedSegmentSpan,
   normalizePlanVector,
@@ -128,7 +127,6 @@ function createWallCenterlinePlanAlignmentFootprint(args: {
 
   return {
     assemblyId: `wall-centerline-${args.segmentId}`,
-    targetKind: "wall-centerline",
     targetPriority: -2,
     snapDistanceInches: WALL_ALIGNMENT_SNAP_DISTANCE_INCHES,
     footprint: {
@@ -148,11 +146,9 @@ function createWallCenterlinePlanAlignmentFootprint(args: {
     lines: [{
       id: `wall-centerline-${args.segmentId}-center`,
       lineKind: "center",
-      axisIndex: 0,
       pointInches: centerPointInches,
       directionInches: args.directionInches,
       normalInches,
-      segmentInches,
     }],
   };
 }
@@ -209,7 +205,6 @@ function createWallFacePlanAlignmentFootprint(args: {
 
   return createObjectAlignmentFootprintFromPlanPoints({
     assemblyId: `wall-face-${args.face.id}`,
-    targetKind: "wall-face",
     targetPriority: -2,
     snapDistanceInches: WALL_ALIGNMENT_SNAP_DISTANCE_INCHES,
     centerPointInches,
@@ -242,7 +237,6 @@ function createCountertopOpeningAlignmentFootprint(args: {
 
   return createObjectAlignmentFootprintFromPlanPoints({
     assemblyId: `countertop-opening-${args.opening.id}`,
-    targetKind: "countertop-opening",
     targetPriority: 0,
     snapDistanceInches: OBJECT_ALIGNMENT_SNAP_DISTANCE_INCHES,
     centerPointInches,

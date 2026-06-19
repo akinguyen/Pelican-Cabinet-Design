@@ -1,6 +1,7 @@
 import type { Point2DInches } from "@/core/geometry/pointTypes";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import { createCountertopBounds, getPolygonAreaInches } from "./countertopOpeningGeometry";
+import { isPointInsidePolygon } from "@/core/geometry/polygonGeometry";
 
 const COORDINATE_KEY_PRECISION = 6;
 const MIN_CELL_SIZE_INCHES = 0.001;
@@ -17,7 +18,7 @@ type CountertopGrid = Readonly<{
   rowCount: number;
 }>;
 
-export type CountertopBoundarySegmentInches = Readonly<{
+type CountertopBoundarySegmentInches = Readonly<{
   startInches: Point2DInches;
   endInches: Point2DInches;
 }>;
@@ -38,24 +39,6 @@ export function createCountertopSolidAreaLoops(args: {
   });
 
   return createBoundaryLoops(solidBoundaryEdges);
-}
-
-export function createCountertopRemovedAreaBoundarySegments(args: {
-  countertopSizeInches: Size3DInches;
-  removedPolygonsInches: readonly (readonly Point2DInches[])[];
-}): readonly CountertopBoundarySegmentInches[] {
-  const grid = createCountertopCutoutGrid(args);
-  const removedToSolidEdges = createCellBoundaryEdges({
-    cellKeys: grid.removedCellKeys,
-    oppositeCellKeys: grid.solidCellKeys,
-    columnCount: grid.columnCount,
-    rowCount: grid.rowCount,
-    xCoordinatesInches: grid.xCoordinatesInches,
-    yCoordinatesInches: grid.yCoordinatesInches,
-    includeOuterBoundary: false,
-  });
-
-  return mergeBoundarySegments(removedToSolidEdges);
 }
 
 function createCountertopCutoutGrid(args: {
@@ -257,98 +240,6 @@ function createBoundaryLoops(
   return loops;
 }
 
-function mergeBoundarySegments(
-  boundarySegments: readonly CountertopBoundarySegmentInches[],
-): readonly CountertopBoundarySegmentInches[] {
-  const horizontalSegments = new Map<number, CountertopBoundarySegmentInches[]>();
-  const verticalSegments = new Map<number, CountertopBoundarySegmentInches[]>();
-  const diagonalSegments: CountertopBoundarySegmentInches[] = [];
-
-  boundarySegments.forEach((segment) => {
-    if (Math.abs(segment.startInches.yInches - segment.endInches.yInches) < MIN_CELL_SIZE_INCHES) {
-      const key = roundCoordinate(segment.startInches.yInches);
-      horizontalSegments.set(key, [...(horizontalSegments.get(key) ?? []), segment]);
-    } else if (Math.abs(segment.startInches.xInches - segment.endInches.xInches) < MIN_CELL_SIZE_INCHES) {
-      const key = roundCoordinate(segment.startInches.xInches);
-      verticalSegments.set(key, [...(verticalSegments.get(key) ?? []), segment]);
-    } else {
-      diagonalSegments.push(segment);
-    }
-  });
-
-  return [
-    ...mergeAxisAlignedSegments(horizontalSegments, "horizontal"),
-    ...mergeAxisAlignedSegments(verticalSegments, "vertical"),
-    ...diagonalSegments,
-  ];
-}
-
-function mergeAxisAlignedSegments(
-  segmentGroups: ReadonlyMap<number, readonly CountertopBoundarySegmentInches[]>,
-  orientation: "horizontal" | "vertical",
-): readonly CountertopBoundarySegmentInches[] {
-  const mergedSegments: CountertopBoundarySegmentInches[] = [];
-
-  segmentGroups.forEach((segments, coordinate) => {
-    const ranges = segments
-      .map((segment) => {
-        const startValue = orientation === "horizontal"
-          ? segment.startInches.xInches
-          : segment.startInches.yInches;
-        const endValue = orientation === "horizontal"
-          ? segment.endInches.xInches
-          : segment.endInches.yInches;
-
-        return {
-          start: Math.min(startValue, endValue),
-          end: Math.max(startValue, endValue),
-        };
-      })
-      .sort((a, b) => a.start - b.start);
-
-    let activeRange: { start: number; end: number } | null = null;
-
-    ranges.forEach((range) => {
-      if (activeRange === null) {
-        activeRange = { ...range };
-        return;
-      }
-
-      if (range.start <= activeRange.end + MIN_CELL_SIZE_INCHES) {
-        activeRange.end = Math.max(activeRange.end, range.end);
-        return;
-      }
-
-      mergedSegments.push(createSegmentFromRange(activeRange, coordinate, orientation));
-      activeRange = { ...range };
-    });
-
-    if (activeRange !== null) {
-      mergedSegments.push(createSegmentFromRange(activeRange, coordinate, orientation));
-    }
-  });
-
-  return mergedSegments;
-}
-
-function createSegmentFromRange(
-  range: Readonly<{ start: number; end: number }>,
-  coordinate: number,
-  orientation: "horizontal" | "vertical",
-): CountertopBoundarySegmentInches {
-  if (orientation === "horizontal") {
-    return {
-      startInches: { xInches: range.start, yInches: coordinate },
-      endInches: { xInches: range.end, yInches: coordinate },
-    };
-  }
-
-  return {
-    startInches: { xInches: coordinate, yInches: range.start },
-    endInches: { xInches: coordinate, yInches: range.end },
-  };
-}
-
 function removeEdge(
   edgesByStartKey: Map<string, CountertopBoundarySegmentInches[]>,
   edge: CountertopBoundarySegmentInches,
@@ -384,27 +275,6 @@ function removeDuplicatedClosingPoint(pointsInches: readonly Point2DInches[]): r
     : pointsInches;
 }
 
-function isPointInsidePolygon(pointInches: Point2DInches, polygonInches: readonly Point2DInches[]): boolean {
-  let isInside = false;
-
-  for (let pointIndex = 0, previousIndex = polygonInches.length - 1; pointIndex < polygonInches.length; previousIndex = pointIndex, pointIndex += 1) {
-    const currentPoint = polygonInches[pointIndex];
-    const previousPoint = polygonInches[previousIndex];
-    const intersects =
-      currentPoint.yInches > pointInches.yInches !== previousPoint.yInches > pointInches.yInches &&
-      pointInches.xInches <
-        ((previousPoint.xInches - currentPoint.xInches) *
-          (pointInches.yInches - currentPoint.yInches)) /
-          (previousPoint.yInches - currentPoint.yInches) +
-          currentPoint.xInches;
-
-    if (intersects) {
-      isInside = !isInside;
-    }
-  }
-
-  return isInside;
-}
 
 function createCellKey(columnIndex: number, rowIndex: number): CountertopCellKey {
   return `${columnIndex}:${rowIndex}`;

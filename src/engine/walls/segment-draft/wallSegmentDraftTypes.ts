@@ -39,3 +39,16 @@ export type WallSegmentDraft = Readonly<{
   heightInches: number;
   thicknessInches: number;
 }>;
+
+export function createEmptyWallSegmentDraft(args: {
+  heightInches: number;
+  thicknessInches: number;
+}): WallSegmentDraft {
+  return {
+    activeStartAnchor: null,
+    hoverAnchor: null,
+    activeGuides: [],
+    heightInches: args.heightInches,
+    thicknessInches: args.thicknessInches,
+  };
+}

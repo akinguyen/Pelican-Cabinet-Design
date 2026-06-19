@@ -10,5 +10,4 @@ export const wallSegmentRenderColors = {
   planMeasurementStroke: "#38bdf8",
   openingOutlineStroke: "#111827",
   openingMeasurementStroke: "#111827",
-  debugVertexFill: "#22c55e",
 };

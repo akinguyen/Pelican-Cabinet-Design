@@ -7,7 +7,6 @@ import type { SceneEntityBounds } from "@/engine/scene-entities/sceneEntityBound
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
 import {
-  combineElevationAlignmentCandidateDeltas,
   findElevationAlignmentCandidates,
   selectCompatibleElevationAlignmentCandidates,
 } from "@/engine/assemblies/placement/alignment/assemblyElevationAlignmentCandidates";
@@ -19,7 +18,7 @@ import {
   isElevationAlignmentTargetRelevant,
 } from "@/engine/assemblies/placement/alignment/assemblyElevationAlignmentBoxes";
 import { buildElevationAlignmentGuides } from "@/engine/assemblies/placement/alignment/assemblyElevationAlignmentGuides";
-import type { ElevationAlignmentBox } from "@/engine/assemblies/placement/alignment/assemblyObjectAlignmentTypes";
+import { combineObjectAlignmentCandidateDeltas, type ElevationAlignmentBox } from "@/engine/assemblies/placement/alignment/assemblyObjectAlignmentTypes";
 import {
   OBJECT_ELEVATION_ALIGNMENT_SNAP_DISTANCE_INCHES,
 } from "@/engine/assemblies/placement/alignment/assemblyObjectAlignmentConstants";
@@ -83,20 +82,6 @@ export function alignDesignReservationZone(args: {
   }
 
   return alignDesignReservationZoneInPlan(args);
-}
-
-export function snapDesignReservationZoneByFootprint(args: {
-  movingZone: DesignReservationZone;
-  placedAssemblies: readonly PlacedAssembly[];
-  placedWallGraphs: readonly PlacedWallGraph[];
-  designReservationZones: readonly DesignReservationZone[];
-}): Readonly<{ baseCenterPointInches: Point3DInches; alignmentGuides: readonly AssemblyObjectAlignmentGuide[] }> {
-  const result = alignDesignReservationZoneInPlan(args);
-
-  return {
-    baseCenterPointInches: result.zone.baseCenterPointInches,
-    alignmentGuides: result.alignmentGuides,
-  };
 }
 
 function alignDesignReservationZoneInPlan(args: {
@@ -215,7 +200,7 @@ function alignDesignReservationZoneInElevation(args: {
   }
 
   const selectedCandidates = selectCompatibleElevationAlignmentCandidates(candidates);
-  const alignmentDeltaInches = combineElevationAlignmentCandidateDeltas(selectedCandidates);
+  const alignmentDeltaInches = combineObjectAlignmentCandidateDeltas(selectedCandidates);
   const zone = {
     ...args.movingZone,
     baseCenterPointInches: {
@@ -422,9 +407,6 @@ function createAlignmentGuide(args: {
 
     return {
       id: `design-zone-alignment-x-${args.candidate.targetAnchor.id}-${args.candidate.movingAnchor.id}`,
-      guideKind: args.candidate.movingAnchor.role === "center" || args.candidate.targetAnchor.role === "center"
-        ? "center-line"
-        : "edge-line",
       guidePlane: "plan",
       startPointInches: { xInches, yInches: minYInches, zInches: 0 },
       endPointInches: { xInches, yInches: maxYInches, zInches: 0 },
@@ -437,9 +419,6 @@ function createAlignmentGuide(args: {
 
   return {
     id: `design-zone-alignment-y-${args.candidate.targetAnchor.id}-${args.candidate.movingAnchor.id}`,
-    guideKind: args.candidate.movingAnchor.role === "center" || args.candidate.targetAnchor.role === "center"
-      ? "center-line"
-      : "edge-line",
     guidePlane: "plan",
     startPointInches: { xInches: minXInches, yInches, zInches: 0 },
     endPointInches: { xInches: maxXInches, yInches, zInches: 0 },

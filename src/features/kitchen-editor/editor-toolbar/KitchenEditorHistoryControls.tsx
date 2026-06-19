@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, History, Redo2, Undo2 } from "lucide-react";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import { getVisibleSceneHistoryEntries } from "@/engine/scene/actions/sceneHistoryActions";
+import { getVisibleSceneHistoryEntries } from "@/engine/scene/sceneHistoryTypes";
 
 export function KitchenEditorHistoryControls() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);

@@ -1,6 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { WallFaceSide } from "../placedWallSegmentTypes";
-import type { BuiltWallSegmentBody } from "../wallSegmentTopologyTypes";
+import type { BuiltWallSegmentBody } from "../connectedWallGeometryTypes";
 
 const GEOMETRY_EPSILON = 0.000001;
 
@@ -11,7 +11,6 @@ export type DerivedWallOpeningFaceDirectionInches = Readonly<{
 
 export type DerivedWallOpeningFaceAxesInches = Readonly<{
   sideStartPointInches: Point3DInches;
-  sideEndPointInches: Point3DInches;
   faceLengthInches: number;
   faceDirectionInches: DerivedWallOpeningFaceDirectionInches;
   outwardDirectionInches: DerivedWallOpeningFaceDirectionInches;
@@ -51,7 +50,6 @@ export function createDerivedWallOpeningFaceAxes(args: {
 
   return {
     sideStartPointInches,
-    sideEndPointInches,
     faceLengthInches,
     faceDirectionInches,
     outwardDirectionInches,

@@ -4,7 +4,7 @@ import type { ThreeEvent } from "@react-three/fiber";
 import { useCallback, useMemo } from "react";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { createAssemblyDragPointerWorldPoint } from "../assemblies/assemblyDragPointer";
-import { createDesignReservationZoneElevationDragSurfaceMatrix } from "./designReservationZoneDragPlane";
+import { createElevationDragSurfaceMatrix } from "../elevation/createElevationDragSurfaceMatrix";
 import { createDesignReservationZoneElevationMoveFrame } from "./designReservationZoneElevationFrame";
 
 const DESIGN_RESERVATION_ZONE_PLACEMENT_SURFACE_SIZE_INCHES = 3200;
@@ -24,7 +24,7 @@ export function DesignReservationZonePlacementSurface() {
     : undefined, [activeSceneViewMode, activeWallElevationTarget, placedWallGraphs]);
   const elevationPlacementSurfaceMatrix = useMemo(
     () => activeSceneViewMode === "elevation" && elevationMoveFrame !== undefined
-      ? createDesignReservationZoneElevationDragSurfaceMatrix(elevationMoveFrame)
+      ? createElevationDragSurfaceMatrix(elevationMoveFrame)
       : null,
     [activeSceneViewMode, elevationMoveFrame],
   );

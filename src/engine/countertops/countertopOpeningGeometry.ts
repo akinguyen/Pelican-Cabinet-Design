@@ -90,50 +90,6 @@ export function createCountertopBounds(
   };
 }
 
-export function getCountertopOpeningPolygonBounds(
-  polygonInches: readonly Point2DInches[],
-): CountertopOpeningBoundsInches | null {
-  if (polygonInches.length === 0) {
-    return null;
-  }
-
-  return polygonInches.reduce<CountertopOpeningBoundsInches>(
-    (bounds, pointInches) => ({
-      leftInches: Math.min(bounds.leftInches, pointInches.xInches),
-      rightInches: Math.max(bounds.rightInches, pointInches.xInches),
-      backInches: Math.min(bounds.backInches, pointInches.yInches),
-      frontInches: Math.max(bounds.frontInches, pointInches.yInches),
-    }),
-    {
-      leftInches: polygonInches[0].xInches,
-      rightInches: polygonInches[0].xInches,
-      backInches: polygonInches[0].yInches,
-      frontInches: polygonInches[0].yInches,
-    },
-  );
-}
-
-export function getCountertopOpeningShapeBounds(
-  shape: DerivedCountertopOpeningShape,
-): CountertopOpeningBoundsInches {
-  return {
-    leftInches: -shape.widthInches / 2,
-    rightInches: shape.widthInches / 2,
-    backInches: -shape.depthInches / 2,
-    frontInches: shape.depthInches / 2,
-  };
-}
-
-export function getCountertopOpeningShapeSize(shape: DerivedCountertopOpeningShape): Readonly<{
-  widthInches: number;
-  depthInches: number;
-}> {
-  return {
-    widthInches: shape.widthInches,
-    depthInches: shape.depthInches,
-  };
-}
-
 export function getPolygonAreaInches(polygonInches: readonly Point2DInches[]): number {
   if (polygonInches.length < 3) {
     return 0;

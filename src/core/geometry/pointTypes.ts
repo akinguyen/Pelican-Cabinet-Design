@@ -37,13 +37,3 @@ export function rotatePointAroundZInches(
   };
 }
 
-export function getPoint3DDistanceInches(
-  firstPointInches: Point3DInches,
-  secondPointInches: Point3DInches,
-): number {
-  return Math.hypot(
-    firstPointInches.xInches - secondPointInches.xInches,
-    firstPointInches.yInches - secondPointInches.yInches,
-    firstPointInches.zInches - secondPointInches.zInches,
-  );
-}

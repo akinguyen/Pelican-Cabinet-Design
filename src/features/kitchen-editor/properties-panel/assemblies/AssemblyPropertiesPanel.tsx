@@ -18,7 +18,7 @@ export function AssemblyPropertiesPanel({
   definition,
 }: AssemblyPropertiesPanelProps) {
   const handleDelete = useCallback(() => {
-    useDesignSceneStore.getState().deleteSelectedAssembly();
+    useDesignSceneStore.getState().deleteSelectedSceneEntities();
   }, []);
 
   return (

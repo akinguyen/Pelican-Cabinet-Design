@@ -7,7 +7,7 @@ import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { DerivedWallOpening } from "@/engine/walls/placedWallSegmentTypes";
-import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
+import type { BuiltWallSegmentBody } from "@/engine/walls/connectedWallGeometryTypes";
 import {
   createDerivedWallOpeningIntersectionOutline,
   isDerivedWallOpeningIntersectionOutline,
@@ -93,7 +93,7 @@ function WallOpeningIntersectionOutline({
     }
 
     event.stopPropagation();
-    designSceneStore.selectPlacedAssembly(sourceAssembly.id);
+    designSceneStore.selectSceneEntity({ entityKind: "placed-assembly", entityId: sourceAssembly.id });
 
 
     const pointerWorldInches = createAssemblyDragPointerWorldPoint(

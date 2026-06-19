@@ -3,8 +3,9 @@ import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PrimitiveEdgeSegmentInches } from "@/engine/primitive-geometry/edge-segments/primitiveEdgeSegmentTypes";
 import { createOrthogonalDerivedWallOpeningCutFootprint } from "@/engine/walls/openings/wallOpeningCutGeometry";
 import { createDerivedWallOpeningFaceAxes } from "@/engine/walls/openings/wallOpeningFaceAxes";
-import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
+import type { BuiltWallSegmentBody } from "@/engine/walls/connectedWallGeometryTypes";
 import type { DerivedWallOpening } from "@/engine/walls/placedWallSegmentTypes";
+import { addUniqueWallPlanPoint, getWallPlanCrossProduct, projectWallPlanPointOntoDirection } from "@/engine/walls/wallPlanGeometry";
 
 const GEOMETRY_EPSILON = 0.000001;
 const WALL_OPENING_EDGE_OFFSET_INCHES = 0.12;
@@ -193,12 +194,12 @@ function normalizeOpening(args: {
     return null;
   }
 
-  const frontLeftUInches = projectPointOntoDirection({
+  const frontLeftUInches = projectWallPlanPointOntoDirection({
     pointInches: cutFootprint.frontLeftInches,
     originInches: args.originInches,
     directionInches: args.wallDirectionInches,
   });
-  const frontRightUInches = projectPointOntoDirection({
+  const frontRightUInches = projectWallPlanPointOntoDirection({
     pointInches: cutFootprint.frontRightInches,
     originInches: args.originInches,
     directionInches: args.wallDirectionInches,
@@ -268,7 +269,7 @@ function createWallCellGrid(args: {
   openings: readonly NormalizedDerivedWallOpening[];
 }): WallCellGrid | null {
   const footprintCoordinatesInches = args.segmentBody.footprintPolygonInches.map((pointInches) => (
-    projectPointOntoDirection({
+    projectWallPlanPointOntoDirection({
       pointInches,
       originInches: args.originInches,
       directionInches: args.wallDirectionInches,
@@ -574,12 +575,12 @@ function createWallCrossSection(args: {
   }
 
   const sortedPoints = intersectionPoints.sort((firstPoint, secondPoint) => (
-    projectPointOntoDirection({
+    projectWallPlanPointOntoDirection({
       pointInches: firstPoint,
       originInches: linePointInches,
       directionInches: args.normalDirectionInches,
     }) -
-    projectPointOntoDirection({
+    projectWallPlanPointOntoDirection({
       pointInches: secondPoint,
       originInches: linePointInches,
       directionInches: args.normalDirectionInches,
@@ -608,28 +609,28 @@ function collectLinePolygonIntersectionPoints(args: {
       xInches: edgeEndInches.xInches - edgeStartInches.xInches,
       yInches: edgeEndInches.yInches - edgeStartInches.yInches,
     };
-    const denominator = cross(args.lineDirectionInches, edgeVectorInches);
+    const denominator = getWallPlanCrossProduct(args.lineDirectionInches, edgeVectorInches);
     const lineToEdgeInches = {
       xInches: edgeStartInches.xInches - args.linePointInches.xInches,
       yInches: edgeStartInches.yInches - args.linePointInches.yInches,
     };
 
     if (Math.abs(denominator) <= GEOMETRY_EPSILON) {
-      if (Math.abs(cross(lineToEdgeInches, args.lineDirectionInches)) <= GEOMETRY_EPSILON) {
-        addUniquePoint(pointsInches, edgeStartInches);
-        addUniquePoint(pointsInches, edgeEndInches);
+      if (Math.abs(getWallPlanCrossProduct(lineToEdgeInches, args.lineDirectionInches)) <= GEOMETRY_EPSILON) {
+        addUniqueWallPlanPoint(pointsInches, edgeStartInches);
+        addUniqueWallPlanPoint(pointsInches, edgeEndInches);
       }
       return;
     }
 
-    const lineDistanceInches = cross(lineToEdgeInches, edgeVectorInches) / denominator;
-    const segmentRatio = cross(lineToEdgeInches, args.lineDirectionInches) / denominator;
+    const lineDistanceInches = getWallPlanCrossProduct(lineToEdgeInches, edgeVectorInches) / denominator;
+    const segmentRatio = getWallPlanCrossProduct(lineToEdgeInches, args.lineDirectionInches) / denominator;
 
     if (segmentRatio < -GEOMETRY_EPSILON || segmentRatio > 1 + GEOMETRY_EPSILON) {
       return;
     }
 
-    addUniquePoint(pointsInches, {
+    addUniqueWallPlanPoint(pointsInches, {
       xInches: args.linePointInches.xInches + args.lineDirectionInches.xInches * lineDistanceInches,
       yInches: args.linePointInches.yInches + args.lineDirectionInches.yInches * lineDistanceInches,
       zInches: 0,
@@ -683,17 +684,6 @@ function offsetHighNormalPoint(
   };
 }
 
-function projectPointOntoDirection(args: {
-  pointInches: Point3DInches;
-  originInches: Point3DInches;
-  directionInches: WallDirectionInches;
-}): number {
-  return (
-    (args.pointInches.xInches - args.originInches.xInches) * args.directionInches.xInches +
-    (args.pointInches.yInches - args.originInches.yInches) * args.directionInches.yInches
-  );
-}
-
 function createPerpendicularDirection(directionInches: WallDirectionInches): WallDirectionInches {
   return {
     xInches: -directionInches.yInches,
@@ -714,28 +704,7 @@ function normalizeVector(vectorInches: WallDirectionInches): WallDirectionInches
   };
 }
 
-function addUniquePoint(pointsInches: Point3DInches[], pointInches: Point3DInches): void {
-  if (pointsInches.some((existingPointInches) => arePointsEqual(existingPointInches, pointInches))) {
-    return;
-  }
 
-  pointsInches.push({
-    xInches: pointInches.xInches,
-    yInches: pointInches.yInches,
-    zInches: 0,
-  });
-}
-
-function arePointsEqual(firstPointInches: Point3DInches, secondPointInches: Point3DInches): boolean {
-  return (
-    Math.abs(firstPointInches.xInches - secondPointInches.xInches) <= GEOMETRY_EPSILON &&
-    Math.abs(firstPointInches.yInches - secondPointInches.yInches) <= GEOMETRY_EPSILON
-  );
-}
-
-function cross(first: WallDirectionInches, second: WallDirectionInches): number {
-  return first.xInches * second.yInches - first.yInches * second.xInches;
-}
 
 function addQuad(
   triangles: number[],

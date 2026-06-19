@@ -4,7 +4,7 @@ import { createCountertopOpeningRequestedPolygon } from "@/engine/countertops/co
 import type { DerivedCountertopOpening } from "@/engine/countertops/countertopOpeningTypes";
 import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
-import type { WallSegmentFace } from "@/engine/walls/wallSegmentTopologyTypes";
+import type { WallSegmentFace } from "@/engine/walls/connectedWallGeometryTypes";
 import { createAssemblyPlacementFootprint } from "../assemblyPlacementGeometry";
 import type {
   AssemblyPlacementElevationFrame,

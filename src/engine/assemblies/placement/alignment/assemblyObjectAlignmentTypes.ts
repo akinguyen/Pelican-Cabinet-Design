@@ -3,33 +3,21 @@ import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type {
   AssemblyObjectAlignmentGuide,
   AssemblyPlacementFootprint,
-  AssemblyPlacementSnapTarget,
 } from "../assemblyPlacementTypes";
-import type { PlanLineSegmentInches, PlanVector2DInches } from "../assemblyPlacementPlanGeometry";
+import type { PlanVector2DInches } from "../assemblyPlacementPlanGeometry";
 
 export type AlignmentLineKind = "edge" | "center";
 
 export type ObjectAlignmentLine = Readonly<{
   id: string;
   lineKind: AlignmentLineKind;
-  axisIndex: number;
   pointInches: Point3DInches;
   directionInches: PlanVector2DInches;
   normalInches: PlanVector2DInches;
-  segmentInches: PlanLineSegmentInches;
 }>;
-
-export type ObjectAlignmentTargetKind =
-  | "assembly"
-  | "countertop-opening"
-  | "wall-opening"
-  | "wall-face"
-  | "wall-centerline"
-  | "design-reservation-zone";
 
 export type ObjectAlignmentFootprint = Readonly<{
   assemblyId: string;
-  targetKind: ObjectAlignmentTargetKind;
   targetPriority: number;
   snapDistanceInches: number;
   footprint: AssemblyPlacementFootprint;
@@ -48,7 +36,6 @@ export type ObjectAlignmentCandidate = Readonly<{
   targetLine: ObjectAlignmentLine;
   deltaInches: ObjectAlignmentDeltaInches;
   distanceInches: number;
-  remainingDistanceInches: number;
   priority: number;
   targetPriority: number;
 }>;
@@ -104,5 +91,21 @@ export type ElevationAlignmentCandidate = Readonly<{
 export type AssemblyObjectAlignmentResult = Readonly<{
   placedAssembly: PlacedAssembly;
   objectAlignmentGuides: readonly AssemblyObjectAlignmentGuide[];
-  snapTarget: AssemblyPlacementSnapTarget | null;
 }>;
+
+export function combineObjectAlignmentCandidateDeltas(
+  candidates: readonly Readonly<{ deltaInches: ObjectAlignmentDeltaInches }>[],
+): ObjectAlignmentDeltaInches {
+  return candidates.reduce<ObjectAlignmentDeltaInches>((combinedDeltaInches, candidate) => ({
+    xInches: combinedDeltaInches.xInches + candidate.deltaInches.xInches,
+    yInches: combinedDeltaInches.yInches + candidate.deltaInches.yInches,
+    zInches: (combinedDeltaInches.zInches ?? 0) + (candidate.deltaInches.zInches ?? 0),
+  }), { xInches: 0, yInches: 0, zInches: 0 });
+}
+
+export function createEmptyObjectAlignmentResult(placedAssembly: PlacedAssembly): AssemblyObjectAlignmentResult {
+  return {
+    placedAssembly,
+    objectAlignmentGuides: [],
+  };
+}

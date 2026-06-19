@@ -28,6 +28,3 @@ export function getDefaultDesignReservationZoneDimensions(
   return defaultDesignReservationZoneDimensions[purpose];
 }
 
-export function isDesignReservationZonePurpose(value: unknown): value is DesignReservationZonePurpose {
-  return value === "island" || value === "peninsula" || value === "tall-pantry";
-}

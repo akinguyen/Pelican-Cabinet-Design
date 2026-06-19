@@ -2,6 +2,7 @@
 
 import type { DesignReservationZone } from "@/engine/design-zones/designReservationZoneTypes";
 import type { SceneSelection } from "@/engine/scene/sceneSelectionTypes";
+import { isSceneEntitySelected } from "@/engine/scene/sceneSelectionTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { DesignReservationZoneRenderer } from "./DesignReservationZoneRenderer";
 
@@ -21,7 +22,7 @@ export function DesignReservationZoneLayer({
           key={zone.id}
           zone={zone}
           sceneViewMode={sceneViewMode}
-          isSelected={activeSelection?.kind === "design-reservation-zone" && activeSelection.designReservationZoneId === zone.id}
+          isSelected={isSceneEntitySelected(activeSelection, { entityKind: "design-reservation-zone", entityId: zone.id })}
         />
       ))}
     </group>

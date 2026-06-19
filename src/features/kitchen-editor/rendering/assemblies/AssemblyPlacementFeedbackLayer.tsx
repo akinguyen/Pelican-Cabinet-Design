@@ -5,7 +5,7 @@ import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { createPlacedAssemblySceneEntityBounds } from "@/engine/scene-entities/placedAssemblySceneEntityBounds";
 import { AssemblyPlacementBoundingBox } from "./AssemblyPlacementBoundingBox";
 import { AssemblyObjectAlignmentGuides } from "./AssemblyObjectAlignmentGuides";
-import { AssemblyWallMeasurementGuides } from "./AssemblyWallMeasurementGuides";
+import { SceneEntityWallMeasurementGuides } from "../scene-entities/SceneEntityWallMeasurementGuides";
 import { SceneEntityVolumeBoundingBox } from "../scene-entities/SceneEntityVolumeBoundingBox";
 
 type AssemblyPlacementFeedbackLayerProps = Readonly<{
@@ -46,7 +46,7 @@ export function AssemblyPlacementFeedbackLayer({
       ) : null}
       <AssemblyObjectAlignmentGuides alignmentGuides={placementFeedback.objectAlignmentGuides} />
       {sceneViewMode === "floor-plan" && showWallMeasurementGuides ? (
-        <AssemblyWallMeasurementGuides measurementGuides={placementFeedback.wallMeasurementGuides} />
+        <SceneEntityWallMeasurementGuides measurementGuides={placementFeedback.wallMeasurementGuides} />
       ) : null}
     </group>
   );

@@ -37,9 +37,14 @@ export function KeyboardShortcuts() {
       if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
         const designSceneStore = useDesignSceneStore.getState();
-        designSceneStore.deleteSelectedDesignReservationZone();
-        designSceneStore.deleteSelectedWallSegment();
-        designSceneStore.deleteSelectedAssembly();
+        const activeSelection = designSceneStore.designScene.activeSelection;
+
+        if (activeSelection?.kind === "placed-wall-segment") {
+          designSceneStore.deleteSelectedWallSegment();
+          return;
+        }
+
+        designSceneStore.deleteSelectedSceneEntities();
       }
     }
 

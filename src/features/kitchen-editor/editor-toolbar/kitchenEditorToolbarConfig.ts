@@ -2,7 +2,8 @@ import { Box, Maximize, Minus, PencilLine, Plus } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { SceneCameraCommandTool } from "@/engine/scene/sceneCameraCommandTypes";
 import type { SceneEditingTool } from "@/engine/scene/sceneEditingToolTypes";
-import type { KitchenEditorToolbarActionId } from "./kitchenEditorToolbarTypes";
+
+export type KitchenEditorToolbarActionId = SceneCameraCommandTool | SceneEditingTool;
 
 export type KitchenEditorCameraToolbarAction = Readonly<{
   id: SceneCameraCommandTool;

@@ -11,7 +11,7 @@ import {
   evaluateRawSize3DExpression,
   type RawAssemblyExpressionContext,
 } from "./rawAssemblyExpressionEvaluator";
-import type { PrimitiveMaterial } from "@/engine/primitive-geometry/primitiveMaterialTypes";
+import type { PrimitiveMaterial } from "@/engine/primitive-geometry/primitiveGeometryTypes";
 
 export function buildAssemblyFromRawDefinition(args: {
   rawDefinition: RawAssemblyDefinition;

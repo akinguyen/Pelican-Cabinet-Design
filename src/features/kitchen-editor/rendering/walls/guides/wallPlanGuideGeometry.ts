@@ -12,15 +12,6 @@ export const DEFAULT_PLAN_DIRECTION: PlanDirection = {
 
 const NORMALIZED_DIRECTION_EPSILON_INCHES = 0.000001;
 
-export function getPlanDistanceInches(
-  firstPointInches: Point3DInches,
-  secondPointInches: Point3DInches,
-): number {
-  return Math.hypot(
-    secondPointInches.xInches - firstPointInches.xInches,
-    secondPointInches.yInches - firstPointInches.yInches,
-  );
-}
 
 export function getNormalizedPlanDirection(
   startPointInches: Point3DInches,

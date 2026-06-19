@@ -1,56 +1,51 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { ASSEMBLY_ROTATION_SNAP_STEP_DEGREES } from "@/engine/assemblies/placement/assemblyRotationSnapping";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import type { DesignReservationZone } from "@/engine/design-zones/designReservationZoneTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
-import { createPlacedAssemblySceneEntityBounds } from "@/engine/scene-entities/placedAssemblySceneEntityBounds";
 import type { SceneEntityBounds } from "@/engine/scene-entities/sceneEntityBoundsTypes";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
-import { SceneEntityFloorPlanEditControls } from "../scene-entities/SceneEntityFloorPlanEditControls";
-import { SceneEntityFloorPlanRotationControl } from "../scene-entities/SceneEntityFloorPlanRotationControl";
-import { SceneEntityFootprintBoundingBox } from "../scene-entities/SceneEntityFootprintBoundingBox";
-import { SceneEntityVolumeBoundingBox } from "../scene-entities/SceneEntityVolumeBoundingBox";
-import { SelectedAssembliesFloorPlanEditControls } from "./SelectedAssembliesFloorPlanEditControls";
-import { SelectedAssembliesGroupMeasurementGuides } from "./SelectedAssembliesGroupMeasurementGuides";
+import { SceneEntityFloorPlanEditControls } from "./SceneEntityFloorPlanEditControls";
+import { SceneEntityFloorPlanRotationControl } from "./SceneEntityFloorPlanRotationControl";
+import { SceneEntityVolumeBoundingBox } from "./SceneEntityVolumeBoundingBox";
 
-type SelectedAssemblyOutlineLayerProps = Readonly<{
-  selectedAssembly: PlacedAssembly | null;
-  selectedAssemblies?: readonly PlacedAssembly[];
-  placedWallGraphs?: readonly PlacedWallGraph[];
+type SelectedSceneEntityLayerProps = Readonly<{
+  selectedAssemblies: readonly PlacedAssembly[];
+  selectedDesignReservationZones: readonly DesignReservationZone[];
+  selectedSceneEntityBounds: readonly SceneEntityBounds[];
+  placedWallGraphs: readonly PlacedWallGraph[];
   sceneViewMode: SceneViewMode;
-  hideFloorPlanSelectionBox?: boolean;
-  hideFloorPlanRotationControl?: boolean;
+  selectedAssemblyIsWallOpening: boolean;
 }>;
 
-export function SelectedAssemblyOutlineLayer({
-  selectedAssembly,
+export function SelectedSceneEntityLayer({
   selectedAssemblies,
-  placedWallGraphs = [],
+  selectedDesignReservationZones,
+  selectedSceneEntityBounds,
+  placedWallGraphs,
   sceneViewMode,
-  hideFloorPlanSelectionBox = false,
-  hideFloorPlanRotationControl = false,
-}: SelectedAssemblyOutlineLayerProps) {
+  selectedAssemblyIsWallOpening,
+}: SelectedSceneEntityLayerProps) {
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
   const isSceneOperationActive = useDesignSceneStore((state) => state.designScene.activeSceneOperation !== null);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
   const assemblyPlacementFeedback = useDesignSceneStore((state) => state.assemblyPlacementFeedback);
-  const selectedAssemblyList = useMemo(() => {
-    if (selectedAssemblies !== undefined) {
-      return selectedAssemblies;
-    }
+  const singleSelectedAssembly = selectedAssemblies.length === 1 && selectedDesignReservationZones.length === 0
+    ? selectedAssemblies[0]
+    : null;
+  const singleSelectedDesignReservationZone = selectedDesignReservationZones.length === 1 && selectedAssemblies.length === 0
+    ? selectedDesignReservationZones[0]
+    : null;
+  const singleBounds = selectedSceneEntityBounds.length === 1 ? selectedSceneEntityBounds[0] : null;
+  const selectedSceneEntityCount = selectedSceneEntityBounds.length;
+  const isMultiSelection = selectedSceneEntityCount > 1;
 
-    return selectedAssembly === null ? [] : [selectedAssembly];
-  }, [selectedAssemblies, selectedAssembly]);
-  const selectedBounds = useMemo(() => selectedAssemblyList.map(createPlacedAssemblySceneEntityBounds), [selectedAssemblyList]);
-
-  const singleSelectedAssembly = selectedAssemblyList.length === 1 ? selectedAssemblyList[0] : null;
-  const singleBounds = selectedBounds.length === 1 ? selectedBounds[0] : null;
-
-  const handleStartRotation = useCallback((pointerWorldInches: Point3DInches) => {
+  const handleStartAssemblyRotation = useCallback((pointerWorldInches: Point3DInches) => {
     if (singleSelectedAssembly === null || singleBounds === null) {
       return;
     }
@@ -62,101 +57,140 @@ export function SelectedAssemblyOutlineLayer({
     });
   }, [singleBounds, singleSelectedAssembly]);
 
-  if (selectedAssemblyList.length === 0 || selectedBounds.length === 0) {
+  const handleStartDesignReservationZoneRotation = useCallback((pointerWorldInches: Point3DInches) => {
+    if (singleSelectedDesignReservationZone === null || singleBounds === null) {
+      return;
+    }
+
+    useDesignSceneStore.getState().startDesignReservationZoneRotationDrag({
+      designReservationZoneId: singleSelectedDesignReservationZone.id,
+      centerPointInches: singleBounds.footprint.centerPointInches,
+      pointerWorldInches,
+    });
+  }, [singleBounds, singleSelectedDesignReservationZone]);
+
+  if (selectedSceneEntityCount === 0) {
     return null;
   }
 
-  const isMultiSelection = selectedAssemblyList.length > 1;
-  const isSelectedAssemblyBeingMoved = singleSelectedAssembly !== null && activeDrag?.kind === "assembly-move" && activeDrag.assemblyId === singleSelectedAssembly.id;
-  const isSelectedAssemblyBeingRotated = singleSelectedAssembly !== null && activeDrag?.kind === "assembly-rotation" && activeDrag.assemblyId === singleSelectedAssembly.id;
-  const isMultiSelectionBeingMoved = activeDrag?.kind === "assembly-multi-move" && selectedAssemblyList.some((assembly) => activeDrag.assemblyIds.includes(assembly.id));
-  const activeFeedbackBelongsToSelectedAssembly = singleSelectedAssembly !== null && assemblyPlacementFeedback?.placedAssembly.id === singleSelectedAssembly.id;
-  const shouldRenderSingleSelectionBoundingBox =
-    !activeFeedbackBelongsToSelectedAssembly ||
-    (!isSelectedAssemblyBeingMoved && !isSelectedAssemblyBeingRotated);
+  const isSingleAssemblyBeingMoved = singleSelectedAssembly !== null && activeDrag?.kind === "assembly-move" && activeDrag.assemblyId === singleSelectedAssembly.id;
+  const isSingleAssemblyBeingRotated = singleSelectedAssembly !== null && activeDrag?.kind === "assembly-rotation" && activeDrag.assemblyId === singleSelectedAssembly.id;
+  const isSingleDesignReservationZoneBeingMoved = singleSelectedDesignReservationZone !== null && activeDrag?.kind === "design-reservation-zone-move" && activeDrag.designReservationZoneId === singleSelectedDesignReservationZone.id;
+  const isSingleDesignReservationZoneBeingRotated = singleSelectedDesignReservationZone !== null && activeDrag?.kind === "design-reservation-zone-rotation" && activeDrag.designReservationZoneId === singleSelectedDesignReservationZone.id;
+  const isSceneEntityMultiMoveActive = activeDrag?.kind === "scene-entity-multi-move";
+  const isSelectedSceneEntityMoving = isSingleAssemblyBeingMoved ||
+    isSingleAssemblyBeingRotated ||
+    isSingleDesignReservationZoneBeingMoved ||
+    isSingleDesignReservationZoneBeingRotated ||
+    isSceneEntityMultiMoveActive;
+  const activeFeedbackBelongsToSingleAssembly = singleSelectedAssembly !== null && assemblyPlacementFeedback?.placedAssembly.id === singleSelectedAssembly.id;
+  const shouldRenderSingleSelectionBoundingBox = !activeFeedbackBelongsToSingleAssembly ||
+    (!isSingleAssemblyBeingMoved && !isSingleAssemblyBeingRotated);
 
-  if (sceneViewMode === "floor-plan") {
-    const showUtilityControls =
-      !isSceneOperationActive &&
-      activeToolbarTool === null &&
-      activeDrag === null;
-    const showRotationControl =
-      !isMultiSelection &&
-      !hideFloorPlanRotationControl &&
-      !isSceneOperationActive &&
-      activeToolbarTool === null &&
-      (activeDrag === null || isSelectedAssemblyBeingRotated);
+  if (sceneViewMode !== "floor-plan") {
+    if (!isMultiSelection && !shouldRenderSingleSelectionBoundingBox) {
+      return null;
+    }
 
     return (
       <group>
-        {isMultiSelectionBeingMoved ? (
-          <SelectedAssembliesGroupMeasurementGuides
-            bounds={selectedBounds}
-            placedWallGraphs={placedWallGraphs}
-          />
-        ) : null}
-        {!hideFloorPlanSelectionBox ? selectedBounds.map((bounds) => (
-          <SceneEntityFootprintBoundingBox
-            key={`selected-assembly-footprint-${bounds.entityId}`}
-            bounds={bounds}
-            state={isSelectedAssemblyBeingMoved || isSelectedAssemblyBeingRotated || isMultiSelectionBeingMoved ? "moving" : "default"}
-          />
-        )) : null}
-        {isMultiSelection && showUtilityControls ? (
-          <SelectedAssembliesFloorPlanEditControls
-            bounds={selectedBounds}
-            deleteLabel={`Delete ${selectedBounds.length} selected assemblies`}
-            onDelete={() => useDesignSceneStore.getState().deleteSelectedAssembly()}
-          />
-        ) : null}
-        {!isMultiSelection && showUtilityControls && singleBounds !== null && singleSelectedAssembly !== null ? (
-          <SceneEntityFloorPlanEditControls
-            bounds={singleBounds}
-            duplicateLabel={`Duplicate assembly ${singleSelectedAssembly.id}`}
-            deleteLabel={`Delete assembly ${singleSelectedAssembly.id}`}
-            onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedAssembly()}
-            onDelete={() => useDesignSceneStore.getState().deleteSelectedAssembly()}
-          />
-        ) : null}
-        {showRotationControl && singleBounds !== null && singleSelectedAssembly !== null ? (
-          <SceneEntityFloorPlanRotationControl
-            bounds={singleBounds}
-            isRotating={isSelectedAssemblyBeingRotated}
-            rotationDegrees={singleSelectedAssembly.rotationDegrees.zDegrees}
-            snapStepDegrees={ASSEMBLY_ROTATION_SNAP_STEP_DEGREES}
-            onStartRotation={handleStartRotation}
-            handleCenterAngleDegrees={isSelectedAssemblyBeingRotated ? undefined : getWallAwareInitialRotationHandleCenterAngleDegrees({
-              bounds: singleBounds,
-              placedWallGraphs,
-              rotationDegrees: singleSelectedAssembly.rotationDegrees.zDegrees,
-            })}
-          />
-        ) : null}
+        <SceneEntityBoundingBoxes
+          bounds={selectedSceneEntityBounds}
+          state={isSelectedSceneEntityMoving ? "moving" : "default"}
+        />
       </group>
     );
   }
 
-  if (!isMultiSelection && !shouldRenderSingleSelectionBoundingBox) {
-    return null;
-  }
+  const showUtilityControls = !isSceneOperationActive && activeToolbarTool === null && activeDrag === null;
+  const showAssemblyRotationControl = singleSelectedAssembly !== null &&
+    !selectedAssemblyIsWallOpening &&
+    !isSceneOperationActive &&
+    activeToolbarTool === null &&
+    (activeDrag === null || isSingleAssemblyBeingRotated);
+  const showDesignReservationZoneRotationControl = singleSelectedDesignReservationZone !== null &&
+    !isSceneOperationActive &&
+    activeToolbarTool === null &&
+    (activeDrag === null || isSingleDesignReservationZoneBeingRotated);
 
   return (
     <group>
-      {selectedBounds.map((bounds) => sceneViewMode === "perspective" ? (
-        <SceneEntityVolumeBoundingBox
-          key={`selected-assembly-volume-${bounds.entityId}`}
-          bounds={bounds}
-          state={isSelectedAssemblyBeingMoved || isSelectedAssemblyBeingRotated || isMultiSelectionBeingMoved ? "moving" : "default"}
+      <SceneEntityBoundingBoxes
+        bounds={selectedSceneEntityBounds}
+        state={isSelectedSceneEntityMoving ? "moving" : "default"}
+      />
+      {showUtilityControls && singleBounds !== null && singleSelectedAssembly !== null ? (
+        <SceneEntityFloorPlanEditControls
+          bounds={singleBounds}
+          duplicateLabel={`Duplicate assembly ${singleSelectedAssembly.id}`}
+          deleteLabel={`Delete assembly ${singleSelectedAssembly.id}`}
+          onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedSceneEntities()}
+          onDelete={() => useDesignSceneStore.getState().deleteSelectedSceneEntities()}
         />
-      ) : (
-        <SceneEntityFootprintBoundingBox
-          key={`selected-assembly-elevation-${bounds.entityId}`}
-          bounds={bounds}
-          state={isSelectedAssemblyBeingMoved || isSelectedAssemblyBeingRotated || isMultiSelectionBeingMoved ? "moving" : "default"}
-          zInches={bounds.heightRangeInches.maxZInches + 1}
+      ) : null}
+      {showUtilityControls && singleBounds !== null && singleSelectedDesignReservationZone !== null ? (
+        <SceneEntityFloorPlanEditControls
+          bounds={singleBounds}
+          duplicateLabel={`Duplicate design reservation zone ${singleSelectedDesignReservationZone.id}`}
+          deleteLabel={`Delete design reservation zone ${singleSelectedDesignReservationZone.id}`}
+          onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedSceneEntities()}
+          onDelete={() => useDesignSceneStore.getState().deleteSelectedSceneEntities()}
+        />
+      ) : null}
+      {showUtilityControls && isMultiSelection ? (
+        <SceneEntityFloorPlanEditControls
+          bounds={selectedSceneEntityBounds}
+          selectedCountLabel={`${selectedSceneEntityCount} selected`}
+          duplicateLabel={`Duplicate ${selectedSceneEntityCount} selected scene entities`}
+          deleteLabel={`Delete ${selectedSceneEntityCount} selected scene entities`}
+          onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedSceneEntities()}
+          onDelete={() => useDesignSceneStore.getState().deleteSelectedSceneEntities()}
+        />
+      ) : null}
+      {showAssemblyRotationControl && singleBounds !== null && singleSelectedAssembly !== null ? (
+        <SceneEntityFloorPlanRotationControl
+          bounds={singleBounds}
+          isRotating={isSingleAssemblyBeingRotated}
+          rotationDegrees={singleSelectedAssembly.rotationDegrees.zDegrees}
+          snapStepDegrees={ASSEMBLY_ROTATION_SNAP_STEP_DEGREES}
+          onStartRotation={handleStartAssemblyRotation}
+          handleCenterAngleDegrees={isSingleAssemblyBeingRotated ? undefined : getWallAwareInitialRotationHandleCenterAngleDegrees({
+            bounds: singleBounds,
+            placedWallGraphs,
+            rotationDegrees: singleSelectedAssembly.rotationDegrees.zDegrees,
+          })}
+        />
+      ) : null}
+      {showDesignReservationZoneRotationControl && singleBounds !== null && singleSelectedDesignReservationZone !== null ? (
+        <SceneEntityFloorPlanRotationControl
+          bounds={singleBounds}
+          isRotating={isSingleDesignReservationZoneBeingRotated}
+          rotationDegrees={singleSelectedDesignReservationZone.rotationDegrees.zDegrees}
+          snapStepDegrees={ASSEMBLY_ROTATION_SNAP_STEP_DEGREES}
+          onStartRotation={handleStartDesignReservationZoneRotation}
+        />
+      ) : null}
+    </group>
+  );
+}
+
+function SceneEntityBoundingBoxes({
+  bounds,
+  state,
+}: Readonly<{
+  bounds: readonly SceneEntityBounds[];
+  state: "default" | "moving";
+}>) {
+  return (
+    <>
+      {bounds.map((item) => (
+        <SceneEntityVolumeBoundingBox
+          key={`selected-scene-entity-volume-${item.entityKind}-${item.entityId}`}
+          bounds={item}
+          state={state}
         />
       ))}
-    </group>
+    </>
   );
 }
 
@@ -190,7 +224,6 @@ function getWallAwareInitialRotationHandleCenterAngleDegrees(args: {
 
   return dot > 0.25 ? defaultAngleDegrees + 180 : defaultAngleDegrees;
 }
-
 
 function isNearlyCardinalRotationDegrees(rotationDegrees: number): boolean {
   const normalizedDegrees = ((rotationDegrees % 360) + 360) % 360;

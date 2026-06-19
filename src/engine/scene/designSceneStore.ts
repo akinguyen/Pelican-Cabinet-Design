@@ -3,13 +3,14 @@ import { createAssemblyDragActions } from "./actions/assemblyDragActions";
 import { createAssemblyEditingActions } from "./actions/assemblyEditingActions";
 import { createAssemblyPlacementActions } from "./actions/assemblyPlacementActions";
 import { createAssemblyRotationActions } from "./actions/assemblyRotationActions";
-import { createDesignSceneDocumentActions } from "./actions/designSceneDocumentActions";
 import { createDesignReservationZonePlacementActions } from "./actions/designReservationZonePlacementActions";
 import { createDesignReservationZoneDragActions } from "./actions/designReservationZoneDragActions";
 import { createDesignReservationZoneEditingActions } from "./actions/designReservationZoneEditingActions";
 import { createDesignReservationZoneRotationActions } from "./actions/designReservationZoneRotationActions";
 import { createSceneCameraStateActions } from "./actions/sceneCameraStateActions";
 import { createSceneHistoryActions } from "./actions/sceneHistoryActions";
+import { createSceneEntityEditingActions } from "./actions/sceneEntityEditingActions";
+import { createSceneEntityDragActions } from "./actions/sceneEntityDragActions";
 import { createSceneInteractionActions } from "./actions/sceneInteractionActions";
 import { createSceneSelectionActions } from "./actions/sceneSelectionActions";
 import { createSceneToolbarActions } from "./actions/sceneToolbarActions";
@@ -29,6 +30,8 @@ export const useDesignSceneStore = create<DesignSceneStore>((set, get) => ({
   ...createAssemblyPlacementActions(get, set),
   ...createSceneSelectionActions(get, set),
   ...createSceneHistoryActions(get, set),
+  ...createSceneEntityEditingActions(get, set),
+  ...createSceneEntityDragActions(get, set),
   ...createAssemblyDragActions(get, set),
   ...createAssemblyRotationActions(get, set),
   ...createAssemblyEditingActions(get, set),
@@ -39,5 +42,4 @@ export const useDesignSceneStore = create<DesignSceneStore>((set, get) => ({
   ...createWallSegmentDraftActions(get, set),
   ...createWallEditingActions(get, set),
   ...createSceneInteractionActions(get, set),
-  ...createDesignSceneDocumentActions(get, set),
 }));

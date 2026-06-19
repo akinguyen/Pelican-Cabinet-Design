@@ -3,7 +3,7 @@ import { addPoint3DInches, rotatePointAroundZInches } from "@/core/geometry/poin
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import type { PrimitiveBoxFrontOutlineEdge } from "./assemblyComponentTypes";
 import type { PrimitiveGeometry } from "@/engine/primitive-geometry/primitiveGeometryTypes";
-import type { PrimitiveMaterial } from "@/engine/primitive-geometry/primitiveMaterialTypes";
+import type { PrimitiveMaterial } from "@/engine/primitive-geometry/primitiveGeometryTypes";
 import type { AssemblyComponentOverride, AssemblyConfiguration } from "./assemblyConfiguration";
 import type { AssemblyDefinition } from "./assemblyDefinitionTypes";
 import type { AssemblyDefinitionRegistry } from "./assemblyRegistry";

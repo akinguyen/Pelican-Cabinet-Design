@@ -1,5 +1,6 @@
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import type { SceneViewMode } from "../sceneViewModeTypes";
+import { isFloorPlanOnlySceneEditingTool } from "../sceneEditingToolTypes";
 
 export function createSceneViewModeActions(
   _get: DesignSceneStoreGetter,
@@ -31,7 +32,7 @@ function getNextActiveToolbarTool(args: {
   sceneViewMode: SceneViewMode;
   activeToolbarTool: DesignSceneStore["activeToolbarTool"];
 }): DesignSceneStore["activeToolbarTool"] {
-  if (args.sceneViewMode !== "floor-plan" && isFloorPlanOnlyToolbarTool(args.activeToolbarTool)) {
+  if (args.sceneViewMode !== "floor-plan" && isFloorPlanOnlySceneEditingTool(args.activeToolbarTool)) {
     return null;
   }
 
@@ -49,9 +50,6 @@ function getNextActiveSceneOperation(args: {
   return args.activeSceneOperation;
 }
 
-function isFloorPlanOnlyToolbarTool(toolbarTool: DesignSceneStore["activeToolbarTool"]): boolean {
-  return toolbarTool === "draw-wall-segment";
-}
 
 function isFloorPlanOnlySceneOperation(
   activeSceneOperation: DesignSceneStore["designScene"]["activeSceneOperation"],

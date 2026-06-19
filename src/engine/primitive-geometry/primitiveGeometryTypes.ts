@@ -1,3 +1,8 @@
+export type PrimitiveMaterial = Readonly<{
+  colorHex: string;
+  opacity?: number;
+}>;
+
 export type PrimitiveBoxGeometry = Readonly<{
   kind: "box";
 }>;

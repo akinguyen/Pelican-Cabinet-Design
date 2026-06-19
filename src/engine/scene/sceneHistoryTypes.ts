@@ -18,3 +18,12 @@ export function createEmptyDesignSceneHistoryState(): DesignSceneHistoryState {
     future: [],
   };
 }
+
+
+const MAX_HISTORY_RESTORE_ENTRIES = 50;
+
+export function getVisibleSceneHistoryEntries(
+  entries: readonly DesignSceneHistoryEntry[],
+): readonly DesignSceneHistoryEntry[] {
+  return entries.slice(-MAX_HISTORY_RESTORE_ENTRIES).reverse();
+}

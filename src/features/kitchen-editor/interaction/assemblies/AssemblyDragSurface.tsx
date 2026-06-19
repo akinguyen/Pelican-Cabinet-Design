@@ -2,16 +2,16 @@
 
 import type { ThreeEvent } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo } from "react";
-import { Matrix4, Vector3 } from "three";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { AssemblyElevationMoveFrame, AssemblyMoveDragState, AssemblyMultiMoveDragState } from "@/engine/scene/sceneDragTypes";
+import type { AssemblyMoveDragState } from "@/engine/scene/sceneDragTypes";
+import { createElevationDragSurfaceMatrix } from "../elevation/createElevationDragSurfaceMatrix";
 import { createAssemblyDragPointerWorldPoint } from "./assemblyDragPointer";
 
 const DRAG_SURFACE_SIZE_INCHES = 3200;
 
 export function AssemblyDragSurface() {
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
-  const moveDrag = activeDrag?.kind === "assembly-move" || activeDrag?.kind === "assembly-multi-move" ? activeDrag : null;
+  const moveDrag = activeDrag?.kind === "assembly-move" ? activeDrag : null;
 
   useEffect(() => {
     if (moveDrag === null) {
@@ -85,39 +85,8 @@ export function AssemblyDragSurface() {
   );
 }
 
-function createElevationDragSurfaceMatrix(
-  elevationMoveFrame: AssemblyElevationMoveFrame,
-): Matrix4 {
-  const xAxis = new Vector3(
-    elevationMoveFrame.faceDirectionInches.xInches,
-    elevationMoveFrame.faceDirectionInches.yInches,
-    elevationMoveFrame.faceDirectionInches.zInches,
-  ).normalize();
-  const yAxis = new Vector3(0, 0, 1);
-  const zAxis = new Vector3(
-    elevationMoveFrame.outwardDirectionInches.xInches,
-    elevationMoveFrame.outwardDirectionInches.yInches,
-    elevationMoveFrame.outwardDirectionInches.zInches,
-  ).normalize();
-  const origin = new Vector3(
-    elevationMoveFrame.planeOriginInches.xInches,
-    elevationMoveFrame.planeOriginInches.yInches,
-    elevationMoveFrame.planeOriginInches.zInches,
-  );
-
-  return new Matrix4().makeBasis(xAxis, yAxis, zAxis).setPosition(origin);
-}
-
 function getDragSurfaceReferenceYInches(
-  moveDrag: AssemblyMoveDragState | AssemblyMultiMoveDragState,
+  moveDrag: AssemblyMoveDragState,
 ): number {
-  if (moveDrag.kind === "assembly-move") {
-    return moveDrag.dragStartWorldPositionInches.yInches;
-  }
-
-  if (moveDrag.kind === "assembly-multi-move") {
-    return moveDrag.dragStartWorldPositionsByAssemblyId[moveDrag.leaderAssemblyId]?.yInches ?? 0;
-  }
-
-  return 0;
+  return moveDrag.dragStartWorldPositionInches.yInches;
 }

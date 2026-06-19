@@ -3,14 +3,14 @@
 import { memo, useMemo } from "react";
 import { Line } from "@react-three/drei";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { BuiltWallSegmentBody } from "@/engine/walls/wallSegmentTopologyTypes";
+import type { BuiltWallSegmentBody } from "@/engine/walls/connectedWallGeometryTypes";
 import { PlanMeasurementLine } from "../shared/PlanMeasurementLine";
-import { formatFeetInchesLabel } from "../../shared/formatFeetInchesLabel";
+import { formatFeetInchesLabel } from "../../formatting/kitchenEditorLabelFormatting";
+import { getPlanDistanceInches } from "@/core/geometry/planPointGeometry";
 import {
   DEFAULT_PLAN_DIRECTION,
   getNormalizedPlanDirection,
   getPlanAngleDegrees,
-  getPlanDistanceInches,
   getPlanMidpoint,
   getReadablePlanLabelRotationDegrees,
   offsetPlanPoint,
