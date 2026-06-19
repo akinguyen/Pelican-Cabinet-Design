@@ -4,6 +4,7 @@ import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { SceneEditingTool } from "@/engine/scene/sceneEditingToolTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { kitchenEditorToolbarActions } from "./kitchenEditorToolbarConfig";
+import { KitchenEditorHistoryControls } from "./KitchenEditorHistoryControls";
 
 export function KitchenEditorToolbar() {
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
@@ -11,6 +12,7 @@ export function KitchenEditorToolbar() {
 
   return (
     <div className="flex h-12 shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-3">
+      <KitchenEditorHistoryControls />
       {kitchenEditorToolbarActions.map((toolbarAction) => {
         const Icon = toolbarAction.icon;
         const isActive = toolbarAction.kind === "active-tool" && toolbarAction.id === activeToolbarTool;

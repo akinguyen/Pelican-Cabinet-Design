@@ -10,6 +10,7 @@ import {
 import { buildWallSegmentDraftGraph } from "@/engine/walls/segment-draft/wallSegmentDraftPreview";
 import type { WallSegmentDrawAnchor } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 const MIN_WALL_SEGMENT_LENGTH_INCHES = 3;
 
@@ -100,6 +101,8 @@ export function createWallSegmentDraftActions(
       if (getPlanDistanceInches(getWallSegmentAnchorPoint(draft.activeStartAnchor), getWallSegmentAnchorPoint(clickedAnchor)) < MIN_WALL_SEGMENT_LENGTH_INCHES) {
         return;
       }
+
+      recordDesignSceneHistoryEntry({ get, set, label: "Draw wall segment" });
 
       set((currentState) => {
         const commitResult = commitWallSegmentDraft({

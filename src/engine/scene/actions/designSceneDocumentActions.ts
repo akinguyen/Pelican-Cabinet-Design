@@ -1,16 +1,19 @@
 import { getWallElevationSegmentNavigationItems } from "@/engine/walls/wallSegmentElevationNavigation";
 import { createDesignSceneFromDocument } from "../document/createDesignSceneFromDocument";
 import type { DesignSceneDocument } from "../document/designSceneDocumentTypes";
-import type { DesignSceneStore, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 export function createDesignSceneDocumentActions(
-  _get: () => DesignSceneStore,
+  get: DesignSceneStoreGetter,
   set: DesignSceneStoreSetter,
 ): Pick<DesignSceneStore, "replaceDesignSceneFromDocument"> {
   return {
     replaceDesignSceneFromDocument(document) {
       const designScene = createDesignSceneFromDocument(document);
       const [firstWallElevationItem] = getWallElevationSegmentNavigationItems(designScene.placedWallGraphs);
+
+      recordDesignSceneHistoryEntry({ get, set, label: "Import scene" });
 
       set({
         designScene,

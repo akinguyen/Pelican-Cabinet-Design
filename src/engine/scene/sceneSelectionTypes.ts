@@ -4,6 +4,10 @@ export type SceneSelection =
       placedAssemblyId: string;
     }>
   | Readonly<{
+      kind: "placed-assemblies";
+      placedAssemblyIds: readonly string[];
+    }>
+  | Readonly<{
       kind: "placed-wall-segment";
       wallGraphId: string;
       wallSegmentId: string;

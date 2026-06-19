@@ -10,6 +10,7 @@ import {
 import { splitDisconnectedWallGraph } from "@/engine/walls/wallSegmentGraphEditing";
 import type { WallFaceSide } from "@/engine/walls/placedWallSegmentTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 export function createWallEditingActions(
   get: DesignSceneStoreGetter,
@@ -30,6 +31,8 @@ export function createWallEditingActions(
       if (activeSelection?.kind !== "placed-wall-segment") {
         return;
       }
+
+      recordDesignSceneHistoryEntry({ get, set, label: "Update wall height" });
 
       set((state) => ({
         designScene: {
@@ -57,6 +60,8 @@ export function createWallEditingActions(
         return;
       }
 
+      recordDesignSceneHistoryEntry({ get, set, label: "Update wall thickness" });
+
       set((state) => ({
         designScene: {
           ...state.designScene,
@@ -77,6 +82,8 @@ export function createWallEditingActions(
     },
 
     updateWallSegmentPreferredViewFaceSide(args) {
+      recordDesignSceneHistoryEntry({ get, set, label: "Update wall view side" });
+
       set((state) => ({
         activeWallElevationTarget: getUpdatedActiveWallElevationTarget({
           activeWallElevationTarget: state.activeWallElevationTarget,
@@ -115,6 +122,8 @@ export function createWallEditingActions(
         return;
       }
 
+      recordDesignSceneHistoryEntry({ get, set, label: "Update wall face policy" });
+
       set((state) => ({
         designScene: {
           ...state.designScene,
@@ -135,6 +144,8 @@ export function createWallEditingActions(
       if (activeSelection?.kind !== "placed-wall-segment") {
         return;
       }
+
+      recordDesignSceneHistoryEntry({ get, set, label: "Delete wall segment" });
 
       set((state) => {
         const updatedWallGraphs = state.designScene.placedWallGraphs.flatMap((wallGraph) => {

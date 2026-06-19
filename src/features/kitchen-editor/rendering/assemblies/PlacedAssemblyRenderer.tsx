@@ -41,15 +41,25 @@ export const PlacedAssemblyRenderer = memo(function PlacedAssemblyRenderer({
       designScene.activeSceneOperation !== null ||
       activeDrag !== null ||
       activeToolbarTool !== null ||
-      event.button !== 0 ||
-      event.ctrlKey
+      event.button !== 0
     ) {
       return;
     }
 
     event.stopPropagation();
-    designSceneStore.selectPlacedAssembly(placedAssembly.id);
 
+    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+      designSceneStore.togglePlacedAssemblySelection(placedAssembly.id);
+      return;
+    }
+
+    const shouldKeepMultiSelectionForDrag =
+      designScene.activeSelection?.kind === "placed-assemblies" &&
+      designScene.activeSelection.placedAssemblyIds.includes(placedAssembly.id);
+
+    if (!shouldKeepMultiSelectionForDrag) {
+      designSceneStore.selectPlacedAssembly(placedAssembly.id);
+    }
 
     const elevationMoveFrame = activeSceneViewMode === "elevation"
       ? createAssemblyElevationMoveFrame({

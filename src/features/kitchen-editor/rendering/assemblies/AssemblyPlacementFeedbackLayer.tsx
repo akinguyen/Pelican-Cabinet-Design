@@ -2,9 +2,11 @@
 
 import type { AssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
+import { createPlacedAssemblySceneEntityBounds } from "@/engine/scene-entities/placedAssemblySceneEntityBounds";
 import { AssemblyPlacementBoundingBox } from "./AssemblyPlacementBoundingBox";
 import { AssemblyObjectAlignmentGuides } from "./AssemblyObjectAlignmentGuides";
 import { AssemblyWallMeasurementGuides } from "./AssemblyWallMeasurementGuides";
+import { SceneEntityVolumeBoundingBox } from "../scene-entities/SceneEntityVolumeBoundingBox";
 
 type AssemblyPlacementFeedbackLayerProps = Readonly<{
   sceneViewMode: SceneViewMode;
@@ -30,11 +32,17 @@ export function AssemblyPlacementFeedbackLayer({
   return (
     <group>
       {showBoundingBox ? (
-        <AssemblyPlacementBoundingBox
-          footprint={placementFeedback.footprint}
-          state={placementFeedback.isValid ? "moving" : "invalid"}
-          zInches={sceneViewMode === "perspective" ? getPerspectiveBoundingBoxZInches(placementFeedback) : undefined}
-        />
+        sceneViewMode === "perspective" ? (
+          <SceneEntityVolumeBoundingBox
+            bounds={createPlacedAssemblySceneEntityBounds(placementFeedback.placedAssembly)}
+            state={placementFeedback.isValid ? "moving" : "invalid"}
+          />
+        ) : (
+          <AssemblyPlacementBoundingBox
+            footprint={placementFeedback.footprint}
+            state={placementFeedback.isValid ? "moving" : "invalid"}
+          />
+        )
       ) : null}
       <AssemblyObjectAlignmentGuides alignmentGuides={placementFeedback.objectAlignmentGuides} />
       {sceneViewMode === "floor-plan" && showWallMeasurementGuides ? (
@@ -44,10 +52,3 @@ export function AssemblyPlacementFeedbackLayer({
   );
 }
 
-function getPerspectiveBoundingBoxZInches(placementFeedback: AssemblyPlacementFeedback): number {
-  return (
-    placementFeedback.placedAssembly.worldPositionInches.zInches +
-    placementFeedback.placedAssembly.configuration.sizeInches.heightInches / 2 +
-    1
-  );
-}

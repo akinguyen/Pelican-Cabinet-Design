@@ -2,7 +2,9 @@ import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { applyAssemblyPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
 import { updateAssemblyPlacementRotationDegrees } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
 import { snapAssemblyRotationDegrees } from "@/engine/assemblies/placement/assemblyRotationSnapping";
+import type { DesignScene } from "../designSceneTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 export function createAssemblyRotationActions(
   get: DesignSceneStoreGetter,
@@ -107,6 +109,18 @@ export function createAssemblyRotationActions(
         return;
       }
 
+      recordDesignSceneHistoryEntry({
+        get,
+        set,
+        label: "Rotate assembly",
+        designScene: createDesignSceneWithAssemblyRotation({
+          designScene: get().designScene,
+          assemblyId: activeDrag.assemblyId,
+          rotationDegrees: activeDrag.startRotationDegrees,
+          worldPositionInches: activeDrag.startWorldPositionInches,
+        }),
+      });
+
       if (placementFeedback?.isValid === false) {
         set((state) => ({
           designScene: {
@@ -167,4 +181,23 @@ function getPointerAngleDegrees(
     ) *
     180
   ) / Math.PI;
+}
+
+function createDesignSceneWithAssemblyRotation(args: {
+  designScene: DesignScene;
+  assemblyId: string;
+  rotationDegrees: number;
+  worldPositionInches: Point3DInches;
+}): DesignScene {
+  return {
+    ...args.designScene,
+    placedAssemblies: args.designScene.placedAssemblies.map((assembly) => (
+      assembly.id === args.assemblyId
+        ? {
+            ...updateAssemblyPlacementRotationDegrees(assembly, args.rotationDegrees),
+            worldPositionInches: args.worldPositionInches,
+          }
+        : assembly
+    )),
+  };
 }

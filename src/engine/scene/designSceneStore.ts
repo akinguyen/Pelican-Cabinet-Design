@@ -9,6 +9,7 @@ import { createDesignReservationZoneDragActions } from "./actions/designReservat
 import { createDesignReservationZoneEditingActions } from "./actions/designReservationZoneEditingActions";
 import { createDesignReservationZoneRotationActions } from "./actions/designReservationZoneRotationActions";
 import { createSceneCameraStateActions } from "./actions/sceneCameraStateActions";
+import { createSceneHistoryActions } from "./actions/sceneHistoryActions";
 import { createSceneInteractionActions } from "./actions/sceneInteractionActions";
 import { createSceneSelectionActions } from "./actions/sceneSelectionActions";
 import { createSceneToolbarActions } from "./actions/sceneToolbarActions";
@@ -27,6 +28,7 @@ export const useDesignSceneStore = create<DesignSceneStore>((set, get) => ({
   ...createSceneToolbarActions(get, set),
   ...createAssemblyPlacementActions(get, set),
   ...createSceneSelectionActions(get, set),
+  ...createSceneHistoryActions(get, set),
   ...createAssemblyDragActions(get, set),
   ...createAssemblyRotationActions(get, set),
   ...createAssemblyEditingActions(get, set),

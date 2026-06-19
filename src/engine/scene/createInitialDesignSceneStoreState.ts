@@ -1,6 +1,7 @@
 import { defaultWallSettings } from "@/engine/walls/placedWallSegmentTypes";
 import { createDefaultSceneCameraStates } from "@/engine/scene/sceneCameraStateTypes";
 import { createEmptyDesignScene } from "./designSceneTypes";
+import { createEmptyDesignSceneHistoryState } from "./sceneHistoryTypes";
 import type { DesignSceneStore } from "./designSceneStoreTypes";
 
 export function createInitialDesignSceneStoreState(): Pick<
@@ -15,6 +16,7 @@ export function createInitialDesignSceneStoreState(): Pick<
   | "activeDrag"
   | "assemblyPlacementFeedback"
   | "activeObjectAlignmentGuides"
+  | "sceneHistory"
 > {
   return {
     designScene: createEmptyDesignScene(),
@@ -27,5 +29,6 @@ export function createInitialDesignSceneStoreState(): Pick<
     activeDrag: null,
     assemblyPlacementFeedback: null,
     activeObjectAlignmentGuides: [],
+    sceneHistory: createEmptyDesignSceneHistoryState(),
   };
 }

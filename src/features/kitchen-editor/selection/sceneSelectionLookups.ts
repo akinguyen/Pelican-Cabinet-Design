@@ -38,6 +38,24 @@ export function getSelectedPlacedAssembly(args: {
     : null;
 }
 
+export function getSelectedPlacedAssemblies(args: {
+  activeSelection: SceneSelection | null;
+  placedAssemblyById: ReadonlyMap<string, PlacedAssembly>;
+}): readonly PlacedAssembly[] {
+  if (args.activeSelection?.kind === "placed-assembly") {
+    const selectedAssembly = args.placedAssemblyById.get(args.activeSelection.placedAssemblyId);
+    return selectedAssembly === undefined ? [] : [selectedAssembly];
+  }
+
+  if (args.activeSelection?.kind === "placed-assemblies") {
+    return args.activeSelection.placedAssemblyIds
+      .map((placedAssemblyId) => args.placedAssemblyById.get(placedAssemblyId))
+      .filter(isPlacedAssembly);
+  }
+
+  return [];
+}
+
 
 export function getSelectedDesignReservationZone(args: {
   activeSelection: SceneSelection | null;
@@ -99,6 +117,26 @@ export function getSelectedPlacedAssemblyFromScene(
   ) ?? null;
 }
 
+export function getSelectedPlacedAssembliesFromScene(
+  designScene: DesignScene,
+): readonly PlacedAssembly[] {
+  const { activeSelection } = designScene;
+
+  if (activeSelection?.kind === "placed-assembly") {
+    const selectedAssembly = designScene.placedAssemblies.find(
+      (placedAssembly) => placedAssembly.id === activeSelection.placedAssemblyId,
+    );
+    return selectedAssembly === undefined ? [] : [selectedAssembly];
+  }
+
+  if (activeSelection?.kind === "placed-assemblies") {
+    const selectedAssemblyIds = new Set(activeSelection.placedAssemblyIds);
+    return designScene.placedAssemblies.filter((placedAssembly) => selectedAssemblyIds.has(placedAssembly.id));
+  }
+
+  return [];
+}
+
 export function getSelectedWallSegmentFromScene(
   designScene: DesignScene,
 ): PlacedWallSegment | null {
@@ -132,4 +170,8 @@ function getSelectedWallGraphFromScene(
   return designScene.placedWallGraphs.find(
     (wallGraph) => wallGraph.id === activeSelection.wallGraphId,
   ) ?? null;
+}
+
+function isPlacedAssembly(placedAssembly: PlacedAssembly | undefined): placedAssembly is PlacedAssembly {
+  return placedAssembly !== undefined;
 }

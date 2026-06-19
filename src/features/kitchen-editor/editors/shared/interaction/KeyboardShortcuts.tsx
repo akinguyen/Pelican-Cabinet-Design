@@ -10,6 +10,24 @@ export function KeyboardShortcuts() {
         return;
       }
 
+      const isModifierPressed = event.metaKey || event.ctrlKey;
+
+      if (isModifierPressed && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          useDesignSceneStore.getState().redoDesignSceneChange();
+        } else {
+          useDesignSceneStore.getState().undoDesignSceneChange();
+        }
+        return;
+      }
+
+      if (isModifierPressed && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        useDesignSceneStore.getState().redoDesignSceneChange();
+        return;
+      }
+
       if (event.key === "Escape") {
         event.preventDefault();
         useDesignSceneStore.getState().clearActiveInteraction();

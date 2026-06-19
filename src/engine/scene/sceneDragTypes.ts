@@ -28,6 +28,17 @@ export type AssemblyMoveDragState = Readonly<{
   elevationMoveFrame?: AssemblyElevationMoveFrame;
 }>;
 
+export type AssemblyMultiMoveDragState = Readonly<{
+  kind: "assembly-multi-move";
+  leaderAssemblyId: string;
+  assemblyIds: readonly string[];
+  dragStartPointerWorldInches: Point3DInches;
+  dragStartWorldPositionsByAssemblyId: Readonly<Record<string, Point3DInches>>;
+  latestValidWorldPositionsByAssemblyId: Readonly<Record<string, Point3DInches>>;
+  sceneViewMode: SceneViewMode;
+  elevationMoveFrame?: AssemblyElevationMoveFrame;
+}>;
+
 export type AssemblyRotationDragState = Readonly<{
   kind: "assembly-rotation";
   assemblyId: string;
@@ -62,6 +73,7 @@ export type DesignReservationZoneRotationDragState = Readonly<{
 
 export type SceneDragState =
   | AssemblyMoveDragState
+  | AssemblyMultiMoveDragState
   | AssemblyRotationDragState
   | DesignReservationZoneMoveDragState
   | DesignReservationZoneRotationDragState;

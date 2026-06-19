@@ -24,6 +24,7 @@ import type {
 } from "@/engine/scene/sceneCameraStateTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { DesignScene } from "./designSceneTypes";
+import type { DesignSceneHistoryState } from "./sceneHistoryTypes";
 import type { DesignSceneDocument } from "./document/designSceneDocumentTypes";
 import type { AssemblyElevationMoveFrame, SceneDragState } from "./sceneDragTypes";
 
@@ -40,6 +41,7 @@ export type DesignSceneStore = Readonly<{
   activeDrag: SceneDragState | null;
   assemblyPlacementFeedback: AssemblyPlacementFeedback | null;
   activeObjectAlignmentGuides: readonly AssemblyObjectAlignmentGuide[];
+  sceneHistory: DesignSceneHistoryState;
   setActiveSceneViewMode: (sceneViewMode: SceneViewMode) => void;
   setActiveWallElevationTarget: (target: WallElevationTarget) => void;
   showPreviousWallElevationSegment: () => void;
@@ -61,6 +63,8 @@ export type DesignSceneStore = Readonly<{
   commitAssemblyPlacementCandidate: () => void;
   cancelActiveSceneOperation: () => void;
   selectPlacedAssembly: (placedAssemblyId: string) => void;
+  selectPlacedAssemblies: (placedAssemblyIds: readonly string[]) => void;
+  togglePlacedAssemblySelection: (placedAssemblyId: string) => void;
   selectPlacedWallSegment: (wallGraphId: string, wallSegmentId: string) => void;
   clearSelection: () => void;
   startAssemblyDrag: (args: {
@@ -134,6 +138,10 @@ export type DesignSceneStore = Readonly<{
   deleteSelectedWallSegment: () => void;
   clearActiveInteraction: () => void;
   replaceDesignSceneFromDocument: (document: DesignSceneDocument) => void;
+  undoDesignSceneChange: () => void;
+  redoDesignSceneChange: () => void;
+  restoreDesignSceneHistoryEntry: (historyEntryId: string) => void;
+  clearDesignSceneHistory: () => void;
 }>;
 
 

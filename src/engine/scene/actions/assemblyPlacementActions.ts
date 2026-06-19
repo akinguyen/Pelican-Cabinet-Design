@@ -1,5 +1,6 @@
 import { applyAssemblyPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
+import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 export function createAssemblyPlacementActions(
   get: DesignSceneStoreGetter,
@@ -79,6 +80,8 @@ export function createAssemblyPlacementActions(
         set({ assemblyPlacementFeedback: placementFeedback });
         return;
       }
+
+      recordDesignSceneHistoryEntry({ get, set, label: "Place assembly" });
 
       set((state) => ({
         designScene: {

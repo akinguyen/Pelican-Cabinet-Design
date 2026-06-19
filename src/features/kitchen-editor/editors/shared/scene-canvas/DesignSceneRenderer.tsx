@@ -27,6 +27,7 @@ import {
   buildPlacedAssemblyById,
   getSelectedDesignReservationZone,
   getSelectedPlacedAssembly,
+  getSelectedPlacedAssemblies,
 } from "../../../selection/sceneSelectionLookups";
 
 export function DesignSceneRenderer() {
@@ -54,7 +55,7 @@ export function DesignSceneRenderer() {
   const showWallPlanMeasurements = activeSceneViewMode === "floor-plan" && wallSegmentDraft === null;
   const shouldRenderPlacementFeedback = assemblyPlacementFeedback !== null;
   const shouldRenderPlacementCandidate = hasAssemblyPlacementOperation;
-  const shouldRenderAssemblyDragSurface = activeDrag?.kind === "assembly-move";
+  const shouldRenderAssemblyDragSurface = activeDrag?.kind === "assembly-move" || activeDrag?.kind === "assembly-multi-move";
   const shouldRenderAssemblyRotationSurface = activeDrag?.kind === "assembly-rotation";
   const shouldRenderWallSegmentDraftSurface = activeSceneViewMode === "floor-plan" && activeToolbarTool === "draw-wall-segment";
   const shouldRenderDesignReservationZonePlacementSurface = activeToolbarTool === "draw-design-reservation-zone";
@@ -89,6 +90,10 @@ export function DesignSceneRenderer() {
   }, [activeDrag, activeSelection, positionedPlacementCandidate, wallOpeningAssemblyIds]);
   const placedAssemblyById = useMemo(() => buildPlacedAssemblyById(placedAssemblies), [placedAssemblies]);
   const selectedAssembly = useMemo(() => getSelectedPlacedAssembly({
+    activeSelection,
+    placedAssemblyById,
+  }), [activeSelection, placedAssemblyById]);
+  const selectedAssemblies = useMemo(() => getSelectedPlacedAssemblies({
     activeSelection,
     placedAssemblyById,
   }), [activeSelection, placedAssemblyById]);
@@ -128,6 +133,7 @@ export function DesignSceneRenderer() {
   const selectedAssemblyIsWallOpening = selectedAssembly !== null && wallOpeningAssemblyIds.has(selectedAssembly.id);
   const placementFeedbackIsWallOpening = assemblyPlacementFeedback !== null &&
     wallOpeningAssemblyIds.has(assemblyPlacementFeedback.placedAssembly.id);
+  const isAssemblyMultiMoveActive = activeDrag?.kind === "assembly-multi-move";
 
   return (
     <>
@@ -157,6 +163,8 @@ export function DesignSceneRenderer() {
       />
       <SelectedAssemblyOutlineLayer
         selectedAssembly={selectedAssembly}
+        selectedAssemblies={selectedAssemblies}
+        placedWallGraphs={placedWallGraphs}
         sceneViewMode={activeSceneViewMode}
         hideFloorPlanSelectionBox={false}
         hideFloorPlanRotationControl={selectedAssemblyIsWallOpening}
@@ -175,8 +183,8 @@ export function DesignSceneRenderer() {
         <AssemblyPlacementFeedbackLayer
           sceneViewMode={activeSceneViewMode}
           placementFeedback={assemblyPlacementFeedback}
-          showWallMeasurementGuides={!placementFeedbackIsWallOpening}
-          showBoundingBox={true}
+          showWallMeasurementGuides={!placementFeedbackIsWallOpening && !isAssemblyMultiMoveActive}
+          showBoundingBox={!isAssemblyMultiMoveActive}
         />
       ) : null}
       {shouldRenderPlacementCandidate ? (

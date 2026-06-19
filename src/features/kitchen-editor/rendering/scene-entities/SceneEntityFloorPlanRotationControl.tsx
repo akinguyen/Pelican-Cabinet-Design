@@ -19,6 +19,7 @@ type SceneEntityFloorPlanRotationControlProps = Readonly<{
   rotationDegrees: number;
   snapStepDegrees: number;
   onStartRotation: (pointerWorldInches: Point3DInches) => void;
+  handleCenterAngleDegrees?: number;
 }>;
 
 export function SceneEntityFloorPlanRotationControl({
@@ -27,6 +28,7 @@ export function SceneEntityFloorPlanRotationControl({
   rotationDegrees,
   snapStepDegrees,
   onStartRotation,
+  handleCenterAngleDegrees,
 }: SceneEntityFloorPlanRotationControlProps) {
   const ringRadiusInches = Math.max(
     bounds.sizeInches.widthInches,
@@ -62,7 +64,7 @@ export function SceneEntityFloorPlanRotationControl({
       {isRotating ? <RotationSnapTicks ringRadiusInches={ringRadiusInches} snapStepDegrees={snapStepDegrees} /> : null}
       <RotationHandle
         ringRadiusInches={ringRadiusInches}
-        handleCenterAngleDegrees={getRotationHandleCenterAngleDegrees(rotationDegrees)}
+        handleCenterAngleDegrees={handleCenterAngleDegrees ?? getRotationHandleCenterAngleDegrees(rotationDegrees)}
       />
       {isRotating ? (
         <Html center position={[0, 0, 1]} style={{ pointerEvents: "none", zIndex: 60 }}>

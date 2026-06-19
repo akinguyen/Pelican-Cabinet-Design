@@ -11,6 +11,7 @@ import type {
   DesignSceneStoreGetter,
   DesignSceneStoreSetter,
 } from "../designSceneStoreTypes";
+import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 export function createAssemblyEditingActions(
   get: DesignSceneStoreGetter,
@@ -30,21 +31,29 @@ export function createAssemblyEditingActions(
     deleteSelectedAssembly() {
       const activeSelection = get().designScene.activeSelection;
 
-      if (activeSelection?.kind !== "placed-assembly") {
+      if (activeSelection?.kind !== "placed-assembly" && activeSelection?.kind !== "placed-assemblies") {
         return;
       }
 
-      set((state) => ({
-        designScene: {
-          ...state.designScene,
-          placedAssemblies: state.designScene.placedAssemblies.filter(
-            (assembly) => assembly.id !== activeSelection.placedAssemblyId,
-          ),
-          activeSelection: null,
-        },
-        activeDrag: null,
-        assemblyPlacementFeedback: null,
-      }));
+      recordDesignSceneHistoryEntry({ get, set, label: activeSelection.kind === "placed-assemblies" ? "Delete selected assemblies" : "Delete assembly" });
+
+      set((state) => {
+        const deletedAssemblyIds = activeSelection.kind === "placed-assemblies"
+          ? new Set(activeSelection.placedAssemblyIds)
+          : new Set([activeSelection.placedAssemblyId]);
+
+        return {
+          designScene: {
+            ...state.designScene,
+            placedAssemblies: state.designScene.placedAssemblies.filter(
+              (assembly) => !deletedAssemblyIds.has(assembly.id),
+            ),
+            activeSelection: null,
+          },
+          activeDrag: null,
+          assemblyPlacementFeedback: null,
+        };
+      });
     },
 
     duplicateSelectedAssembly() {
@@ -72,6 +81,8 @@ export function createAssemblyEditingActions(
           yInches: selectedAssembly.worldPositionInches.yInches + 12,
         },
       };
+
+      recordDesignSceneHistoryEntry({ get, set, label: "Duplicate assembly" });
 
       set((state) => ({
         designScene: {
@@ -190,6 +201,8 @@ function updateSelectedAssembly(
   if (activeSelection?.kind !== "placed-assembly") {
     return;
   }
+
+  recordDesignSceneHistoryEntry({ get, set, label: "Update assembly" });
 
   set((state) => {
     let updatedSelectedAssembly: PlacedAssembly | undefined;
