@@ -45,7 +45,7 @@ export function SelectedSceneEntityLayer({
   const selectedSceneEntityCount = selectedSceneEntityBounds.length;
   const isMultiSelection = selectedSceneEntityCount > 1;
 
-  const handleStartAssemblyRotation = useCallback((pointerWorldInches: Point3DInches) => {
+  const handleStartAssemblyRotation = useCallback((pointerWorldInches: Point3DInches, startHandleCenterAngleDegrees: number) => {
     if (singleSelectedAssembly === null || singleBounds === null) {
       return;
     }
@@ -54,10 +54,11 @@ export function SelectedSceneEntityLayer({
       assemblyId: singleSelectedAssembly.id,
       centerPointInches: singleBounds.footprint.centerPointInches,
       pointerWorldInches,
+      startHandleCenterAngleDegrees,
     });
   }, [singleBounds, singleSelectedAssembly]);
 
-  const handleStartDesignReservationZoneRotation = useCallback((pointerWorldInches: Point3DInches) => {
+  const handleStartDesignReservationZoneRotation = useCallback((pointerWorldInches: Point3DInches, startHandleCenterAngleDegrees: number) => {
     if (singleSelectedDesignReservationZone === null || singleBounds === null) {
       return;
     }
@@ -66,6 +67,7 @@ export function SelectedSceneEntityLayer({
       designReservationZoneId: singleSelectedDesignReservationZone.id,
       centerPointInches: singleBounds.footprint.centerPointInches,
       pointerWorldInches,
+      startHandleCenterAngleDegrees,
     });
   }, [singleBounds, singleSelectedDesignReservationZone]);
 
@@ -154,11 +156,13 @@ export function SelectedSceneEntityLayer({
           rotationDegrees={singleSelectedAssembly.rotationDegrees.zDegrees}
           snapStepDegrees={ASSEMBLY_ROTATION_SNAP_STEP_DEGREES}
           onStartRotation={handleStartAssemblyRotation}
-          handleCenterAngleDegrees={isSingleAssemblyBeingRotated ? undefined : getWallAwareInitialRotationHandleCenterAngleDegrees({
-            bounds: singleBounds,
-            placedWallGraphs,
-            rotationDegrees: singleSelectedAssembly.rotationDegrees.zDegrees,
-          })}
+          handleCenterAngleDegrees={isSingleAssemblyBeingRotated && activeDrag?.kind === "assembly-rotation"
+            ? activeDrag.latestHandleCenterAngleDegrees
+            : getWallAwareInitialRotationHandleCenterAngleDegrees({
+              bounds: singleBounds,
+              placedWallGraphs,
+              rotationDegrees: singleSelectedAssembly.rotationDegrees.zDegrees,
+            })}
         />
       ) : null}
       {showDesignReservationZoneRotationControl && singleBounds !== null && singleSelectedDesignReservationZone !== null ? (
@@ -168,6 +172,9 @@ export function SelectedSceneEntityLayer({
           rotationDegrees={singleSelectedDesignReservationZone.rotationDegrees.zDegrees}
           snapStepDegrees={ASSEMBLY_ROTATION_SNAP_STEP_DEGREES}
           onStartRotation={handleStartDesignReservationZoneRotation}
+          handleCenterAngleDegrees={isSingleDesignReservationZoneBeingRotated && activeDrag?.kind === "design-reservation-zone-rotation"
+            ? activeDrag.latestHandleCenterAngleDegrees
+            : undefined}
         />
       ) : null}
     </group>
@@ -209,20 +216,17 @@ function getWallAwareInitialRotationHandleCenterAngleDegrees(args: {
     return defaultAngleDegrees;
   }
 
-  const nearbyWallDirection = getNearestWallDirectionFromBoundsCenter(args);
+  const nearbyWallDirections = getNearbyWallDirectionsFromBoundsCenter(args);
 
-  if (nearbyWallDirection === null) {
+  if (nearbyWallDirections.length === 0) {
     return defaultAngleDegrees;
   }
 
-  const handleAngleRadians = convertDegreesToRadians(defaultAngleDegrees);
-  const handleDirection = {
-    xInches: Math.cos(handleAngleRadians),
-    yInches: Math.sin(handleAngleRadians),
-  };
-  const dot = handleDirection.xInches * nearbyWallDirection.xInches + handleDirection.yInches * nearbyWallDirection.yInches;
+  const oppositeAngleDegrees = defaultAngleDegrees + 180;
+  const defaultWallOverlapScore = getRotationHandleWallOverlapScore(defaultAngleDegrees, nearbyWallDirections);
+  const oppositeWallOverlapScore = getRotationHandleWallOverlapScore(oppositeAngleDegrees, nearbyWallDirections);
 
-  return dot > 0.25 ? defaultAngleDegrees + 180 : defaultAngleDegrees;
+  return oppositeWallOverlapScore < defaultWallOverlapScore ? oppositeAngleDegrees : defaultAngleDegrees;
 }
 
 function isNearlyCardinalRotationDegrees(rotationDegrees: number): boolean {
@@ -232,13 +236,13 @@ function isNearlyCardinalRotationDegrees(rotationDegrees: number): boolean {
   return Math.min(distanceDegrees, 360 - distanceDegrees) <= 1;
 }
 
-function getNearestWallDirectionFromBoundsCenter(args: {
+function getNearbyWallDirectionsFromBoundsCenter(args: {
   bounds: SceneEntityBounds;
   placedWallGraphs: readonly PlacedWallGraph[];
-}): { xInches: number; yInches: number } | null {
+}): readonly { xInches: number; yInches: number }[] {
   const center = args.bounds.footprint.centerPointInches;
   const boundsPlan = getPlanBounds(args.bounds.footprintCornersInches);
-  let nearest: { distanceInches: number; direction: { xInches: number; yInches: number } } | null = null;
+  const nearbyDirections: { xInches: number; yInches: number }[] = [];
 
   args.placedWallGraphs.forEach((wallGraph) => {
     buildConnectedWallGeometry(wallGraph).segmentBodies.forEach((segmentBody) => {
@@ -255,28 +259,48 @@ function getNearestWallDirectionFromBoundsCenter(args: {
         if (wallFace.orientation === "vertical" && rangesOverlap(boundsPlan.minYInches, boundsPlan.maxYInches, wallFace.minRangeInches, wallFace.maxRangeInches)) {
           const distanceFromLeft = Math.abs(boundsPlan.minXInches - wallFace.fixedCoordinateInches);
           const distanceFromRight = Math.abs(boundsPlan.maxXInches - wallFace.fixedCoordinateInches);
-          const direction = wallFace.fixedCoordinateInches < center.xInches
-            ? { xInches: -1, yInches: 0 }
-            : { xInches: 1, yInches: 0 };
           const distanceInches = Math.min(distanceFromLeft, distanceFromRight);
-          nearest = getNearerWallDirection(nearest, { distanceInches, direction });
+
+          if (distanceInches <= 18) {
+            nearbyDirections.push(wallFace.fixedCoordinateInches < center.xInches
+              ? { xInches: -1, yInches: 0 }
+              : { xInches: 1, yInches: 0 });
+          }
           return;
         }
 
         if (wallFace.orientation === "horizontal" && rangesOverlap(boundsPlan.minXInches, boundsPlan.maxXInches, wallFace.minRangeInches, wallFace.maxRangeInches)) {
           const distanceFromBottom = Math.abs(boundsPlan.minYInches - wallFace.fixedCoordinateInches);
           const distanceFromTop = Math.abs(boundsPlan.maxYInches - wallFace.fixedCoordinateInches);
-          const direction = wallFace.fixedCoordinateInches < center.yInches
-            ? { xInches: 0, yInches: -1 }
-            : { xInches: 0, yInches: 1 };
           const distanceInches = Math.min(distanceFromBottom, distanceFromTop);
-          nearest = getNearerWallDirection(nearest, { distanceInches, direction });
+
+          if (distanceInches <= 18) {
+            nearbyDirections.push(wallFace.fixedCoordinateInches < center.yInches
+              ? { xInches: 0, yInches: -1 }
+              : { xInches: 0, yInches: 1 });
+          }
         }
       });
     });
   });
 
-  return nearest !== null && nearest.distanceInches <= 18 ? nearest.direction : null;
+  return nearbyDirections;
+}
+
+function getRotationHandleWallOverlapScore(
+  handleCenterAngleDegrees: number,
+  wallDirections: readonly { xInches: number; yInches: number }[],
+): number {
+  const handleAngleRadians = convertDegreesToRadians(handleCenterAngleDegrees);
+  const handleDirection = {
+    xInches: Math.cos(handleAngleRadians),
+    yInches: Math.sin(handleAngleRadians),
+  };
+
+  return wallDirections.reduce((maxScore, wallDirection) => Math.max(
+    maxScore,
+    handleDirection.xInches * wallDirection.xInches + handleDirection.yInches * wallDirection.yInches,
+  ), Number.NEGATIVE_INFINITY);
 }
 
 function createAxisAlignedWallFace(
@@ -333,13 +357,6 @@ function getPlanBounds(pointsInches: readonly Point3DInches[]): {
 
 function rangesOverlap(firstMinInches: number, firstMaxInches: number, secondMinInches: number, secondMaxInches: number): boolean {
   return firstMaxInches >= secondMinInches && secondMaxInches >= firstMinInches;
-}
-
-function getNearerWallDirection(
-  current: { distanceInches: number; direction: { xInches: number; yInches: number } } | null,
-  candidate: { distanceInches: number; direction: { xInches: number; yInches: number } },
-): { distanceInches: number; direction: { xInches: number; yInches: number } } {
-  return current === null || candidate.distanceInches < current.distanceInches ? candidate : current;
 }
 
 function convertDegreesToRadians(degrees: number): number {

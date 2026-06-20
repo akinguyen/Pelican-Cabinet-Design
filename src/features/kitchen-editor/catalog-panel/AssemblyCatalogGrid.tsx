@@ -36,10 +36,11 @@ export function AssemblyCatalogGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3">
+    <div className="grid grid-cols-2 gap-3">
       {assemblyCatalogEntries.map((assemblyCatalogEntry) => (
         <AssemblyCatalogCard
           key={assemblyCatalogEntry.definition.id}
+          catalogId={assemblyCatalogEntry.catalogId}
           definition={assemblyCatalogEntry.definition}
           onSelect={onSelectAssemblyDefinition}
         />

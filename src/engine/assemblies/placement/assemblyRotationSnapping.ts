@@ -30,6 +30,10 @@ export function normalizeAssemblyRotationDegrees(rotationDegrees: number): numbe
   return ((rotationDegrees % 360) + 360) % 360;
 }
 
+export function getShortestAssemblyRotationDeltaDegrees(startDegrees: number, endDegrees: number): number {
+  return ((endDegrees - startDegrees + 540) % 360) - 180;
+}
+
 function getSmallestAngleDistanceDegrees(firstDegrees: number, secondDegrees: number): number {
   const differenceDegrees = Math.abs(normalizeAssemblyRotationDegrees(firstDegrees - secondDegrees));
   return Math.min(differenceDegrees, 360 - differenceDegrees);

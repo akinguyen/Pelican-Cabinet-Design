@@ -1,7 +1,7 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { getPlanPointerAngleDegrees } from "@/core/geometry/planPointGeometry";
 import { updateAssemblyPlacementRotationDegrees } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
-import { snapAssemblyRotationDegrees } from "@/engine/assemblies/placement/assemblyRotationSnapping";
+import { getShortestAssemblyRotationDeltaDegrees, snapAssemblyRotationDegrees } from "@/engine/assemblies/placement/assemblyRotationSnapping";
 import type { DesignScene } from "../designSceneTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
@@ -14,7 +14,7 @@ export function createAssemblyRotationActions(
   "startAssemblyRotationDrag" | "updateAssemblyRotationDrag" | "finishAssemblyRotationDrag" | "cancelAssemblyRotationDrag"
 > {
   return {
-    startAssemblyRotationDrag({ assemblyId, centerPointInches, pointerWorldInches }) {
+    startAssemblyRotationDrag({ assemblyId, centerPointInches, pointerWorldInches, startHandleCenterAngleDegrees }) {
       const placedAssembly = get().designScene.placedAssemblies.find(
         (assembly) => assembly.id === assemblyId,
       );
@@ -34,6 +34,8 @@ export function createAssemblyRotationActions(
           startRotationDegrees: placedAssembly.rotationDegrees.zDegrees,
           startWorldPositionInches: placedAssembly.worldPositionInches,
           latestValidRotationDegrees: placedAssembly.rotationDegrees.zDegrees,
+          startHandleCenterAngleDegrees,
+          latestHandleCenterAngleDegrees: startHandleCenterAngleDegrees,
         },
         assemblyPlacementFeedback: null,
         activeObjectAlignmentGuides: [],
@@ -58,6 +60,7 @@ export function createAssemblyRotationActions(
       const pointerAngleDegrees = getPlanPointerAngleDegrees(activeDrag.centerPointInches, pointerWorldInches);
       const rotationDeltaDegrees = activeDrag.startPointerAngleDegrees - pointerAngleDegrees;
       const snapResult = snapAssemblyRotationDegrees(activeDrag.startRotationDegrees + rotationDeltaDegrees);
+      const snappedRotationDeltaDegrees = getShortestAssemblyRotationDeltaDegrees(activeDrag.startRotationDegrees, snapResult.rotationDegrees);
       const rotatedAssembly = updateAssemblyPlacementRotationDegrees(
         placedAssembly,
         snapResult.rotationDegrees,
@@ -73,6 +76,7 @@ export function createAssemblyRotationActions(
         activeDrag: {
           ...activeDrag,
           latestValidRotationDegrees: snapResult.rotationDegrees,
+          latestHandleCenterAngleDegrees: activeDrag.startHandleCenterAngleDegrees - snappedRotationDeltaDegrees,
         },
         assemblyPlacementFeedback: null,
         activeObjectAlignmentGuides: [],

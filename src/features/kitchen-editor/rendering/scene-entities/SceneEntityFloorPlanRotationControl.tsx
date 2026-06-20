@@ -18,7 +18,7 @@ type SceneEntityFloorPlanRotationControlProps = Readonly<{
   isRotating: boolean;
   rotationDegrees: number;
   snapStepDegrees: number;
-  onStartRotation: (pointerWorldInches: Point3DInches) => void;
+  onStartRotation: (pointerWorldInches: Point3DInches, handleCenterAngleDegrees: number) => void;
   handleCenterAngleDegrees?: number;
 }>;
 
@@ -34,6 +34,7 @@ export function SceneEntityFloorPlanRotationControl({
     bounds.sizeInches.widthInches,
     bounds.sizeInches.depthInches,
   ) / 2 + ROTATION_RING_EXTRA_RADIUS_INCHES;
+  const currentHandleCenterAngleDegrees = handleCenterAngleDegrees ?? getRotationHandleCenterAngleDegrees(rotationDegrees);
 
   const handlePointerDown = useCallback((event: ThreeEvent<PointerEvent>) => {
     if (event.button !== 0) {
@@ -45,8 +46,8 @@ export function SceneEntityFloorPlanRotationControl({
       xInches: event.point.x,
       yInches: event.point.y,
       zInches: 0,
-    });
-  }, [onStartRotation]);
+    }, currentHandleCenterAngleDegrees);
+  }, [currentHandleCenterAngleDegrees, onStartRotation]);
 
   return (
     <group position={[bounds.footprint.centerPointInches.xInches, bounds.footprint.centerPointInches.yInches, ROTATION_CONTROL_Z_INCHES]}>
@@ -64,7 +65,7 @@ export function SceneEntityFloorPlanRotationControl({
       {isRotating ? <RotationSnapTicks ringRadiusInches={ringRadiusInches} snapStepDegrees={snapStepDegrees} /> : null}
       <RotationHandle
         ringRadiusInches={ringRadiusInches}
-        handleCenterAngleDegrees={handleCenterAngleDegrees ?? getRotationHandleCenterAngleDegrees(rotationDegrees)}
+        handleCenterAngleDegrees={currentHandleCenterAngleDegrees}
       />
       {isRotating ? (
         <Html center position={[0, 0, 1]} style={{ pointerEvents: "none", zIndex: 60 }}>

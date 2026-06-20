@@ -48,6 +48,8 @@ export type AssemblyRotationDragState = Readonly<{
   startRotationDegrees: number;
   startWorldPositionInches: Point3DInches;
   latestValidRotationDegrees: number;
+  startHandleCenterAngleDegrees: number;
+  latestHandleCenterAngleDegrees: number;
 }>;
 
 export type DesignReservationZoneMoveDragState = Readonly<{
@@ -65,6 +67,8 @@ export type DesignReservationZoneRotationDragState = Readonly<{
   centerPointInches: Point3DInches;
   startPointerAngleDegrees: number;
   startRotationDegrees: number;
+  startHandleCenterAngleDegrees: number;
+  latestHandleCenterAngleDegrees: number;
 }>;
 
 export type SceneDragState =

@@ -79,6 +79,7 @@ export type DesignSceneStore = Readonly<{
     assemblyId: string;
     centerPointInches: Point3DInches;
     pointerWorldInches: Point3DInches;
+    startHandleCenterAngleDegrees: number;
   }) => void;
   updateAssemblyRotationDrag: (pointerWorldInches: Point3DInches) => void;
   finishAssemblyRotationDrag: () => void;
@@ -112,7 +113,12 @@ export type DesignSceneStore = Readonly<{
   updateSceneEntityMultiDrag: (pointerWorldInches: Point3DInches) => void;
   finishSceneEntityMultiDrag: () => void;
   cancelSceneEntityMultiDrag: () => void;
-  startDesignReservationZoneRotationDrag: (args: { designReservationZoneId: string; centerPointInches: Point3DInches; pointerWorldInches: Point3DInches }) => void;
+  startDesignReservationZoneRotationDrag: (args: {
+    designReservationZoneId: string;
+    centerPointInches: Point3DInches;
+    pointerWorldInches: Point3DInches;
+    startHandleCenterAngleDegrees: number;
+  }) => void;
   updateDesignReservationZoneRotationDrag: (pointerWorldInches: Point3DInches) => void;
   finishDesignReservationZoneRotationDrag: () => void;
   cancelDesignReservationZoneRotationDrag: () => void;

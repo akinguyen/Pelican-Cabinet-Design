@@ -1,5 +1,5 @@
 import { getPlanPointerAngleDegrees } from "@/core/geometry/planPointGeometry";
-import { snapAssemblyRotationDegrees } from "@/engine/assemblies/placement/assemblyRotationSnapping";
+import { getShortestAssemblyRotationDeltaDegrees, snapAssemblyRotationDegrees } from "@/engine/assemblies/placement/assemblyRotationSnapping";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import type { DesignScene } from "../designSceneTypes";
 import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
@@ -15,7 +15,7 @@ export function createDesignReservationZoneRotationActions(
   | "cancelDesignReservationZoneRotationDrag"
 > {
   return {
-    startDesignReservationZoneRotationDrag({ designReservationZoneId, centerPointInches, pointerWorldInches }) {
+    startDesignReservationZoneRotationDrag({ designReservationZoneId, centerPointInches, pointerWorldInches, startHandleCenterAngleDegrees }) {
       const zone = get().designScene.designReservationZones.find((candidate) => candidate.id === designReservationZoneId);
 
       if (zone === undefined || get().activeSceneViewMode !== "floor-plan") {
@@ -31,6 +31,8 @@ export function createDesignReservationZoneRotationActions(
           centerPointInches,
           startPointerAngleDegrees: pointerAngleDegrees,
           startRotationDegrees: zone.rotationDegrees.zDegrees,
+          startHandleCenterAngleDegrees,
+          latestHandleCenterAngleDegrees: startHandleCenterAngleDegrees,
         },
         activeObjectAlignmentGuides: [],
       });
@@ -46,6 +48,7 @@ export function createDesignReservationZoneRotationActions(
       const pointerAngleDegrees = getPlanPointerAngleDegrees(activeDrag.centerPointInches, pointerWorldInches);
       const rotationDeltaDegrees = activeDrag.startPointerAngleDegrees - pointerAngleDegrees;
       const snapResult = snapAssemblyRotationDegrees(activeDrag.startRotationDegrees + rotationDeltaDegrees);
+      const snappedRotationDeltaDegrees = getShortestAssemblyRotationDeltaDegrees(activeDrag.startRotationDegrees, snapResult.rotationDegrees);
 
       set((state) => ({
         designScene: {
@@ -58,6 +61,10 @@ export function createDesignReservationZoneRotationActions(
                 }
               : zone
           )),
+        },
+        activeDrag: {
+          ...activeDrag,
+          latestHandleCenterAngleDegrees: activeDrag.startHandleCenterAngleDegrees - snappedRotationDeltaDegrees,
         },
         activeObjectAlignmentGuides: [],
       }));
