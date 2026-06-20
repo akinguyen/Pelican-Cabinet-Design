@@ -1,8 +1,8 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import type { ThreeEvent } from "@react-three/fiber";
-import { collectBuiltPrimitiveGeometries } from "@/engine/assemblies/assemblyBounds";
+import { degreesToRadians, degreesToUserFacingZRadians } from "@/core/geometry/rotationTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { BuiltAssemblyTree } from "@/engine/assemblies/assemblyTreeBuilder";
 import { AssemblyFrontOutlineLines } from "./AssemblyFrontOutlineLines";
@@ -23,14 +23,57 @@ export const AssemblyRenderer = memo(function AssemblyRenderer({
   sceneViewMode,
   onPointerDown,
 }: AssemblyRendererProps) {
-  const primitiveGeometries = useMemo(
-    () => collectBuiltPrimitiveGeometries(builtAssemblyTree),
-    [builtAssemblyTree],
-  );
-
   return (
     <group onPointerDown={onPointerDown}>
-      {primitiveGeometries.map((primitiveGeometry) => (
+      <BuiltAssemblyTreeGroup
+        builtAssemblyTree={builtAssemblyTree}
+        isRootAssembly
+        renderState={renderState}
+        sceneViewMode={sceneViewMode}
+      />
+      {showFrontOutlineLines ? <AssemblyFrontOutlineLines builtAssemblyTree={builtAssemblyTree} /> : null}
+    </group>
+  );
+});
+
+type BuiltAssemblyTreeGroupProps = Readonly<{
+  builtAssemblyTree: BuiltAssemblyTree;
+  isRootAssembly: boolean;
+  renderState: "default" | "candidate";
+  sceneViewMode: SceneViewMode;
+}>;
+
+function BuiltAssemblyTreeGroup({
+  builtAssemblyTree,
+  isRootAssembly,
+  renderState,
+  sceneViewMode,
+}: BuiltAssemblyTreeGroupProps) {
+  const positionInches = isRootAssembly
+    ? builtAssemblyTree.worldPositionInches
+    : builtAssemblyTree.localPositionInches;
+  const rotationDegrees = isRootAssembly
+    ? {
+        xDegrees: 0,
+        yDegrees: 0,
+        zDegrees: builtAssemblyTree.rotationDegrees.zDegrees,
+      }
+    : builtAssemblyTree.localRotationDegrees;
+
+  return (
+    <group
+      position={[
+        positionInches.xInches,
+        positionInches.yInches,
+        positionInches.zInches,
+      ]}
+      rotation={[
+        degreesToRadians(rotationDegrees.xDegrees),
+        degreesToRadians(rotationDegrees.yDegrees),
+        degreesToUserFacingZRadians(rotationDegrees.zDegrees),
+      ]}
+    >
+      {builtAssemblyTree.primitiveGeometries.map((primitiveGeometry) => (
         <AssemblyPrimitiveMesh
           key={primitiveGeometry.componentPath.join("/")}
           primitiveGeometry={primitiveGeometry}
@@ -38,7 +81,15 @@ export const AssemblyRenderer = memo(function AssemblyRenderer({
           sceneViewMode={sceneViewMode}
         />
       ))}
-      {showFrontOutlineLines ? <AssemblyFrontOutlineLines builtAssemblyTree={builtAssemblyTree} /> : null}
+      {builtAssemblyTree.childAssemblies.map((childAssembly) => (
+        <BuiltAssemblyTreeGroup
+          key={childAssembly.componentPath.join("/")}
+          builtAssemblyTree={childAssembly}
+          isRootAssembly={false}
+          renderState={renderState}
+          sceneViewMode={sceneViewMode}
+        />
+      ))}
     </group>
   );
-});
+}

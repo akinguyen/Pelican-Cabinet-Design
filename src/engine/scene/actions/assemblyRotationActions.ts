@@ -1,6 +1,5 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { getPlanPointerAngleDegrees } from "@/core/geometry/planPointGeometry";
-import { applyAssemblyPlacementRules, createAssemblyPlacementFeedback } from "@/engine/assemblies/placement/assemblyPlacementFeedback";
 import { updateAssemblyPlacementRotationDegrees } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
 import { snapAssemblyRotationDegrees } from "@/engine/assemblies/placement/assemblyRotationSnapping";
 import type { DesignScene } from "../designSceneTypes";
@@ -36,11 +35,8 @@ export function createAssemblyRotationActions(
           startWorldPositionInches: placedAssembly.worldPositionInches,
           latestValidRotationDegrees: placedAssembly.rotationDegrees.zDegrees,
         },
-        assemblyPlacementFeedback: createAssemblyPlacementFeedback({
-          placedAssembly,
-          placedWallGraphs: get().designScene.placedWallGraphs,
-          snapContext: { movementSource: get().activeSceneViewMode },
-        }),
+        assemblyPlacementFeedback: null,
+        activeObjectAlignmentGuides: [],
       });
     },
 
@@ -66,41 +62,28 @@ export function createAssemblyRotationActions(
         placedAssembly,
         snapResult.rotationDegrees,
       );
-      const { designScene } = get();
-      const placementResult = applyAssemblyPlacementRules({
-        placedAssembly: rotatedAssembly,
-        placedWallGraphs: designScene.placedWallGraphs,
-        placedAssemblies: designScene.placedAssemblies,
-        designReservationZones: designScene.designReservationZones,
-        movingAssemblyId: activeDrag.assemblyId,
-        snapContext: { movementSource: get().activeSceneViewMode },
-      });
-      const feedback = placementResult.feedback;
-      const isValidPlacement = true;
 
       set((state) => ({
         designScene: {
           ...state.designScene,
           placedAssemblies: state.designScene.placedAssemblies.map((assembly) =>
-            assembly.id === activeDrag.assemblyId ? placementResult.placedAssembly : assembly,
+            assembly.id === activeDrag.assemblyId ? rotatedAssembly : assembly,
           ),
         },
         activeDrag: {
           ...activeDrag,
-          latestValidRotationDegrees: isValidPlacement
-            ? snapResult.rotationDegrees
-            : activeDrag.latestValidRotationDegrees,
+          latestValidRotationDegrees: snapResult.rotationDegrees,
         },
-        assemblyPlacementFeedback: feedback,
+        assemblyPlacementFeedback: null,
+        activeObjectAlignmentGuides: [],
       }));
     },
 
     finishAssemblyRotationDrag() {
       const activeDrag = get().activeDrag;
-      const placementFeedback = get().assemblyPlacementFeedback;
 
       if (activeDrag?.kind !== "assembly-rotation") {
-        set({ activeDrag: null, assemblyPlacementFeedback: null });
+        set({ activeDrag: null, assemblyPlacementFeedback: null, activeObjectAlignmentGuides: [] });
         return;
       }
 
@@ -116,33 +99,14 @@ export function createAssemblyRotationActions(
         }),
       });
 
-      if (placementFeedback?.isValid === false) {
-        set((state) => ({
-          designScene: {
-            ...state.designScene,
-            placedAssemblies: state.designScene.placedAssemblies.map((assembly) =>
-              assembly.id === activeDrag.assemblyId
-                ? {
-                    ...updateAssemblyPlacementRotationDegrees(assembly, activeDrag.latestValidRotationDegrees),
-                    worldPositionInches: activeDrag.startWorldPositionInches,
-                  }
-                : assembly,
-            ),
-          },
-          activeDrag: null,
-          assemblyPlacementFeedback: null,
-        }));
-        return;
-      }
-
-      set({ activeDrag: null, assemblyPlacementFeedback: null });
+      set({ activeDrag: null, assemblyPlacementFeedback: null, activeObjectAlignmentGuides: [] });
     },
 
     cancelAssemblyRotationDrag() {
       const activeDrag = get().activeDrag;
 
       if (activeDrag?.kind !== "assembly-rotation") {
-        set({ activeDrag: null, assemblyPlacementFeedback: null });
+        set({ activeDrag: null, assemblyPlacementFeedback: null, activeObjectAlignmentGuides: [] });
         return;
       }
 
@@ -160,6 +124,7 @@ export function createAssemblyRotationActions(
         },
         activeDrag: null,
         assemblyPlacementFeedback: null,
+        activeObjectAlignmentGuides: [],
       }));
     },
   };

@@ -1,5 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { addPoint3DInches, rotatePointAroundZInches } from "@/core/geometry/pointTypes";
+import type { RotationDegrees3D } from "@/core/geometry/rotationTypes";
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import type { PrimitiveBoxFrontOutlineEdge } from "./assemblyComponentTypes";
 import type { PrimitiveGeometry } from "@/engine/primitive-geometry/primitiveGeometryTypes";
@@ -16,6 +17,8 @@ export type BuiltAssemblyTree = Readonly<{
   componentPath: readonly string[];
   definitionComponentPath: readonly string[];
   worldPositionInches: Point3DInches;
+  localPositionInches: Point3DInches;
+  localRotationDegrees: Required<RotationDegrees3D>;
   rotationDegrees: Readonly<{
     zDegrees: number;
   }>;
@@ -30,6 +33,8 @@ export type BuiltPrimitiveGeometry = Readonly<{
   componentPath: readonly string[];
   definitionComponentPath: readonly string[];
   geometry: PrimitiveGeometry;
+  localPositionInches: Point3DInches;
+  localRotationDegrees: Required<RotationDegrees3D>;
   worldPositionInches: Point3DInches;
   worldRotationDegrees: Readonly<{
     xDegrees: number;
@@ -54,6 +59,8 @@ export function buildAssemblyTree(
     registry,
     configuration: placedAssembly.configuration,
     worldPositionInches: placedAssembly.worldPositionInches,
+    localPositionInches: createZeroPoint3DInches(),
+    localRotationDegrees: createCompleteRotationDegrees(),
     zDegrees: placedAssembly.rotationDegrees.zDegrees,
     componentPath: [placedAssembly.id],
     definitionComponentPath: [],
@@ -67,6 +74,8 @@ type BuildAssemblyTreeArgs = Readonly<{
   registry: AssemblyDefinitionRegistry;
   configuration: AssemblyConfiguration;
   worldPositionInches: Point3DInches;
+  localPositionInches: Point3DInches;
+  localRotationDegrees: Required<RotationDegrees3D>;
   zDegrees: number;
   componentPath: readonly string[];
   definitionComponentPath: readonly string[];
@@ -98,9 +107,8 @@ function buildAssemblyTreeFromDefinition(args: BuildAssemblyTreeArgs): BuiltAsse
       args.worldPositionInches,
       args.zDegrees,
     );
-    const componentXDegrees = component.localRotationDegrees?.xDegrees ?? 0;
-    const componentYDegrees = component.localRotationDegrees?.yDegrees ?? 0;
-    const componentZDegrees = args.zDegrees + (component.localRotationDegrees?.zDegrees ?? 0);
+    const componentLocalRotationDegrees = createCompleteRotationDegrees(component.localRotationDegrees);
+    const componentZDegrees = args.zDegrees + componentLocalRotationDegrees.zDegrees;
 
     if (component.kind === "primitive-geometry") {
       primitiveGeometries.push({
@@ -109,10 +117,12 @@ function buildAssemblyTreeFromDefinition(args: BuildAssemblyTreeArgs): BuiltAsse
         componentPath,
         definitionComponentPath,
         geometry: component.geometry,
+        localPositionInches: component.localPositionInches,
+        localRotationDegrees: componentLocalRotationDegrees,
         worldPositionInches: componentWorldPositionInches,
         worldRotationDegrees: {
-          xDegrees: componentXDegrees,
-          yDegrees: componentYDegrees,
+          xDegrees: componentLocalRotationDegrees.xDegrees,
+          yDegrees: componentLocalRotationDegrees.yDegrees,
           zDegrees: componentZDegrees,
         },
         sizeInches: component.sizeInches,
@@ -131,6 +141,8 @@ function buildAssemblyTreeFromDefinition(args: BuildAssemblyTreeArgs): BuiltAsse
         registry: args.registry,
         configuration: component.configuration,
         worldPositionInches: componentWorldPositionInches,
+        localPositionInches: component.localPositionInches,
+        localRotationDegrees: componentLocalRotationDegrees,
         zDegrees: componentZDegrees,
         componentPath,
         definitionComponentPath,
@@ -145,12 +157,28 @@ function buildAssemblyTreeFromDefinition(args: BuildAssemblyTreeArgs): BuiltAsse
     componentPath: args.componentPath,
     definitionComponentPath: args.definitionComponentPath,
     worldPositionInches: args.worldPositionInches,
+    localPositionInches: args.localPositionInches,
+    localRotationDegrees: args.localRotationDegrees,
     rotationDegrees: {
       zDegrees: args.zDegrees,
     },
     sizeInches: args.configuration.sizeInches,
     primitiveGeometries,
     childAssemblies,
+  };
+}
+
+function createZeroPoint3DInches(): Point3DInches {
+  return { xInches: 0, yInches: 0, zInches: 0 };
+}
+
+function createCompleteRotationDegrees(
+  rotationDegrees: RotationDegrees3D | undefined = undefined,
+): Required<RotationDegrees3D> {
+  return {
+    xDegrees: rotationDegrees?.xDegrees ?? 0,
+    yDegrees: rotationDegrees?.yDegrees ?? 0,
+    zDegrees: rotationDegrees?.zDegrees ?? 0,
   };
 }
 

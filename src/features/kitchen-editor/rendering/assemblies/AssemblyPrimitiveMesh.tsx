@@ -29,14 +29,14 @@ export const AssemblyPrimitiveMesh = memo(function AssemblyPrimitiveMesh({ primi
   return (
     <mesh
       position={[
-        primitiveGeometry.worldPositionInches.xInches,
-        primitiveGeometry.worldPositionInches.yInches,
-        primitiveGeometry.worldPositionInches.zInches,
+        primitiveGeometry.localPositionInches.xInches,
+        primitiveGeometry.localPositionInches.yInches,
+        primitiveGeometry.localPositionInches.zInches,
       ]}
       rotation={[
-        degreesToRadians(primitiveGeometry.worldRotationDegrees.xDegrees),
-        degreesToRadians(primitiveGeometry.worldRotationDegrees.yDegrees),
-        degreesToUserFacingZRadians(primitiveGeometry.worldRotationDegrees.zDegrees),
+        degreesToRadians(primitiveGeometry.localRotationDegrees.xDegrees),
+        degreesToRadians(primitiveGeometry.localRotationDegrees.yDegrees),
+        degreesToUserFacingZRadians(primitiveGeometry.localRotationDegrees.zDegrees),
       ]}
     >
       <PrimitiveGeometry primitiveGeometry={primitiveGeometry} />
