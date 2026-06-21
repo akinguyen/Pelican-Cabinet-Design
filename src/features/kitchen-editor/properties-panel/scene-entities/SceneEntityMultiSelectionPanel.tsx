@@ -1,9 +1,9 @@
-import type { SceneEntitySelectionRef } from "@/engine/scene/sceneSelectionTypes";
+import type { SceneEntityRef } from "@/engine/scene-entities/sceneEntityTypes";
 
 export function SceneEntityMultiSelectionPanel({
   selectedSceneEntities,
 }: Readonly<{
-  selectedSceneEntities: readonly SceneEntitySelectionRef[];
+  selectedSceneEntities: readonly SceneEntityRef[];
 }>) {
   const assemblyCount = selectedSceneEntities.filter((sceneEntity) => sceneEntity.entityKind === "placed-assembly").length;
   const designReservationZoneCount = selectedSceneEntities.filter((sceneEntity) => sceneEntity.entityKind === "design-reservation-zone").length;

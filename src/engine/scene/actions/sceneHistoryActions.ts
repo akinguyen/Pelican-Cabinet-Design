@@ -27,8 +27,7 @@ export function createSceneHistoryActions(
         activeToolbarTool: null,
         cameraCommand: null,
         activeDrag: null,
-        assemblyPlacementFeedback: null,
-        activeObjectAlignmentGuides: [],
+        activeSceneEntityAlignmentGuides: [],
       });
     },
 
@@ -49,8 +48,7 @@ export function createSceneHistoryActions(
         activeToolbarTool: null,
         cameraCommand: null,
         activeDrag: null,
-        assemblyPlacementFeedback: null,
-        activeObjectAlignmentGuides: [],
+        activeSceneEntityAlignmentGuides: [],
       });
     },
 
@@ -78,8 +76,7 @@ export function createSceneHistoryActions(
         activeToolbarTool: null,
         cameraCommand: null,
         activeDrag: null,
-        assemblyPlacementFeedback: null,
-        activeObjectAlignmentGuides: [],
+        activeSceneEntityAlignmentGuides: [],
       });
     },
   };

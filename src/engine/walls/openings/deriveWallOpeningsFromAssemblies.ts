@@ -1,5 +1,5 @@
 import { getAssemblyDefinition, type AssemblyDefinitionRegistry } from "@/engine/assemblies/assemblyRegistry";
-import { createAssemblyPlacementFootprint } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
+import { createPlacedAssemblyPlanFootprint } from "@/engine/scene-entities/placedAssemblyPlanFootprint";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { PlacedWallGraph } from "../placedWallGraphTypes";
 import type { WallFaceSide, DerivedWallOpening } from "../placedWallSegmentTypes";
@@ -107,7 +107,7 @@ function createDerivedWallOpeningForFace(args: {
     return null;
   }
 
-  const footprint = createAssemblyPlacementFootprint(args.sourceAssembly);
+  const footprint = createPlacedAssemblyPlanFootprint(args.sourceAssembly);
   const footprintUCoordinatesInches = footprint.cornerPointsInches.map((pointInches) => (
     projectPointOntoFaceDirection(pointInches, faceAxes)
   ));

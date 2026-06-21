@@ -15,7 +15,7 @@ export function createSceneViewModeActions(
           activeToolbarTool: state.activeToolbarTool,
         }),
         cameraCommand: null,
-        activeObjectAlignmentGuides: [],
+        activeSceneEntityAlignmentGuides: [],
         designScene: {
           ...state.designScene,
           activeSceneOperation: getNextActiveSceneOperation({

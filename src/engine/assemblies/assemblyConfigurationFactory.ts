@@ -25,6 +25,7 @@ export function createPlacedAssemblyFromDefinition(
 
   return {
     id: createId(),
+    entityKind: "placed-assembly",
     definitionId: definition.id,
     configuration,
     worldPositionInches: {

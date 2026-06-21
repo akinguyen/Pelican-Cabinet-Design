@@ -21,7 +21,7 @@ export function createSceneToolbarActions(
             ? null
             : state.designScene.activeSceneOperation,
         },
-        activeObjectAlignmentGuides: [],
+        activeSceneEntityAlignmentGuides: [],
       }));
     },
 
@@ -51,7 +51,7 @@ export function createSceneToolbarActions(
         if (toolbarTool === "draw-wall-segment") {
           return {
             activeToolbarTool: toolbarTool,
-            activeObjectAlignmentGuides: [],
+            activeSceneEntityAlignmentGuides: [],
             designScene: {
               ...state.designScene,
               activeSceneOperation: {
@@ -69,7 +69,7 @@ export function createSceneToolbarActions(
 
         return {
           activeToolbarTool: null,
-          activeObjectAlignmentGuides: [],
+          activeSceneEntityAlignmentGuides: [],
           designScene: {
             ...state.designScene,
             activeSceneOperation: isToolbarSceneOperation(state.designScene.activeSceneOperation)
@@ -87,5 +87,5 @@ function isToolbarSceneOperation(
   activeSceneOperation: DesignSceneStore["designScene"]["activeSceneOperation"],
 ): boolean {
   return activeSceneOperation?.kind === "wall-segment-draft" ||
-    activeSceneOperation?.kind === "design-reservation-zone-placement";
+    activeSceneOperation?.kind === "scene-entity-placement";
 }

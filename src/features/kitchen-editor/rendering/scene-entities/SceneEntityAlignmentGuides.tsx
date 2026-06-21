@@ -1,17 +1,17 @@
 "use client";
 
-import { memo } from "react";
 import { Line } from "@react-three/drei";
-import type { AssemblyObjectAlignmentGuide } from "@/engine/assemblies/placement/assemblyPlacementTypes";
+import { memo } from "react";
+import type { SceneEntityAlignmentGuide } from "@/engine/scene-entities/alignment/sceneEntityAlignmentTypes";
 
-const OBJECT_ALIGNMENT_PLAN_GUIDE_Z_INCHES = 7.4;
-const OBJECT_ALIGNMENT_GUIDE_RENDER_ORDER = 126;
-const OBJECT_ALIGNMENT_GUIDE_STROKE = "#ff00cc";
+const SCENE_ENTITY_ALIGNMENT_PLAN_GUIDE_Z_INCHES = 7.4;
+const SCENE_ENTITY_ALIGNMENT_GUIDE_RENDER_ORDER = 126;
+const SCENE_ENTITY_ALIGNMENT_GUIDE_STROKE = "#ff00cc";
 
-export const AssemblyObjectAlignmentGuides = memo(function AssemblyObjectAlignmentGuides({
+export const SceneEntityAlignmentGuides = memo(function SceneEntityAlignmentGuides({
   alignmentGuides,
 }: Readonly<{
-  alignmentGuides: readonly AssemblyObjectAlignmentGuide[];
+  alignmentGuides: readonly SceneEntityAlignmentGuide[];
 }>) {
   return (
     <group>
@@ -22,13 +22,13 @@ export const AssemblyObjectAlignmentGuides = memo(function AssemblyObjectAlignme
             getGuideRenderPoint(alignmentGuide, "start"),
             getGuideRenderPoint(alignmentGuide, "end"),
           ]}
-          color={OBJECT_ALIGNMENT_GUIDE_STROKE}
+          color={SCENE_ENTITY_ALIGNMENT_GUIDE_STROKE}
           lineWidth={2}
           dashed
           dashSize={3}
           gapSize={2}
           depthTest={false}
-          renderOrder={OBJECT_ALIGNMENT_GUIDE_RENDER_ORDER}
+          renderOrder={SCENE_ENTITY_ALIGNMENT_GUIDE_RENDER_ORDER}
         />
       ))}
     </group>
@@ -36,7 +36,7 @@ export const AssemblyObjectAlignmentGuides = memo(function AssemblyObjectAlignme
 });
 
 function getGuideRenderPoint(
-  alignmentGuide: AssemblyObjectAlignmentGuide,
+  alignmentGuide: SceneEntityAlignmentGuide,
   endpoint: "start" | "end",
 ): [number, number, number] {
   const pointInches = endpoint === "start"
@@ -45,5 +45,5 @@ function getGuideRenderPoint(
 
   return alignmentGuide.guidePlane === "elevation"
     ? [pointInches.xInches, pointInches.yInches, pointInches.zInches]
-    : [pointInches.xInches, pointInches.yInches, OBJECT_ALIGNMENT_PLAN_GUIDE_Z_INCHES];
+    : [pointInches.xInches, pointInches.yInches, SCENE_ENTITY_ALIGNMENT_PLAN_GUIDE_Z_INCHES];
 }

@@ -1,6 +1,6 @@
 import { Plane, Ray, Vector3 } from "three";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { AssemblyElevationMoveFrame } from "@/engine/scene/sceneDragTypes";
+import type { SceneEntityElevationFrame } from "@/engine/scene/sceneDragTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 
 const dragIntersectionPoint = new Vector3();
@@ -9,7 +9,7 @@ export function createAssemblyDragPointerWorldPoint(
   sceneViewMode: SceneViewMode,
   ray: Ray,
   elevationPlaneYInches: number,
-  elevationMoveFrame?: AssemblyElevationMoveFrame,
+  elevationMoveFrame?: SceneEntityElevationFrame,
 ): Point3DInches | null {
   const dragPlane = createDragPlane({
     sceneViewMode,
@@ -32,7 +32,7 @@ export function createAssemblyDragPointerWorldPoint(
 function createDragPlane(args: {
   sceneViewMode: SceneViewMode;
   elevationPlaneYInches: number;
-  elevationMoveFrame?: AssemblyElevationMoveFrame;
+  elevationMoveFrame?: SceneEntityElevationFrame;
 }): Plane {
   if (args.sceneViewMode === "elevation" && args.elevationMoveFrame !== undefined) {
     const normal = new Vector3(

@@ -106,8 +106,8 @@ function WallOpeningIntersectionOutline({
       return;
     }
 
-    designSceneStore.startAssemblyDrag({
-      assemblyId: sourceAssembly.id,
+    designSceneStore.startSceneEntityMoveDrag({
+      sceneEntity: { entityKind: "placed-assembly", entityId: sourceAssembly.id },
       pointerWorldInches,
       sceneViewMode: activeSceneViewMode,
     });

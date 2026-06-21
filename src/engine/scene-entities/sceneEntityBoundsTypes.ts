@@ -1,21 +1,18 @@
 import type { Size3DInches } from "@/core/geometry/sizeTypes";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { AssemblyPlacementFootprint } from "@/engine/assemblies/placement/assemblyPlacementTypes";
+import type { SceneEntityPlanFootprint } from "./sceneEntityPlanGeometryTypes";
+import type { SceneEntityKind } from "./sceneEntityTypes";
 
-export type SceneEntityBoundsKind = "placed-assembly" | "design-reservation-zone";
+export type SceneEntityBoundsKind = SceneEntityKind;
 
 export type SceneEntityBounds = Readonly<{
   entityId: string;
   entityKind: SceneEntityBoundsKind;
-  baseCenterPointInches: Point3DInches;
   centerPointInches: Point3DInches;
   sizeInches: Size3DInches;
   rotationDegrees: Readonly<{ zDegrees: number }>;
-  footprint: AssemblyPlacementFootprint;
+  footprint: SceneEntityPlanFootprint;
   footprintCornersInches: readonly Point3DInches[];
   topCornersInches: readonly Point3DInches[];
-  heightRangeInches: Readonly<{
-    minZInches: number;
-    maxZInches: number;
-  }>;
+  heightRangeInches: Readonly<{ minZInches: number; maxZInches: number }>;
 }>;

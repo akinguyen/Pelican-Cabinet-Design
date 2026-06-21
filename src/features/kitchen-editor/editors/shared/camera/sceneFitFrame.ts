@@ -1,6 +1,7 @@
 import { combineBounds3DInches } from "@/core/geometry/boxBounds";
 import { measurePlacedAssembliesVisualBounds } from "@/engine/assemblies/assemblyBounds";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import { getPlacedAssembliesFromSceneEntities } from "@/engine/scene-entities/sceneEntityCollectionEditing";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { measurePlacedWallGraphsBounds } from "@/engine/walls/wallBounds";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
@@ -24,7 +25,7 @@ export function getCurrentSceneFitFrame(): SceneFitFrame {
   const { designScene } = useDesignSceneStore.getState();
 
   return createSceneFitFrameForScene({
-    placedAssemblies: designScene.placedAssemblies,
+    placedAssemblies: getPlacedAssembliesFromSceneEntities(designScene.sceneEntities),
     placedWallGraphs: designScene.placedWallGraphs,
   });
 }

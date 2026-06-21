@@ -14,8 +14,7 @@ export function createInitialDesignSceneStoreState(): Pick<
   | "cameraCommand"
   | "sceneCameraStates"
   | "activeDrag"
-  | "assemblyPlacementFeedback"
-  | "activeObjectAlignmentGuides"
+  | "activeSceneEntityAlignmentGuides"
   | "sceneHistory"
 > {
   return {
@@ -27,8 +26,7 @@ export function createInitialDesignSceneStoreState(): Pick<
     cameraCommand: null,
     sceneCameraStates: createDefaultSceneCameraStates(),
     activeDrag: null,
-    assemblyPlacementFeedback: null,
-    activeObjectAlignmentGuides: [],
+    activeSceneEntityAlignmentGuides: [],
     sceneHistory: createEmptyDesignSceneHistoryState(),
   };
 }

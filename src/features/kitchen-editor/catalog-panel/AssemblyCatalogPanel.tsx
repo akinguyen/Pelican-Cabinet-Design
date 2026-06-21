@@ -32,7 +32,7 @@ const initialAssemblyCandidatePositionInches: Point3DInches = {
 const defaultCatalogId = kitchenEditorCatalogs[0].id;
 
 export function AssemblyCatalogPanel() {
-  const startAssemblyPlacementCandidate = useDesignSceneStore((state) => state.startAssemblyPlacementCandidate);
+  const startSceneEntityPlacementCandidate = useDesignSceneStore((state) => state.startSceneEntityPlacementCandidate);
   const [activeCatalogId, setActiveCatalogId] = useState<KitchenEditorCatalogId>(defaultCatalogId);
   const [activeCategoryId, setActiveCategoryId] = useState<KitchenEditorCatalogCategoryId>(
     getDefaultKitchenEditorCatalogCategoryId(defaultCatalogId),
@@ -54,7 +54,7 @@ export function AssemblyCatalogPanel() {
   }
 
   function handleSelectAssemblyDefinition(definition: AssemblyDefinition) {
-    startAssemblyPlacementCandidate(
+    startSceneEntityPlacementCandidate(
       createPlacedAssemblyFromDefinition(definition, initialAssemblyCandidatePositionInches),
     );
   }

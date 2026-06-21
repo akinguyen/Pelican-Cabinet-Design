@@ -15,7 +15,6 @@ import { DesignSceneRenderer } from "./DesignSceneRenderer";
 import { EditorLighting } from "./EditorLighting";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { GroundGrid } from "./GroundGrid";
-import { PlacementSurface } from "../interaction/PlacementSurface";
 import {
   DEFAULT_FLOOR_PLAN_CAMERA_POSITION_INCHES,
   DEFAULT_FLOOR_PLAN_ZOOM,
@@ -33,8 +32,7 @@ export function DesignSceneCanvas() {
     activeToolbarTool === "draw-wall-segment" ||
     activeToolbarTool === "draw-design-reservation-zone" ||
     activeSceneOperationKind === "wall-segment-draft" ||
-    activeSceneOperationKind === "design-reservation-zone-placement" ||
-    activeSceneOperationKind === "assembly-placement";
+    activeSceneOperationKind === "scene-entity-placement";
   const cursorClassName = getCanvasCursorClassName(
     activeSceneViewMode,
     hasCrosshairPlacementOrDraftInteraction,
@@ -70,7 +68,6 @@ export function DesignSceneCanvas() {
         <GroundGrid />
         {activeSceneViewMode === "perspective" ? <SceneAxisGizmo /> : null}
         {activeSceneViewMode !== "elevation" || hasElevationViews ? <DesignSceneRenderer /> : null}
-        {activeSceneOperationKind === "assembly-placement" ? <PlacementSurface sceneViewMode={activeSceneViewMode} /> : null}
         {activeSceneViewMode === "perspective" ? <PerspectiveCameraControls /> : null}
         {activeSceneViewMode === "floor-plan" ? <FloorPlanCameraControls /> : null}
         {activeSceneViewMode === "elevation" ? <ElevationCameraControls /> : null}

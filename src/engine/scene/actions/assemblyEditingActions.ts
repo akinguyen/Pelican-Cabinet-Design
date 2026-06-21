@@ -1,167 +1,33 @@
-import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
-import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
-import {
-  updateAssemblyDistanceFromFloor,
-  updateAssemblyHeightPreservingDistanceFromFloor,
-} from "@/engine/assemblies/placedAssemblyTypes";
-import type {
-  AssemblyDimensionId,
-  DesignSceneStore,
-  DesignSceneStoreGetter,
-  DesignSceneStoreSetter,
-} from "../designSceneStoreTypes";
+import { updateAssemblyHeightPreservingDistanceFromFloor } from "@/engine/assemblies/placedAssemblyTypes";
+import { getSceneEntitiesByRefs, replaceSceneEntity } from "@/engine/scene-entities/sceneEntityCollectionEditing";
 import { getSceneEntityRefsFromSelection } from "../sceneSelectionTypes";
+import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
-export function createAssemblyEditingActions(
-  get: DesignSceneStoreGetter,
-  set: DesignSceneStoreSetter,
-): Pick<
-  DesignSceneStore,
-  | "updateSelectedAssemblyWorldPositionX"
-  | "updateSelectedAssemblyWorldPositionY"
-  | "updateSelectedAssemblyDistanceFromFloor"
-  | "updateSelectedAssemblyRotationZ"
-  | "updateSelectedAssemblyDimension"
-  | "updateSelectedAssemblyOptionValue"
-> {
+export function createAssemblyEditingActions(get: DesignSceneStoreGetter, set: DesignSceneStoreSetter): Pick<DesignSceneStore, "updateSelectedAssemblyDimension" | "updateSelectedAssemblyOptionValue"> {
   return {
-    updateSelectedAssemblyWorldPositionX(xInches) {
-      updateSelectedAssembly((assembly) => ({
-        ...assembly,
-        worldPositionInches: {
-          ...assembly.worldPositionInches,
-          xInches,
-        },
-      }), get, set);
-    },
-
-    updateSelectedAssemblyWorldPositionY(yInches) {
-      updateSelectedAssembly((assembly) => ({
-        ...assembly,
-        worldPositionInches: {
-          ...assembly.worldPositionInches,
-          yInches,
-        },
-      }), get, set);
-    },
-
-    updateSelectedAssemblyDistanceFromFloor(distanceFromFloorInches) {
-      updateSelectedAssembly(
-        (assembly) => updateAssemblyDistanceFromFloor(assembly, distanceFromFloorInches),
-        get,
-        set,
-      );
-    },
-
-    updateSelectedAssemblyRotationZ(zDegrees) {
-      updateSelectedAssembly((assembly) => ({
-        ...assembly,
-        rotationDegrees: {
-          zDegrees,
-        },
-      }), get, set);
-    },
-
     updateSelectedAssemblyDimension(dimensionId, valueInches) {
-      updateSelectedAssembly((assembly) => updateAssemblyDimension(
-        assembly,
-        dimensionId,
-        valueInches,
-      ), get, set);
+      const assembly = getSelectedAssembly(get);
+      if (assembly === null) return;
+      const nextAssembly = dimensionId === "heightInches"
+        ? updateAssemblyHeightPreservingDistanceFromFloor(assembly, valueInches)
+        : { ...assembly, configuration: { ...assembly.configuration, sizeInches: { ...assembly.configuration.sizeInches, [dimensionId]: valueInches } } };
+      recordDesignSceneHistoryEntry({ get, set, label: "Update assembly dimension" });
+      set((state) => ({ designScene: { ...state.designScene, sceneEntities: replaceSceneEntity(state.designScene.sceneEntities, nextAssembly) } }));
     },
-
     updateSelectedAssemblyOptionValue(optionId, value) {
-      updateSelectedAssembly((assembly) => updateAssemblyOptionValue(
-        assembly,
-        optionId,
-        value,
-      ), get, set);
+      const assembly = getSelectedAssembly(get);
+      if (assembly === null) return;
+      const nextAssembly = { ...assembly, configuration: { ...assembly.configuration, optionValues: { ...assembly.configuration.optionValues, [optionId]: value } } };
+      recordDesignSceneHistoryEntry({ get, set, label: "Update assembly option" });
+      set((state) => ({ designScene: { ...state.designScene, sceneEntities: replaceSceneEntity(state.designScene.sceneEntities, nextAssembly) } }));
     },
   };
 }
 
-function updateAssemblyDimension(
-  assembly: PlacedAssembly,
-  dimensionId: AssemblyDimensionId,
-  valueInches: number,
-): PlacedAssembly {
-  if (dimensionId === "heightInches") {
-    return updateAssemblyHeightPreservingDistanceFromFloor(assembly, valueInches);
-  }
-
-  return {
-    ...assembly,
-    configuration: {
-      ...assembly.configuration,
-      sizeInches: {
-        ...assembly.configuration.sizeInches,
-        [dimensionId]: valueInches,
-      },
-    },
-  };
-}
-
-function updateAssemblyOptionValue(
-  assembly: PlacedAssembly,
-  optionId: string,
-  value: AssemblyOptionValue,
-): PlacedAssembly {
-  return {
-    ...assembly,
-    configuration: {
-      ...assembly.configuration,
-      optionValues: {
-        ...assembly.configuration.optionValues,
-        [optionId]: value,
-      },
-    },
-  };
-}
-
-function updateSelectedAssembly(
-  updateAssembly: (assembly: PlacedAssembly) => PlacedAssembly,
-  get: DesignSceneStoreGetter,
-  set: DesignSceneStoreSetter,
-): void {
-  const activeSelection = get().designScene.activeSelection;
-
-  const selectedAssemblyRef = getSingleSelectedPlacedAssemblyRef(activeSelection);
-
-  if (selectedAssemblyRef === null) {
-    return;
-  }
-
-  recordDesignSceneHistoryEntry({ get, set, label: "Update assembly" });
-
-  set((state) => {
-    let updatedSelectedAssembly: PlacedAssembly | undefined;
-    const placedAssemblies = state.designScene.placedAssemblies.map((assembly) => {
-      if (assembly.id !== selectedAssemblyRef.entityId) {
-        return assembly;
-      }
-
-      updatedSelectedAssembly = updateAssembly(assembly);
-      return updatedSelectedAssembly;
-    });
-    return {
-      designScene: {
-        ...state.designScene,
-        placedAssemblies,
-      },
-    };
-  });
-}
-
-function getSingleSelectedPlacedAssemblyRef(activeSelection: DesignSceneStore["designScene"]["activeSelection"]): { entityKind: "placed-assembly"; entityId: string } | null {
-  const selectedSceneEntities = getSceneEntityRefsFromSelection(activeSelection);
-
-  if (selectedSceneEntities.length !== 1 || selectedSceneEntities[0].entityKind !== "placed-assembly") {
-    return null;
-  }
-
-  return {
-    entityKind: "placed-assembly",
-    entityId: selectedSceneEntities[0].entityId,
-  };
+function getSelectedAssembly(get: DesignSceneStoreGetter) {
+  const refs = getSceneEntityRefsFromSelection(get().designScene.activeSelection).filter((ref) => ref.entityKind === "placed-assembly");
+  if (refs.length !== 1) return null;
+  const entity = getSceneEntitiesByRefs(get().designScene.sceneEntities, refs)[0];
+  return entity?.entityKind === "placed-assembly" ? entity : null;
 }

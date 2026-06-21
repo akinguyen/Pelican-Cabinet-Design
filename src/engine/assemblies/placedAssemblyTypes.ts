@@ -1,14 +1,9 @@
-import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { AssemblyConfiguration } from "./assemblyConfiguration";
+import type { SceneEntityBase } from "@/engine/scene-entities/sceneEntityTypes";
 
-export type PlacedAssembly = Readonly<{
-  id: string;
+export type PlacedAssembly = SceneEntityBase<"placed-assembly"> & Readonly<{
   definitionId: string;
   configuration: AssemblyConfiguration;
-  worldPositionInches: Point3DInches;
-  rotationDegrees: Readonly<{
-    zDegrees: number;
-  }>;
 }>;
 
 export function getAssemblyDistanceFromFloorInches(

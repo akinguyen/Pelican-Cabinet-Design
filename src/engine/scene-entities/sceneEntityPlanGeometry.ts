@@ -1,5 +1,5 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { AssemblyPlacementEdge } from "./assemblyPlacementTypes";
+import type { SceneEntityPlanFootprintEdge } from "./sceneEntityPlanGeometryTypes";
 
 const MIN_VECTOR_LENGTH_INCHES = 0.000001;
 
@@ -23,7 +23,7 @@ export type PlanSegmentOverlapInches = Readonly<{
   maxInches: number;
 }>;
 
-export function getPlacementEdgePlanSegment(edge: AssemblyPlacementEdge): PlanLineSegmentInches {
+export function getPlacementEdgePlanSegment(edge: SceneEntityPlanFootprintEdge): PlanLineSegmentInches {
   return {
     startPointInches: edge.startPointInches,
     endPointInches: edge.endPointInches,

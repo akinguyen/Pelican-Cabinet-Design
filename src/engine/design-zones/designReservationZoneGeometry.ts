@@ -1,12 +1,12 @@
 import { rotatePointAroundZInches, type Point3DInches } from "@/core/geometry/pointTypes";
-import type { AssemblyPlacementEdge, AssemblyPlacementFootprint } from "@/engine/assemblies/placement/assemblyPlacementTypes";
-import type { AssemblyElevationMoveFrame } from "@/engine/scene/sceneDragTypes";
+import type { SceneEntityPlanFootprintEdge, SceneEntityPlanFootprint } from "@/engine/scene-entities/sceneEntityPlanGeometryTypes";
+import type { SceneEntityElevationFrame } from "@/engine/scene/sceneDragTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { getDefaultDesignReservationZoneDimensions } from "./designReservationZoneDefaults";
 import type { DesignReservationZone, DesignReservationZonePurpose } from "./designReservationZoneTypes";
 
 export type DesignReservationZoneVolumeGeometry = Readonly<{
-  footprint: AssemblyPlacementFootprint;
+  footprint: SceneEntityPlanFootprint;
   baseCornerPointsInches: readonly Point3DInches[];
   topCornerPointsInches: readonly Point3DInches[];
   edgeSegments: readonly Readonly<{
@@ -18,7 +18,7 @@ export type DesignReservationZoneVolumeGeometry = Readonly<{
 
 export function createDesignReservationZoneFootprint(
   zone: DesignReservationZone,
-): AssemblyPlacementFootprint {
+): SceneEntityPlanFootprint {
   const halfWidthInches = zone.sizeInches.widthInches / 2;
   const halfDepthInches = zone.sizeInches.depthInches / 2;
   const localCorners: readonly Point3DInches[] = [
@@ -31,23 +31,29 @@ export function createDesignReservationZoneFootprint(
     const rotatedCorner = rotatePointAroundZInches(localCorner, zone.rotationDegrees.zDegrees);
 
     return {
-      xInches: zone.baseCenterPointInches.xInches + rotatedCorner.xInches,
-      yInches: zone.baseCenterPointInches.yInches + rotatedCorner.yInches,
-      zInches: zone.baseCenterPointInches.zInches,
+      xInches: zone.worldPositionInches.xInches + rotatedCorner.xInches,
+      yInches: zone.worldPositionInches.yInches + rotatedCorner.yInches,
+      zInches: zone.worldPositionInches.zInches,
     };
   });
 
-  return createFootprintFromCorners(zone.baseCenterPointInches, cornerPointsInches);
+  return createFootprintFromCorners(zone.worldPositionInches, cornerPointsInches);
 }
 
 export function createDesignReservationZoneVolumeGeometry(
   zone: DesignReservationZone,
 ): DesignReservationZoneVolumeGeometry {
   const footprint = createDesignReservationZoneFootprint(zone);
-  const baseCornerPointsInches = footprint.cornerPointsInches;
-  const topCornerPointsInches = baseCornerPointsInches.map((cornerPointInches) => ({
+  const halfHeightInches = zone.sizeInches.heightInches / 2;
+  const minZInches = zone.worldPositionInches.zInches - halfHeightInches;
+  const maxZInches = zone.worldPositionInches.zInches + halfHeightInches;
+  const baseCornerPointsInches = footprint.cornerPointsInches.map((cornerPointInches) => ({
     ...cornerPointInches,
-    zInches: zone.baseCenterPointInches.zInches + zone.sizeInches.heightInches,
+    zInches: minZInches,
+  }));
+  const topCornerPointsInches = footprint.cornerPointsInches.map((cornerPointInches) => ({
+    ...cornerPointInches,
+    zInches: maxZInches,
   }));
   const edgeSegments = [
     ...createClosedEdgeSegments("base", baseCornerPointsInches),
@@ -72,25 +78,26 @@ export function createDesignReservationZoneAtPointer(args: {
   reservedFor: DesignReservationZonePurpose;
   pointInches: Point3DInches;
   sceneViewMode: SceneViewMode;
-  elevationMoveFrame?: AssemblyElevationMoveFrame;
+  elevationMoveFrame?: SceneEntityElevationFrame;
 }): DesignReservationZone {
   const defaultDimensions = getDefaultDesignReservationZoneDimensions(args.reservedFor);
 
   if (args.sceneViewMode === "elevation" && args.elevationMoveFrame !== undefined) {
-    const baseCenterPointInches = {
+    const worldPositionInches = {
       xInches:
         args.pointInches.xInches +
         args.elevationMoveFrame.outwardDirectionInches.xInches * (defaultDimensions.depthInches / 2),
       yInches:
         args.pointInches.yInches +
         args.elevationMoveFrame.outwardDirectionInches.yInches * (defaultDimensions.depthInches / 2),
-      zInches: Math.max(0, args.pointInches.zInches - defaultDimensions.heightInches / 2),
+      zInches: Math.max(defaultDimensions.heightInches / 2, args.pointInches.zInches),
     };
 
     return {
       id: args.id,
+      entityKind: "design-reservation-zone",
       reservedFor: args.reservedFor,
-      baseCenterPointInches,
+      worldPositionInches,
       rotationDegrees: {
         zDegrees: getZRotationDegreesForFaceDirection(args.elevationMoveFrame.faceDirectionInches),
       },
@@ -100,11 +107,12 @@ export function createDesignReservationZoneAtPointer(args: {
 
   return {
     id: args.id,
+    entityKind: "design-reservation-zone",
     reservedFor: args.reservedFor,
-    baseCenterPointInches: {
+    worldPositionInches: {
       xInches: args.pointInches.xInches,
       yInches: args.pointInches.yInches,
-      zInches: 0,
+      zInches: defaultDimensions.heightInches / 2,
     },
     rotationDegrees: { zDegrees: 0 },
     sizeInches: defaultDimensions,
@@ -112,7 +120,7 @@ export function createDesignReservationZoneAtPointer(args: {
 }
 
 export function getDesignReservationZoneFootprintBounds(
-  footprint: AssemblyPlacementFootprint,
+  footprint: SceneEntityPlanFootprint,
 ): Readonly<{ minXInches: number; maxXInches: number; minYInches: number; maxYInches: number }> {
   return footprint.cornerPointsInches.reduce((bounds, pointInches) => ({
     minXInches: Math.min(bounds.minXInches, pointInches.xInches),
@@ -134,8 +142,8 @@ export function getZRotationDegreesForFaceDirection(faceDirectionInches: Point3D
 function createFootprintFromCorners(
   centerPointInches: Point3DInches,
   cornerPointsInches: readonly Point3DInches[],
-): AssemblyPlacementFootprint {
-  const edges: AssemblyPlacementEdge[] = cornerPointsInches.map((cornerPointInches, cornerIndex) => {
+): SceneEntityPlanFootprint {
+  const edges: SceneEntityPlanFootprintEdge[] = cornerPointsInches.map((cornerPointInches, cornerIndex) => {
     const endPointInches = cornerPointsInches[(cornerIndex + 1) % cornerPointsInches.length];
 
     return {

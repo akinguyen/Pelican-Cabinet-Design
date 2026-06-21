@@ -1,5 +1,5 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import type { AssemblyPlacementFootprint } from "@/engine/assemblies/placement/assemblyPlacementTypes";
+import type { SceneEntityPlanFootprint } from "@/engine/scene-entities/sceneEntityPlanGeometryTypes";
 import type { SceneEntityBounds } from "./sceneEntityBoundsTypes";
 
 export type SceneEntityBoundsPlanFrame = Readonly<{
@@ -45,7 +45,7 @@ export function createSceneEntityBoundsPlanFrame(
 
 export function createSceneEntityGroupFootprint(
   bounds: readonly SceneEntityBounds[],
-): AssemblyPlacementFootprint | null {
+): SceneEntityPlanFootprint | null {
   if (bounds.length <= 1) {
     return null;
   }

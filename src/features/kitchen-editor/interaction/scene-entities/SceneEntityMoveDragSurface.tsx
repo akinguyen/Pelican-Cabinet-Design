@@ -2,17 +2,16 @@
 
 import type { ThreeEvent } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo } from "react";
-import { createSceneEntitySelectionKey } from "@/engine/scene/sceneSelectionTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { SceneEntityMultiMoveDragState } from "@/engine/scene/sceneDragTypes";
+import type { SceneEntityMoveDragState } from "@/engine/scene/sceneDragTypes";
 import { createAssemblyDragPointerWorldPoint } from "../assemblies/assemblyDragPointer";
 import { createElevationDragSurfaceMatrix } from "../elevation/createElevationDragSurfaceMatrix";
 
-const SCENE_ENTITY_MULTI_DRAG_SURFACE_SIZE_INCHES = 3200;
+const DRAG_SURFACE_SIZE_INCHES = 3200;
 
-export function SceneEntityMultiDragSurface() {
+export function SceneEntityMoveDragSurface() {
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
-  const moveDrag = activeDrag?.kind === "scene-entity-multi-move" ? activeDrag : null;
+  const moveDrag = activeDrag?.kind === "scene-entity-move" ? activeDrag : null;
 
   useEffect(() => {
     if (moveDrag === null) {
@@ -20,7 +19,7 @@ export function SceneEntityMultiDragSurface() {
     }
 
     function handleWindowPointerUp() {
-      useDesignSceneStore.getState().finishSceneEntityMultiDrag();
+      useDesignSceneStore.getState().finishSceneEntityMoveDrag();
     }
 
     window.addEventListener("pointerup", handleWindowPointerUp);
@@ -38,15 +37,17 @@ export function SceneEntityMultiDragSurface() {
   );
 
   const handlePointerMove = useCallback((event: ThreeEvent<PointerEvent>) => {
-    if (moveDrag === null) {
+    const drag = useDesignSceneStore.getState().activeDrag;
+
+    if (drag?.kind !== "scene-entity-move") {
       return;
     }
 
     const pointerWorldInches = createAssemblyDragPointerWorldPoint(
-      moveDrag.sceneViewMode,
+      drag.sceneViewMode,
       event.ray,
-      getDragSurfaceReferenceYInches(moveDrag),
-      moveDrag.elevationMoveFrame,
+      getDragSurfaceReferenceYInches(drag),
+      drag.elevationMoveFrame,
     );
 
     if (pointerWorldInches === null) {
@@ -54,12 +55,12 @@ export function SceneEntityMultiDragSurface() {
     }
 
     event.stopPropagation();
-    useDesignSceneStore.getState().updateSceneEntityMultiDrag(pointerWorldInches);
-  }, [moveDrag]);
+    useDesignSceneStore.getState().updateSceneEntityMoveDrag(pointerWorldInches);
+  }, []);
 
   const handlePointerUp = useCallback((event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
-    useDesignSceneStore.getState().finishSceneEntityMultiDrag();
+    useDesignSceneStore.getState().finishSceneEntityMoveDrag();
   }, []);
 
   if (moveDrag === null) {
@@ -74,7 +75,7 @@ export function SceneEntityMultiDragSurface() {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        <planeGeometry args={[SCENE_ENTITY_MULTI_DRAG_SURFACE_SIZE_INCHES, SCENE_ENTITY_MULTI_DRAG_SURFACE_SIZE_INCHES]} />
+        <planeGeometry args={[DRAG_SURFACE_SIZE_INCHES, DRAG_SURFACE_SIZE_INCHES]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     );
@@ -82,12 +83,13 @@ export function SceneEntityMultiDragSurface() {
 
   return (
     <mesh position={[0, 0, 0]} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
-      <planeGeometry args={[SCENE_ENTITY_MULTI_DRAG_SURFACE_SIZE_INCHES, SCENE_ENTITY_MULTI_DRAG_SURFACE_SIZE_INCHES]} />
+      <planeGeometry args={[DRAG_SURFACE_SIZE_INCHES, DRAG_SURFACE_SIZE_INCHES]} />
       <meshBasicMaterial transparent opacity={0} depthWrite={false} />
     </mesh>
   );
 }
 
-function getDragSurfaceReferenceYInches(moveDrag: SceneEntityMultiMoveDragState): number {
-  return moveDrag.dragStartPositionsBySceneEntityKey[createSceneEntitySelectionKey(moveDrag.leaderSceneEntity)]?.yInches ?? 0;
+function getDragSurfaceReferenceYInches(moveDrag: SceneEntityMoveDragState): number {
+  const firstPosition = Object.values(moveDrag.dragStartWorldPositionsBySceneEntityKey)[0];
+  return firstPosition?.yInches ?? moveDrag.dragStartPointerWorldInches.yInches;
 }

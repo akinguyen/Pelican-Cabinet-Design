@@ -22,8 +22,7 @@ export function createSceneSelectionActions(
           ...state.designScene,
           activeSelection: createSceneSelectionFromSceneEntities([sceneEntity]),
         },
-        assemblyPlacementFeedback: null,
-        activeObjectAlignmentGuides: [],
+        activeSceneEntityAlignmentGuides: [],
       }));
     },
 
@@ -40,8 +39,7 @@ export function createSceneSelectionActions(
             ...state.designScene,
             activeSelection: createSceneSelectionFromSceneEntities(nextSceneEntities),
           },
-          assemblyPlacementFeedback: null,
-          activeObjectAlignmentGuides: [],
+            activeSceneEntityAlignmentGuides: [],
         };
       });
     },
@@ -56,8 +54,7 @@ export function createSceneSelectionActions(
             wallSegmentId,
           },
         },
-        assemblyPlacementFeedback: null,
-        activeObjectAlignmentGuides: [],
+        activeSceneEntityAlignmentGuides: [],
       }));
     },
 
@@ -67,8 +64,7 @@ export function createSceneSelectionActions(
           ...state.designScene,
           activeSelection: null,
         },
-        assemblyPlacementFeedback: null,
-        activeObjectAlignmentGuides: [],
+        activeSceneEntityAlignmentGuides: [],
       }));
     },
   };

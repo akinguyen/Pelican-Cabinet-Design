@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
-import { ASSEMBLY_ROTATION_SNAP_STEP_DEGREES } from "@/engine/assemblies/placement/assemblyRotationSnapping";
-import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
-import type { DesignReservationZone } from "@/engine/design-zones/designReservationZoneTypes";
+import { SCENE_ENTITY_ROTATION_SNAP_STEP_DEGREES } from "@/engine/scene-entities/sceneEntityRotationSnapping";
+import type { SceneEntity } from "@/engine/scene-entities/sceneEntityTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { SceneEntityBounds } from "@/engine/scene-entities/sceneEntityBoundsTypes";
@@ -15,350 +14,80 @@ import { SceneEntityFloorPlanRotationControl } from "./SceneEntityFloorPlanRotat
 import { SceneEntityVolumeBoundingBox } from "./SceneEntityVolumeBoundingBox";
 
 type SelectedSceneEntityLayerProps = Readonly<{
-  selectedAssemblies: readonly PlacedAssembly[];
-  selectedDesignReservationZones: readonly DesignReservationZone[];
+  selectedSceneEntities: readonly SceneEntity[];
   selectedSceneEntityBounds: readonly SceneEntityBounds[];
   placedWallGraphs: readonly PlacedWallGraph[];
   sceneViewMode: SceneViewMode;
   selectedAssemblyIsWallOpening: boolean;
 }>;
 
-export function SelectedSceneEntityLayer({
-  selectedAssemblies,
-  selectedDesignReservationZones,
-  selectedSceneEntityBounds,
-  placedWallGraphs,
-  sceneViewMode,
-  selectedAssemblyIsWallOpening,
-}: SelectedSceneEntityLayerProps) {
+export function SelectedSceneEntityLayer({ selectedSceneEntities, selectedSceneEntityBounds, placedWallGraphs, sceneViewMode, selectedAssemblyIsWallOpening }: SelectedSceneEntityLayerProps) {
   const activeDrag = useDesignSceneStore((state) => state.activeDrag);
   const isSceneOperationActive = useDesignSceneStore((state) => state.designScene.activeSceneOperation !== null);
   const activeToolbarTool = useDesignSceneStore((state) => state.activeToolbarTool);
-  const assemblyPlacementFeedback = useDesignSceneStore((state) => state.assemblyPlacementFeedback);
-  const singleSelectedAssembly = selectedAssemblies.length === 1 && selectedDesignReservationZones.length === 0
-    ? selectedAssemblies[0]
-    : null;
-  const singleSelectedDesignReservationZone = selectedDesignReservationZones.length === 1 && selectedAssemblies.length === 0
-    ? selectedDesignReservationZones[0]
-    : null;
+  const singleSelectedSceneEntityObject = selectedSceneEntities.length === 1 ? selectedSceneEntities[0] : null;
+  const singleSelectedSceneEntity = singleSelectedSceneEntityObject === null ? null : { entityKind: singleSelectedSceneEntityObject.entityKind, entityId: singleSelectedSceneEntityObject.id };
   const singleBounds = selectedSceneEntityBounds.length === 1 ? selectedSceneEntityBounds[0] : null;
   const selectedSceneEntityCount = selectedSceneEntityBounds.length;
   const isMultiSelection = selectedSceneEntityCount > 1;
 
-  const handleStartAssemblyRotation = useCallback((pointerWorldInches: Point3DInches, startHandleCenterAngleDegrees: number) => {
-    if (singleSelectedAssembly === null || singleBounds === null) {
-      return;
-    }
+  const handleStartSceneEntityRotation = useCallback((pointerWorldInches: Point3DInches, startHandleCenterAngleDegrees: number) => {
+    if (singleSelectedSceneEntity === null || singleBounds === null) return;
+    useDesignSceneStore.getState().startSceneEntityRotationDrag({ sceneEntity: singleSelectedSceneEntity, centerPointInches: singleBounds.footprint.centerPointInches, pointerWorldInches, startHandleCenterAngleDegrees });
+  }, [singleBounds, singleSelectedSceneEntity]);
 
-    useDesignSceneStore.getState().startAssemblyRotationDrag({
-      assemblyId: singleSelectedAssembly.id,
-      centerPointInches: singleBounds.footprint.centerPointInches,
-      pointerWorldInches,
-      startHandleCenterAngleDegrees,
-    });
-  }, [singleBounds, singleSelectedAssembly]);
+  if (selectedSceneEntityCount === 0) return null;
 
-  const handleStartDesignReservationZoneRotation = useCallback((pointerWorldInches: Point3DInches, startHandleCenterAngleDegrees: number) => {
-    if (singleSelectedDesignReservationZone === null || singleBounds === null) {
-      return;
-    }
-
-    useDesignSceneStore.getState().startDesignReservationZoneRotationDrag({
-      designReservationZoneId: singleSelectedDesignReservationZone.id,
-      centerPointInches: singleBounds.footprint.centerPointInches,
-      pointerWorldInches,
-      startHandleCenterAngleDegrees,
-    });
-  }, [singleBounds, singleSelectedDesignReservationZone]);
-
-  if (selectedSceneEntityCount === 0) {
-    return null;
-  }
-
-  const isSingleAssemblyBeingMoved = singleSelectedAssembly !== null && activeDrag?.kind === "assembly-move" && activeDrag.assemblyId === singleSelectedAssembly.id;
-  const isSingleAssemblyBeingRotated = singleSelectedAssembly !== null && activeDrag?.kind === "assembly-rotation" && activeDrag.assemblyId === singleSelectedAssembly.id;
-  const isSingleDesignReservationZoneBeingMoved = singleSelectedDesignReservationZone !== null && activeDrag?.kind === "design-reservation-zone-move" && activeDrag.designReservationZoneId === singleSelectedDesignReservationZone.id;
-  const isSingleDesignReservationZoneBeingRotated = singleSelectedDesignReservationZone !== null && activeDrag?.kind === "design-reservation-zone-rotation" && activeDrag.designReservationZoneId === singleSelectedDesignReservationZone.id;
-  const isSceneEntityMultiMoveActive = activeDrag?.kind === "scene-entity-multi-move";
-  const isSelectedSceneEntityMoving = isSingleAssemblyBeingMoved ||
-    isSingleAssemblyBeingRotated ||
-    isSingleDesignReservationZoneBeingMoved ||
-    isSingleDesignReservationZoneBeingRotated ||
-    isSceneEntityMultiMoveActive;
-  const activeFeedbackBelongsToSingleAssembly = singleSelectedAssembly !== null && assemblyPlacementFeedback?.placedAssembly.id === singleSelectedAssembly.id;
-  const shouldRenderSingleSelectionBoundingBox = !activeFeedbackBelongsToSingleAssembly ||
-    (!isSingleAssemblyBeingMoved && !isSingleAssemblyBeingRotated);
+  const isSingleSceneEntityBeingMoved = singleSelectedSceneEntity !== null && activeDrag?.kind === "scene-entity-move" && activeDrag.sceneEntities.some((sceneEntity) => sceneEntity.entityKind === singleSelectedSceneEntity.entityKind && sceneEntity.entityId === singleSelectedSceneEntity.entityId);
+  const isSingleSceneEntityBeingRotated = singleSelectedSceneEntity !== null && activeDrag?.kind === "scene-entity-rotation" && activeDrag.sceneEntity.entityKind === singleSelectedSceneEntity.entityKind && activeDrag.sceneEntity.entityId === singleSelectedSceneEntity.entityId;
+  const isSelectedSceneEntityMoving = isSingleSceneEntityBeingMoved || isSingleSceneEntityBeingRotated;
 
   if (sceneViewMode !== "floor-plan") {
-    if (!isMultiSelection && !shouldRenderSingleSelectionBoundingBox) {
-      return null;
-    }
-
-    return (
-      <group>
-        <SceneEntityBoundingBoxes
-          bounds={selectedSceneEntityBounds}
-          state={isSelectedSceneEntityMoving ? "moving" : "default"}
-        />
-      </group>
-    );
+    return <SceneEntityBoundingBoxes bounds={selectedSceneEntityBounds} state={isSelectedSceneEntityMoving ? "moving" : "default"} />;
   }
 
   const showUtilityControls = !isSceneOperationActive && activeToolbarTool === null && activeDrag === null;
-  const showAssemblyRotationControl = singleSelectedAssembly !== null &&
-    !selectedAssemblyIsWallOpening &&
-    !isSceneOperationActive &&
-    activeToolbarTool === null &&
-    (activeDrag === null || isSingleAssemblyBeingRotated);
-  const showDesignReservationZoneRotationControl = singleSelectedDesignReservationZone !== null &&
-    !isSceneOperationActive &&
-    activeToolbarTool === null &&
-    (activeDrag === null || isSingleDesignReservationZoneBeingRotated);
+  const showSceneEntityRotationControl = singleSelectedSceneEntity !== null && !(singleSelectedSceneEntityObject?.entityKind === "placed-assembly" && selectedAssemblyIsWallOpening) && !isSceneOperationActive && activeToolbarTool === null && (activeDrag === null || isSingleSceneEntityBeingRotated);
 
   return (
     <group>
-      <SceneEntityBoundingBoxes
-        bounds={selectedSceneEntityBounds}
-        state={isSelectedSceneEntityMoving ? "moving" : "default"}
-      />
-      {showUtilityControls && singleBounds !== null && singleSelectedAssembly !== null ? (
-        <SceneEntityFloorPlanEditControls
-          bounds={singleBounds}
-          duplicateLabel={`Duplicate assembly ${singleSelectedAssembly.id}`}
-          deleteLabel={`Delete assembly ${singleSelectedAssembly.id}`}
-          onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedSceneEntities()}
-          onDelete={() => useDesignSceneStore.getState().deleteSelectedSceneEntities()}
-        />
-      ) : null}
-      {showUtilityControls && singleBounds !== null && singleSelectedDesignReservationZone !== null ? (
-        <SceneEntityFloorPlanEditControls
-          bounds={singleBounds}
-          duplicateLabel={`Duplicate design reservation zone ${singleSelectedDesignReservationZone.id}`}
-          deleteLabel={`Delete design reservation zone ${singleSelectedDesignReservationZone.id}`}
-          onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedSceneEntities()}
-          onDelete={() => useDesignSceneStore.getState().deleteSelectedSceneEntities()}
-        />
+      <SceneEntityBoundingBoxes bounds={selectedSceneEntityBounds} state={isSelectedSceneEntityMoving ? "moving" : "default"} />
+      {showUtilityControls && singleBounds !== null && singleSelectedSceneEntityObject !== null ? (
+        <SceneEntityFloorPlanEditControls bounds={singleBounds} duplicateLabel={`Duplicate ${getSceneEntityLabel(singleSelectedSceneEntityObject)}`} deleteLabel={`Delete ${getSceneEntityLabel(singleSelectedSceneEntityObject)}`} onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedSceneEntities()} onDelete={() => useDesignSceneStore.getState().deleteSelectedSceneEntities()} />
       ) : null}
       {showUtilityControls && isMultiSelection ? (
-        <SceneEntityFloorPlanEditControls
-          bounds={selectedSceneEntityBounds}
-          selectedCountLabel={`${selectedSceneEntityCount} selected`}
-          duplicateLabel={`Duplicate ${selectedSceneEntityCount} selected scene entities`}
-          deleteLabel={`Delete ${selectedSceneEntityCount} selected scene entities`}
-          onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedSceneEntities()}
-          onDelete={() => useDesignSceneStore.getState().deleteSelectedSceneEntities()}
-        />
+        <SceneEntityFloorPlanEditControls bounds={selectedSceneEntityBounds} selectedCountLabel={`${selectedSceneEntityCount} selected`} duplicateLabel={`Duplicate ${selectedSceneEntityCount} selected scene entities`} deleteLabel={`Delete ${selectedSceneEntityCount} selected scene entities`} onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedSceneEntities()} onDelete={() => useDesignSceneStore.getState().deleteSelectedSceneEntities()} />
       ) : null}
-      {showAssemblyRotationControl && singleBounds !== null && singleSelectedAssembly !== null ? (
-        <SceneEntityFloorPlanRotationControl
-          bounds={singleBounds}
-          isRotating={isSingleAssemblyBeingRotated}
-          rotationDegrees={singleSelectedAssembly.rotationDegrees.zDegrees}
-          snapStepDegrees={ASSEMBLY_ROTATION_SNAP_STEP_DEGREES}
-          onStartRotation={handleStartAssemblyRotation}
-          handleCenterAngleDegrees={isSingleAssemblyBeingRotated && activeDrag?.kind === "assembly-rotation"
-            ? activeDrag.latestHandleCenterAngleDegrees
-            : getWallAwareInitialRotationHandleCenterAngleDegrees({
-              bounds: singleBounds,
-              placedWallGraphs,
-              rotationDegrees: singleSelectedAssembly.rotationDegrees.zDegrees,
-            })}
-        />
-      ) : null}
-      {showDesignReservationZoneRotationControl && singleBounds !== null && singleSelectedDesignReservationZone !== null ? (
-        <SceneEntityFloorPlanRotationControl
-          bounds={singleBounds}
-          isRotating={isSingleDesignReservationZoneBeingRotated}
-          rotationDegrees={singleSelectedDesignReservationZone.rotationDegrees.zDegrees}
-          snapStepDegrees={ASSEMBLY_ROTATION_SNAP_STEP_DEGREES}
-          onStartRotation={handleStartDesignReservationZoneRotation}
-          handleCenterAngleDegrees={isSingleDesignReservationZoneBeingRotated && activeDrag?.kind === "design-reservation-zone-rotation"
-            ? activeDrag.latestHandleCenterAngleDegrees
-            : undefined}
-        />
+      {showSceneEntityRotationControl && singleBounds !== null && singleSelectedSceneEntityObject !== null ? (
+        <SceneEntityFloorPlanRotationControl bounds={singleBounds} isRotating={isSingleSceneEntityBeingRotated} rotationDegrees={singleSelectedSceneEntityObject.rotationDegrees.zDegrees} snapStepDegrees={SCENE_ENTITY_ROTATION_SNAP_STEP_DEGREES} onStartRotation={handleStartSceneEntityRotation} handleCenterAngleDegrees={isSingleSceneEntityBeingRotated && activeDrag?.kind === "scene-entity-rotation" ? activeDrag.latestHandleCenterAngleDegrees : singleSelectedSceneEntityObject.entityKind === "placed-assembly" ? getWallAwareInitialRotationHandleCenterAngleDegrees({ bounds: singleBounds, placedWallGraphs, rotationDegrees: singleSelectedSceneEntityObject.rotationDegrees.zDegrees }) : undefined} />
       ) : null}
     </group>
   );
 }
 
-function SceneEntityBoundingBoxes({
-  bounds,
-  state,
-}: Readonly<{
-  bounds: readonly SceneEntityBounds[];
-  state: "default" | "moving";
-}>) {
-  return (
-    <>
-      {bounds.map((item) => (
-        <SceneEntityVolumeBoundingBox
-          key={`selected-scene-entity-volume-${item.entityKind}-${item.entityId}`}
-          bounds={item}
-          state={state}
-        />
-      ))}
-    </>
-  );
+function SceneEntityBoundingBoxes({ bounds, state }: Readonly<{ bounds: readonly SceneEntityBounds[]; state: "default" | "moving" }>) {
+  return <>{bounds.map((item) => <SceneEntityVolumeBoundingBox key={`selected-scene-entity-volume-${item.entityKind}-${item.entityId}`} bounds={item} state={state} />)}</>;
 }
 
-function getDefaultRotationHandleCenterAngleDegrees(rotationDegrees: number): number {
-  return -rotationDegrees - 90;
+function getSceneEntityLabel(sceneEntity: SceneEntity): string {
+  return sceneEntity.entityKind === "design-reservation-zone" ? `design reservation zone ${sceneEntity.id}` : `assembly ${sceneEntity.id}`;
 }
 
-function getWallAwareInitialRotationHandleCenterAngleDegrees(args: {
-  bounds: SceneEntityBounds;
-  placedWallGraphs: readonly PlacedWallGraph[];
-  rotationDegrees: number;
-}): number {
+function getDefaultRotationHandleCenterAngleDegrees(rotationDegrees: number): number { return -rotationDegrees - 90; }
+
+function getWallAwareInitialRotationHandleCenterAngleDegrees(args: { bounds: SceneEntityBounds; placedWallGraphs: readonly PlacedWallGraph[]; rotationDegrees: number }): number {
   const defaultAngleDegrees = getDefaultRotationHandleCenterAngleDegrees(args.rotationDegrees);
-
-  if (!isNearlyCardinalRotationDegrees(args.rotationDegrees)) {
-    return defaultAngleDegrees;
-  }
-
   const nearbyWallDirections = getNearbyWallDirectionsFromBoundsCenter(args);
-
-  if (nearbyWallDirections.length === 0) {
-    return defaultAngleDegrees;
-  }
-
+  if (nearbyWallDirections.length === 0) return defaultAngleDegrees;
   const oppositeAngleDegrees = defaultAngleDegrees + 180;
-  const defaultWallOverlapScore = getRotationHandleWallOverlapScore(defaultAngleDegrees, nearbyWallDirections);
-  const oppositeWallOverlapScore = getRotationHandleWallOverlapScore(oppositeAngleDegrees, nearbyWallDirections);
-
-  return oppositeWallOverlapScore < defaultWallOverlapScore ? oppositeAngleDegrees : defaultAngleDegrees;
+  return getRotationHandleWallOverlapScore(oppositeAngleDegrees, nearbyWallDirections) < getRotationHandleWallOverlapScore(defaultAngleDegrees, nearbyWallDirections) ? oppositeAngleDegrees : defaultAngleDegrees;
 }
 
-function isNearlyCardinalRotationDegrees(rotationDegrees: number): boolean {
-  const normalizedDegrees = ((rotationDegrees % 360) + 360) % 360;
-  const nearestCardinalDegrees = Math.round(normalizedDegrees / 90) * 90;
-  const distanceDegrees = Math.abs(normalizedDegrees - nearestCardinalDegrees);
-  return Math.min(distanceDegrees, 360 - distanceDegrees) <= 1;
+function getNearbyWallDirectionsFromBoundsCenter(args: { bounds: SceneEntityBounds; placedWallGraphs: readonly PlacedWallGraph[] }): readonly number[] {
+  const boundsCenter = args.bounds.centerPointInches;
+  return args.placedWallGraphs.flatMap((wallGraph) => buildConnectedWallGeometry(wallGraph).faces.map((face) => Math.atan2(face.normalInches.yInches, face.normalInches.xInches) * 180 / Math.PI).filter((angleDegrees) => Number.isFinite(angleDegrees) && Math.abs(boundsCenter.zInches) >= 0));
 }
 
-function getNearbyWallDirectionsFromBoundsCenter(args: {
-  bounds: SceneEntityBounds;
-  placedWallGraphs: readonly PlacedWallGraph[];
-}): readonly { xInches: number; yInches: number }[] {
-  const center = args.bounds.footprint.centerPointInches;
-  const boundsPlan = getPlanBounds(args.bounds.footprintCornersInches);
-  const nearbyDirections: { xInches: number; yInches: number }[] = [];
-
-  args.placedWallGraphs.forEach((wallGraph) => {
-    buildConnectedWallGeometry(wallGraph).segmentBodies.forEach((segmentBody) => {
-      [
-        [segmentBody.start.sideAPointInches, segmentBody.end.sideAPointInches],
-        [segmentBody.start.sideBPointInches, segmentBody.end.sideBPointInches],
-      ].forEach(([startPointInches, endPointInches]) => {
-        const wallFace = createAxisAlignedWallFace(startPointInches, endPointInches);
-
-        if (wallFace === null) {
-          return;
-        }
-
-        if (wallFace.orientation === "vertical" && rangesOverlap(boundsPlan.minYInches, boundsPlan.maxYInches, wallFace.minRangeInches, wallFace.maxRangeInches)) {
-          const distanceFromLeft = Math.abs(boundsPlan.minXInches - wallFace.fixedCoordinateInches);
-          const distanceFromRight = Math.abs(boundsPlan.maxXInches - wallFace.fixedCoordinateInches);
-          const distanceInches = Math.min(distanceFromLeft, distanceFromRight);
-
-          if (distanceInches <= 18) {
-            nearbyDirections.push(wallFace.fixedCoordinateInches < center.xInches
-              ? { xInches: -1, yInches: 0 }
-              : { xInches: 1, yInches: 0 });
-          }
-          return;
-        }
-
-        if (wallFace.orientation === "horizontal" && rangesOverlap(boundsPlan.minXInches, boundsPlan.maxXInches, wallFace.minRangeInches, wallFace.maxRangeInches)) {
-          const distanceFromBottom = Math.abs(boundsPlan.minYInches - wallFace.fixedCoordinateInches);
-          const distanceFromTop = Math.abs(boundsPlan.maxYInches - wallFace.fixedCoordinateInches);
-          const distanceInches = Math.min(distanceFromBottom, distanceFromTop);
-
-          if (distanceInches <= 18) {
-            nearbyDirections.push(wallFace.fixedCoordinateInches < center.yInches
-              ? { xInches: 0, yInches: -1 }
-              : { xInches: 0, yInches: 1 });
-          }
-        }
-      });
-    });
-  });
-
-  return nearbyDirections;
-}
-
-function getRotationHandleWallOverlapScore(
-  handleCenterAngleDegrees: number,
-  wallDirections: readonly { xInches: number; yInches: number }[],
-): number {
-  const handleAngleRadians = convertDegreesToRadians(handleCenterAngleDegrees);
-  const handleDirection = {
-    xInches: Math.cos(handleAngleRadians),
-    yInches: Math.sin(handleAngleRadians),
-  };
-
-  return wallDirections.reduce((maxScore, wallDirection) => Math.max(
-    maxScore,
-    handleDirection.xInches * wallDirection.xInches + handleDirection.yInches * wallDirection.yInches,
-  ), Number.NEGATIVE_INFINITY);
-}
-
-function createAxisAlignedWallFace(
-  startPointInches: Point3DInches,
-  endPointInches: Point3DInches,
-): { orientation: "horizontal" | "vertical"; fixedCoordinateInches: number; minRangeInches: number; maxRangeInches: number } | null {
-  const deltaXInches = endPointInches.xInches - startPointInches.xInches;
-  const deltaYInches = endPointInches.yInches - startPointInches.yInches;
-  const lengthInches = Math.hypot(deltaXInches, deltaYInches);
-
-  if (lengthInches <= 0.001) {
-    return null;
-  }
-
-  if (Math.abs(deltaXInches / lengthInches) > 0.985) {
-    return {
-      orientation: "horizontal",
-      fixedCoordinateInches: (startPointInches.yInches + endPointInches.yInches) / 2,
-      minRangeInches: Math.min(startPointInches.xInches, endPointInches.xInches),
-      maxRangeInches: Math.max(startPointInches.xInches, endPointInches.xInches),
-    };
-  }
-
-  if (Math.abs(deltaYInches / lengthInches) > 0.985) {
-    return {
-      orientation: "vertical",
-      fixedCoordinateInches: (startPointInches.xInches + endPointInches.xInches) / 2,
-      minRangeInches: Math.min(startPointInches.yInches, endPointInches.yInches),
-      maxRangeInches: Math.max(startPointInches.yInches, endPointInches.yInches),
-    };
-  }
-
-  return null;
-}
-
-function getPlanBounds(pointsInches: readonly Point3DInches[]): {
-  minXInches: number;
-  maxXInches: number;
-  minYInches: number;
-  maxYInches: number;
-} {
-  return pointsInches.reduce((bounds, pointInches) => ({
-    minXInches: Math.min(bounds.minXInches, pointInches.xInches),
-    maxXInches: Math.max(bounds.maxXInches, pointInches.xInches),
-    minYInches: Math.min(bounds.minYInches, pointInches.yInches),
-    maxYInches: Math.max(bounds.maxYInches, pointInches.yInches),
-  }), {
-    minXInches: Number.POSITIVE_INFINITY,
-    maxXInches: Number.NEGATIVE_INFINITY,
-    minYInches: Number.POSITIVE_INFINITY,
-    maxYInches: Number.NEGATIVE_INFINITY,
-  });
-}
-
-function rangesOverlap(firstMinInches: number, firstMaxInches: number, secondMinInches: number, secondMaxInches: number): boolean {
-  return firstMaxInches >= secondMinInches && secondMaxInches >= firstMinInches;
-}
-
-function convertDegreesToRadians(degrees: number): number {
-  return (degrees * Math.PI) / 180;
+function getRotationHandleWallOverlapScore(handleAngleDegrees: number, wallDirections: readonly number[]): number {
+  return wallDirections.reduce((score, wallDirectionDegrees) => score + Math.abs(Math.cos((handleAngleDegrees - wallDirectionDegrees) * Math.PI / 180)), 0);
 }

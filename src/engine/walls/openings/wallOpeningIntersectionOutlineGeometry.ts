@@ -1,6 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
-import { createAssemblyPlacementFootprint } from "@/engine/assemblies/placement/assemblyPlacementGeometry";
+import { createPlacedAssemblyPlanFootprint } from "@/engine/scene-entities/placedAssemblyPlanFootprint";
 import type { DerivedWallOpening } from "../placedWallSegmentTypes";
 import type { BuiltWallSegmentBody } from "../connectedWallGeometryTypes";
 import { createDerivedWallOpeningFaceAxes } from "./wallOpeningFaceAxes";
@@ -35,7 +35,7 @@ export function createDerivedWallOpeningIntersectionOutline(args: {
     return null;
   }
 
-  const sourceFootprint = createAssemblyPlacementFootprint(args.sourceAssembly);
+  const sourceFootprint = createPlacedAssemblyPlanFootprint(args.sourceAssembly);
   const clippedPolygonInches = clipPolygonToConvexPolygon({
     subjectPolygonInches: sourceFootprint.cornerPointsInches,
     clipPolygonInches: args.segmentBody.footprintPolygonInches,

@@ -1,140 +1,73 @@
-import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
-import type { DesignReservationZone } from "@/engine/design-zones/designReservationZoneTypes";
-import type { SceneEntitySelectionRef, SceneSelection } from "@/engine/scene/sceneSelectionTypes";
-import { getSceneEntityRefsFromSelection } from "@/engine/scene/sceneSelectionTypes";
 import type { DesignScene } from "@/engine/scene/designSceneTypes";
-import type { PlacedWallGraph, PlacedWallNode } from "@/engine/walls/placedWallGraphTypes";
+import type { SceneSelection } from "@/engine/scene/sceneSelectionTypes";
+import { getDesignReservationZonesFromSceneEntities, getPlacedAssembliesFromSceneEntities } from "@/engine/scene-entities/sceneEntityCollectionEditing";
+import type { DesignReservationZone } from "@/engine/design-zones/designReservationZoneTypes";
+import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
+import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import type { PlacedWallSegment } from "@/engine/walls/placedWallSegmentTypes";
 
-export function buildPlacedAssemblyById(
-  placedAssemblies: readonly PlacedAssembly[],
-): ReadonlyMap<string, PlacedAssembly> {
-  return new Map(placedAssemblies.map((placedAssembly) => [placedAssembly.id, placedAssembly]));
+export function buildPlacedAssemblyById(placedAssemblies: readonly PlacedAssembly[]): ReadonlyMap<string, PlacedAssembly> {
+  return new Map(placedAssemblies.map((assembly) => [assembly.id, assembly]));
 }
 
-export function buildDesignReservationZoneById(
-  designReservationZones: readonly DesignReservationZone[],
-): ReadonlyMap<string, DesignReservationZone> {
-  return new Map(designReservationZones.map((zone) => [zone.id, zone]));
+export function buildDesignReservationZoneById(zones: readonly DesignReservationZone[]): ReadonlyMap<string, DesignReservationZone> {
+  return new Map(zones.map((zone) => [zone.id, zone]));
 }
 
-export function getSelectedSceneEntityRefs(
-  activeSelection: SceneSelection | null,
-): readonly SceneEntitySelectionRef[] {
-  return getSceneEntityRefsFromSelection(activeSelection);
-}
-
-export function getSelectedPlacedAssembly(args: {
-  activeSelection: SceneSelection | null;
-  placedAssemblyById: ReadonlyMap<string, PlacedAssembly>;
-}): PlacedAssembly | null {
-  const selectedAssemblies = getSelectedPlacedAssemblies(args);
-  return selectedAssemblies.length === 1 && getSelectedDesignReservationZoneRefs(args.activeSelection).length === 0
-    ? selectedAssemblies[0]
+export function getSelectedPlacedAssembly(args: { activeSelection: SceneSelection | null; placedAssemblyById: ReadonlyMap<string, PlacedAssembly> }): PlacedAssembly | null {
+  return args.activeSelection?.kind === "scene-entity" && args.activeSelection.sceneEntity.entityKind === "placed-assembly"
+    ? args.placedAssemblyById.get(args.activeSelection.sceneEntity.entityId) ?? null
     : null;
 }
 
-export function getSelectedPlacedAssemblies(args: {
-  activeSelection: SceneSelection | null;
-  placedAssemblyById: ReadonlyMap<string, PlacedAssembly>;
-}): readonly PlacedAssembly[] {
-  return getSelectedPlacedAssemblyRefs(args.activeSelection)
-    .map((sceneEntity) => args.placedAssemblyById.get(sceneEntity.entityId))
-    .filter(isPlacedAssembly);
+export function getSelectedPlacedAssemblyFromScene(designScene: DesignScene): PlacedAssembly | null {
+  return getSelectedPlacedAssembly({ activeSelection: designScene.activeSelection, placedAssemblyById: buildPlacedAssemblyById(getPlacedAssembliesFromSceneEntities(designScene.sceneEntities)) });
 }
 
-export function getSelectedDesignReservationZones(args: {
-  activeSelection: SceneSelection | null;
-  designReservationZoneById: ReadonlyMap<string, DesignReservationZone>;
-}): readonly DesignReservationZone[] {
-  return getSelectedDesignReservationZoneRefs(args.activeSelection)
-    .map((sceneEntity) => args.designReservationZoneById.get(sceneEntity.entityId))
-    .filter(isDesignReservationZone);
+export function getSelectedPlacedAssemblies(args: { activeSelection: SceneSelection | null; placedAssemblyById: ReadonlyMap<string, PlacedAssembly> }): readonly PlacedAssembly[] {
+  const refs = args.activeSelection?.kind === "scene-entities" ? args.activeSelection.sceneEntities : args.activeSelection?.kind === "scene-entity" ? [args.activeSelection.sceneEntity] : [];
+  return refs.filter((ref) => ref.entityKind === "placed-assembly").map((ref) => args.placedAssemblyById.get(ref.entityId)).filter(isPlacedAssembly);
 }
 
-export function getSelectedDesignReservationZoneFromScene(
-  designScene: DesignScene,
-): DesignReservationZone | null {
-  const selectedZoneRef = getSingleSelectedSceneEntityRef(designScene.activeSelection, "design-reservation-zone");
 
-  if (selectedZoneRef === null) {
-    return null;
-  }
-
-  return designScene.designReservationZones.find(
-    (zone) => zone.id === selectedZoneRef.entityId,
-  ) ?? null;
+export function getSelectedDesignReservationZone(args: { activeSelection: SceneSelection | null; designReservationZoneById: ReadonlyMap<string, DesignReservationZone> }): DesignReservationZone | null {
+  return args.activeSelection?.kind === "scene-entity" && args.activeSelection.sceneEntity.entityKind === "design-reservation-zone"
+    ? args.designReservationZoneById.get(args.activeSelection.sceneEntity.entityId) ?? null
+    : null;
 }
 
-export function getSelectedPlacedAssemblyFromScene(
-  designScene: DesignScene,
-): PlacedAssembly | null {
-  const selectedAssemblyRef = getSingleSelectedSceneEntityRef(designScene.activeSelection, "placed-assembly");
-
-  if (selectedAssemblyRef === null) {
-    return null;
-  }
-
-  return designScene.placedAssemblies.find(
-    (placedAssembly) => placedAssembly.id === selectedAssemblyRef.entityId,
-  ) ?? null;
+export function getSelectedDesignReservationZoneFromScene(designScene: DesignScene): DesignReservationZone | null {
+  const byId = buildDesignReservationZoneById(getDesignReservationZonesFromSceneEntities(designScene.sceneEntities));
+  return designScene.activeSelection?.kind === "scene-entity" && designScene.activeSelection.sceneEntity.entityKind === "design-reservation-zone"
+    ? byId.get(designScene.activeSelection.sceneEntity.entityId) ?? null
+    : null;
 }
 
-export function getSelectedWallSegmentFromScene(
-  designScene: DesignScene,
-): PlacedWallSegment | null {
-  const { activeSelection } = designScene;
-  const selectedWallGraph = getSelectedWallGraphFromScene(designScene);
-
-  if (selectedWallGraph === null || activeSelection?.kind !== "placed-wall-segment") {
-    return null;
-  }
-
-  return selectedWallGraph.segments.find(
-    (wallSegment) => wallSegment.id === activeSelection.wallSegmentId,
-  ) ?? null;
+export function getSelectedDesignReservationZones(args: { activeSelection: SceneSelection | null; designReservationZoneById: ReadonlyMap<string, DesignReservationZone> }): readonly DesignReservationZone[] {
+  const refs = args.activeSelection?.kind === "scene-entities" ? args.activeSelection.sceneEntities : args.activeSelection?.kind === "scene-entity" ? [args.activeSelection.sceneEntity] : [];
+  return refs.filter((ref) => ref.entityKind === "design-reservation-zone").map((ref) => args.designReservationZoneById.get(ref.entityId)).filter(isDesignReservationZone);
 }
 
-export function getSelectedWallGraphNodesFromScene(
-  designScene: DesignScene,
-): readonly PlacedWallNode[] | null {
-  return getSelectedWallGraphFromScene(designScene)?.nodes ?? null;
+export function getSelectedWallSegment(args: { activeSelection: SceneSelection | null; placedWallGraphs: readonly PlacedWallGraph[] }): { wallGraph: PlacedWallGraph; wallSegment: PlacedWallSegment } | null {
+  if (args.activeSelection?.kind !== "placed-wall-segment") return null;
+  const selection = args.activeSelection;
+  const wallGraph = args.placedWallGraphs.find((candidate) => candidate.id === selection.wallGraphId);
+  const wallSegment = wallGraph?.segments.find((candidate) => candidate.id === selection.wallSegmentId);
+  return wallGraph !== undefined && wallSegment !== undefined ? { wallGraph, wallSegment } : null;
 }
 
-function getSelectedWallGraphFromScene(
-  designScene: DesignScene,
-): PlacedWallGraph | null {
-  const { activeSelection } = designScene;
-
-  if (activeSelection?.kind !== "placed-wall-segment") {
-    return null;
-  }
-
-  return designScene.placedWallGraphs.find(
-    (wallGraph) => wallGraph.id === activeSelection.wallGraphId,
-  ) ?? null;
+export function getSelectedWallSegmentFromScene(designScene: DesignScene): { wallGraph: PlacedWallGraph; wallSegment: PlacedWallSegment } | null {
+  return getSelectedWallSegment({ activeSelection: designScene.activeSelection, placedWallGraphs: designScene.placedWallGraphs });
 }
 
-function getSingleSelectedSceneEntityRef(
-  activeSelection: SceneSelection | null,
-  entityKind: SceneEntitySelectionRef["entityKind"],
-): SceneEntitySelectionRef | null {
-  const sceneEntities = getSceneEntityRefsFromSelection(activeSelection);
-  return sceneEntities.length === 1 && sceneEntities[0].entityKind === entityKind ? sceneEntities[0] : null;
+export function getSelectedWallGraphNodesFromScene(designScene: DesignScene): readonly PlacedWallGraph["nodes"][number][] {
+  const selected = getSelectedWallSegmentFromScene(designScene);
+  return selected?.wallGraph.nodes ?? [];
 }
 
-function getSelectedPlacedAssemblyRefs(activeSelection: SceneSelection | null): readonly SceneEntitySelectionRef[] {
-  return getSceneEntityRefsFromSelection(activeSelection).filter((sceneEntity) => sceneEntity.entityKind === "placed-assembly");
+export function getSelectedSceneEntityRefs(activeSelection: SceneSelection | null) {
+  return activeSelection?.kind === "scene-entity" ? [activeSelection.sceneEntity] : activeSelection?.kind === "scene-entities" ? activeSelection.sceneEntities : [];
 }
 
-function getSelectedDesignReservationZoneRefs(activeSelection: SceneSelection | null): readonly SceneEntitySelectionRef[] {
-  return getSceneEntityRefsFromSelection(activeSelection).filter((sceneEntity) => sceneEntity.entityKind === "design-reservation-zone");
-}
-
-function isPlacedAssembly(placedAssembly: PlacedAssembly | undefined): placedAssembly is PlacedAssembly {
-  return placedAssembly !== undefined;
-}
-
-function isDesignReservationZone(zone: DesignReservationZone | undefined): zone is DesignReservationZone {
-  return zone !== undefined;
-}
+function isPlacedAssembly(value: PlacedAssembly | undefined): value is PlacedAssembly { return value !== undefined; }
+function isDesignReservationZone(value: DesignReservationZone | undefined): value is DesignReservationZone { return value !== undefined; }

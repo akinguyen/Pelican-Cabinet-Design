@@ -1,8 +1,8 @@
 import { Matrix4, Vector3 } from "three";
-import type { AssemblyElevationMoveFrame } from "@/engine/scene/sceneDragTypes";
+import type { SceneEntityElevationFrame } from "@/engine/scene/sceneDragTypes";
 
 export function createElevationDragSurfaceMatrix(
-  elevationMoveFrame: AssemblyElevationMoveFrame,
+  elevationMoveFrame: SceneEntityElevationFrame,
 ): Matrix4 {
   const xAxis = new Vector3(
     elevationMoveFrame.faceDirectionInches.xInches,

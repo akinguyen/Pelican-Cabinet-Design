@@ -2,17 +2,13 @@
 
 import { memo, useCallback } from "react";
 import type { ThreeEvent } from "@react-three/fiber";
-import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { BuiltAssemblyTree } from "@/engine/assemblies/assemblyTreeBuilder";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { shouldKeepSceneEntitySelectionForDrag } from "@/engine/scene/sceneSelectionTypes";
-import type { AssemblyElevationMoveFrame } from "@/engine/scene/sceneDragTypes";
-import { getWallElevationViewZoneForTarget } from "@/engine/walls/wallElevationViewZone";
-import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
-import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
 import { createAssemblyDragPointerWorldPoint } from "../../interaction/assemblies/assemblyDragPointer";
+import { createSceneEntityElevationFrame } from "../../interaction/scene-entities/sceneEntityElevationFrame";
 import { AssemblyRenderer } from "./AssemblyRenderer";
 
 type PlacedAssemblyRendererProps = Readonly<{
@@ -61,8 +57,8 @@ export const PlacedAssemblyRenderer = memo(function PlacedAssemblyRenderer({
     }
 
     const elevationMoveFrame = activeSceneViewMode === "elevation"
-      ? createAssemblyElevationMoveFrame({
-          placedAssemblyWorldPositionInches: placedAssembly.worldPositionInches,
+      ? createSceneEntityElevationFrame({
+          planeOriginInches: placedAssembly.worldPositionInches,
           placedWallGraphs: designScene.placedWallGraphs,
           activeWallElevationTarget,
         })
@@ -78,8 +74,8 @@ export const PlacedAssemblyRenderer = memo(function PlacedAssemblyRenderer({
       return;
     }
 
-    designSceneStore.startAssemblyDrag({
-      assemblyId: placedAssembly.id,
+    designSceneStore.startSceneEntityMoveDrag({
+      sceneEntity: { entityKind: "placed-assembly", entityId: placedAssembly.id },
       pointerWorldInches,
       sceneViewMode: activeSceneViewMode,
       elevationMoveFrame,
@@ -96,43 +92,3 @@ export const PlacedAssemblyRenderer = memo(function PlacedAssemblyRenderer({
     />
   );
 });
-
-function createAssemblyElevationMoveFrame(args: {
-  placedAssemblyWorldPositionInches: Point3DInches;
-  placedWallGraphs: readonly PlacedWallGraph[];
-  activeWallElevationTarget: WallElevationTarget | null;
-}): AssemblyElevationMoveFrame | undefined {
-  const viewZone = getWallElevationViewZoneForTarget({
-    placedWallGraphs: args.placedWallGraphs,
-    activeWallElevationTarget: args.activeWallElevationTarget,
-  });
-
-  if (viewZone === null) {
-    return undefined;
-  }
-
-  const faceLengthInches = Math.max(viewZone.faceLengthInches, 0.000001);
-
-  return {
-    faceDirectionInches: {
-      xInches: (viewZone.faceEndInches.xInches - viewZone.faceStartInches.xInches) / faceLengthInches,
-      yInches: (viewZone.faceEndInches.yInches - viewZone.faceStartInches.yInches) / faceLengthInches,
-      zInches: 0,
-    },
-    outwardDirectionInches: {
-      xInches: viewZone.outwardDirectionInches.xInches,
-      yInches: viewZone.outwardDirectionInches.yInches,
-      zInches: 0,
-    },
-    planeOriginInches: args.placedAssemblyWorldPositionInches,
-    viewZoneInches: {
-      originInches: viewZone.faceCenterInches,
-      leftInches: viewZone.viewFrameLeftInches,
-      rightInches: viewZone.viewFrameRightInches,
-      nearDepthInches: -viewZone.behindFaceDepthInches,
-      farDepthInches: viewZone.depthInches,
-      bottomInches: 0,
-      topInches: viewZone.wallHeightInches,
-    },
-  };
-}

@@ -3,17 +3,21 @@ import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import type { SceneEntityBounds } from "../sceneEntityBoundsTypes";
 import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
 import type { BuiltWallSegmentBody } from "@/engine/walls/connectedWallGeometryTypes";
-import type {
-  AssemblyPlacementFootprint,
-  AssemblyWallMeasurementGuide,
-} from "@/engine/assemblies/placement/assemblyPlacementTypes";
+import type { SceneEntityPlanFootprint } from "@/engine/scene-entities/sceneEntityPlanGeometryTypes";
 
 const MIN_MEASUREMENT_LENGTH_INCHES = 3;
 const AXIS_ALIGNED_FACE_DOT_THRESHOLD = 0.985;
 const OVERLAP_TOLERANCE_INCHES = 0.5;
 
 
-export type SceneEntityWallMeasurementGuide = AssemblyWallMeasurementGuide;
+export type SceneEntityWallMeasurementGuide = Readonly<{
+  id: string;
+  startPointInches: Point3DInches;
+  endPointInches: Point3DInches;
+  lengthInches: number;
+  labelPointInches: Point3DInches;
+  labelRotationDegrees: number;
+}>;
 
 export function buildSceneEntityWallMeasurementGuides(args: {
   bounds: SceneEntityBounds;
@@ -26,7 +30,7 @@ export function buildSceneEntityWallMeasurementGuides(args: {
 }
 
 export function buildSceneEntityWallMeasurementGuidesFromFootprint(args: {
-  footprint: AssemblyPlacementFootprint;
+  footprint: SceneEntityPlanFootprint;
   placedWallGraphs: readonly PlacedWallGraph[];
 }): readonly SceneEntityWallMeasurementGuide[] {
   const wallFaces = args.placedWallGraphs.flatMap((placedWallGraph) => (
@@ -115,7 +119,7 @@ function createAxisAlignedWallFace(args: {
   return null;
 }
 
-function getFootprintPlanBounds(footprint: AssemblyPlacementFootprint): FootprintPlanBounds {
+function getFootprintPlanBounds(footprint: SceneEntityPlanFootprint): FootprintPlanBounds {
   const bounds = footprint.cornerPointsInches.reduce(
     (currentBounds, cornerPointInches) => ({
       minXInches: Math.min(currentBounds.minXInches, cornerPointInches.xInches),

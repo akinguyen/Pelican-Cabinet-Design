@@ -13,7 +13,7 @@ import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { shouldKeepSceneEntitySelectionForDrag } from "@/engine/scene/sceneSelectionTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { createAssemblyDragPointerWorldPoint } from "../../interaction/assemblies/assemblyDragPointer";
-import { createDesignReservationZoneElevationMoveFrame } from "../../interaction/design-zones/designReservationZoneElevationFrame";
+import { createSceneEntityElevationFrame } from "../../interaction/scene-entities/sceneEntityElevationFrame";
 
 const FLOOR_PLAN_ZONE_Z_INCHES = 0.45;
 const ZONE_FILL_COLOR = "#22d3ee";
@@ -71,8 +71,8 @@ export const DesignReservationZoneRenderer = memo(function DesignReservationZone
     }
 
     const elevationMoveFrame = designSceneStore.activeSceneViewMode === "elevation"
-      ? createDesignReservationZoneElevationMoveFrame({
-          planeOriginInches: zone.baseCenterPointInches,
+      ? createSceneEntityElevationFrame({
+          planeOriginInches: zone.worldPositionInches,
           placedWallGraphs: designSceneStore.designScene.placedWallGraphs,
           activeWallElevationTarget: designSceneStore.activeWallElevationTarget,
         })
@@ -80,7 +80,7 @@ export const DesignReservationZoneRenderer = memo(function DesignReservationZone
     const pointerWorldInches = createAssemblyDragPointerWorldPoint(
       designSceneStore.activeSceneViewMode,
       event.ray,
-      zone.baseCenterPointInches.yInches,
+      zone.worldPositionInches.yInches,
       elevationMoveFrame,
     );
 
@@ -88,8 +88,8 @@ export const DesignReservationZoneRenderer = memo(function DesignReservationZone
       return;
     }
 
-    designSceneStore.startDesignReservationZoneDrag({
-      designReservationZoneId: zone.id,
+    designSceneStore.startSceneEntityMoveDrag({
+      sceneEntity: { entityKind: "design-reservation-zone", entityId: zone.id },
       pointerWorldInches,
       sceneViewMode: designSceneStore.activeSceneViewMode,
       elevationMoveFrame,
@@ -99,7 +99,7 @@ export const DesignReservationZoneRenderer = memo(function DesignReservationZone
   if (sceneViewMode === "floor-plan") {
     return (
       <group onPointerDown={handlePointerDown} renderOrder={60}>
-        <mesh position={[zone.baseCenterPointInches.xInches, zone.baseCenterPointInches.yInches, FLOOR_PLAN_ZONE_Z_INCHES]} rotation={[0, 0, degreesToUserFacingZRadians(zone.rotationDegrees.zDegrees)]}>
+        <mesh position={[zone.worldPositionInches.xInches, zone.worldPositionInches.yInches, FLOOR_PLAN_ZONE_Z_INCHES]} rotation={[0, 0, degreesToUserFacingZRadians(zone.rotationDegrees.zDegrees)]}>
           <planeGeometry args={[zone.sizeInches.widthInches, zone.sizeInches.depthInches]} />
           <meshBasicMaterial color={ZONE_FILL_COLOR} transparent opacity={floorPlanFillOpacity} depthWrite={false} depthTest={false} />
         </mesh>
@@ -124,9 +124,9 @@ export const DesignReservationZoneRenderer = memo(function DesignReservationZone
     <group onPointerDown={handlePointerDown}>
       <mesh
         position={[
-          zone.baseCenterPointInches.xInches,
-          zone.baseCenterPointInches.yInches,
-          zone.baseCenterPointInches.zInches + zone.sizeInches.heightInches / 2,
+          zone.worldPositionInches.xInches,
+          zone.worldPositionInches.yInches,
+          zone.worldPositionInches.zInches,
         ]}
         rotation={[0, 0, degreesToUserFacingZRadians(zone.rotationDegrees.zDegrees)]}
       >
