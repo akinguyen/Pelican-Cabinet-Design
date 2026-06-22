@@ -4,7 +4,7 @@ import { Line } from "@react-three/drei";
 import { memo } from "react";
 import type { SceneEntityAlignmentGuide } from "@/engine/scene-entities/alignment/sceneEntityAlignmentTypes";
 
-const SCENE_ENTITY_ALIGNMENT_GUIDE_RENDER_ORDER = 126;
+const SCENE_ENTITY_ALIGNMENT_GUIDE_RENDER_ORDER = 180;
 const SCENE_ENTITY_ALIGNMENT_GUIDE_STROKE = "#ff00cc";
 
 export const SceneEntityAlignmentGuides = memo(function SceneEntityAlignmentGuides({
@@ -13,7 +13,7 @@ export const SceneEntityAlignmentGuides = memo(function SceneEntityAlignmentGuid
   alignmentGuides: readonly SceneEntityAlignmentGuide[];
 }>) {
   return (
-    <group>
+    <group renderOrder={SCENE_ENTITY_ALIGNMENT_GUIDE_RENDER_ORDER}>
       {alignmentGuides.map((alignmentGuide) => (
         <Line
           key={alignmentGuide.id}
@@ -27,6 +27,8 @@ export const SceneEntityAlignmentGuides = memo(function SceneEntityAlignmentGuid
           dashSize={3}
           gapSize={2}
           depthTest={false}
+          depthWrite={false}
+          transparent
           renderOrder={SCENE_ENTITY_ALIGNMENT_GUIDE_RENDER_ORDER}
         />
       ))}

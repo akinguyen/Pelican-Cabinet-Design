@@ -13,23 +13,27 @@ const ROTATION_TICK_LENGTH_INCHES = 3.5;
 const ROTATION_DIRECTION_ARROW_GAP_INCHES = 4;
 const ROTATION_DIRECTION_ARROW_LENGTH_INCHES = 7;
 
-type SceneEntityFloorPlanRotationControlProps = Readonly<{
+type SceneEntityRotationControlProps = Readonly<{
   bounds: SceneEntityBounds;
   isRotating: boolean;
   rotationDegrees: number;
   snapStepDegrees: number;
   onStartRotation: (pointerWorldInches: Point3DInches, handleCenterAngleDegrees: number) => void;
   handleCenterAngleDegrees?: number;
+  isInteractionEnabled?: boolean;
+  controlZInches?: number;
 }>;
 
-export function SceneEntityFloorPlanRotationControl({
+export function SceneEntityRotationControl({
   bounds,
   isRotating,
   rotationDegrees,
   snapStepDegrees,
   onStartRotation,
   handleCenterAngleDegrees,
-}: SceneEntityFloorPlanRotationControlProps) {
+  isInteractionEnabled = true,
+  controlZInches = ROTATION_CONTROL_Z_INCHES,
+}: SceneEntityRotationControlProps) {
   const ringRadiusInches = Math.max(
     bounds.sizeInches.widthInches,
     bounds.sizeInches.depthInches,
@@ -41,16 +45,20 @@ export function SceneEntityFloorPlanRotationControl({
       return;
     }
 
+    if (!isInteractionEnabled) {
+      return;
+    }
+
     event.stopPropagation();
     onStartRotation({
       xInches: event.point.x,
       yInches: event.point.y,
       zInches: 0,
     }, currentHandleCenterAngleDegrees);
-  }, [currentHandleCenterAngleDegrees, onStartRotation]);
+  }, [currentHandleCenterAngleDegrees, isInteractionEnabled, onStartRotation]);
 
   return (
-    <group position={[bounds.footprint.centerPointInches.xInches, bounds.footprint.centerPointInches.yInches, ROTATION_CONTROL_Z_INCHES]}>
+    <group position={[bounds.footprint.centerPointInches.xInches, bounds.footprint.centerPointInches.yInches, controlZInches]}>
       <mesh onPointerDown={handlePointerDown} renderOrder={125}>
         <ringGeometry
           args={[

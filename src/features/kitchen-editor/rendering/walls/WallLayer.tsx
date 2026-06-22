@@ -84,7 +84,7 @@ export function WallLayer({
       ? { wallGraphId: activeSelection.wallGraphId, wallSegmentId: activeSelection.wallSegmentId }
       : null
   ), [activeSelection]);
-  const shouldRenderWallOpeningIntersectionOutlines = sceneViewMode !== "elevation" && wallSegmentDraft === null;
+  const shouldRenderWallOpeningIntersectionOutlines = sceneViewMode === "floor-plan" && wallSegmentDraft === null;
   const shouldRenderWallOpeningPlanMeasurements = sceneViewMode === "floor-plan" && wallSegmentDraft === null;
   const previewGraph = useMemo(() => (
     !shouldRenderWallSegmentDraft
@@ -178,7 +178,6 @@ export function WallLayer({
           derivedWallOpenings={derivedWallOpenings}
           segmentBodies={committedSegmentBodies}
           wallOpeningAssemblies={wallOpeningAssemblies}
-          sceneViewMode={sceneViewMode}
         />
       ) : null}
       {shouldRenderWallOpeningPlanMeasurements && activeWallOpeningSourceAssemblyId !== null ? (

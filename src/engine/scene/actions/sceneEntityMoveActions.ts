@@ -1,5 +1,5 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
-import { alignSceneEntity, alignSceneEntityGroup } from "@/engine/scene-entities/alignment/sceneEntityObjectAlignment";
+import { alignSceneEntityWithSpatialGuides, alignSceneEntityGroupWithSpatialGuides } from "@/engine/scene-entities/spatial-guides/sceneEntitySpatialGuideEngine";
 import { createSceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
 import { getSceneEntitiesByRefs, getSceneEntityByRef, replaceSceneEntities } from "@/engine/scene-entities/sceneEntityCollectionEditing";
 import { createDraggedSceneEntityWorldPosition } from "@/engine/scene-entities/sceneEntityMoveGeometry";
@@ -34,8 +34,8 @@ export function createSceneEntityMoveActions(get: DesignSceneStoreGetter, set: D
         }));
       });
       const aligned = proposed.length === 1
-        ? alignSceneEntity({ movingSceneEntity: proposed[0], sceneEntities: designScene.sceneEntities, excludedSceneEntityIds: [proposed[0].id], placedWallGraphs: designScene.placedWallGraphs, movementFrame: activeDrag.movementFrame })
-        : alignSceneEntityGroup({ movingSceneEntities: proposed, sceneEntities: designScene.sceneEntities, excludedSceneEntityIds: proposed.map((item) => item.id), placedWallGraphs: designScene.placedWallGraphs, movementFrame: activeDrag.movementFrame });
+        ? alignSceneEntityWithSpatialGuides({ movingSceneEntity: proposed[0], sceneEntities: designScene.sceneEntities, excludedSceneEntityIds: [proposed[0].id], placedWallGraphs: designScene.placedWallGraphs, movementFrame: activeDrag.movementFrame })
+        : alignSceneEntityGroupWithSpatialGuides({ movingSceneEntities: proposed, sceneEntities: designScene.sceneEntities, excludedSceneEntityIds: proposed.map((item) => item.id), placedWallGraphs: designScene.placedWallGraphs, movementFrame: activeDrag.movementFrame });
       const alignedEntities = "sceneEntity" in aligned ? [aligned.sceneEntity] : aligned.sceneEntities;
       set((state) => ({
         designScene: { ...state.designScene, sceneEntities: replaceSceneEntities(state.designScene.sceneEntities, alignedEntities) },

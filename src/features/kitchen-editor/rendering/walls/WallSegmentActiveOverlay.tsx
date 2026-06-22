@@ -15,7 +15,7 @@ export const WallSegmentActiveOverlay = memo(function WallSegmentActiveOverlay({
   segmentBody: BuiltWallSegmentBody;
 }>) {
   const wallBodyEdges = useMemo(
-    () => createWallSegmentBody3DEdges(segmentBody).filter((edge) => edge.role !== "centerline"),
+    () => createWallSegmentBody3DEdges(segmentBody).filter((edge) => edge.role === "bottom-footprint" || edge.role === "top-footprint" || edge.role === "vertical-corner"),
     [segmentBody],
   );
 

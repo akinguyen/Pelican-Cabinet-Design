@@ -10,6 +10,7 @@ import { createWallElevationPaddingMaskFramePixels } from "./elevation/elevation
 import type { Size2DPixels } from "./elevation/elevationViewPaddingMaskFrame";
 import { WallElevationNavigator } from "./elevation/WallElevationNavigator";
 import { DesignSceneCanvas } from "./shared/scene-canvas/DesignSceneCanvas";
+import { SceneEntityWallMeasurementLabelsOverlay } from "../rendering/scene-entities/SceneEntityWallMeasurementLabelsOverlay";
 
 export function DesignSceneViewport() {
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -51,6 +52,12 @@ export function DesignSceneViewport() {
           viewportSizePixels={viewportSizePixels}
           wallFaceFramePixels={wallFaceFramePixels}
           onEmptyPointerDown={clearSelection}
+        />
+      ) : null}
+      {activeSceneViewMode === "elevation" ? (
+        <SceneEntityWallMeasurementLabelsOverlay
+          viewportSizePixels={viewportSizePixels}
+          wallFaceFramePixels={wallFaceFramePixels}
         />
       ) : null}
       <WallElevationNavigator />

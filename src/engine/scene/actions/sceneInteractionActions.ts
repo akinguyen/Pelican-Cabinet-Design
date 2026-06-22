@@ -1,7 +1,10 @@
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 
-export function createSceneInteractionActions(get: DesignSceneStoreGetter, _set: DesignSceneStoreSetter): Pick<DesignSceneStore, "clearActiveInteraction"> {
+export function createSceneInteractionActions(get: DesignSceneStoreGetter, set: DesignSceneStoreSetter): Pick<DesignSceneStore, "clearActiveInteraction" | "setSceneEntityWallMeasurementLabelScreenItems"> {
   return {
+    setSceneEntityWallMeasurementLabelScreenItems(items) {
+      set({ activeSceneEntityWallMeasurementLabelScreenItems: items });
+    },
     clearActiveInteraction() {
       const { activeToolbarTool, designScene } = get();
       if (activeToolbarTool === "draw-wall-segment" || designScene.activeSceneOperation?.kind === "wall-segment-draft") { get().exitWallSegmentDraftTool(); return; }

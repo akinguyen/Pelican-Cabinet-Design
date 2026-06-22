@@ -16,6 +16,14 @@ import type { DesignSceneHistoryState } from "./sceneHistoryTypes";
 
 export type AssemblyDimensionId = "widthInches" | "depthInches" | "heightInches";
 
+export type SceneEntityWallMeasurementLabelScreenItem = Readonly<{
+  id: string;
+  xPixels: number;
+  yPixels: number;
+  lengthInches: number;
+  labelRotationDegrees: number;
+}>;
+
 export type DesignSceneStore = Readonly<{
   designScene: DesignScene;
   wallSettings: WallSettings;
@@ -26,6 +34,8 @@ export type DesignSceneStore = Readonly<{
   sceneCameraStates: SceneCameraStates;
   activeDrag: SceneDragState | null;
   activeSceneEntityAlignmentGuides: readonly SceneEntityAlignmentGuide[];
+  activeSceneEntityWallMeasurementLabelScreenItems: readonly SceneEntityWallMeasurementLabelScreenItem[];
+  lastRotationHandleCenterAngleDegreesBySceneEntityKey: Readonly<Record<string, number>>;
   sceneHistory: DesignSceneHistoryState;
   setActiveSceneViewMode: (sceneViewMode: SceneViewMode) => void;
   setActiveWallElevationTarget: (target: WallElevationTarget) => void;
@@ -35,6 +45,7 @@ export type DesignSceneStore = Readonly<{
   showNextWallElevationSide: () => void;
   runCameraCommand: (cameraCommandTool: SceneCameraCommandTool) => void;
   clearCameraCommand: (cameraCommandId: number) => void;
+  setSceneEntityWallMeasurementLabelScreenItems: (items: readonly SceneEntityWallMeasurementLabelScreenItem[]) => void;
   setActiveToolbarTool: (toolbarTool: SceneEditingTool | null) => void;
   updatePerspectiveCameraState: (cameraState: PerspectiveCameraState) => void;
   updateFloorPlanCameraState: (cameraState: OrthographicCameraState) => void;

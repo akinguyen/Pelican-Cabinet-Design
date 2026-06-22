@@ -5,7 +5,6 @@ import { Line } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
 import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
-import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import type { DerivedWallOpening } from "@/engine/walls/placedWallSegmentTypes";
 import type { BuiltWallSegmentBody } from "@/engine/walls/connectedWallGeometryTypes";
 import {
@@ -24,12 +23,10 @@ export const WallOpeningIntersectionOutlines = memo(function WallOpeningIntersec
   derivedWallOpenings,
   segmentBodies,
   wallOpeningAssemblies,
-  sceneViewMode,
 }: Readonly<{
   derivedWallOpenings: readonly DerivedWallOpening[];
   segmentBodies: readonly BuiltWallSegmentBody[];
   wallOpeningAssemblies: readonly PlacedAssembly[];
-  sceneViewMode: SceneViewMode;
 }>) {
   const wallOpeningAssemblyById = useMemo(
     () => new Map(wallOpeningAssemblies.map((assembly) => [assembly.id, assembly])),
@@ -55,7 +52,6 @@ export const WallOpeningIntersectionOutlines = memo(function WallOpeningIntersec
             key={outline.id}
             outline={outline}
             sourceAssembly={sourceAssembly}
-            sceneViewMode={sceneViewMode}
           />
         );
       })}
@@ -66,11 +62,9 @@ export const WallOpeningIntersectionOutlines = memo(function WallOpeningIntersec
 function WallOpeningIntersectionOutline({
   outline,
   sourceAssembly,
-  sceneViewMode,
 }: Readonly<{
   outline: DerivedWallOpeningIntersectionOutlineInches;
   sourceAssembly: PlacedAssembly;
-  sceneViewMode: SceneViewMode;
 }>) {
   function handlePointerDown(event: ThreeEvent<PointerEvent>) {
     const designSceneStore = useDesignSceneStore.getState();
@@ -128,32 +122,30 @@ function WallOpeningIntersectionOutline({
         transparent
         renderOrder={WALL_OPENING_OUTLINE_RENDER_ORDER}
       />
-      {sceneViewMode === "floor-plan" ? (
-        <mesh
-          position={[
-            outline.interactionCenterInches.xInches,
-            outline.interactionCenterInches.yInches,
-            WALL_OPENING_INTERACTION_Z_INCHES,
+      <mesh
+        position={[
+          outline.interactionCenterInches.xInches,
+          outline.interactionCenterInches.yInches,
+          WALL_OPENING_INTERACTION_Z_INCHES,
+        ]}
+        rotation={[0, 0, outline.interactionRotationZRadians]}
+        onPointerDown={handlePointerDown}
+        renderOrder={WALL_OPENING_OUTLINE_RENDER_ORDER}
+      >
+        <boxGeometry
+          args={[
+            outline.interactionWidthInches,
+            outline.interactionDepthInches,
+            0.1,
           ]}
-          rotation={[0, 0, outline.interactionRotationZRadians]}
-          onPointerDown={handlePointerDown}
-          renderOrder={WALL_OPENING_OUTLINE_RENDER_ORDER}
-        >
-          <boxGeometry
-            args={[
-              outline.interactionWidthInches,
-              outline.interactionDepthInches,
-              0.1,
-            ]}
-          />
-          <meshBasicMaterial
-            transparent
-            opacity={0}
-            depthWrite={false}
-            depthTest={false}
-          />
-        </mesh>
-      ) : null}
+        />
+        <meshBasicMaterial
+          transparent
+          opacity={0}
+          depthWrite={false}
+          depthTest={false}
+        />
+      </mesh>
     </group>
   );
 }

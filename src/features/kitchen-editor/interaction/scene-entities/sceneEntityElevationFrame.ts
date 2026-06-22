@@ -8,10 +8,22 @@ export function createSceneEntityElevationFrame(args: { planeOriginInches?: Poin
   const viewZone = getWallElevationViewZoneForTarget({ placedWallGraphs: args.placedWallGraphs, activeWallElevationTarget: args.activeWallElevationTarget });
   if (viewZone === null) return undefined;
   const faceLengthInches = Math.max(viewZone.faceLengthInches, 0.000001);
+  const requestedPlaneOriginInches = args.planeOriginInches ?? viewZone.faceCenterInches;
+
   return {
     faceDirectionInches: { xInches: (viewZone.faceEndInches.xInches - viewZone.faceStartInches.xInches) / faceLengthInches, yInches: (viewZone.faceEndInches.yInches - viewZone.faceStartInches.yInches) / faceLengthInches, zInches: 0 },
     outwardDirectionInches: { xInches: viewZone.outwardDirectionInches.xInches, yInches: viewZone.outwardDirectionInches.yInches, zInches: 0 },
-    planeOriginInches: args.planeOriginInches ?? viewZone.faceCenterInches,
+    planeOriginInches: {
+      xInches: requestedPlaneOriginInches.xInches,
+      yInches: requestedPlaneOriginInches.yInches,
+      zInches: 0,
+    },
+    wallFaceInches: {
+      faceStartInches: viewZone.faceStartInches,
+      faceEndInches: viewZone.faceEndInches,
+      faceCenterInches: viewZone.faceCenterInches,
+      wallHeightInches: viewZone.wallHeightInches,
+    },
     viewZoneInches: { originInches: viewZone.faceCenterInches, leftInches: viewZone.viewFrameLeftInches, rightInches: viewZone.viewFrameRightInches, nearDepthInches: -viewZone.behindFaceDepthInches, farDepthInches: viewZone.depthInches, bottomInches: 0, topInches: viewZone.wallHeightInches },
   };
 }

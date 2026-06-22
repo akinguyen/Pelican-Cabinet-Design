@@ -3,10 +3,12 @@
 import { useMemo } from "react";
 import { getDesignReservationZonesFromSceneEntities, getPlacedAssembliesFromSceneEntities, getSceneEntitiesByRefs } from "@/engine/scene-entities/sceneEntityCollectionEditing";
 import { createSceneEntityBounds, createSceneEntityBoundsForRefs } from "@/engine/scene-entities/sceneEntityBounds";
-import { buildSceneEntityWallMeasurementGuides } from "@/engine/scene-entities/measurement/sceneEntityWallMeasurementGuides";
+import { buildSceneEntitySpatialMeasurementGuides } from "@/engine/scene-entities/spatial-guides/sceneEntitySpatialGuideEngine";
+import { createSceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { getSceneEntityRefsFromSelection } from "@/engine/scene/sceneSelectionTypes";
 import { SceneEntityMoveDragSurface } from "../../../interaction/scene-entities/SceneEntityMoveDragSurface";
+import { createSceneEntityElevationFrame } from "../../../interaction/scene-entities/sceneEntityElevationFrame";
 import { SceneEntityPlacementSurface } from "../../../interaction/scene-entities/SceneEntityPlacementSurface";
 import { SceneEntityRotationSurface } from "../../../interaction/scene-entities/SceneEntityRotationSurface";
 import { WallSegmentDraftSurface } from "../../../interaction/walls/WallSegmentDraftSurface";
@@ -16,15 +18,17 @@ import { DesignReservationZonePlacementCandidateRenderer } from "../../../render
 import { DesignReservationZoneLayer } from "../../../rendering/design-zones/DesignReservationZoneLayer";
 import { SceneEntityAlignmentGuides } from "../../../rendering/scene-entities/SceneEntityAlignmentGuides";
 import { SceneEntityWallMeasurementGuides } from "../../../rendering/scene-entities/SceneEntityWallMeasurementGuides";
-import { SceneEntityGroupGuides } from "../../../rendering/scene-entities/SceneEntityGroupGuides";
+import { SceneEntityWallMeasurementLabelProjector } from "../../../rendering/scene-entities/SceneEntityWallMeasurementLabelProjector";
 import { SelectedSceneEntityLayer } from "../../../rendering/scene-entities/SelectedSceneEntityLayer";
 import { WallLayer } from "../../../rendering/walls/WallLayer";
 import { kitchenEditorCatalogRegistry } from "../../../catalogs/registry/kitchenEditorCatalogRegistry";
 import { getDerivedCutoutAssemblySources } from "@/engine/scene/derivedCutoutAssemblySources";
 import { buildDesignReservationZoneById, buildPlacedAssemblyById, getSelectedDesignReservationZones, getSelectedPlacedAssembly, getSelectedPlacedAssemblies } from "../../../selection/sceneSelectionLookups";
+import { createSceneEntityViewPolicy } from "../../../view-policies/sceneEntityViewPolicy";
 
 export function DesignSceneRenderer() {
   const activeSceneViewMode = useDesignSceneStore((state) => state.activeSceneViewMode);
+  const activeWallElevationTarget = useDesignSceneStore((state) => state.activeWallElevationTarget);
   const sceneEntities = useDesignSceneStore((state) => state.designScene.sceneEntities);
   const placedWallGraphs = useDesignSceneStore((state) => state.designScene.placedWallGraphs);
   const activeSelection = useDesignSceneStore((state) => state.designScene.activeSelection);
@@ -43,6 +47,9 @@ export function DesignSceneRenderer() {
     placementState: "positioned" as const,
     movementFrame: sceneEntityPlacementCandidate?.movementFrame ?? null,
   } : null;
+  const sceneEntityViewPolicy = useMemo(() => createSceneEntityViewPolicy(activeSceneViewMode), [activeSceneViewMode]);
+  const activeElevationFrame = useMemo(() => activeSceneViewMode === "elevation" ? createSceneEntityElevationFrame({ placedWallGraphs, activeWallElevationTarget }) ?? null : null, [activeSceneViewMode, activeWallElevationTarget, placedWallGraphs]);
+  const activeSceneEntityMovementFrame = useMemo(() => createSceneEntityMovementFrame({ sceneViewMode: activeSceneViewMode, elevationMoveFrame: activeElevationFrame ?? undefined }), [activeElevationFrame, activeSceneViewMode]);
   const showFrontOutlineLines = activeSceneViewMode === "elevation";
   const showWallPlanMeasurements = activeSceneViewMode === "floor-plan" && wallSegmentDraft === null;
   const shouldRenderSceneEntityPlacementSurface = activeSceneOperation?.kind === "scene-entity-placement";
@@ -70,11 +77,10 @@ export function DesignSceneRenderer() {
   const selectedSceneEntityRefs = useMemo(() => getSceneEntityRefsFromSelection(activeSelection), [activeSelection]);
   const selectedSceneEntities = useMemo(() => getSceneEntitiesByRefs(sceneEntities, selectedSceneEntityRefs), [sceneEntities, selectedSceneEntityRefs]);
   const selectedSceneEntityBounds = useMemo(() => createSceneEntityBoundsForRefs(sceneEntities, selectedSceneEntityRefs), [sceneEntities, selectedSceneEntityRefs]);
-  const selectedSceneEntityWallMeasurementGuides = useMemo(() => selectedSceneEntityBounds.flatMap((bounds) => buildSceneEntityWallMeasurementGuides({ bounds, placedWallGraphs })), [placedWallGraphs, selectedSceneEntityBounds]);
-  const placementSceneEntityWallMeasurementGuides = useMemo(() => positionedPlacementSceneEntity === null ? [] : buildSceneEntityWallMeasurementGuides({ bounds: createSceneEntityBounds(positionedPlacementSceneEntity), placedWallGraphs }), [placedWallGraphs, positionedPlacementSceneEntity]);
+  const selectedSceneEntityWallMeasurementGuides = useMemo(() => selectedSceneEntityBounds.flatMap((bounds) => buildSceneEntitySpatialMeasurementGuides({ bounds, placedWallGraphs, measurementPolicy: sceneEntityViewPolicy.measurementPolicy, movementFrame: activeSceneEntityMovementFrame })), [activeSceneEntityMovementFrame, placedWallGraphs, sceneEntityViewPolicy.measurementPolicy, selectedSceneEntityBounds]);
+  const placementSceneEntityWallMeasurementGuides = useMemo(() => positionedPlacementSceneEntity === null ? [] : buildSceneEntitySpatialMeasurementGuides({ bounds: createSceneEntityBounds(positionedPlacementSceneEntity), placedWallGraphs, measurementPolicy: sceneEntityViewPolicy.measurementPolicy, movementFrame: activeSceneEntityMovementFrame }), [activeSceneEntityMovementFrame, placedWallGraphs, positionedPlacementSceneEntity, sceneEntityViewPolicy.measurementPolicy]);
   const sceneEntityWallMeasurementGuides = [...selectedSceneEntityWallMeasurementGuides, ...placementSceneEntityWallMeasurementGuides];
   const selectedAssemblyIsWallOpening = selectedAssembly !== null && wallOpeningAssemblyIds.has(selectedAssembly.id);
-  const showSceneEntityGroupGuides = selectedSceneEntityBounds.length > 1 && activeDrag?.kind === "scene-entity-move";
 
   return (
     <>
@@ -82,9 +88,9 @@ export function DesignSceneRenderer() {
       <AssemblyLayer placedAssemblies={placedAssemblies} countertopOpeningAssemblies={cutoutAssemblySources.countertopOpeningAssemblies} showFrontOutlineLines={showFrontOutlineLines} sceneViewMode={activeSceneViewMode} />
       <DesignReservationZoneLayer zones={designReservationZones} activeSelection={activeSelection} sceneViewMode={activeSceneViewMode} />
       <DesignReservationZonePlacementCandidateRenderer candidate={positionedPlacementZone} sceneViewMode={activeSceneViewMode} />
-      <SelectedSceneEntityLayer selectedSceneEntities={selectedSceneEntities} selectedSceneEntityBounds={selectedSceneEntityBounds} placedWallGraphs={placedWallGraphs} sceneViewMode={activeSceneViewMode} selectedAssemblyIsWallOpening={selectedAssemblyIsWallOpening} />
-      {showSceneEntityGroupGuides ? <SceneEntityGroupGuides bounds={selectedSceneEntityBounds} placedWallGraphs={placedWallGraphs} /> : null}
-      {sceneEntityWallMeasurementGuides.length > 0 ? <SceneEntityWallMeasurementGuides measurementGuides={sceneEntityWallMeasurementGuides} /> : null}
+      <SelectedSceneEntityLayer selectedSceneEntities={selectedSceneEntities} selectedSceneEntityBounds={selectedSceneEntityBounds} placedWallGraphs={placedWallGraphs} selectedAssemblyIsWallOpening={selectedAssemblyIsWallOpening} showRotationHandle={sceneEntityViewPolicy.showRotationHandle} enableRotationHandleInteraction={sceneEntityViewPolicy.enableRotationHandleInteraction} />
+      {sceneEntityWallMeasurementGuides.length > 0 ? <SceneEntityWallMeasurementGuides measurementGuides={sceneEntityWallMeasurementGuides} renderLabels={activeSceneViewMode !== "elevation"} /> : null}
+      <SceneEntityWallMeasurementLabelProjector enabled={activeSceneViewMode === "elevation"} measurementGuides={sceneEntityWallMeasurementGuides} />
       {activeSceneEntityAlignmentGuides.length > 0 ? <SceneEntityAlignmentGuides alignmentGuides={activeSceneEntityAlignmentGuides} /> : null}
       {positionedPlacementAssembly !== null ? <AssemblyPlacementCandidateRenderer candidateAssembly={positionedPlacementAssembly} showFrontOutlineLines={showFrontOutlineLines} sceneViewMode={activeSceneViewMode} /> : null}
       {shouldRenderSceneEntityMoveDragSurface ? <SceneEntityMoveDragSurface /> : null}

@@ -1,5 +1,5 @@
-import { alignSceneEntity } from "@/engine/scene-entities/alignment/sceneEntityObjectAlignment";
-import { createSceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
+import { alignSceneEntityWithSpatialGuides } from "@/engine/scene-entities/spatial-guides/sceneEntitySpatialGuideEngine";
+import { createSceneEntityMovementFrame, type SceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
@@ -28,8 +28,12 @@ export function createSceneEntityPlacementActions(get: DesignSceneStoreGetter, s
       const operation = designScene.activeSceneOperation;
       if (operation?.kind !== "scene-entity-placement") return;
       const activeMovementFrame = movementFrame ?? createSceneEntityMovementFrame({ sceneViewMode, elevationMoveFrame });
-      const proposed = { ...operation.candidate.sceneEntity, worldPositionInches };
-      const aligned = alignSceneEntity({
+      const proposed = createPlacementCandidateForMovementFrame({
+        sceneEntity: operation.candidate.sceneEntity,
+        worldPositionInches,
+        movementFrame: activeMovementFrame,
+      });
+      const aligned = alignSceneEntityWithSpatialGuides({
         movingSceneEntity: proposed,
         sceneEntities: designScene.sceneEntities,
         excludedSceneEntityIds: [proposed.id],
@@ -73,6 +77,20 @@ export function createSceneEntityPlacementActions(get: DesignSceneStoreGetter, s
         activeSceneEntityAlignmentGuides: [],
         designScene: { ...state.designScene, activeSceneOperation: null },
       }));
+    },
+  };
+}
+
+function createPlacementCandidateForMovementFrame<TSceneEntity extends { worldPositionInches: unknown; rotationDegrees: { zDegrees: number } }>(args: { sceneEntity: TSceneEntity; worldPositionInches: TSceneEntity["worldPositionInches"]; movementFrame: SceneEntityMovementFrame }): TSceneEntity {
+  if (args.movementFrame.kind !== "wall-face-plane") {
+    return { ...args.sceneEntity, worldPositionInches: args.worldPositionInches };
+  }
+
+  return {
+    ...args.sceneEntity,
+    worldPositionInches: args.worldPositionInches,
+    rotationDegrees: {
+      zDegrees: Math.atan2(args.movementFrame.lockedNormalInches.xInches, args.movementFrame.lockedNormalInches.yInches) * 180 / Math.PI,
     },
   };
 }

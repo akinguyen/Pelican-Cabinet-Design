@@ -16,6 +16,7 @@ export function createSceneViewModeActions(
         }),
         cameraCommand: null,
         activeSceneEntityAlignmentGuides: [],
+        activeSceneEntityWallMeasurementLabelScreenItems: [],
         designScene: {
           ...state.designScene,
           activeSceneOperation: getNextActiveSceneOperation({

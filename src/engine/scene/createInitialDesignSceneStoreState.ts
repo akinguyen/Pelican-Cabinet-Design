@@ -15,6 +15,8 @@ export function createInitialDesignSceneStoreState(): Pick<
   | "sceneCameraStates"
   | "activeDrag"
   | "activeSceneEntityAlignmentGuides"
+  | "activeSceneEntityWallMeasurementLabelScreenItems"
+  | "lastRotationHandleCenterAngleDegreesBySceneEntityKey"
   | "sceneHistory"
 > {
   return {
@@ -27,6 +29,8 @@ export function createInitialDesignSceneStoreState(): Pick<
     sceneCameraStates: createDefaultSceneCameraStates(),
     activeDrag: null,
     activeSceneEntityAlignmentGuides: [],
+    activeSceneEntityWallMeasurementLabelScreenItems: [],
+    lastRotationHandleCenterAngleDegreesBySceneEntityKey: {},
     sceneHistory: createEmptyDesignSceneHistoryState(),
   };
 }

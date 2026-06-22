@@ -11,6 +11,7 @@ import { SceneEntityTransformSection } from "../scene-entities/SceneEntityTransf
 type AssemblyPropertiesPanelProps = Readonly<{ placedAssembly: PlacedAssembly; definition: AssemblyDefinition }>;
 
 export function AssemblyPropertiesPanel({ placedAssembly, definition }: AssemblyPropertiesPanelProps) {
+  const handleDuplicate = useCallback(() => { useDesignSceneStore.getState().duplicateSelectedSceneEntities(); }, []);
   const handleDelete = useCallback(() => { useDesignSceneStore.getState().deleteSelectedSceneEntities(); }, []);
   return (
     <div className="space-y-4">
@@ -18,7 +19,7 @@ export function AssemblyPropertiesPanel({ placedAssembly, definition }: Assembly
       <SceneEntityTransformSection sceneEntity={placedAssembly} />
       <AssemblyDimensionSection placedAssembly={placedAssembly} definition={definition} />
       <AssemblyOptionGroupsSection placedAssembly={placedAssembly} definition={definition} />
-      <section className="rounded-lg border border-red-200 bg-red-50 p-3"><div className="text-[11px] font-semibold uppercase tracking-wide text-red-700">Actions</div><button type="button" className="mt-3 w-full rounded-md bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700" onClick={handleDelete}>Delete assembly</button></section>
+      <section className="rounded-lg border border-slate-200 bg-white p-3"><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Actions</div><button type="button" className="mt-3 w-full rounded-md bg-slate-700 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800" onClick={handleDuplicate}>Duplicate assembly</button><button type="button" className="mt-2 w-full rounded-md bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700" onClick={handleDelete}>Delete assembly</button></section>
     </div>
   );
 }

@@ -41,10 +41,10 @@ export function SceneEntityRotationSurface() {
     useDesignSceneStore.getState().finishSceneEntityRotationDrag();
   }, []);
 
-  if (!isRotationDragActive) return null;
+  if (!isRotationDragActive || activeDrag?.kind !== "scene-entity-rotation") return null;
 
   return (
-    <mesh position={[0, 0, 0]} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
+    <mesh position={[0, 0, activeDrag.centerPointInches.zInches]} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
       <planeGeometry args={[ROTATION_SURFACE_SIZE_INCHES, ROTATION_SURFACE_SIZE_INCHES]} />
       <meshBasicMaterial transparent opacity={0} depthWrite={false} />
     </mesh>

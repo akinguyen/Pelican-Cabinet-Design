@@ -5,14 +5,13 @@ import { getSceneEntityByRef, replaceSceneEntity } from "@/engine/scene-entities
 import { createSceneEntityWithRotationZ } from "@/engine/scene-entities/sceneEntityTransforms";
 import type { SceneEntity } from "@/engine/scene-entities/sceneEntityTypes";
 import type { DesignScene } from "../designSceneTypes";
+import { createSceneEntitySelectionKey } from "../sceneSelectionTypes";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 export function createSceneEntityRotationActions(get: DesignSceneStoreGetter, set: DesignSceneStoreSetter): Pick<DesignSceneStore, "startSceneEntityRotationDrag" | "updateSceneEntityRotationDrag" | "finishSceneEntityRotationDrag" | "cancelSceneEntityRotationDrag"> {
   return {
     startSceneEntityRotationDrag({ sceneEntity, centerPointInches, pointerWorldInches, startHandleCenterAngleDegrees }) {
-      if (get().activeSceneViewMode !== "floor-plan") return;
-
       const entity = getSceneEntityByRef(get().designScene.sceneEntities, sceneEntity);
       if (entity === null) return;
 
@@ -82,7 +81,14 @@ export function createSceneEntityRotationActions(get: DesignSceneStoreGetter, se
         });
       }
 
-      set({ activeDrag: null, activeSceneEntityAlignmentGuides: [] });
+      set((state) => ({
+        activeDrag: null,
+        activeSceneEntityAlignmentGuides: [],
+        lastRotationHandleCenterAngleDegreesBySceneEntityKey: {
+          ...state.lastRotationHandleCenterAngleDegreesBySceneEntityKey,
+          [createSceneEntitySelectionKey(activeDrag.sceneEntity)]: activeDrag.latestHandleCenterAngleDegrees,
+        },
+      }));
     },
 
     cancelSceneEntityRotationDrag() {

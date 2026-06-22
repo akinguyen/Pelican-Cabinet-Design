@@ -26,9 +26,17 @@ export type SceneEntityElevationViewZoneFrame = Readonly<{
   topInches: number;
 }>;
 
+export type SceneEntityElevationWallFaceFrame = Readonly<{
+  faceStartInches: Point3DInches;
+  faceEndInches: Point3DInches;
+  faceCenterInches: Point3DInches;
+  wallHeightInches: number;
+}>;
+
 export type SceneEntityElevationFrame = Readonly<{
   faceDirectionInches: Point3DInches;
   outwardDirectionInches: Point3DInches;
   planeOriginInches: Point3DInches;
+  wallFaceInches: SceneEntityElevationWallFaceFrame;
   viewZoneInches?: SceneEntityElevationViewZoneFrame;
 }>;
