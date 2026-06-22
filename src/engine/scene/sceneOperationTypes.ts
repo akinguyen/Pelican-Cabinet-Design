@@ -1,13 +1,11 @@
 import type { SceneEntity } from "@/engine/scene-entities/sceneEntityTypes";
-import type { SceneEntityElevationFrame } from "@/engine/scene-entities/sceneEntityPlanGeometryTypes";
-import type { SceneViewMode } from "./sceneViewModeTypes";
+import type { SceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
 import type { WallSegmentDraft } from "@/engine/walls/segment-draft/wallSegmentDraftTypes";
 
 export type SceneEntityPlacementCandidate = Readonly<{
   sceneEntity: SceneEntity;
   placementState: "waiting-for-pointer" | "positioned";
-  sceneViewMode: SceneViewMode;
-  elevationMoveFrame?: SceneEntityElevationFrame;
+  movementFrame: SceneEntityMovementFrame | null;
 }>;
 
 export type SceneOperation =

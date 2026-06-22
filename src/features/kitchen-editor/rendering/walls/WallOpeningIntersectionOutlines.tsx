@@ -18,7 +18,7 @@ import { wallSegmentRenderColors } from "./wallSegmentRenderColors";
 
 const WALL_OPENING_OUTLINE_Z_INCHES = 7;
 const WALL_OPENING_INTERACTION_Z_INCHES = 140;
-const WALL_OPENING_OUTLINE_RENDER_ORDER = 122;
+const WALL_OPENING_OUTLINE_RENDER_ORDER = 132;
 
 export const WallOpeningIntersectionOutlines = memo(function WallOpeningIntersectionOutlines({
   derivedWallOpenings,
@@ -124,6 +124,8 @@ function WallOpeningIntersectionOutline({
         color={wallSegmentRenderColors.openingOutlineStroke}
         lineWidth={2}
         depthTest={false}
+        depthWrite={false}
+        transparent
         renderOrder={WALL_OPENING_OUTLINE_RENDER_ORDER}
       />
       {sceneViewMode === "floor-plan" ? (

@@ -9,7 +9,7 @@ import type { SceneEntityBounds } from "@/engine/scene-entities/sceneEntityBound
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
 import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
-import { SceneEntityFloorPlanEditControls } from "./SceneEntityFloorPlanEditControls";
+import { SceneEntityEditControls } from "./SceneEntityEditControls";
 import { SceneEntityFloorPlanRotationControl } from "./SceneEntityFloorPlanRotationControl";
 import { SceneEntityVolumeBoundingBox } from "./SceneEntityVolumeBoundingBox";
 
@@ -42,21 +42,17 @@ export function SelectedSceneEntityLayer({ selectedSceneEntities, selectedSceneE
   const isSingleSceneEntityBeingRotated = singleSelectedSceneEntity !== null && activeDrag?.kind === "scene-entity-rotation" && activeDrag.sceneEntity.entityKind === singleSelectedSceneEntity.entityKind && activeDrag.sceneEntity.entityId === singleSelectedSceneEntity.entityId;
   const isSelectedSceneEntityMoving = isSingleSceneEntityBeingMoved || isSingleSceneEntityBeingRotated;
 
-  if (sceneViewMode !== "floor-plan") {
-    return <SceneEntityBoundingBoxes bounds={selectedSceneEntityBounds} state={isSelectedSceneEntityMoving ? "moving" : "default"} />;
-  }
-
   const showUtilityControls = !isSceneOperationActive && activeToolbarTool === null && activeDrag === null;
-  const showSceneEntityRotationControl = singleSelectedSceneEntity !== null && !(singleSelectedSceneEntityObject?.entityKind === "placed-assembly" && selectedAssemblyIsWallOpening) && !isSceneOperationActive && activeToolbarTool === null && (activeDrag === null || isSingleSceneEntityBeingRotated);
+  const showSceneEntityRotationControl = sceneViewMode === "floor-plan" && singleSelectedSceneEntity !== null && !(singleSelectedSceneEntityObject?.entityKind === "placed-assembly" && selectedAssemblyIsWallOpening) && !isSceneOperationActive && activeToolbarTool === null && (activeDrag === null || isSingleSceneEntityBeingRotated);
 
   return (
     <group>
       <SceneEntityBoundingBoxes bounds={selectedSceneEntityBounds} state={isSelectedSceneEntityMoving ? "moving" : "default"} />
       {showUtilityControls && singleBounds !== null && singleSelectedSceneEntityObject !== null ? (
-        <SceneEntityFloorPlanEditControls bounds={singleBounds} duplicateLabel={`Duplicate ${getSceneEntityLabel(singleSelectedSceneEntityObject)}`} deleteLabel={`Delete ${getSceneEntityLabel(singleSelectedSceneEntityObject)}`} onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedSceneEntities()} onDelete={() => useDesignSceneStore.getState().deleteSelectedSceneEntities()} />
+        <SceneEntityEditControls bounds={singleBounds} duplicateLabel={`Duplicate ${getSceneEntityLabel(singleSelectedSceneEntityObject)}`} deleteLabel={`Delete ${getSceneEntityLabel(singleSelectedSceneEntityObject)}`} onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedSceneEntities()} onDelete={() => useDesignSceneStore.getState().deleteSelectedSceneEntities()} />
       ) : null}
       {showUtilityControls && isMultiSelection ? (
-        <SceneEntityFloorPlanEditControls bounds={selectedSceneEntityBounds} selectedCountLabel={`${selectedSceneEntityCount} selected`} duplicateLabel={`Duplicate ${selectedSceneEntityCount} selected scene entities`} deleteLabel={`Delete ${selectedSceneEntityCount} selected scene entities`} onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedSceneEntities()} onDelete={() => useDesignSceneStore.getState().deleteSelectedSceneEntities()} />
+        <SceneEntityEditControls bounds={selectedSceneEntityBounds} selectedCountLabel={`${selectedSceneEntityCount} selected`} duplicateLabel={`Duplicate ${selectedSceneEntityCount} selected scene entities`} deleteLabel={`Delete ${selectedSceneEntityCount} selected scene entities`} onDuplicate={() => useDesignSceneStore.getState().duplicateSelectedSceneEntities()} onDelete={() => useDesignSceneStore.getState().deleteSelectedSceneEntities()} />
       ) : null}
       {showSceneEntityRotationControl && singleBounds !== null && singleSelectedSceneEntityObject !== null ? (
         <SceneEntityFloorPlanRotationControl bounds={singleBounds} isRotating={isSingleSceneEntityBeingRotated} rotationDegrees={singleSelectedSceneEntityObject.rotationDegrees.zDegrees} snapStepDegrees={SCENE_ENTITY_ROTATION_SNAP_STEP_DEGREES} onStartRotation={handleStartSceneEntityRotation} handleCenterAngleDegrees={isSingleSceneEntityBeingRotated && activeDrag?.kind === "scene-entity-rotation" ? activeDrag.latestHandleCenterAngleDegrees : singleSelectedSceneEntityObject.entityKind === "placed-assembly" ? getWallAwareInitialRotationHandleCenterAngleDegrees({ bounds: singleBounds, placedWallGraphs, rotationDegrees: singleSelectedSceneEntityObject.rotationDegrees.zDegrees }) : undefined} />

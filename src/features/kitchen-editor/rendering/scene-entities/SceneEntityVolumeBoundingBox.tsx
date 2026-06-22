@@ -39,16 +39,7 @@ export const SceneEntityVolumeBoundingBox = memo(function SceneEntityVolumeBound
           renderOrder={122}
         />
       ))}
-      {topCorners.map((cornerPointInches, cornerIndex) => (
-        <mesh
-          key={`top-corner-${cornerIndex}`}
-          position={[cornerPointInches.xInches, cornerPointInches.yInches, cornerPointInches.zInches + 0.15]}
-          renderOrder={123}
-        >
-          <sphereGeometry args={[1.5, 16, 12]} />
-          <meshBasicMaterial color={colorHex} depthTest={false} />
-        </mesh>
-      ))}
+
     </group>
   );
 });

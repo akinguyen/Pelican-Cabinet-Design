@@ -3,12 +3,12 @@
 import { Html } from "@react-three/drei";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { Copy, Trash2 } from "lucide-react";
-import { createSceneEntityBoundsPlanFrame } from "@/engine/scene-entities/sceneEntityGroupGeometry";
 import type { SceneEntityBounds } from "@/engine/scene-entities/sceneEntityBoundsTypes";
 
-const EDIT_CONTROL_Z_INCHES = 12;
+const EDIT_CONTROL_OFFSET_INCHES = 14;
+const EDIT_CONTROL_Z_OFFSET_INCHES = 2;
 
-type SceneEntityFloorPlanEditControlsProps = Readonly<{
+type SceneEntityEditControlsProps = Readonly<{
   bounds: SceneEntityBounds | readonly SceneEntityBounds[];
   deleteLabel: string;
   onDelete: () => void;
@@ -17,23 +17,23 @@ type SceneEntityFloorPlanEditControlsProps = Readonly<{
   selectedCountLabel?: string;
 }>;
 
-export function SceneEntityFloorPlanEditControls({
+export function SceneEntityEditControls({
   bounds,
   duplicateLabel,
   deleteLabel,
   onDuplicate,
   onDelete,
   selectedCountLabel,
-}: SceneEntityFloorPlanEditControlsProps) {
+}: SceneEntityEditControlsProps) {
   const boundsList = Array.isArray(bounds) ? bounds : [bounds];
 
   if (boundsList.length === 0) {
     return null;
   }
 
-  const planFrame = createSceneEntityBoundsPlanFrame(boundsList);
+  const anchorPointInches = createSceneEntityEditControlAnchor(boundsList);
 
-  if (planFrame === null) {
+  if (anchorPointInches === null) {
     return null;
   }
 
@@ -48,7 +48,7 @@ export function SceneEntityFloorPlanEditControls({
   return (
     <Html
       center
-      position={[planFrame.centerXInches, planFrame.minYInches - 14, EDIT_CONTROL_Z_INCHES]}
+      position={[anchorPointInches.xInches, anchorPointInches.yInches, anchorPointInches.zInches]}
       style={{ pointerEvents: "auto", zIndex: 50 }}
     >
       <div
@@ -87,4 +87,30 @@ export function SceneEntityFloorPlanEditControls({
       </div>
     </Html>
   );
+}
+
+function createSceneEntityEditControlAnchor(
+  boundsList: readonly SceneEntityBounds[],
+): { xInches: number; yInches: number; zInches: number } | null {
+  if (boundsList.length === 0) {
+    return null;
+  }
+
+  const footprintPoints = boundsList.flatMap((bounds) => bounds.footprintCornersInches);
+  const topPoints = boundsList.flatMap((bounds) => bounds.topCornersInches);
+
+  if (footprintPoints.length === 0 || topPoints.length === 0) {
+    return null;
+  }
+
+  const minXInches = Math.min(...footprintPoints.map((pointInches) => pointInches.xInches));
+  const maxXInches = Math.max(...footprintPoints.map((pointInches) => pointInches.xInches));
+  const minYInches = Math.min(...footprintPoints.map((pointInches) => pointInches.yInches));
+  const maxZInches = Math.max(...topPoints.map((pointInches) => pointInches.zInches));
+
+  return {
+    xInches: (minXInches + maxXInches) / 2,
+    yInches: minYInches - EDIT_CONTROL_OFFSET_INCHES,
+    zInches: maxZInches + EDIT_CONTROL_Z_OFFSET_INCHES,
+  };
 }

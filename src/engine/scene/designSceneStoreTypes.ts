@@ -5,6 +5,7 @@ import type { DesignReservationZonePurpose } from "@/engine/design-zones/designR
 import type { SceneEntity, SceneEntityRef } from "@/engine/scene-entities/sceneEntityTypes";
 import type { SceneEntityAlignmentGuide } from "@/engine/scene-entities/alignment/sceneEntityAlignmentTypes";
 import type { SceneEntityElevationFrame, SceneDragState } from "./sceneDragTypes";
+import type { SceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
 import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";
 import type { SceneEditingTool } from "./sceneEditingToolTypes";
 import type { SceneCameraCommand, SceneCameraCommandTool } from "@/engine/scene/sceneCameraCommandTypes";
@@ -39,14 +40,14 @@ export type DesignSceneStore = Readonly<{
   updateFloorPlanCameraState: (cameraState: OrthographicCameraState) => void;
   updateElevationCameraState: (cameraState: ElevationCameraState) => void;
   startSceneEntityPlacementCandidate: (sceneEntity: SceneEntity) => void;
-  updateSceneEntityPlacementCandidate: (worldPositionInches: Point3DInches, sceneViewMode: SceneViewMode, elevationMoveFrame?: SceneEntityElevationFrame) => void;
+  updateSceneEntityPlacementCandidate: (worldPositionInches: Point3DInches, sceneViewMode: SceneViewMode, elevationMoveFrame?: SceneEntityElevationFrame, movementFrame?: SceneEntityMovementFrame) => void;
   commitSceneEntityPlacementCandidate: () => void;
   cancelActiveSceneOperation: () => void;
   selectSceneEntity: (sceneEntity: SceneEntityRef) => void;
   toggleSceneEntitySelection: (sceneEntity: SceneEntityRef) => void;
   selectPlacedWallSegment: (wallGraphId: string, wallSegmentId: string) => void;
   clearSelection: () => void;
-  startSceneEntityMoveDrag: (args: { sceneEntity: SceneEntityRef; pointerWorldInches: Point3DInches; sceneViewMode: SceneViewMode; elevationMoveFrame?: SceneEntityElevationFrame }) => void;
+  startSceneEntityMoveDrag: (args: { sceneEntity: SceneEntityRef; pointerWorldInches: Point3DInches; sceneViewMode: SceneViewMode; elevationMoveFrame?: SceneEntityElevationFrame; movementFrame?: SceneEntityMovementFrame }) => void;
   updateSceneEntityMoveDrag: (pointerWorldInches: Point3DInches) => void;
   finishSceneEntityMoveDrag: () => void;
   cancelSceneEntityMoveDrag: () => void;

@@ -30,8 +30,8 @@ export function SceneEntityMoveDragSurface() {
   }, [moveDrag]);
 
   const elevationDragSurfaceMatrix = useMemo(
-    () => moveDrag?.sceneViewMode === "elevation" && moveDrag.elevationMoveFrame !== undefined
-      ? createElevationDragSurfaceMatrix(moveDrag.elevationMoveFrame)
+    () => moveDrag?.movementFrame.kind === "wall-face-plane" && moveDrag.movementFrame.elevationFrame !== undefined
+      ? createElevationDragSurfaceMatrix(moveDrag.movementFrame.elevationFrame)
       : null,
     [moveDrag],
   );
@@ -44,10 +44,10 @@ export function SceneEntityMoveDragSurface() {
     }
 
     const pointerWorldInches = createAssemblyDragPointerWorldPoint(
-      drag.sceneViewMode,
+      drag.movementFrame.kind === "wall-face-plane" ? "elevation" : "floor-plan",
       event.ray,
       getDragSurfaceReferenceYInches(drag),
-      drag.elevationMoveFrame,
+      drag.movementFrame.elevationFrame,
     );
 
     if (pointerWorldInches === null) {
@@ -67,7 +67,7 @@ export function SceneEntityMoveDragSurface() {
     return null;
   }
 
-  if (moveDrag.sceneViewMode === "elevation" && elevationDragSurfaceMatrix !== null) {
+  if (moveDrag.movementFrame.kind === "wall-face-plane" && elevationDragSurfaceMatrix !== null) {
     return (
       <mesh
         matrix={elevationDragSurfaceMatrix}

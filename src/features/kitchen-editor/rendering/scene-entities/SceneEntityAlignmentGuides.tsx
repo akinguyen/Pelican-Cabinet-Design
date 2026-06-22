@@ -4,7 +4,6 @@ import { Line } from "@react-three/drei";
 import { memo } from "react";
 import type { SceneEntityAlignmentGuide } from "@/engine/scene-entities/alignment/sceneEntityAlignmentTypes";
 
-const SCENE_ENTITY_ALIGNMENT_PLAN_GUIDE_Z_INCHES = 7.4;
 const SCENE_ENTITY_ALIGNMENT_GUIDE_RENDER_ORDER = 126;
 const SCENE_ENTITY_ALIGNMENT_GUIDE_STROKE = "#ff00cc";
 
@@ -19,8 +18,8 @@ export const SceneEntityAlignmentGuides = memo(function SceneEntityAlignmentGuid
         <Line
           key={alignmentGuide.id}
           points={[
-            getGuideRenderPoint(alignmentGuide, "start"),
-            getGuideRenderPoint(alignmentGuide, "end"),
+            createGuideRenderPoint(alignmentGuide.startPointInches),
+            createGuideRenderPoint(alignmentGuide.endPointInches),
           ]}
           color={SCENE_ENTITY_ALIGNMENT_GUIDE_STROKE}
           lineWidth={2}
@@ -35,15 +34,6 @@ export const SceneEntityAlignmentGuides = memo(function SceneEntityAlignmentGuid
   );
 });
 
-function getGuideRenderPoint(
-  alignmentGuide: SceneEntityAlignmentGuide,
-  endpoint: "start" | "end",
-): [number, number, number] {
-  const pointInches = endpoint === "start"
-    ? alignmentGuide.startPointInches
-    : alignmentGuide.endPointInches;
-
-  return alignmentGuide.guidePlane === "elevation"
-    ? [pointInches.xInches, pointInches.yInches, pointInches.zInches]
-    : [pointInches.xInches, pointInches.yInches, SCENE_ENTITY_ALIGNMENT_PLAN_GUIDE_Z_INCHES];
+function createGuideRenderPoint(pointInches: SceneEntityAlignmentGuide["startPointInches"]): [number, number, number] {
+  return [pointInches.xInches, pointInches.yInches, pointInches.zInches];
 }

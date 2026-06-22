@@ -7,6 +7,7 @@ import type { PlacedAssembly } from "@/engine/assemblies/placedAssemblyTypes";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { shouldKeepSceneEntitySelectionForDrag } from "@/engine/scene/sceneSelectionTypes";
+import { createSceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
 import { createAssemblyDragPointerWorldPoint } from "../../interaction/assemblies/assemblyDragPointer";
 import { createSceneEntityElevationFrame } from "../../interaction/scene-entities/sceneEntityElevationFrame";
 import { AssemblyRenderer } from "./AssemblyRenderer";
@@ -63,6 +64,7 @@ export const PlacedAssemblyRenderer = memo(function PlacedAssemblyRenderer({
           activeWallElevationTarget,
         })
       : undefined;
+    const movementFrame = createSceneEntityMovementFrame({ sceneViewMode: activeSceneViewMode, elevationMoveFrame });
     const pointerWorldInches = createAssemblyDragPointerWorldPoint(
       activeSceneViewMode,
       event.ray,
@@ -79,6 +81,7 @@ export const PlacedAssemblyRenderer = memo(function PlacedAssemblyRenderer({
       pointerWorldInches,
       sceneViewMode: activeSceneViewMode,
       elevationMoveFrame,
+      movementFrame,
     });
   }, [placedAssembly]);
 

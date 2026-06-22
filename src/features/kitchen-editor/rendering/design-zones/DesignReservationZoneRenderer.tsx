@@ -11,6 +11,7 @@ import {
 import type { DesignReservationZone } from "@/engine/design-zones/designReservationZoneTypes";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { shouldKeepSceneEntitySelectionForDrag } from "@/engine/scene/sceneSelectionTypes";
+import { createSceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
 import { createAssemblyDragPointerWorldPoint } from "../../interaction/assemblies/assemblyDragPointer";
 import { createSceneEntityElevationFrame } from "../../interaction/scene-entities/sceneEntityElevationFrame";
@@ -77,6 +78,7 @@ export const DesignReservationZoneRenderer = memo(function DesignReservationZone
           activeWallElevationTarget: designSceneStore.activeWallElevationTarget,
         })
       : undefined;
+    const movementFrame = createSceneEntityMovementFrame({ sceneViewMode: designSceneStore.activeSceneViewMode, elevationMoveFrame });
     const pointerWorldInches = createAssemblyDragPointerWorldPoint(
       designSceneStore.activeSceneViewMode,
       event.ray,
@@ -93,6 +95,7 @@ export const DesignReservationZoneRenderer = memo(function DesignReservationZone
       pointerWorldInches,
       sceneViewMode: designSceneStore.activeSceneViewMode,
       elevationMoveFrame,
+      movementFrame,
     });
   }, [isInteractive, zone]);
 

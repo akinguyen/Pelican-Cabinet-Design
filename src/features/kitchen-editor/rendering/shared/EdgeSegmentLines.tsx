@@ -13,6 +13,7 @@ type EdgeSegmentLinesProps = Readonly<{
   colorHex?: string;
   lineWidthPixels?: number;
   depthTest?: boolean;
+  depthWrite?: boolean;
   renderOrder?: number;
 }>;
 
@@ -21,6 +22,7 @@ export const EdgeSegmentLines = memo(function EdgeSegmentLines({
   colorHex = DEFAULT_EDGE_LINE_COLOR_HEX,
   lineWidthPixels = DEFAULT_EDGE_LINE_WIDTH_PIXELS,
   depthTest = true,
+  depthWrite = true,
   renderOrder,
 }: EdgeSegmentLinesProps) {
   const edgeGeometry = useMemo(() => {
@@ -55,6 +57,7 @@ export const EdgeSegmentLines = memo(function EdgeSegmentLines({
         color={colorHex}
         linewidth={lineWidthPixels}
         depthTest={depthTest}
+        depthWrite={depthWrite}
         toneMapped={false}
       />
     </lineSegments>

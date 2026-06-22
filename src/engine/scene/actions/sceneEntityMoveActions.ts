@@ -1,5 +1,6 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { alignSceneEntity, alignSceneEntityGroup } from "@/engine/scene-entities/alignment/sceneEntityObjectAlignment";
+import { createSceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
 import { getSceneEntitiesByRefs, getSceneEntityByRef, replaceSceneEntities } from "@/engine/scene-entities/sceneEntityCollectionEditing";
 import { createDraggedSceneEntityWorldPosition } from "@/engine/scene-entities/sceneEntityMoveGeometry";
 import { createSceneEntityWithWorldPosition, getSceneEntitySizeInches } from "@/engine/scene-entities/sceneEntityTransforms";
@@ -11,11 +12,11 @@ import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
 export function createSceneEntityMoveActions(get: DesignSceneStoreGetter, set: DesignSceneStoreSetter): Pick<DesignSceneStore, "startSceneEntityMoveDrag" | "updateSceneEntityMoveDrag" | "finishSceneEntityMoveDrag" | "cancelSceneEntityMoveDrag"> {
   return {
-    startSceneEntityMoveDrag({ sceneEntity, pointerWorldInches, sceneViewMode, elevationMoveFrame }) {
+    startSceneEntityMoveDrag({ sceneEntity, pointerWorldInches, sceneViewMode, elevationMoveFrame, movementFrame }) {
       const state = get();
       const selectedRefs = getSceneEntityRefsFromSelection(state.designScene.activeSelection);
       const refs = selectedRefs.some((selected) => createSceneEntitySelectionKey(selected) === createSceneEntitySelectionKey(sceneEntity)) ? selectedRefs : [sceneEntity];
-      set({ activeDrag: createMoveState({ refs, pointerWorldInches, sceneViewMode, elevationMoveFrame, sceneEntities: state.designScene.sceneEntities }), activeSceneEntityAlignmentGuides: [] });
+      set({ activeDrag: createMoveState({ refs, pointerWorldInches, sceneViewMode, elevationMoveFrame, movementFrame, sceneEntities: state.designScene.sceneEntities }), activeSceneEntityAlignmentGuides: [] });
     },
     updateSceneEntityMoveDrag(pointerWorldInches) {
       const activeDrag = get().activeDrag;
@@ -25,8 +26,7 @@ export function createSceneEntityMoveActions(get: DesignSceneStoreGetter, set: D
       const proposed = moving.map((sceneEntity) => {
         const key = createSceneEntitySelectionKey({ entityKind: sceneEntity.entityKind, entityId: sceneEntity.id });
         return createSceneEntityWithWorldPosition(sceneEntity, createDraggedSceneEntityWorldPosition({
-          sceneViewMode: activeDrag.sceneViewMode,
-          elevationMoveFrame: activeDrag.elevationMoveFrame,
+          movementFrame: activeDrag.movementFrame,
           dragStartPointerWorldInches: activeDrag.dragStartPointerWorldInches,
           pointerWorldInches,
           dragStartWorldPositionInches: activeDrag.dragStartWorldPositionsBySceneEntityKey[key] ?? sceneEntity.worldPositionInches,
@@ -34,8 +34,8 @@ export function createSceneEntityMoveActions(get: DesignSceneStoreGetter, set: D
         }));
       });
       const aligned = proposed.length === 1
-        ? alignSceneEntity({ movingSceneEntity: proposed[0], sceneEntities: designScene.sceneEntities, excludedSceneEntityIds: [proposed[0].id], placedWallGraphs: designScene.placedWallGraphs, movementSource: activeDrag.sceneViewMode, elevationMoveFrame: activeDrag.elevationMoveFrame })
-        : alignSceneEntityGroup({ movingSceneEntities: proposed, sceneEntities: designScene.sceneEntities, excludedSceneEntityIds: proposed.map((item) => item.id), placedWallGraphs: designScene.placedWallGraphs, movementSource: activeDrag.sceneViewMode, elevationMoveFrame: activeDrag.elevationMoveFrame });
+        ? alignSceneEntity({ movingSceneEntity: proposed[0], sceneEntities: designScene.sceneEntities, excludedSceneEntityIds: [proposed[0].id], placedWallGraphs: designScene.placedWallGraphs, movementFrame: activeDrag.movementFrame })
+        : alignSceneEntityGroup({ movingSceneEntities: proposed, sceneEntities: designScene.sceneEntities, excludedSceneEntityIds: proposed.map((item) => item.id), placedWallGraphs: designScene.placedWallGraphs, movementFrame: activeDrag.movementFrame });
       const alignedEntities = "sceneEntity" in aligned ? [aligned.sceneEntity] : aligned.sceneEntities;
       set((state) => ({
         designScene: { ...state.designScene, sceneEntities: replaceSceneEntities(state.designScene.sceneEntities, alignedEntities) },
@@ -57,9 +57,9 @@ export function createSceneEntityMoveActions(get: DesignSceneStoreGetter, set: D
   };
 }
 
-function createMoveState(args: { refs: readonly SceneEntityRef[]; pointerWorldInches: Point3DInches; sceneViewMode: SceneEntityMoveDragState["sceneViewMode"]; elevationMoveFrame?: SceneEntityMoveDragState["elevationMoveFrame"]; sceneEntities: readonly SceneEntity[] }): SceneEntityMoveDragState {
+function createMoveState(args: { refs: readonly SceneEntityRef[]; pointerWorldInches: Point3DInches; sceneViewMode: Parameters<DesignSceneStore["startSceneEntityMoveDrag"]>[0]["sceneViewMode"]; elevationMoveFrame?: Parameters<DesignSceneStore["startSceneEntityMoveDrag"]>[0]["elevationMoveFrame"]; movementFrame?: Parameters<DesignSceneStore["startSceneEntityMoveDrag"]>[0]["movementFrame"]; sceneEntities: readonly SceneEntity[] }): SceneEntityMoveDragState {
   const dragStartWorldPositionsBySceneEntityKey = Object.fromEntries(args.refs.map((ref) => [createSceneEntitySelectionKey(ref), getSceneEntityByRef(args.sceneEntities, ref)?.worldPositionInches ?? args.pointerWorldInches]));
-  return { kind: "scene-entity-move", sceneEntities: args.refs, dragStartPointerWorldInches: args.pointerWorldInches, dragStartWorldPositionsBySceneEntityKey, latestWorldPositionsBySceneEntityKey: dragStartWorldPositionsBySceneEntityKey, sceneViewMode: args.sceneViewMode, elevationMoveFrame: args.elevationMoveFrame };
+  return { kind: "scene-entity-move", sceneEntities: args.refs, dragStartPointerWorldInches: args.pointerWorldInches, dragStartWorldPositionsBySceneEntityKey, latestWorldPositionsBySceneEntityKey: dragStartWorldPositionsBySceneEntityKey, movementFrame: args.movementFrame ?? createSceneEntityMovementFrame({ sceneViewMode: args.sceneViewMode, elevationMoveFrame: args.elevationMoveFrame }) };
 }
 
 function restorePositions(designScene: DesignSceneStore["designScene"], positionsByKey: Readonly<Record<string, Point3DInches>>): DesignSceneStore["designScene"] {

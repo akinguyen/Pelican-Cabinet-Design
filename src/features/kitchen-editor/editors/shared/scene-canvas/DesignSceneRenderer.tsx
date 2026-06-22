@@ -41,8 +41,7 @@ export function DesignSceneRenderer() {
   const positionedPlacementZone = positionedPlacementSceneEntity?.entityKind === "design-reservation-zone" ? {
     zone: positionedPlacementSceneEntity,
     placementState: "positioned" as const,
-    sceneViewMode: sceneEntityPlacementCandidate?.sceneViewMode ?? activeSceneViewMode,
-    elevationMoveFrame: sceneEntityPlacementCandidate?.elevationMoveFrame,
+    movementFrame: sceneEntityPlacementCandidate?.movementFrame ?? null,
   } : null;
   const showFrontOutlineLines = activeSceneViewMode === "elevation";
   const showWallPlanMeasurements = activeSceneViewMode === "floor-plan" && wallSegmentDraft === null;
@@ -71,11 +70,11 @@ export function DesignSceneRenderer() {
   const selectedSceneEntityRefs = useMemo(() => getSceneEntityRefsFromSelection(activeSelection), [activeSelection]);
   const selectedSceneEntities = useMemo(() => getSceneEntitiesByRefs(sceneEntities, selectedSceneEntityRefs), [sceneEntities, selectedSceneEntityRefs]);
   const selectedSceneEntityBounds = useMemo(() => createSceneEntityBoundsForRefs(sceneEntities, selectedSceneEntityRefs), [sceneEntities, selectedSceneEntityRefs]);
-  const selectedSceneEntityWallMeasurementGuides = useMemo(() => activeSceneViewMode !== "floor-plan" ? [] : selectedSceneEntityBounds.flatMap((bounds) => buildSceneEntityWallMeasurementGuides({ bounds, placedWallGraphs })), [activeSceneViewMode, placedWallGraphs, selectedSceneEntityBounds]);
-  const placementSceneEntityWallMeasurementGuides = useMemo(() => activeSceneViewMode !== "floor-plan" || positionedPlacementSceneEntity === null ? [] : buildSceneEntityWallMeasurementGuides({ bounds: createSceneEntityBounds(positionedPlacementSceneEntity), placedWallGraphs }), [activeSceneViewMode, placedWallGraphs, positionedPlacementSceneEntity]);
+  const selectedSceneEntityWallMeasurementGuides = useMemo(() => selectedSceneEntityBounds.flatMap((bounds) => buildSceneEntityWallMeasurementGuides({ bounds, placedWallGraphs })), [placedWallGraphs, selectedSceneEntityBounds]);
+  const placementSceneEntityWallMeasurementGuides = useMemo(() => positionedPlacementSceneEntity === null ? [] : buildSceneEntityWallMeasurementGuides({ bounds: createSceneEntityBounds(positionedPlacementSceneEntity), placedWallGraphs }), [placedWallGraphs, positionedPlacementSceneEntity]);
   const sceneEntityWallMeasurementGuides = [...selectedSceneEntityWallMeasurementGuides, ...placementSceneEntityWallMeasurementGuides];
   const selectedAssemblyIsWallOpening = selectedAssembly !== null && wallOpeningAssemblyIds.has(selectedAssembly.id);
-  const showSceneEntityGroupGuides = activeSceneViewMode === "floor-plan" && selectedSceneEntityBounds.length > 1 && activeDrag?.kind === "scene-entity-move";
+  const showSceneEntityGroupGuides = selectedSceneEntityBounds.length > 1 && activeDrag?.kind === "scene-entity-move";
 
   return (
     <>

@@ -31,8 +31,9 @@ export const SceneEntityGroupGuides = memo(function SceneEntityGroupGuides({
     return buildSceneEntityWallMeasurementGuidesFromFootprint({
       footprint: groupFootprint,
       placedWallGraphs,
+      sourceId: createGroupMeasurementSourceId(bounds),
     });
-  }, [groupFootprint, placedWallGraphs]);
+  }, [bounds, groupFootprint, placedWallGraphs]);
 
   if (groupFootprint === null) {
     return null;
@@ -63,4 +64,12 @@ export const SceneEntityGroupGuides = memo(function SceneEntityGroupGuides({
 
 function createRenderPoint(pointInches: Point3DInches): [number, number, number] {
   return [pointInches.xInches, pointInches.yInches, GROUP_BOX_Z_INCHES];
+}
+
+
+function createGroupMeasurementSourceId(bounds: readonly SceneEntityBounds[]): string {
+  return [
+    "scene-entity-group",
+    ...bounds.map((entityBounds) => `${entityBounds.entityKind}:${entityBounds.entityId}`).sort(),
+  ].join(":");
 }

@@ -39,10 +39,12 @@ export const WallSegmentMesh = memo(function WallSegmentMesh({
   );
   useDisposableGeometry(geometryResult.geometry);
 
-  const isActiveWallSegment = renderState === "selected" || renderState === "preview-draft";
-  const renderOrder = isActiveWallSegment ? 10 : 1;
+  const isSelectedWallSegment = renderState === "selected";
+  const isDraftPreviewWallSegment = renderState === "preview-draft";
+  const shouldRenderActiveOverlay = isSelectedWallSegment || isDraftPreviewWallSegment;
+  const renderOrder = shouldRenderActiveOverlay ? 10 : 1;
   const color = getWallSegmentFillColor(renderState);
-  const opacity = isActiveWallSegment ? 0.88 : 1;
+  const opacity = isDraftPreviewWallSegment ? 0.88 : 1;
 
   const handlePointerDown = useCallback((event: ThreeEvent<PointerEvent>) => {
     const designSceneStore = useDesignSceneStore.getState();
@@ -62,7 +64,7 @@ export const WallSegmentMesh = memo(function WallSegmentMesh({
         onPointerDown={handlePointerDown}
         renderOrder={renderOrder}
       >
-        {isActiveWallSegment ? (
+        {isDraftPreviewWallSegment ? (
           <meshBasicMaterial
             color={color}
             side={DoubleSide}
@@ -82,16 +84,17 @@ export const WallSegmentMesh = memo(function WallSegmentMesh({
           edgeSegmentsInches={geometryResult.openingEdgeSegmentsInches}
           lineWidthPixels={1}
           depthTest={sceneViewMode !== "floor-plan"}
+          depthWrite={false}
           renderOrder={sceneViewMode === "floor-plan" ? 117 : renderOrder + 1}
         />
       ) : null}
-      {isActiveWallSegment ? <WallSegmentActiveOverlay segmentBody={segmentBody} /> : null}
+      {shouldRenderActiveOverlay ? <WallSegmentActiveOverlay segmentBody={segmentBody} /> : null}
     </group>
   );
 });
 
 function getWallSegmentFillColor(renderState: WallSegmentRenderState): string {
-  if (renderState === "preview-draft" || renderState === "selected") {
+  if (renderState === "preview-draft") {
     return wallSegmentRenderColors.activeFill;
   }
 

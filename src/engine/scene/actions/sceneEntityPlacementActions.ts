@@ -1,4 +1,5 @@
 import { alignSceneEntity } from "@/engine/scene-entities/alignment/sceneEntityObjectAlignment";
+import { createSceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
 import type { DesignSceneStore, DesignSceneStoreGetter, DesignSceneStoreSetter } from "../designSceneStoreTypes";
 import { recordDesignSceneHistoryEntry } from "./sceneHistoryActions";
 
@@ -14,7 +15,7 @@ export function createSceneEntityPlacementActions(get: DesignSceneStoreGetter, s
             candidate: {
               sceneEntity,
               placementState: "waiting-for-pointer",
-              sceneViewMode: state.activeSceneViewMode,
+              movementFrame: null,
             },
           },
         },
@@ -22,18 +23,18 @@ export function createSceneEntityPlacementActions(get: DesignSceneStoreGetter, s
         activeSceneEntityAlignmentGuides: [],
       }));
     },
-    updateSceneEntityPlacementCandidate(worldPositionInches, sceneViewMode, elevationMoveFrame) {
+    updateSceneEntityPlacementCandidate(worldPositionInches, sceneViewMode, elevationMoveFrame, movementFrame) {
       const { designScene } = get();
       const operation = designScene.activeSceneOperation;
       if (operation?.kind !== "scene-entity-placement") return;
+      const activeMovementFrame = movementFrame ?? createSceneEntityMovementFrame({ sceneViewMode, elevationMoveFrame });
       const proposed = { ...operation.candidate.sceneEntity, worldPositionInches };
       const aligned = alignSceneEntity({
         movingSceneEntity: proposed,
         sceneEntities: designScene.sceneEntities,
         excludedSceneEntityIds: [proposed.id],
         placedWallGraphs: designScene.placedWallGraphs,
-        movementSource: sceneViewMode,
-        elevationMoveFrame,
+        movementFrame: activeMovementFrame,
       });
       set((state) => ({
         activeSceneEntityAlignmentGuides: aligned.alignmentGuides,
@@ -44,8 +45,7 @@ export function createSceneEntityPlacementActions(get: DesignSceneStoreGetter, s
             candidate: {
               sceneEntity: aligned.sceneEntity,
               placementState: "positioned",
-              sceneViewMode,
-              elevationMoveFrame,
+              movementFrame: activeMovementFrame,
             },
           },
         },

@@ -5,7 +5,7 @@ export type SceneEntityAlignmentTargetKind = "scene-entity" | "wall-face" | "wal
 
 export type SceneEntityAlignmentGuide = Readonly<{
   id: string;
-  guidePlane: "plan" | "elevation";
+  targetKind: SceneEntityAlignmentTargetKind;
   startPointInches: Point3DInches;
   endPointInches: Point3DInches;
 }>;
