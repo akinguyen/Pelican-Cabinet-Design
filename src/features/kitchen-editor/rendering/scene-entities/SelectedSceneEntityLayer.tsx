@@ -7,6 +7,7 @@ import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import type { SceneEntityBounds } from "@/engine/scene-entities/sceneEntityBoundsTypes";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { PlacedWallGraph } from "@/engine/walls/placedWallGraphTypes";
+import { defaultWallSettings } from "@/engine/walls/placedWallSegmentTypes";
 import { buildConnectedWallGeometry } from "@/engine/walls/buildConnectedWallGeometry";
 import { createSceneEntitySelectionKey } from "@/engine/scene/sceneSelectionTypes";
 import { SceneEntityRotationControl } from "./SceneEntityRotationControl";
@@ -31,11 +32,12 @@ export function SelectedSceneEntityLayer({ selectedSceneEntities, selectedSceneE
   const singleSelectedSceneEntityKey = useMemo(() => singleSelectedSceneEntity === null ? null : createSceneEntitySelectionKey(singleSelectedSceneEntity), [singleSelectedSceneEntity]);
   const singleBounds = selectedSceneEntityBounds.length === 1 ? selectedSceneEntityBounds[0] : null;
   const selectedSceneEntityCount = selectedSceneEntityBounds.length;
+  const rotationControlZInches = useMemo(() => getFloorPlanRotationControlZInches(placedWallGraphs), [placedWallGraphs]);
 
   const handleStartSceneEntityRotation = useCallback((pointerWorldInches: Point3DInches, startHandleCenterAngleDegrees: number) => {
     if (singleSelectedSceneEntity === null || singleBounds === null) return;
-    useDesignSceneStore.getState().startSceneEntityRotationDrag({ sceneEntity: singleSelectedSceneEntity, centerPointInches: { ...singleBounds.footprint.centerPointInches, zInches: getRotationControlZInches(singleBounds, showRotationHandle) ?? singleBounds.footprint.centerPointInches.zInches }, pointerWorldInches, startHandleCenterAngleDegrees });
-  }, [showRotationHandle, singleBounds, singleSelectedSceneEntity]);
+    useDesignSceneStore.getState().startSceneEntityRotationDrag({ sceneEntity: singleSelectedSceneEntity, centerPointInches: { ...singleBounds.footprint.centerPointInches, zInches: rotationControlZInches }, pointerWorldInches, startHandleCenterAngleDegrees });
+  }, [rotationControlZInches, singleBounds, singleSelectedSceneEntity]);
 
   if (selectedSceneEntityCount === 0) return null;
 
@@ -68,7 +70,7 @@ export function SelectedSceneEntityLayer({ selectedSceneEntities, selectedSceneE
           snapStepDegrees={SCENE_ENTITY_ROTATION_SNAP_STEP_DEGREES}
           onStartRotation={handleStartSceneEntityRotation}
           isInteractionEnabled={enableRotationHandleInteraction}
-          controlZInches={getRotationControlZInches(singleBounds, showRotationHandle)}
+          controlZInches={rotationControlZInches}
           handleCenterAngleDegrees={rotationHandleCenterAngleDegrees}
         />
       ) : null}
@@ -111,9 +113,13 @@ function getRotationHandleCenterAngleDegreesForSelectedEntity(args: {
     : undefined;
 }
 
-function getRotationControlZInches(bounds: SceneEntityBounds, showRotationHandle: boolean): number | undefined {
-  if (!showRotationHandle) return undefined;
-  return bounds.heightRangeInches.maxZInches + 6;
+function getFloorPlanRotationControlZInches(placedWallGraphs: readonly PlacedWallGraph[]): number {
+  const maxWallHeightInches = Math.max(
+    defaultWallSettings.defaultHeightInches,
+    ...placedWallGraphs.flatMap((wallGraph) => wallGraph.segments.map((segment) => segment.heightInches)),
+  );
+
+  return maxWallHeightInches + 48;
 }
 
 function getDefaultRotationHandleCenterAngleDegrees(rotationDegrees: number): number { return -rotationDegrees - 90; }

@@ -30,7 +30,7 @@ export function createSceneEntityViewPolicy(sceneViewMode: SceneViewMode): Scene
   return {
     sceneViewMode,
     measurementPolicy: "perspective-xy-plus-floor",
-    showRotationHandle: true,
-    enableRotationHandleInteraction: true,
+    showRotationHandle: false,
+    enableRotationHandleInteraction: false,
   };
 }

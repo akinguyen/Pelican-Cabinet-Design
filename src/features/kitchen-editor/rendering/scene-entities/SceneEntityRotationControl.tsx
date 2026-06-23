@@ -2,16 +2,19 @@
 
 import { useCallback, useMemo } from "react";
 import { Html, Line } from "@react-three/drei";
+import { DoubleSide } from "three";
 import type { ThreeEvent } from "@react-three/fiber";
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { SceneEntityBounds } from "@/engine/scene-entities/sceneEntityBoundsTypes";
 
-const ROTATION_CONTROL_Z_INCHES = 9;
+const FALLBACK_FLOOR_PLAN_ROTATION_CONTROL_Z_INCHES = 144;
 const ROTATION_RING_EXTRA_RADIUS_INCHES = 10;
 const ROTATION_RING_THICKNESS_INCHES = 5;
 const ROTATION_TICK_LENGTH_INCHES = 3.5;
 const ROTATION_DIRECTION_ARROW_GAP_INCHES = 4;
 const ROTATION_DIRECTION_ARROW_LENGTH_INCHES = 7;
+const ROTATION_HANDLE_HIT_WIDTH_INCHES = 7;
+const ROTATION_HANDLE_ARROW_TIP_HIT_RADIUS_INCHES = 4.5;
 
 type SceneEntityRotationControlProps = Readonly<{
   bounds: SceneEntityBounds;
@@ -32,7 +35,7 @@ export function SceneEntityRotationControl({
   onStartRotation,
   handleCenterAngleDegrees,
   isInteractionEnabled = true,
-  controlZInches = ROTATION_CONTROL_Z_INCHES,
+  controlZInches = FALLBACK_FLOOR_PLAN_ROTATION_CONTROL_Z_INCHES,
 }: SceneEntityRotationControlProps) {
   const ringRadiusInches = Math.max(
     bounds.sizeInches.widthInches,
@@ -50,6 +53,10 @@ export function SceneEntityRotationControl({
     }
 
     event.stopPropagation();
+    const pointerCaptureTarget = event.target as EventTarget & {
+      setPointerCapture?: (pointerId: number) => void;
+    };
+    pointerCaptureTarget.setPointerCapture?.(event.pointerId);
     onStartRotation({
       xInches: event.point.x,
       yInches: event.point.y,
@@ -59,7 +66,7 @@ export function SceneEntityRotationControl({
 
   return (
     <group position={[bounds.footprint.centerPointInches.xInches, bounds.footprint.centerPointInches.yInches, controlZInches]}>
-      <mesh onPointerDown={handlePointerDown} renderOrder={125}>
+      <mesh renderOrder={125}>
         <ringGeometry
           args={[
             ringRadiusInches - ROTATION_RING_THICKNESS_INCHES / 2,
@@ -67,13 +74,14 @@ export function SceneEntityRotationControl({
             96,
           ]}
         />
-        <meshBasicMaterial color="#67e8f9" transparent opacity={0.35} depthTest={false} />
+        <meshBasicMaterial color="#67e8f9" transparent opacity={0.35} depthTest={false} depthWrite={false} side={DoubleSide} />
       </mesh>
       <RotationDirectionArrows ringRadiusInches={ringRadiusInches} />
       {isRotating ? <RotationSnapTicks ringRadiusInches={ringRadiusInches} snapStepDegrees={snapStepDegrees} /> : null}
       <RotationHandle
         ringRadiusInches={ringRadiusInches}
         handleCenterAngleDegrees={currentHandleCenterAngleDegrees}
+        onPointerDown={handlePointerDown}
       />
       {isRotating ? (
         <Html center position={[0, 0, 1]} style={{ pointerEvents: "none", zIndex: 60 }}>
@@ -159,9 +167,11 @@ function RotationSnapTicks({
 function RotationHandle({
   ringRadiusInches,
   handleCenterAngleDegrees,
+  onPointerDown,
 }: Readonly<{
   ringRadiusInches: number;
   handleCenterAngleDegrees: number;
+  onPointerDown: (event: ThreeEvent<PointerEvent>) => void;
 }>) {
   const handlePoints = useMemo(() => createRotationHandlePoints({
     radiusInches: ringRadiusInches,
@@ -174,6 +184,30 @@ function RotationHandle({
 
   return (
     <group renderOrder={128}>
+      <RotationPolylineHitTargets
+        hitTargetId="rotation-handle-arc"
+        polylines={[handlePoints, ...arrowHeadPoints]}
+        onPointerDown={onPointerDown}
+      />
+      {arrowHeadPoints.map((points, arrowHeadIndex) => (
+        <mesh
+          key={`rotation-arrow-tip-hit-target-${arrowHeadIndex}`}
+          position={[points[1][0], points[1][1], 0.8]}
+          onPointerDown={onPointerDown}
+          renderOrder={160}
+        >
+          <circleGeometry args={[ROTATION_HANDLE_ARROW_TIP_HIT_RADIUS_INCHES, 24]} />
+          <meshBasicMaterial
+            color="#ffffff"
+            transparent
+            opacity={0}
+            depthTest={false}
+            depthWrite={false}
+            colorWrite={false}
+            side={DoubleSide}
+          />
+        </mesh>
+      ))}
       <Line
         points={handlePoints}
         color="#0f172a"
@@ -191,6 +225,55 @@ function RotationHandle({
           renderOrder={129}
         />
       ))}
+    </group>
+  );
+}
+
+function RotationPolylineHitTargets({
+  hitTargetId,
+  polylines,
+  onPointerDown,
+}: Readonly<{
+  hitTargetId: string;
+  polylines: readonly (readonly [number, number, number][])[];
+  onPointerDown: (event: ThreeEvent<PointerEvent>) => void;
+}>) {
+  return (
+    <group renderOrder={160}>
+      {polylines.flatMap((points, polylineIndex) => points.slice(0, -1).map((startPoint, segmentIndex) => {
+        const endPoint = points[segmentIndex + 1];
+        const deltaXInches = endPoint[0] - startPoint[0];
+        const deltaYInches = endPoint[1] - startPoint[1];
+        const lengthInches = Math.hypot(deltaXInches, deltaYInches);
+
+        if (lengthInches <= 0.001) {
+          return null;
+        }
+
+        return (
+          <mesh
+            key={`${hitTargetId}-${polylineIndex}-${segmentIndex}`}
+            position={[
+              (startPoint[0] + endPoint[0]) / 2,
+              (startPoint[1] + endPoint[1]) / 2,
+              0.75,
+            ]}
+            rotation={[0, 0, Math.atan2(deltaYInches, deltaXInches)]}
+            onPointerDown={onPointerDown}
+            renderOrder={160}
+          >
+            <boxGeometry args={[lengthInches + ROTATION_HANDLE_HIT_WIDTH_INCHES, ROTATION_HANDLE_HIT_WIDTH_INCHES, 0.2]} />
+            <meshBasicMaterial
+              color="#ffffff"
+              transparent
+              opacity={0}
+              depthTest={false}
+              depthWrite={false}
+              colorWrite={false}
+            />
+          </mesh>
+        );
+      }))}
     </group>
   );
 }

@@ -52,6 +52,8 @@ type WallSegmentDraftRendererProps = Readonly<{
 type DraftAngleGuide = Readonly<{
   centerPointInches: Point3DInches;
   radiusInches: number;
+  arcStartAngleDegrees: number;
+  arcEndAngleDegrees: number;
   dividerLine?: Readonly<{
     startPointInches: Point3DInches;
     endPointInches: Point3DInches;
@@ -297,9 +299,11 @@ function WallDraftAngleGuide({
   return (
     <group renderOrder={130}>
       <Line
-        points={createCirclePoints({
+        points={createAngleGuideArcPoints({
           centerPointInches: angleGuide.centerPointInches,
           radiusInches: angleGuide.radiusInches,
+          startAngleDegrees: angleGuide.arcStartAngleDegrees,
+          endAngleDegrees: angleGuide.arcEndAngleDegrees,
         })}
         color={wallSegmentRenderColors.activeAngleGuideStroke}
         lineWidth={1.5}
@@ -386,6 +390,8 @@ function createDraftAngleGuide(args: {
     return {
       centerPointInches: args.startPointInches,
       radiusInches,
+      arcStartAngleDegrees: draftAngleDegrees,
+      arcEndAngleDegrees: draftAngleDegrees + 360,
       firstLabel: createAngleGuideLabel({
         centerPointInches: args.startPointInches,
         radiusInches,
@@ -404,6 +410,8 @@ function createDraftAngleGuide(args: {
   const referenceAngleDegrees = getPlanDirectionAngleDegrees(referenceDirection);
   const draftAngleFromReferenceDegrees = normalizeDegrees(draftAngleDegrees - referenceAngleDegrees);
   const clockwiseAngleDegrees = draftAngleFromReferenceDegrees;
+  const referenceToDraftSide = getPlanCrossProduct(referenceDirection, draftDirection);
+  const shouldUsePositiveReferenceHalf = referenceToDraftSide >= 0;
   const counterClockwiseAngleDegrees = 360 - draftAngleFromReferenceDegrees;
   const innerAngleDegrees = Math.round(Math.min(clockwiseAngleDegrees, counterClockwiseAngleDegrees));
   const outerHalfAngleDegrees = Math.max(0, 180 - innerAngleDegrees);
@@ -420,6 +428,10 @@ function createDraftAngleGuide(args: {
   return {
     centerPointInches: args.startPointInches,
     radiusInches,
+    arcStartAngleDegrees: referenceAngleDegrees,
+    arcEndAngleDegrees: shouldUsePositiveReferenceHalf
+      ? referenceAngleDegrees + 180
+      : referenceAngleDegrees - 180,
     dividerLine: createAngleGuideDividerLine({
       centerPointInches: args.startPointInches,
       radiusInches,
@@ -536,12 +548,18 @@ function createAngleGuideLabel(args: {
   };
 }
 
-function createCirclePoints(args: {
+function createAngleGuideArcPoints(args: {
   centerPointInches: Point3DInches;
   radiusInches: number;
+  startAngleDegrees: number;
+  endAngleDegrees: number;
 }): [number, number, number][] {
+  const startAngleRadians = convertDegreesToRadians(args.startAngleDegrees);
+  const endAngleRadians = convertDegreesToRadians(args.endAngleDegrees);
+
   return Array.from({ length: ANGLE_GUIDE_SEGMENT_COUNT + 1 }, (_, pointIndex) => {
-    const angleRadians = (pointIndex / ANGLE_GUIDE_SEGMENT_COUNT) * Math.PI * 2;
+    const t = pointIndex / ANGLE_GUIDE_SEGMENT_COUNT;
+    const angleRadians = startAngleRadians + (endAngleRadians - startAngleRadians) * t;
 
     return [
       args.centerPointInches.xInches + Math.cos(angleRadians) * args.radiusInches,
@@ -549,5 +567,9 @@ function createCirclePoints(args: {
       DRAFT_ANGLE_GUIDE_Z_INCHES,
     ];
   });
+}
+
+function getPlanCrossProduct(firstDirection: PlanDirection, secondDirection: PlanDirection): number {
+  return firstDirection.xInches * secondDirection.yInches - firstDirection.yInches * secondDirection.xInches;
 }
 
