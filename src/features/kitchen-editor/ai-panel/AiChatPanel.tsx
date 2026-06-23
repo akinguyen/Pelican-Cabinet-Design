@@ -38,15 +38,15 @@ export function AiChatPanel({
       <div className="shrink-0 border-b border-slate-200 px-3 py-2">
         <h2 className="text-sm font-semibold text-slate-950">AI Assistant Chat</h2>
         <p className="text-xs text-slate-500">
-          UI shell only. Scene commands and live AI behavior are not connected yet.
+          UI shell only. Agent APIs and scene commands are not connected yet.
         </p>
       </div>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 text-sm">
         <section className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Status</p>
-          <h3 className="mt-1 text-sm font-semibold text-slate-950">Not connected to scene editing</h3>
+          <h3 className="mt-1 text-sm font-semibold text-slate-950">Ready for agent integration</h3>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            This panel keeps local chat messages only. It does not mutate the scene, execute commands, or call a backend.
+            This panel keeps local chat messages only. It is preserved as the future left-side AI agent surface.
           </p>
         </section>
         <div className="space-y-2">
@@ -68,7 +68,7 @@ export function AiChatPanel({
       <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200 bg-white p-3">
         <textarea
           className="h-20 w-full resize-none rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          placeholder="Type a message for the future AI workflow."
+          placeholder="Type a message for the future AI agent."
           value={inputValue}
           onChange={(event) => onInputChange(event.target.value)}
           onKeyDown={(event) => {

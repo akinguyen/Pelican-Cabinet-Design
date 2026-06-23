@@ -32,5 +32,11 @@ export function formatDesignReservationZonePurposeLabel(purpose: DesignReservati
       return "Peninsula";
     case "tall-pantry":
       return "Tall pantry";
+    case "panel":
+      return "Panel";
+    case "filler":
+      return "Filler";
+    case "corner":
+      return "Corner";
   }
 }

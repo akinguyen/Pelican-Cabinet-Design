@@ -3,7 +3,6 @@ import type { DesignReservationZonePurpose } from "./designReservationZoneTypes"
 
 export const DEFAULT_DESIGN_RESERVATION_ZONE_PURPOSE: DesignReservationZonePurpose = "island";
 
-
 export const defaultDesignReservationZoneDimensions = {
   island: {
     widthInches: 72,
@@ -20,6 +19,21 @@ export const defaultDesignReservationZoneDimensions = {
     depthInches: 24,
     heightInches: 84,
   },
+  panel: {
+    widthInches: 24,
+    depthInches: 1.5,
+    heightInches: 34.5,
+  },
+  filler: {
+    widthInches: 3,
+    depthInches: 24,
+    heightInches: 34.5,
+  },
+  corner: {
+    widthInches: 36,
+    depthInches: 36,
+    heightInches: 34.5,
+  },
 } satisfies Record<DesignReservationZonePurpose, Size3DInches>;
 
 export function getDefaultDesignReservationZoneDimensions(
@@ -27,4 +41,3 @@ export function getDefaultDesignReservationZoneDimensions(
 ): Size3DInches {
   return defaultDesignReservationZoneDimensions[purpose];
 }
-

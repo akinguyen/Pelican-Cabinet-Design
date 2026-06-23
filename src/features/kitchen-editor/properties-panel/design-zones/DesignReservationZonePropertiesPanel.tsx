@@ -12,6 +12,9 @@ const designReservationZonePurposeOptions: readonly Readonly<{ value: DesignRese
   { value: "island", label: "Island" },
   { value: "peninsula", label: "Peninsula" },
   { value: "tall-pantry", label: "Tall pantry" },
+  { value: "panel", label: "Panel" },
+  { value: "filler", label: "Filler" },
+  { value: "corner", label: "Corner" },
 ];
 
 export function DesignReservationZonePropertiesPanel({ zone }: Readonly<{ zone: DesignReservationZone }>) {

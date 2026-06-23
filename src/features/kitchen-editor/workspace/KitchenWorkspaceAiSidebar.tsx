@@ -35,7 +35,7 @@ export function KitchenWorkspaceAiSidebar({
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-3">
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-slate-950">AI Chat</h2>
-            <p className="truncate text-xs text-slate-500">Assist while editing</p>
+            <p className="truncate text-xs text-slate-500">Future kitchen agent</p>
           </div>
           <WorkspacePanelCollapseButton
             label="Collapse AI chat panel"

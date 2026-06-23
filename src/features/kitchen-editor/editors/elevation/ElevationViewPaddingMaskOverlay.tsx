@@ -12,12 +12,18 @@ type ElevationViewPaddingMaskOverlayProps = Readonly<{
   viewportSizePixels: Size2DPixels;
   wallFaceFramePixels: Rect2DPixels | null;
   onEmptyPointerDown?: () => void;
+  opacity?: number;
+  isInteractive?: boolean;
+  transitionDurationMs?: number;
 }>;
 
 export const ElevationViewPaddingMaskOverlay = memo(function ElevationViewPaddingMaskOverlay({
   viewportSizePixels,
   wallFaceFramePixels,
   onEmptyPointerDown,
+  opacity = 1,
+  isInteractive = true,
+  transitionDurationMs = 0,
 }: ElevationViewPaddingMaskOverlayProps) {
   if (wallFaceFramePixels === null) {
     return null;
@@ -25,20 +31,27 @@ export const ElevationViewPaddingMaskOverlay = memo(function ElevationViewPaddin
 
   const rightPixels = wallFaceFramePixels.leftPixels + wallFaceFramePixels.widthPixels;
   const bottomPixels = wallFaceFramePixels.topPixels + wallFaceFramePixels.heightPixels;
+  const maskPointerClassName = isInteractive ? "pointer-events-auto" : "pointer-events-none";
 
   const handleMaskPointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) {
+    if (!isInteractive || event.button !== 0) {
       return;
     }
 
     event.stopPropagation();
     onEmptyPointerDown?.();
-  }, [onEmptyPointerDown]);
+  }, [isInteractive, onEmptyPointerDown]);
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-10">
+    <div
+      className="pointer-events-none absolute inset-0 z-10"
+      style={{
+        opacity,
+        transition: transitionDurationMs > 0 ? `opacity ${transitionDurationMs}ms ease-out` : undefined,
+      }}
+    >
       <div
-        className={`${ELEVATION_PADDING_MASK_CLASS_NAME} pointer-events-auto`}
+        className={`${ELEVATION_PADDING_MASK_CLASS_NAME} ${maskPointerClassName}`}
         onPointerDown={handleMaskPointerDown}
         style={{
           backgroundColor: ELEVATION_PADDING_MASK_BACKGROUND,
@@ -49,7 +62,7 @@ export const ElevationViewPaddingMaskOverlay = memo(function ElevationViewPaddin
         }}
       />
       <div
-        className={`${ELEVATION_PADDING_MASK_CLASS_NAME} pointer-events-auto`}
+        className={`${ELEVATION_PADDING_MASK_CLASS_NAME} ${maskPointerClassName}`}
         onPointerDown={handleMaskPointerDown}
         style={{
           backgroundColor: ELEVATION_PADDING_MASK_BACKGROUND,
@@ -60,7 +73,7 @@ export const ElevationViewPaddingMaskOverlay = memo(function ElevationViewPaddin
         }}
       />
       <div
-        className={`${ELEVATION_PADDING_MASK_CLASS_NAME} pointer-events-auto`}
+        className={`${ELEVATION_PADDING_MASK_CLASS_NAME} ${maskPointerClassName}`}
         onPointerDown={handleMaskPointerDown}
         style={{
           backgroundColor: ELEVATION_PADDING_MASK_BACKGROUND,
@@ -71,7 +84,7 @@ export const ElevationViewPaddingMaskOverlay = memo(function ElevationViewPaddin
         }}
       />
       <div
-        className={`${ELEVATION_PADDING_MASK_CLASS_NAME} pointer-events-auto`}
+        className={`${ELEVATION_PADDING_MASK_CLASS_NAME} ${maskPointerClassName}`}
         onPointerDown={handleMaskPointerDown}
         style={{
           backgroundColor: ELEVATION_PADDING_MASK_BACKGROUND,

@@ -2,10 +2,10 @@
 
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
+import { KitchenEditorToolbar } from "../editor-toolbar/KitchenEditorToolbar";
 import { KitchenWorkspaceAiSidebar } from "./KitchenWorkspaceAiSidebar";
 import { KitchenWorkspaceHeader } from "./KitchenWorkspaceHeader";
 import { KitchenWorkspaceSidebar } from "./KitchenWorkspaceSidebar";
-import { KitchenEditorToolbar } from "../editor-toolbar/KitchenEditorToolbar";
 
 const expandedAiPanelWidthPixels = 340;
 const collapsedAiPanelWidthPixels = 48;

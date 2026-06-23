@@ -8,7 +8,7 @@ const initialAiMessages: readonly AiChatMessage[] = [
     id: "assistant-welcome",
     role: "assistant",
     content:
-      "AI chat is currently a UI shell only. Messages stay in this panel and do not run scene commands, call an AI service, or change the design.",
+      "AI chat is preserved as a clean UI shell for the new kitchen design agent. The old export/import AI workflow has been removed, so this panel is ready for the future OpenAI API + engine tools integration.",
   },
 ];
 
@@ -36,14 +36,20 @@ export function KitchenAiPanel() {
         id: `assistant-shell-${timestamp}`,
         role: "assistant",
         content:
-          "This chat shell is not connected to scene editing yet. We can attach a command layer or AI service here later.",
+          "This chat shell is not connected to the new AI agent backend yet. Next we can add agent APIs, scene tools, and OpenAI API calls behind this panel.",
       },
     ]);
     setInputValue("");
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col bg-slate-50 p-3">
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-3 bg-slate-50 p-3">
+      <section className="shrink-0 rounded-xl border border-blue-100 bg-blue-50 p-3 shadow-sm">
+        <h2 className="text-sm font-semibold text-slate-950">Kitchen AI Agent</h2>
+        <p className="mt-1 text-xs leading-5 text-slate-600">
+          Clean chat shell only. Old AI package/export/import code is removed; this panel is kept for the new tool-driven agent.
+        </p>
+      </section>
       <AiChatPanel
         messages={messages}
         inputValue={inputValue}
