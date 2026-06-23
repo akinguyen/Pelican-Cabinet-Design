@@ -1,6 +1,20 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import type { SceneEntity } from "@/engine/scene-entities/sceneEntityTypes";
-import type { SceneEntityAlignmentGuide, SceneEntityAlignmentTargetKind } from "@/engine/scene-entities/alignment/sceneEntityAlignmentTypes";
+
+
+export type SceneEntityAlignmentTargetKind = "scene-entity" | "wall-face" | "wall-centerline" | "floor-line";
+
+export type SceneEntityAlignmentGuide = Readonly<{
+  id: string;
+  targetKind: SceneEntityAlignmentTargetKind;
+  startPointInches: Point3DInches;
+  endPointInches: Point3DInches;
+}>;
+
+export type SceneEntityMeasurementPolicy =
+  | "perspective-xy-plus-floor"
+  | "floor-xy"
+  | "elevation-wall-face";
 
 export type SpatialGuideFrameKind = "floor-plane" | "wall-face-plane";
 export type SpatialGuideAxis = "u" | "v";

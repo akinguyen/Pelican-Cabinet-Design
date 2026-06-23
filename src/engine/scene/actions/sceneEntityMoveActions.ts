@@ -1,8 +1,7 @@
 import type { Point3DInches } from "@/core/geometry/pointTypes";
 import { alignSceneEntityWithSpatialGuides, alignSceneEntityGroupWithSpatialGuides } from "@/engine/scene-entities/spatial-guides/sceneEntitySpatialGuideEngine";
-import { createSceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
+import { createSceneEntityMovementFrame, createSceneEntityMovementFramePointFromPointerDelta } from "@/engine/scene-entities/sceneEntityMovementFrame";
 import { getSceneEntitiesByRefs, getSceneEntityByRef, replaceSceneEntities } from "@/engine/scene-entities/sceneEntityCollectionEditing";
-import { createDraggedSceneEntityWorldPosition } from "@/engine/scene-entities/sceneEntityMoveGeometry";
 import { createSceneEntityWithWorldPosition, getSceneEntitySizeInches } from "@/engine/scene-entities/sceneEntityTransforms";
 import type { SceneEntity, SceneEntityRef } from "@/engine/scene-entities/sceneEntityTypes";
 import type { SceneEntityMoveDragState } from "../sceneDragTypes";
@@ -25,7 +24,7 @@ export function createSceneEntityMoveActions(get: DesignSceneStoreGetter, set: D
       const moving = getSceneEntitiesByRefs(designScene.sceneEntities, activeDrag.sceneEntities);
       const proposed = moving.map((sceneEntity) => {
         const key = createSceneEntitySelectionKey({ entityKind: sceneEntity.entityKind, entityId: sceneEntity.id });
-        return createSceneEntityWithWorldPosition(sceneEntity, createDraggedSceneEntityWorldPosition({
+        return createSceneEntityWithWorldPosition(sceneEntity, createSceneEntityMovementFramePointFromPointerDelta({
           movementFrame: activeDrag.movementFrame,
           dragStartPointerWorldInches: activeDrag.dragStartPointerWorldInches,
           pointerWorldInches,

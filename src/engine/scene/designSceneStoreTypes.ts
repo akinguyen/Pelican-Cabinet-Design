@@ -3,7 +3,7 @@ import type { CabinetPlacementRequirement, WallFaceSide, WallSettings } from "@/
 import type { AssemblyOptionValue } from "@/engine/assemblies/assemblyConfiguration";
 import type { DesignReservationZonePurpose } from "@/engine/design-zones/designReservationZoneTypes";
 import type { SceneEntity, SceneEntityRef } from "@/engine/scene-entities/sceneEntityTypes";
-import type { SceneEntityAlignmentGuide } from "@/engine/scene-entities/alignment/sceneEntityAlignmentTypes";
+import type { SceneEntityAlignmentGuide } from "@/engine/scene-entities/spatial-guides/spatialGuideTypes";
 import type { SceneEntityElevationFrame, SceneDragState } from "./sceneDragTypes";
 import type { SceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
 import type { WallElevationTarget } from "@/engine/walls/wallSegmentElevationTypes";

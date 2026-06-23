@@ -1,4 +1,4 @@
-import type { SceneEntityAlignmentGuide } from "@/engine/scene-entities/alignment/sceneEntityAlignmentTypes";
+import type { SceneEntityAlignmentGuide } from "@/engine/scene-entities/spatial-guides/spatialGuideTypes";
 import type { SpatialAlignmentCandidate, SpatialGuideSubject } from "../spatialGuideTypes";
 import type { SpatialGuideFrame } from "../spatialGuideFrame";
 import { createSpatialGuideOverlayPoint } from "../spatialGuideOverlay";

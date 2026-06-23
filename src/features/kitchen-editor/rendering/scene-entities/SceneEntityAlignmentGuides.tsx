@@ -2,7 +2,7 @@
 
 import { Line } from "@react-three/drei";
 import { memo } from "react";
-import type { SceneEntityAlignmentGuide } from "@/engine/scene-entities/alignment/sceneEntityAlignmentTypes";
+import type { SceneEntityAlignmentGuide } from "@/engine/scene-entities/spatial-guides/spatialGuideTypes";
 
 const SCENE_ENTITY_ALIGNMENT_GUIDE_RENDER_ORDER = 180;
 const SCENE_ENTITY_ALIGNMENT_GUIDE_STROKE = "#ff00cc";

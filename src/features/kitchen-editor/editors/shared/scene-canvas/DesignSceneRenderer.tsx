@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import { getDesignReservationZonesFromSceneEntities, getPlacedAssembliesFromSceneEntities, getSceneEntitiesByRefs } from "@/engine/scene-entities/sceneEntityCollectionEditing";
 import { createSceneEntityBounds, createSceneEntityBoundsForRefs } from "@/engine/scene-entities/sceneEntityBounds";
 import { buildSceneEntitySpatialMeasurementGuides } from "@/engine/scene-entities/spatial-guides/sceneEntitySpatialGuideEngine";
+import { createSpatialGuideFrame } from "@/engine/scene-entities/spatial-guides/spatialGuideFrame";
+import { createSpatialSceneSnapshot } from "@/engine/scene-entities/spatial-guides/spatialSceneSnapshot";
 import { createSceneEntityMovementFrame } from "@/engine/scene-entities/sceneEntityMovementFrame";
 import { useDesignSceneStore } from "@/engine/scene/designSceneStore";
 import { getSceneEntityRefsFromSelection } from "@/engine/scene/sceneSelectionTypes";
@@ -50,6 +52,8 @@ export function DesignSceneRenderer() {
   const sceneEntityViewPolicy = useMemo(() => createSceneEntityViewPolicy(activeSceneViewMode), [activeSceneViewMode]);
   const activeElevationFrame = useMemo(() => activeSceneViewMode === "elevation" ? createSceneEntityElevationFrame({ placedWallGraphs, activeWallElevationTarget }) ?? null : null, [activeSceneViewMode, activeWallElevationTarget, placedWallGraphs]);
   const activeSceneEntityMovementFrame = useMemo(() => createSceneEntityMovementFrame({ sceneViewMode: activeSceneViewMode, elevationMoveFrame: activeElevationFrame ?? undefined }), [activeElevationFrame, activeSceneViewMode]);
+  const spatialGuideFrame = useMemo(() => createSpatialGuideFrame(activeSceneEntityMovementFrame), [activeSceneEntityMovementFrame]);
+  const spatialSceneSnapshot = useMemo(() => createSpatialSceneSnapshot({ sceneEntities, placedWallGraphs, frame: spatialGuideFrame }), [placedWallGraphs, sceneEntities, spatialGuideFrame]);
   const showFrontOutlineLines = activeSceneViewMode === "elevation";
   const showWallPlanMeasurements = activeSceneViewMode === "floor-plan" && wallSegmentDraft === null;
   const shouldRenderSceneEntityPlacementSurface = activeSceneOperation?.kind === "scene-entity-placement";
@@ -77,8 +81,8 @@ export function DesignSceneRenderer() {
   const selectedSceneEntityRefs = useMemo(() => getSceneEntityRefsFromSelection(activeSelection), [activeSelection]);
   const selectedSceneEntities = useMemo(() => getSceneEntitiesByRefs(sceneEntities, selectedSceneEntityRefs), [sceneEntities, selectedSceneEntityRefs]);
   const selectedSceneEntityBounds = useMemo(() => createSceneEntityBoundsForRefs(sceneEntities, selectedSceneEntityRefs), [sceneEntities, selectedSceneEntityRefs]);
-  const selectedSceneEntityWallMeasurementGuides = useMemo(() => selectedSceneEntityBounds.flatMap((bounds) => buildSceneEntitySpatialMeasurementGuides({ bounds, placedWallGraphs, measurementPolicy: sceneEntityViewPolicy.measurementPolicy, movementFrame: activeSceneEntityMovementFrame })), [activeSceneEntityMovementFrame, placedWallGraphs, sceneEntityViewPolicy.measurementPolicy, selectedSceneEntityBounds]);
-  const placementSceneEntityWallMeasurementGuides = useMemo(() => positionedPlacementSceneEntity === null ? [] : buildSceneEntitySpatialMeasurementGuides({ bounds: createSceneEntityBounds(positionedPlacementSceneEntity), placedWallGraphs, measurementPolicy: sceneEntityViewPolicy.measurementPolicy, movementFrame: activeSceneEntityMovementFrame }), [activeSceneEntityMovementFrame, placedWallGraphs, positionedPlacementSceneEntity, sceneEntityViewPolicy.measurementPolicy]);
+  const selectedSceneEntityWallMeasurementGuides = useMemo(() => selectedSceneEntityBounds.flatMap((bounds) => buildSceneEntitySpatialMeasurementGuides({ bounds, snapshot: spatialSceneSnapshot, measurementPolicy: sceneEntityViewPolicy.measurementPolicy })), [sceneEntityViewPolicy.measurementPolicy, selectedSceneEntityBounds, spatialSceneSnapshot]);
+  const placementSceneEntityWallMeasurementGuides = useMemo(() => positionedPlacementSceneEntity === null ? [] : buildSceneEntitySpatialMeasurementGuides({ bounds: createSceneEntityBounds(positionedPlacementSceneEntity), snapshot: spatialSceneSnapshot, measurementPolicy: sceneEntityViewPolicy.measurementPolicy }), [positionedPlacementSceneEntity, sceneEntityViewPolicy.measurementPolicy, spatialSceneSnapshot]);
   const sceneEntityWallMeasurementGuides = [...selectedSceneEntityWallMeasurementGuides, ...placementSceneEntityWallMeasurementGuides];
   const selectedAssemblyIsWallOpening = selectedAssembly !== null && wallOpeningAssemblyIds.has(selectedAssembly.id);
 

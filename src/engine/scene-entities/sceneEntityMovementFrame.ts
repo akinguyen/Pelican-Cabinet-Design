@@ -34,7 +34,7 @@ export function createSceneEntityMovementFrame(args: {
   elevationMoveFrame?: SceneEntityElevationFrame;
 }): SceneEntityMovementFrame {
   if (args.sceneViewMode === "elevation" && args.elevationMoveFrame !== undefined) {
-    return createWallFaceSceneEntityMovementFrame(args.elevationMoveFrame);
+    return createWallFacePlaneMovementFrame(args.elevationMoveFrame);
   }
 
   return createFloorPlaneSceneEntityMovementFrame();
@@ -50,7 +50,7 @@ export function createFloorPlaneSceneEntityMovementFrame(): SceneEntityMovementF
   };
 }
 
-export function createWallFaceSceneEntityMovementFrame(elevationFrame: SceneEntityElevationFrame): SceneEntityMovementFrame {
+export function createWallFacePlaneMovementFrame(elevationFrame: SceneEntityElevationFrame): SceneEntityMovementFrame {
   return {
     kind: "wall-face-plane",
     originInches: elevationFrame.planeOriginInches,

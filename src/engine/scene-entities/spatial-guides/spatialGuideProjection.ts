@@ -1,30 +1,39 @@
 import type { SceneEntityBounds } from "@/engine/scene-entities/sceneEntityBoundsTypes";
 import type { SpatialGuideFrame } from "./spatialGuideFrame";
 import { projectPointToSpatialGuideFrame } from "./spatialGuideFrame";
-import type { SpatialGuideAnchor, SpatialGuideBounds, SpatialGuideSubject } from "./spatialGuideTypes";
-import type { SceneEntityAlignmentTargetKind } from "@/engine/scene-entities/alignment/sceneEntityAlignmentTypes";
+import type { SceneEntityAlignmentTargetKind, SpatialGuideAnchor, SpatialGuideBounds, SpatialGuideSubject } from "./spatialGuideTypes";
 
 export function createSpatialGuideSubjectFromBounds(args: {
   bounds: SceneEntityBounds;
   frame: SpatialGuideFrame;
 }): SpatialGuideSubject {
-  const uValues = args.bounds.footprintCornersInches.map((pointInches) => projectPointToSpatialGuideFrame({ pointInches, frame: args.frame }).uInches);
-  const nValues = args.bounds.footprintCornersInches.map((pointInches) => projectPointToSpatialGuideFrame({ pointInches, frame: args.frame }).nInches);
-  const vValues = args.frame.kind === "wall-face-plane"
-    ? [args.bounds.heightRangeInches.minZInches, args.bounds.heightRangeInches.maxZInches]
-    : args.bounds.footprintCornersInches.map((pointInches) => projectPointToSpatialGuideFrame({ pointInches, frame: args.frame }).vInches);
-
   return createSpatialGuideSubject({
     id: `${args.bounds.entityKind}:${args.bounds.entityId}`,
     targetKind: "scene-entity",
-    bounds: createSpatialGuideBounds({
-      minUInches: Math.min(...uValues),
-      maxUInches: Math.max(...uValues),
-      minVInches: Math.min(...vValues),
-      maxVInches: Math.max(...vValues),
-      minNInches: Math.min(...nValues),
-      maxNInches: Math.max(...nValues),
-    }),
+    bounds: createSpatialGuideBoundsFromSceneEntityBounds(args),
+  });
+}
+
+export function createSpatialGuideBoundsFromSceneEntityBounds(args: {
+  bounds: SceneEntityBounds;
+  frame: SpatialGuideFrame;
+}): SpatialGuideBounds {
+  const projectedFootprint = args.bounds.footprintCornersInches.map((pointInches) =>
+    projectPointToSpatialGuideFrame({ pointInches, frame: args.frame }),
+  );
+  const uValues = projectedFootprint.map((point) => point.uInches);
+  const nValues = projectedFootprint.map((point) => point.nInches);
+  const vValues = args.frame.kind === "wall-face-plane"
+    ? [args.bounds.heightRangeInches.minZInches, args.bounds.heightRangeInches.maxZInches]
+    : projectedFootprint.map((point) => point.vInches);
+
+  return createSpatialGuideBounds({
+    minUInches: Math.min(...uValues),
+    maxUInches: Math.max(...uValues),
+    minVInches: Math.min(...vValues),
+    maxVInches: Math.max(...vValues),
+    minNInches: Math.min(...nValues),
+    maxNInches: Math.max(...nValues),
   });
 }
 
@@ -93,4 +102,31 @@ function createSpatialGuideAnchors(args: {
     { id: `${args.id}:${args.axis}:center`, axis: args.axis, role: "center", valueInches: args.centerInches },
     { id: `${args.id}:${args.axis}:max`, axis: args.axis, role: "max", valueInches: args.maxInches },
   ];
+}
+
+
+export function createElevationWallFaceBoundsInSpatialFrame(frame: SpatialGuideFrame): SpatialGuideBounds | null {
+  const wallFace = frame.movementFrame.elevationFrame?.wallFaceInches;
+
+  if (frame.kind !== "wall-face-plane" || wallFace === undefined) {
+    return null;
+  }
+
+  const wallFacePoints = [
+    { ...wallFace.faceStartInches, zInches: 0 },
+    { ...wallFace.faceEndInches, zInches: 0 },
+    { ...wallFace.faceStartInches, zInches: wallFace.wallHeightInches },
+    { ...wallFace.faceEndInches, zInches: wallFace.wallHeightInches },
+  ].map((pointInches) => projectPointToSpatialGuideFrame({ pointInches, frame }));
+  const uValues = wallFacePoints.map((point) => point.uInches);
+  const nValues = wallFacePoints.map((point) => point.nInches);
+
+  return createSpatialGuideBounds({
+    minUInches: Math.min(...uValues),
+    maxUInches: Math.max(...uValues),
+    minVInches: 0,
+    maxVInches: wallFace.wallHeightInches,
+    minNInches: Math.min(...nValues),
+    maxNInches: Math.max(...nValues),
+  });
 }

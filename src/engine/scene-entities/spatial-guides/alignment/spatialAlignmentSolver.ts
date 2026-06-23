@@ -1,10 +1,10 @@
 import type { SpatialAlignmentCandidate, SpatialGuideAnchor, SpatialGuideAxis, SpatialGuideSubject } from "../spatialGuideTypes";
 import type { SpatialGuideFrame } from "../spatialGuideFrame";
-import type { SceneEntityAlignmentTargetKind } from "@/engine/scene-entities/alignment/sceneEntityAlignmentTypes";
+import type { SceneEntityAlignmentTargetKind } from "@/engine/scene-entities/spatial-guides/spatialGuideTypes";
 import {
   SCENE_ENTITY_ELEVATION_ALIGNMENT_SNAP_DISTANCE_INCHES,
   SCENE_ENTITY_PLAN_ALIGNMENT_SNAP_DISTANCE_INCHES,
-} from "@/engine/scene-entities/alignment/sceneEntityAlignmentConstants";
+} from "@/engine/scene-entities/spatial-guides/spatialGuideConstants";
 
 export type SpatialAlignmentSolveResult = Readonly<{
   deltaUInches: number;

@@ -1,5 +1,5 @@
 import type { SceneViewMode } from "@/engine/scene/sceneViewModeTypes";
-import type { SceneEntityMeasurementPolicy } from "@/engine/scene-entities/measurement/sceneEntityMeasurementPolicyTypes";
+import type { SceneEntityMeasurementPolicy } from "@/engine/scene-entities/spatial-guides/spatialGuideTypes";
 
 export type SceneEntityViewPolicy = Readonly<{
   sceneViewMode: SceneViewMode;
