@@ -38,5 +38,9 @@ export function formatDesignReservationZonePurposeLabel(purpose: DesignReservati
       return "Filler";
     case "corner":
       return "Corner";
+    case "clearance":
+      return "Clearance";
+    case "leftover":
+      return "Leftover";
   }
 }

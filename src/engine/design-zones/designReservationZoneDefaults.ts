@@ -20,8 +20,8 @@ export const defaultDesignReservationZoneDimensions = {
     heightInches: 84,
   },
   panel: {
-    widthInches: 24,
-    depthInches: 1.5,
+    widthInches: 1.5,
+    depthInches: 24,
     heightInches: 34.5,
   },
   filler: {
@@ -32,6 +32,16 @@ export const defaultDesignReservationZoneDimensions = {
   corner: {
     widthInches: 36,
     depthInches: 36,
+    heightInches: 34.5,
+  },
+  clearance: {
+    widthInches: 12,
+    depthInches: 24,
+    heightInches: 34.5,
+  },
+  leftover: {
+    widthInches: 6,
+    depthInches: 24,
     heightInches: 34.5,
   },
 } satisfies Record<DesignReservationZonePurpose, Size3DInches>;

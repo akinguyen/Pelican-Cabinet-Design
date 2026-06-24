@@ -15,6 +15,8 @@ const designReservationZonePurposeOptions: readonly Readonly<{ value: DesignRese
   { value: "panel", label: "Panel" },
   { value: "filler", label: "Filler" },
   { value: "corner", label: "Corner" },
+  { value: "clearance", label: "Clearance" },
+  { value: "leftover", label: "Leftover" },
 ];
 
 export function DesignReservationZonePropertiesPanel({ zone }: Readonly<{ zone: DesignReservationZone }>) {

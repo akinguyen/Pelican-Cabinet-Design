@@ -8,7 +8,9 @@ export type DesignReservationZonePurpose =
   | "tall-pantry"
   | "panel"
   | "filler"
-  | "corner";
+  | "corner"
+  | "clearance"
+  | "leftover";
 
 export type DesignReservationZone = SceneEntityBase<"design-reservation-zone"> & Readonly<{
   reservedFor: DesignReservationZonePurpose;
