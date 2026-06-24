@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { KitchenEditorToolbar } from "../editor-toolbar/KitchenEditorToolbar";
+import { useKitchenAiDevelopmentStore } from "../ai-development/kitchenAiDevelopmentStore";
+import { AiDesignInProgressOverlay } from "./AiDesignInProgressOverlay";
 import { KitchenWorkspaceAiSidebar } from "./KitchenWorkspaceAiSidebar";
 import { KitchenWorkspaceHeader } from "./KitchenWorkspaceHeader";
 import { KitchenWorkspaceSidebar } from "./KitchenWorkspaceSidebar";
@@ -15,6 +17,7 @@ const collapsedEditorPanelWidthPixels = 56;
 export function KitchenWorkspaceShell({ children }: Readonly<{ children: ReactNode }>) {
   const [isAiPanelCollapsed, setIsAiPanelCollapsed] = useState(false);
   const [isEditorPanelCollapsed, setIsEditorPanelCollapsed] = useState(false);
+  const isAiDevelopmentDesigning = useKitchenAiDevelopmentStore((state) => state.designState === "designing");
   const gridTemplateColumns = useMemo(() => {
     const aiPanelWidthPixels = isAiPanelCollapsed
       ? collapsedAiPanelWidthPixels
@@ -39,7 +42,10 @@ export function KitchenWorkspaceShell({ children }: Readonly<{ children: ReactNo
       <div className="col-start-2 row-start-2 min-w-0">
         <KitchenEditorToolbar />
       </div>
-      <section className="col-start-2 row-start-3 min-h-0 overflow-hidden">{children}</section>
+      <section className="relative col-start-2 row-start-3 min-h-0 overflow-hidden">
+        <div className={isAiDevelopmentDesigning ? "h-full min-h-0 blur-sm" : "h-full min-h-0"}>{children}</div>
+        <AiDesignInProgressOverlay isVisible={isAiDevelopmentDesigning} />
+      </section>
       <KitchenWorkspaceSidebar
         isCollapsed={isEditorPanelCollapsed}
         onToggleCollapsed={() => setIsEditorPanelCollapsed((isCollapsed) => !isCollapsed)}

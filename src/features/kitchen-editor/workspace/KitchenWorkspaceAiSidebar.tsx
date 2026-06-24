@@ -1,7 +1,7 @@
 "use client";
 
 import { Bot } from "lucide-react";
-import { KitchenAiPanel } from "../ai-panel/KitchenAiPanel";
+import { KitchenAiAssistantModePanel } from "../ai-panel/KitchenAiAssistantModePanel";
 import { WorkspacePanelCollapseButton } from "./WorkspacePanelCollapseButton";
 
 type KitchenWorkspaceAiSidebarProps = Readonly<{
@@ -45,7 +45,7 @@ export function KitchenWorkspaceAiSidebar({
           />
         </div>
         <div className="min-h-0 flex-1 overflow-hidden">
-          <KitchenAiPanel />
+          <KitchenAiAssistantModePanel />
         </div>
       </div>
     </aside>
